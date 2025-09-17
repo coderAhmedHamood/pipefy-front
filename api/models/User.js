@@ -20,6 +20,16 @@ class User {
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
     this.deleted_at = data.deleted_at;
+
+    // إضافة معلومات الدور إذا كانت متوفرة
+    if (data.role_name) {
+      this.role = {
+        id: data.role_id,
+        name: data.role_name,
+        description: data.role_description,
+        is_system_role: data.is_system_role
+      };
+    }
   }
 
   // جلب جميع المستخدمين مع الأدوار

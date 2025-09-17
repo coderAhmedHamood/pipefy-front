@@ -8,7 +8,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { KanbanBoard } from './components/kanban/KanbanBoard';
 import { ProcessSelector } from './components/dashboard/ProcessSelector';
 import { ProcessManager } from './components/processes/ProcessManager';
-import { UserManager } from './components/users/UserManager';
+import { UserManagerNew as UserManager } from './components/users/UserManagerNew';
 import { ReportsManager } from './components/reports/ReportsManager';
 import { SettingsManager } from './components/settings/SettingsManager';
 import { HelpCenter } from './components/help/HelpCenter';
