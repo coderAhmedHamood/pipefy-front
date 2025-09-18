@@ -72,40 +72,99 @@ export const ProcessManager: React.FC = () => {
     { value: 'ticket_reviewer', label: 'مراجع التذكرة' }
   ];
 
-  const handleCreateProcess = () => {
-    const newProcess: Partial<Process> = {
-      ...processForm,
-      stages: [
-        {
-          id: '1',
-          name: 'جديد',
-          color: 'bg-gray-500',
-          order: 1,
-          fields: [],
-          transition_rules: [],
-          automation_rules: []
+  const handleCreateProcess = async () => {
+    try {
+      // إعداد بيانات العملية للإرسال إلى API
+      const processData = {
+        name: processForm.name,
+        description: processForm.description || '',
+        color: processForm.color || 'bg-blue-500',
+        icon: processForm.icon || 'FolderOpen',
+        create_default_stages: true, // إنشاء مراحل افتراضية
+        settings: {
+          auto_assign: false,
+          due_date_required: false,
+          priority_required: false,
+          allow_attachments: true,
+          allow_comments: true,
+          default_priority: 'medium',
+          notification_settings: {
+            email_notifications: true,
+            in_app_notifications: true,
+            notify_on_assignment: true,
+            notify_on_stage_change: true,
+            notify_on_due_date: true,
+            notify_on_overdue: true
+          }
         }
-      ],
-      fields: [],
-      settings: {
-        auto_assign: false,
-        due_date_required: false,
-        allow_self_assignment: true,
-        default_priority: 'medium',
-        notification_settings: {
-          email_notifications: true,
-          in_app_notifications: true,
-          notify_on_assignment: true,
-          notify_on_stage_change: true,
-          notify_on_due_date: true,
-          notify_on_overdue: true
-        }
-      }
-    };
+      };
 
-    createProcess(newProcess);
-    setIsCreating(false);
-    setProcessForm({ name: '', description: '', color: 'bg-blue-500', icon: 'FolderOpen' });
+      
+      console.log("🚀 إرسال بيانات العملية إلى API:", processData);
+
+      // الحصول على token المصادقة
+      let token = localStorage.getItem('auth_token');
+
+      // إذا لم يوجد auth_token، جرب token
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+
+      console.log("🔑 Token المستخدم:", token ? `${token.substring(0, 20)}...` : 'غير موجود');
+
+      if (!token) {
+        alert('يجب تسجيل الدخول أولاً');
+        return;
+      }
+
+      // إرسال طلب POST إلى API
+      const response = await fetch('http://localhost:3000/api/processes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(processData)
+      });
+
+      console.log("🚀 استجابة HTTP:", {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      const result = await response.json();
+      console.log("🚀 محتوى الاستجابة:", result);
+
+      // تحقق من نجاح العملية بناءً على HTTP status و محتوى الاستجابة
+      if (response.ok && result.success === true) {
+        console.log("✅ تم إنشاء العملية بنجاح:", result);
+
+        // استخدام البيانات المرجعة من API
+        const processToAdd = result.data;
+
+        // إضافة العملية الجديدة إلى الحالة المحلية
+        createProcess(processToAdd);
+
+        // إغلاق المودال وإعادة تعيين النموذج
+        setIsCreating(false);
+        setProcessForm({ name: '', description: '', color: 'bg-blue-500', icon: 'FolderOpen' });
+
+        alert('تم إنشاء العملية بنجاح!');
+      } else {
+        console.error("❌ فشل في إنشاء العملية:", {
+          status: response.status,
+          statusText: response.statusText,
+          result: result
+        });
+        alert(`فشل في إنشاء العملية: ${result?.message || response.statusText || 'خطأ غير معروف'}`);
+      }
+
+    } catch (error) {
+      console.error("❌ خطأ في الاتصال بـ API:", error);
+      alert('خطأ في الاتصال بالخادم. تأكد من أن الخادم يعمل.');
+    }
   };
 
   const handleAddStage = () => {
