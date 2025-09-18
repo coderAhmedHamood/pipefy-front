@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndContext } from '@dnd-kit/core';
@@ -21,14 +22,33 @@ import { SetupGuide } from './components/setup/SetupGuide';
 import { ApiDocumentation } from './components/api/ApiDocumentation';
 import { Login } from './components/auth/Login';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
+import { DebugInfo } from './components/debug/DebugInfo';
 import { Menu, X, HelpCircle, BookOpen } from 'lucide-react';
 
-const MainApp: React.FC = () => {
+// مكون معلومات المستخدم
+const UserInfo: React.FC = () => {
+  const { user } = useAuth();
+
+  if (!user) return null;
+
+  return (
+    <div className="flex items-center space-x-4 space-x-reverse">
+      <div className="flex items-center space-x-2 space-x-reverse">
+        <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+          <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
+        </div>
+        <div className="text-right">
+          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+          <div className="text-xs text-gray-500">{user.role.name}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// مكون للتعامل مع المسارات المحمية
+const ProtectedRoutes: React.FC = () => {
   const { user, loading } = useAuth();
-  const { processes, selectedProcess, setSelectedProcess } = useWorkflow();
-  const [currentView, setCurrentView] = useState('kanban');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
 
   if (loading) {
     return <LoadingSpinner />;
@@ -38,80 +58,66 @@ const MainApp: React.FC = () => {
     return <Login />;
   }
 
-  const renderContent = () => {
-    switch (currentView) {
-      case 'dashboard':
-        return <MainDashboard />;
-      
-      case 'kanban':
-        if (!selectedProcess) {
-          return (
-            <div className="h-full flex items-center justify-center bg-gray-50">
-              <div className="text-center p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-white font-bold text-xl">ن</span>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">مرحباً بك في نظام إدارة العمليات</h2>
-                <p className="text-gray-600 mb-6">اختر عملية للبدء في العمل على التذاكر</p>
-                <ProcessSelector
-                  processes={processes}
-                  selectedProcess={selectedProcess}
-                  onProcessSelect={setSelectedProcess}
-                />
-              </div>
-            </div>
-          );
-        }
-        return <KanbanBoard process={selectedProcess} />;
-      
-      case 'processes':
-        return (
-          <ProcessManager />
-        );
-      
-      case 'users':
-        return (
-          <UserManager />
-        );
-      
-      case 'reports':
-        return (
-          <ReportsManager />
-        );
-      
-      case 'notifications':
-        return (
-          <NotificationCenter />
-        );
-      
-      case 'automation':
-        return <AutomationManager />;
-      
-      case 'recurring':
-        return <RecurringManager />;
-      
-      case 'integrations':
-        return <IntegrationManager />;
-      
-      case 'setup':
-        return <SetupGuide />;
-      
-      case 'api':
-        return <ApiDocumentation />;
-      
-      case 'settings':
-        return (
-          <SettingsManager />
-        );
-      
-      case 'help':
-        return (
-          <HelpCenter />
-        );
-      
-      default:
-        return <div>غير موجود</div>;
-    }
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/kanban" replace />} />
+      <Route path="/dashboard" element={<MainApp><MainDashboard /></MainApp>} />
+      <Route path="/kanban" element={<MainApp><KanbanContent /></MainApp>} />
+      <Route path="/processes" element={<MainApp><ProcessManager /></MainApp>} />
+      <Route path="/users" element={<MainApp><UserManager /></MainApp>} />
+      <Route path="/reports" element={<MainApp><ReportsManager /></MainApp>} />
+      <Route path="/notifications" element={<MainApp><NotificationCenter /></MainApp>} />
+      <Route path="/automation" element={<MainApp><AutomationManager /></MainApp>} />
+      <Route path="/recurring" element={<MainApp><RecurringManager /></MainApp>} />
+      <Route path="/integrations" element={<MainApp><IntegrationManager /></MainApp>} />
+      <Route path="/setup" element={<MainApp><SetupGuide /></MainApp>} />
+      <Route path="/api" element={<MainApp><ApiDocumentation /></MainApp>} />
+      <Route path="/settings" element={<MainApp><SettingsManager /></MainApp>} />
+      <Route path="/help" element={<MainApp><HelpCenter /></MainApp>} />
+      <Route path="/debug" element={<MainApp><DebugInfo /></MainApp>} />
+      <Route path="*" element={<MainApp><div>غير موجود</div></MainApp>} />
+    </Routes>
+  );
+};
+
+// مكون محتوى الكانبان
+const KanbanContent: React.FC = () => {
+  const { processes, selectedProcess, setSelectedProcess } = useWorkflow();
+
+  if (!selectedProcess) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-white font-bold text-xl">ن</span>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">مرحباً بك في نظام إدارة العمليات</h2>
+          <p className="text-gray-600 mb-6">اختر عملية للبدء في العمل على التذاكر</p>
+          <ProcessSelector
+            processes={processes}
+            selectedProcess={selectedProcess}
+            onProcessSelect={setSelectedProcess}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return <KanbanBoard process={selectedProcess} />;
+};
+
+const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
+
+  // استخراج المسار الحالي
+  const currentView = location.pathname.slice(1) || 'kanban';
+
+  // دالة للتنقل بين الصفحات
+  const handleViewChange = (view: string) => {
+    navigate(`/${view}`);
   };
 
   // وضع الكانبان ملء الشاشة
@@ -136,34 +142,15 @@ const MainApp: React.FC = () => {
                 <h1 className="text-xl font-bold text-gray-900">نظام إدارة العمليات</h1>
               </div>
               
-              {selectedProcess && (
-                <>
-                  <div className="w-px h-6 bg-gray-300"></div>
-                  <ProcessSelector
-                    processes={processes}
-                    selectedProcess={selectedProcess}
-                    onProcessSelect={setSelectedProcess}
-                  />
-                </>
-              )}
+
             </div>
             
-            <div className="flex items-center space-x-4 space-x-reverse">
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                  <div className="text-xs text-gray-500">{user.role.name}</div>
-                </div>
-              </div>
-            </div>
+            <UserInfo />
           </div>
         </div>
 
         <div className="h-[calc(100vh-73px)]">
-          {renderContent()}
+          {children}
         </div>
 
         {/* Sidebar Overlay */}
@@ -177,7 +164,7 @@ const MainApp: React.FC = () => {
                   onToggleCollapse={() => {}}
                   currentView={currentView}
                   onViewChange={(view) => {
-                    setCurrentView(view);
+                    handleViewChange(view);
                     setShowSidebar(false);
                   }}
                 />
@@ -203,24 +190,28 @@ const MainApp: React.FC = () => {
           isCollapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           currentView={currentView}
-          onViewChange={setCurrentView}
+          onViewChange={handleViewChange}
         />
         
         <div className="flex-1 overflow-hidden">
-          {renderContent()}
+          {children}
         </div>
       </div>
     </div>
   );
 };
 
+
+
 function App() {
   return (
-    <AuthProvider>
-      <WorkflowProvider>
-        <MainApp />
-      </WorkflowProvider>
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <WorkflowProvider>
+          <ProtectedRoutes />
+        </WorkflowProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

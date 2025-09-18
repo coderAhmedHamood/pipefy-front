@@ -1,28 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { Process, Stage, ProcessField, FieldType } from '../../types/workflow';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Save, 
-  X, 
-  Settings, 
-  Palette, 
+import { useProcesses } from '../../hooks/useProcesses';
+import { ErrorMessage } from '../ui/ErrorMessage';
+import { ProcessSkeleton, ProcessDetailSkeleton } from '../ui/ProcessSkeleton';
+import CreateProcessModal from './CreateProcessModal';
+import SuccessNotification from '../ui/SuccessNotification';
+import QuickLogin from '../dev/QuickLogin';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  Settings,
+  Palette,
   Layers,
   FileText,
   ArrowRight,
   Copy,
   Eye,
-  EyeOff
+  EyeOff,
+  Search,
+  Filter,
+  RefreshCw
 } from 'lucide-react';
 
 export const ProcessManager: React.FC = () => {
-  const { processes, createProcess, updateProcess, deleteProcess } = useWorkflow();
+  const { isAuthenticated } = useAuth();
+  const {
+    processes,
+    loading,
+    error,
+    pagination,
+    stats,
+    fetchProcesses,
+    fetchProcessStats,
+    refreshProcesses,
+    searchProcesses,
+    createProcess,
+    clearError
+  } = useProcesses();
+
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const [editingField, setEditingField] = useState<ProcessField | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const [processForm, setProcessForm] = useState({
     name: '',
@@ -72,7 +100,7 @@ export const ProcessManager: React.FC = () => {
     { value: 'ticket_reviewer', label: 'مراجع التذكرة' }
   ];
 
-  const handleCreateProcess = () => {
+  const handleCreateProcessOld = () => {
     const newProcess: Partial<Process> = {
       ...processForm,
       stages: [
@@ -182,73 +210,194 @@ export const ProcessManager: React.FC = () => {
       fields: selectedProcess.fields.filter(field => field.id !== fieldId)
     };
 
-    updateProcess(selectedProcess.id, updatedProcess);
+    // updateProcess(selectedProcess.id, updatedProcess);
     setSelectedProcess(updatedProcess);
+  };
+
+  // جلب الإحصائيات عند تحميل المكون
+  useEffect(() => {
+    fetchProcessStats();
+  }, [fetchProcessStats]);
+
+  // البحث مع تأخير
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        searchProcesses(searchQuery);
+      } else {
+        refreshProcesses();
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, searchProcesses, refreshProcesses]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleRefresh = () => {
+    setSearchQuery('');
+    refreshProcesses();
+  };
+
+  const handleCreateProcess = async (processData: Partial<Process>) => {
+    const success = await createProcess(processData);
+    if (success) {
+      setSuccessMessage(`تم إنشاء العملية "${processData.name}" بنجاح`);
+      setShowSuccessNotification(true);
+    }
+    return success;
   };
 
   return (
     <div className="h-full bg-gray-50">
+      {/* Quick Login for Development */}
+      {!isAuthenticated && (
+        <div className="p-4">
+          <QuickLogin onSuccess={() => window.location.reload()} />
+        </div>
+      )}
+
       <div className="bg-white border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">إدارة العمليات</h1>
             <p className="text-gray-600">إنشاء وتعديل العمليات والمراحل والحقول</p>
+            {stats && (
+              <div className="flex items-center space-x-4 space-x-reverse mt-2 text-sm text-gray-500">
+                <span>المجموع: {stats.total_processes}</span>
+                <span>النشطة: {stats.active_processes}</span>
+                <span>المعطلة: {stats.inactive_processes}</span>
+              </div>
+            )}
           </div>
-          
-          <button
-            onClick={() => setIsCreating(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
-          >
-            <Plus className="w-4 h-4" />
-            <span>عملية جديدة</span>
-          </button>
+
+          <div className="flex items-center space-x-3 space-x-reverse">
+            <button
+              onClick={handleRefresh}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              title="تحديث"
+            >
+              <RefreshCw className="w-4 h-4 text-gray-600" />
+            </button>
+
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              title="المرشحات"
+            >
+              <Filter className="w-4 h-4 text-gray-600" />
+            </button>
+
+            <button
+              onClick={() => setIsCreating(true)}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
+            >
+              <Plus className="w-4 h-4" />
+              <span>عملية جديدة</span>
+            </button>
+          </div>
         </div>
+
+        {/* شريط البحث */}
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="البحث في العمليات..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="w-full pr-10 pl-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* رسالة الخطأ */}
+        {error && (
+          <div className="mt-4">
+            <ErrorMessage
+              message={error}
+              onRetry={refreshProcesses}
+              onDismiss={clearError}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex h-[calc(100vh-140px)] overflow-hidden">
         {/* Process List */}
         <div className="w-1/3 bg-white border-r border-gray-200 overflow-y-auto">
           <div className="p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">العمليات ({processes.length})</h3>
-            
-            <div className="space-y-2">
-              {processes.map((process) => (
-                <div
-                  key={process.id}
-                  onClick={() => setSelectedProcess(process)}
-                  className={`
-                    p-4 rounded-lg border cursor-pointer transition-all duration-200
-                    ${selectedProcess?.id === process.id 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }
-                  `}
-                >
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className={`w-8 h-8 ${process.color} rounded-lg flex items-center justify-center`}>
-                      <span className="text-white font-bold text-sm">{process.name.charAt(0)}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{process.name}</h4>
-                      <p className="text-sm text-gray-500 line-clamp-1">{process.description}</p>
-                      <div className="flex items-center space-x-4 space-x-reverse mt-2 text-xs text-gray-400">
-                        <span>{process.stages.length} مرحلة</span>
-                        <span>{process.fields.length} حقل</span>
-                        <span className={process.is_active ? 'text-green-600' : 'text-red-600'}>
-                          {process.is_active ? 'نشط' : 'معطل'}
-                        </span>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">
+                العمليات ({loading ? '...' : processes.length})
+              </h3>
+              {pagination && (
+                <span className="text-xs text-gray-500">
+                  صفحة {pagination.page} من {pagination.total_pages}
+                </span>
+              )}
+            </div>
+
+            {loading ? (
+              <ProcessSkeleton count={5} />
+            ) : processes.length === 0 ? (
+              <div className="text-center py-8">
+                <Settings className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 mb-2">
+                  {searchQuery ? 'لا توجد نتائج للبحث' : 'لا توجد عمليات'}
+                </p>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-blue-600 hover:text-blue-700 text-sm"
+                  >
+                    مسح البحث
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {processes.map((process) => (
+                  <div
+                    key={process.id}
+                    onClick={() => setSelectedProcess(process)}
+                    className={`
+                      p-4 rounded-lg border cursor-pointer transition-all duration-200
+                      ${selectedProcess?.id === process.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center space-x-3 space-x-reverse">
+                      <div className={`w-8 h-8 ${process.color} rounded-lg flex items-center justify-center`}>
+                        <span className="text-white font-bold text-sm">{process.name.charAt(0)}</span>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{process.name}</h4>
+                        <p className="text-sm text-gray-500 line-clamp-1">{process.description}</p>
+                        <div className="flex items-center space-x-4 space-x-reverse mt-2 text-xs text-gray-400">
+                          <span>{process.stages.length} مرحلة</span>
+                          <span>{process.fields.length} حقل</span>
+                          <span className={process.is_active ? 'text-green-600' : 'text-red-600'}>
+                            {process.is_active ? 'نشط' : 'معطل'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Process Details */}
         <div className="flex-1 overflow-y-auto">
-          {selectedProcess ? (
+          {loading && !selectedProcess ? (
+            <ProcessDetailSkeleton />
+          ) : selectedProcess ? (
             <div className="p-6">
               {/* Process Header */}
               <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -506,7 +655,7 @@ export const ProcessManager: React.FC = () => {
                 إلغاء
               </button>
               <button
-                onClick={handleCreateProcess}
+                onClick={handleCreateProcessOld}
                 disabled={!processForm.name}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -800,6 +949,21 @@ export const ProcessManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Create Process Modal */}
+      <CreateProcessModal
+        isOpen={isCreating}
+        onClose={() => setIsCreating(false)}
+        onSubmit={handleCreateProcess}
+        loading={loading}
+      />
+
+      {/* Success Notification */}
+      <SuccessNotification
+        message={successMessage}
+        isVisible={showSuccessNotification}
+        onClose={() => setShowSuccessNotification(false)}
+      />
     </div>
   );
 };

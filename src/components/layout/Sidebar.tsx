@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  Home, 
-  Settings, 
-  Users, 
-  FolderOpen, 
-  BarChart3, 
-  Bell, 
+import { Link, useLocation } from 'react-router-dom';
+import {
+  Home,
+  Settings,
+  Users,
+  FolderOpen,
+  BarChart3,
+  Bell,
   HelpCircle,
   ChevronLeft,
   ChevronRight,
@@ -47,7 +48,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onViewChange
 }) => {
   const { user, logout } = useAuth();
+  const location = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
+  // استخراج المسار الحالي
+  const currentPath = location.pathname.slice(1) || 'kanban';
 
   return (
     <div className={`
@@ -105,18 +110,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentView === item.id;
-            
+            const isActive = currentPath === item.id;
+
             return (
               <li key={item.id}>
-                <button
-                  onClick={() => onViewChange(item.id)}
+                <Link
+                  to={`/${item.id}`}
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={`
                     w-full flex items-center p-3 rounded-lg transition-all duration-200
-                    ${isActive 
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' 
+                    ${isActive
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
                       : 'text-gray-700 hover:bg-gray-100'
                     }
                     ${isCollapsed ? 'justify-center' : 'space-x-3 space-x-reverse'}
@@ -126,8 +131,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {!isCollapsed && (
                     <span className="font-medium text-sm">{item.label}</span>
                   )}
-                </button>
-                
+                </Link>
+
                 {/* Tooltip for collapsed sidebar */}
                 {isCollapsed && hoveredItem === item.id && (
                   <div className="absolute right-20 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
