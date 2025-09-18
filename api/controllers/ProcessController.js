@@ -156,11 +156,17 @@ class ProcessController {
       });
 
     } catch (error) {
-      console.error('خطأ في إنشاء العملية:', error);
+      console.error('خطأ في إنشاء العملية:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code
+      });
       res.status(500).json({
         success: false,
         message: 'حدث خطأ في إنشاء العملية',
-        error: error.message
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   }
