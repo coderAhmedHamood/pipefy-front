@@ -130,7 +130,7 @@ router.get('/', authenticateToken, IntegrationController.getAll);
 
 /**
  * @swagger
- * /api/api/integrations/{id}:
+ * /api/integrations/{id}:
  *   get:
  *     summary: جلب تكامل واحد
  *     tags: [Integrations]
@@ -230,7 +230,7 @@ router.post('/', authenticateToken, IntegrationController.create);
 
 /**
  * @swagger
- * /api/api/integrations/{id}:
+ * /api/integrations/{id}:
  *   put:
  *     summary: تحديث تكامل
  *     tags: [Integrations]
@@ -277,7 +277,7 @@ router.put('/:id', authenticateToken, IntegrationController.update);
 
 /**
  * @swagger
- * /api/api/integrations/{id}:
+ * /api/integrations/{id}:
  *   delete:
  *     summary: حذف تكامل
  *     tags: [Integrations]
@@ -301,7 +301,7 @@ router.delete('/:id', authenticateToken, IntegrationController.delete);
 
 /**
  * @swagger
- * /api/api/integrations/{id}/test:
+ * /api/integrations/{id}/test:
  *   post:
  *     summary: اختبار تكامل
  *     tags: [Integrations]

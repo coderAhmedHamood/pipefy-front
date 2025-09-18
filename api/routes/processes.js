@@ -689,7 +689,7 @@ router.post('/from-template', authenticateToken, requirePermissions(['processes.
 
 /**
  * @swagger
- * /api/api/processes/{id}:
+ * /api/processes/{id}:
  *   put:
  *     summary: تحديث عملية
  *     tags: [Processes]
@@ -733,7 +733,7 @@ router.put('/:id', authenticateToken, requirePermissions(['processes.update']), 
 
 /**
  * @swagger
- * /api/api/processes/{id}:
+ * /api/processes/{id}:
  *   delete:
  *     summary: حذف عملية
  *     tags: [Processes]
@@ -758,7 +758,7 @@ router.delete('/:id', authenticateToken, requirePermissions(['processes.delete']
 
 /**
  * @swagger
- * /api/api/processes/{id}/stats:
+ * /api/processes/{id}/stats:
  *   get:
  *     summary: جلب إحصائيات العملية
  *     tags: [Processes]
@@ -803,7 +803,7 @@ router.get('/:id/stats', authenticateToken, ProcessController.getProcessStats);
 
 /**
  * @swagger
- * /api/api/processes/{id}/performance:
+ * /api/processes/{id}/performance:
  *   get:
  *     summary: تحليل أداء العملية
  *     tags: [Processes]
@@ -834,7 +834,7 @@ router.get('/:id/performance', authenticateToken, requirePermissions(['processes
 
 /**
  * @swagger
- * /api/api/processes/{id}/stage-order:
+ * /api/processes/{id}/stage-order:
  *   put:
  *     summary: تحديث ترتيب المراحل
  *     tags: [Processes]
@@ -876,7 +876,7 @@ router.put('/:id/stage-order', authenticateToken, requirePermissions(['processes
 
 /**
  * @swagger
- * /api/api/processes/{id}/field-order:
+ * /api/processes/{id}/field-order:
  *   put:
  *     summary: تحديث ترتيب الحقول
  *     tags: [Processes]
@@ -916,7 +916,7 @@ router.put('/:id/field-order', authenticateToken, requirePermissions(['processes
 
 /**
  * @swagger
- * /api/api/processes/{id}/smart-transitions:
+ * /api/processes/{id}/smart-transitions:
  *   post:
  *     summary: إنشاء انتقالات ذكية بين المراحل
  *     tags: [Processes]
@@ -937,7 +937,7 @@ router.post('/:id/smart-transitions', authenticateToken, requirePermissions(['pr
 
 /**
  * @swagger
- * /api/api/processes/{id}/duplicate:
+ * /api/processes/{id}/duplicate:
  *   post:
  *     summary: نسخ عملية
  *     tags: [Processes]

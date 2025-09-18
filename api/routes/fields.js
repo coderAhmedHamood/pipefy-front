@@ -319,7 +319,7 @@ const FieldController = require('../controllers/FieldController');
 
 /**
  * @swagger
- * /api/api/fields/{id}:
+ * /api/fields/{id}:
  *   get:
  *     summary: جلب حقل محدد
  *     description: جلب تفاصيل حقل معين بالمعرف

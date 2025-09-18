@@ -58,7 +58,7 @@ const { authenticateToken } = require('../middleware/auth');
 
 /**
  * @swagger
- * /api/api/tickets/{ticket_id}/attachments:
+ * /api/tickets/{ticket_id}/attachments:
  *   get:
  *     summary: جلب مرفقات تذكرة
  *     tags: [Attachments]
@@ -105,7 +105,7 @@ router.get('/tickets/:ticket_id/attachments', authenticateToken, AttachmentContr
 
 /**
  * @swagger
- * /api/api/tickets/{ticket_id}/attachments:
+ * /api/tickets/{ticket_id}/attachments:
  *   post:
  *     summary: رفع مرفقات جديدة
  *     tags: [Attachments]
@@ -163,7 +163,7 @@ router.post('/tickets/:ticket_id/attachments', authenticateToken, AttachmentCont
 
 /**
  * @swagger
- * /api/api/attachments/{id}:
+ * /api/attachments/{id}:
  *   get:
  *     summary: جلب معلومات مرفق
  *     tags: [Attachments]
@@ -221,7 +221,7 @@ router.get('/:id', authenticateToken, AttachmentController.getById);
 
 /**
  * @swagger
- * /api/api/attachments/{id}/download:
+ * /api/attachments/{id}/download:
  *   get:
  *     summary: تحميل مرفق
  *     tags: [Attachments]
@@ -259,7 +259,7 @@ router.get('/:id/download', authenticateToken, AttachmentController.download);
 
 /**
  * @swagger
- * /api/api/attachments/{id}:
+ * /api/attachments/{id}:
  *   delete:
  *     summary: حذف مرفق
  *     tags: [Attachments]

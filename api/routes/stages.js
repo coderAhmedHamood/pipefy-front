@@ -271,7 +271,7 @@ const StageController = require('../controllers/StageController');
 
 /**
  * @swagger
- * /api/api/stages/{id}:
+ * /api/stages/{id}:
  *   get:
  *     summary: جلب مرحلة محددة
  *     description: جلب تفاصيل مرحلة معينة بالمعرف
