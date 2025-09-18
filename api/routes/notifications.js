@@ -255,7 +255,7 @@ router.post('/bulk', authenticateToken, NotificationController.sendBulkNotificat
 
 /**
  * @swagger
- * /api/api/notifications/{id}/read:
+ * /api/notifications/{id}/read:
  *   patch:
  *     summary: تحديد إشعار كمقروء
  *     tags: [Notifications]
@@ -318,7 +318,7 @@ router.patch('/mark-all-read', authenticateToken, NotificationController.markAll
 
 /**
  * @swagger
- * /api/api/notifications/{id}:
+ * /api/notifications/{id}:
  *   delete:
  *     summary: حذف إشعار
  *     tags: [Notifications]

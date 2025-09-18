@@ -149,7 +149,7 @@ router.get('/rules', authenticateToken, RecurringController.getAll);
 
 /**
  * @swagger
- * /api/api/recurring/rules/{id}:
+ * /api/recurring/rules/{id}:
  *   get:
  *     summary: جلب قاعدة تكرار واحدة
  *     tags: [Recurring]
@@ -258,7 +258,7 @@ router.post('/rules', authenticateToken, RecurringController.create);
 
 /**
  * @swagger
- * /api/api/recurring/rules/{id}:
+ * /api/recurring/rules/{id}:
  *   put:
  *     summary: تحديث قاعدة تكرار
  *     tags: [Recurring]
@@ -303,7 +303,7 @@ router.put('/rules/:id', authenticateToken, RecurringController.update);
 
 /**
  * @swagger
- * /api/api/recurring/rules/{id}:
+ * /api/recurring/rules/{id}:
  *   delete:
  *     summary: حذف قاعدة تكرار
  *     tags: [Recurring]
@@ -327,7 +327,7 @@ router.delete('/rules/:id', authenticateToken, RecurringController.delete);
 
 /**
  * @swagger
- * /api/api/recurring/rules/{id}/execute:
+ * /api/recurring/rules/{id}/execute:
  *   post:
  *     summary: تشغيل قاعدة تكرار يدوياً
  *     tags: [Recurring]

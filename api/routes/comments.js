@@ -53,7 +53,7 @@ const { authenticateToken } = require('../middleware/auth');
 
 /**
  * @swagger
- * /api/api/tickets/{ticket_id}/comments:
+ * /api/tickets/{ticket_id}/comments:
  *   get:
  *     summary: جلب تعليقات تذكرة
  *     tags: [Comments]
@@ -100,7 +100,7 @@ router.get('/tickets/:ticket_id/comments', authenticateToken, CommentController.
 
 /**
  * @swagger
- * /api/api/tickets/{ticket_id}/comments:
+ * /api/tickets/{ticket_id}/comments:
  *   post:
  *     summary: إضافة تعليق جديد
  *     tags: [Comments]
@@ -154,7 +154,7 @@ router.post('/tickets/:ticket_id/comments', authenticateToken, CommentController
 
 /**
  * @swagger
- * /api/api/comments/{id}:
+ * /api/comments/{id}:
  *   get:
  *     summary: جلب تعليق واحد
  *     tags: [Comments]
@@ -212,7 +212,7 @@ router.get('/:id', authenticateToken, CommentController.getById);
 
 /**
  * @swagger
- * /api/api/comments/{id}:
+ * /api/comments/{id}:
  *   put:
  *     summary: تحديث تعليق
  *     tags: [Comments]
@@ -266,7 +266,7 @@ router.put('/:id', authenticateToken, CommentController.update);
 
 /**
  * @swagger
- * /api/api/comments/{id}:
+ * /api/comments/{id}:
  *   delete:
  *     summary: حذف تعليق
  *     tags: [Comments]

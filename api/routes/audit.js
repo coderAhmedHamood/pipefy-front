@@ -132,7 +132,7 @@ router.get('/logs', authenticateToken, AuditController.getAll);
 
 /**
  * @swagger
- * /api/api/audit/logs/{id}:
+ * /api/audit/logs/{id}:
  *   get:
  *     summary: جلب سجل تدقيق واحد
  *     tags: [Audit]

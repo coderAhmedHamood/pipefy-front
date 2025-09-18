@@ -135,7 +135,7 @@ router.get('/rules', authenticateToken, AutomationController.getAll);
 
 /**
  * @swagger
- * /api/api/automation/rules/{id}:
+ * /api/automation/rules/{id}:
  *   get:
  *     summary: جلب قاعدة أتمتة واحدة
  *     tags: [Automation]
@@ -244,7 +244,7 @@ router.post('/rules', authenticateToken, AutomationController.create);
 
 /**
  * @swagger
- * /api/api/automation/rules/{id}:
+ * /api/automation/rules/{id}:
  *   put:
  *     summary: تحديث قاعدة أتمتة
  *     tags: [Automation]
@@ -291,7 +291,7 @@ router.put('/rules/:id', authenticateToken, AutomationController.update);
 
 /**
  * @swagger
- * /api/api/automation/rules/{id}:
+ * /api/automation/rules/{id}:
  *   delete:
  *     summary: حذف قاعدة أتمتة
  *     tags: [Automation]
@@ -315,7 +315,7 @@ router.delete('/rules/:id', authenticateToken, AutomationController.delete);
 
 /**
  * @swagger
- * /api/api/automation/rules/{id}/execute:
+ * /api/automation/rules/{id}/execute:
  *   post:
  *     summary: تشغيل قاعدة أتمتة يدوياً
  *     tags: [Automation]
@@ -352,7 +352,7 @@ router.post('/rules/:id/execute', authenticateToken, AutomationController.execut
 
 /**
  * @swagger
- * /api/api/automation/rules/{id}/executions:
+ * /api/automation/rules/{id}/executions:
  *   get:
  *     summary: جلب سجل تنفيذ قاعدة أتمتة
  *     tags: [Automation]
