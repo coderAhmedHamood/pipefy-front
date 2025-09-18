@@ -295,7 +295,103 @@ router.get('/templates', authenticateToken, ProcessController.getProcessTemplate
 
 /**
  * @swagger
- * /api/api/processes/{id}:
+ * /api/processes/frontend:
+ *   get:
+ *     summary: جلب العمليات بتنسيق الفرونت إند
+ *     tags: [Processes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *         description: فلترة العمليات النشطة
+ *       - in: query
+ *         name: created_by
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: فلترة حسب منشئ العملية
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: عدد النتائج
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: تخطي النتائج
+ *       - in: query
+ *         name: demo
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: إرجاع بيانات تجريبية بدلاً من البيانات الحقيقية
+ *     responses:
+ *       200:
+ *         description: تم جلب العمليات بنجاح بتنسيق الفرونت إند
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: "1"
+ *                       name:
+ *                         type: string
+ *                         example: "المشتريات"
+ *                       description:
+ *                         type: string
+ *                         example: "إدارة عمليات الشراء والتوريد"
+ *                       color:
+ *                         type: string
+ *                         example: "bg-blue-500"
+ *                       icon:
+ *                         type: string
+ *                         example: "ShoppingCart"
+ *                       stages:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                       fields:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                       settings:
+ *                         type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     limit:
+ *                       type: integer
+ *                     offset:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *       401:
+ *         description: غير مصرح
+ *       500:
+ *         description: خطأ في الخادم
+ */
+router.get('/frontend', authenticateToken, ProcessController.getProcessesForFrontend);
+
+/**
+ * @swagger
+ * /api/processes/{id}:
  *   get:
  *     summary: جلب عملية بالمعرف
  *     tags: [Processes]

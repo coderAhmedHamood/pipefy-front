@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Process, Ticket, Stage } from '../types/workflow';
+import { useAuth } from './AuthContext';
 
 interface WorkflowContextType {
   processes: Process[];
@@ -28,15 +29,19 @@ export const useWorkflow = () => {
 };
 
 export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [processes, setProcesses] = useState<Process[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // محاكاة تحميل البيانات
-    loadMockData();
-  }, []);
+    // انتظار تحميل المصادقة أولاً
+    if (!authLoading) {
+      // جلب البيانات من API
+      loadProcessesFromAPI();
+    }
+  }, [authLoading, isAuthenticated]);
 
   // إنشاء بيانات تجريبية كبيرة
   const generateLargeTicketData = (mockProcesses: Process[]) => {
@@ -168,11 +173,116 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return largeTickets;
   };
 
-  const loadMockData = async () => {
+  const loadProcessesFromAPI = async () => {
     setLoading(true);
-    
-    // بيانات تجريبية موسعة للعمليات
-    const mockProcesses: Process[] = [
+
+    try {
+      // جلب رمز المصادقة من localStorage
+      const token = localStorage.getItem('auth_token');
+      console.log("token==="+token);
+      // جلب العمليات من API
+      const response = await fetch('http://localhost:3000/api/processes/frontend', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(data);
+
+      if (data.success && data.data) {
+        // تحويل البيانات إلى تنسيق Process
+        const apiProcesses: Process[] = data.data.map((process: any) => ({
+          id: process.id.toString(),
+          name: process.name,
+          description: process.description || '',
+          color: process.color || 'bg-blue-500',
+          icon: process.icon || 'FolderOpen',
+          created_by: process.created_by?.toString() || '1',
+          created_at: process.created_at,
+          is_active: process.is_active,
+          stages: (process.stages || []).map((stage: any) => ({
+            id: stage.id.toString(),
+            name: stage.name,
+            color: stage.color || 'bg-gray-500',
+            order: stage.order || 1,
+            priority: stage.priority || 1,
+            description: stage.description || '',
+            fields: stage.fields || [],
+            transition_rules: (stage.transition_rules || []).map((rule: any) => ({
+              id: rule.id.toString(),
+              from_stage_id: rule.from_stage_id.toString(),
+              to_stage_id: rule.to_stage_id.toString(),
+              is_default: rule.is_default || false,
+              transition_type: rule.transition_type || 'single'
+            })),
+            automation_rules: stage.automation_rules || [],
+            allowed_transitions: stage.allowed_transitions || [],
+            is_initial: stage.is_initial || false
+          })),
+          fields: (process.fields || []).map((field: any) => ({
+            id: field.id.toString(),
+            name: field.name,
+            type: field.type,
+            required: field.required || false,
+            options: field.options || [],
+            description: field.description || '',
+            order: field.order || 1,
+            validation_rules: field.validation_rules || {},
+            default_value: field.default_value,
+            placeholder: field.placeholder || '',
+            help_text: field.help_text || ''
+          })),
+          settings: process.settings || {
+            auto_assign: false,
+            due_date_required: false,
+            priority_required: false,
+            allow_attachments: true,
+            allow_comments: true,
+            default_priority: 'medium',
+            notification_settings: {
+              email_notifications: true,
+              in_app_notifications: true,
+              notify_on_assignment: true,
+              notify_on_stage_change: true,
+              notify_on_due_date: true,
+              notify_on_overdue: true
+            }
+          }
+        }));
+
+        setProcesses(apiProcesses);
+
+        // إنشاء بيانات تجريبية للتذاكر إذا كانت العمليات موجودة
+        if (apiProcesses.length > 0) {
+          const mockTickets = generateLargeTicketData(apiProcesses);
+          setTickets(mockTickets);
+          setSelectedProcess(apiProcesses[0]);
+        }
+
+      } else {
+        console.error('فشل في جلب العمليات:', data.message);
+        // في حالة الفشل، استخدم بيانات تجريبية بسيطة
+        loadFallbackData();
+      }
+
+    } catch (error) {
+      console.error('خطأ في جلب العمليات من API:', error);
+      // في حالة الخطأ، استخدم بيانات تجريبية بسيطة
+      // loadFallbackData();
+    }
+
+    setLoading(false);
+  };
+
+  const loadFallbackData = () => {
+    // بيانات تجريبية بسيطة في حالة فشل API
+    const fallbackProcesses: Process[] = [
       {
         id: '1',
         name: 'المشتريات',
@@ -192,7 +302,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             description: 'طلبات شراء جديدة',
             fields: [],
             transition_rules: [
-              { id: '1', from_stage_id: '1-1', to_stage_id: '1-2', is_default: true }
+              { id: '1', from_stage_id: '1-1', to_stage_id: '1-2', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['1-2'],
@@ -207,8 +317,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             description: 'مراجعة الطلبات',
             fields: [],
             transition_rules: [
-              { id: '2', from_stage_id: '1-2', to_stage_id: '1-3', is_default: true },
-              { id: '3', from_stage_id: '1-2', to_stage_id: '1-1' }
+              { id: '2', from_stage_id: '1-2', to_stage_id: '1-3', is_default: true, transition_type: 'single' },
+              { id: '3', from_stage_id: '1-2', to_stage_id: '1-1', transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['1-3', '1-1']
@@ -222,7 +332,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             description: 'موافقة على الطلبات',
             fields: [],
             transition_rules: [
-              { id: '4', from_stage_id: '1-3', to_stage_id: '1-4', is_default: true }
+              { id: '4', from_stage_id: '1-3', to_stage_id: '1-4', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['1-4', '1-2']
@@ -236,7 +346,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             description: 'تنفيذ عمليات الشراء',
             fields: [],
             transition_rules: [
-              { id: '5', from_stage_id: '1-4', to_stage_id: '1-5', is_default: true }
+              { id: '5', from_stage_id: '1-4', to_stage_id: '1-5', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['1-5']
@@ -351,7 +461,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 1,
             fields: [],
             transition_rules: [
-              { id: '6', from_stage_id: '2-1', to_stage_id: '2-2', is_default: true }
+              { id: '6', from_stage_id: '2-1', to_stage_id: '2-2', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['2-2'],
@@ -365,7 +475,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 2,
             fields: [],
             transition_rules: [
-              { id: '7', from_stage_id: '2-2', to_stage_id: '2-3', is_default: true }
+              { id: '7', from_stage_id: '2-2', to_stage_id: '2-3', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['2-3', '2-1']
@@ -378,7 +488,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 3,
             fields: [],
             transition_rules: [
-              { id: '8', from_stage_id: '2-3', to_stage_id: '2-4', is_default: true }
+              { id: '8', from_stage_id: '2-3', to_stage_id: '2-4', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['2-4', '2-2']
@@ -391,7 +501,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 4,
             fields: [],
             transition_rules: [
-              { id: '9', from_stage_id: '2-4', to_stage_id: '2-5', is_default: true }
+              { id: '9', from_stage_id: '2-4', to_stage_id: '2-5', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['2-5', '2-3']
@@ -505,7 +615,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 1,
             fields: [],
             transition_rules: [
-              { id: '10', from_stage_id: '3-1', to_stage_id: '3-2', is_default: true }
+              { id: '10', from_stage_id: '3-1', to_stage_id: '3-2', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['3-2'],
@@ -519,7 +629,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 2,
             fields: [],
             transition_rules: [
-              { id: '11', from_stage_id: '3-2', to_stage_id: '3-3', is_default: true }
+              { id: '11', from_stage_id: '3-2', to_stage_id: '3-3', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['3-3', '3-1']
@@ -532,7 +642,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 3,
             fields: [],
             transition_rules: [
-              { id: '12', from_stage_id: '3-3', to_stage_id: '3-4', is_default: true }
+              { id: '12', from_stage_id: '3-3', to_stage_id: '3-4', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['3-4', '3-2']
@@ -637,7 +747,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 1,
             fields: [],
             transition_rules: [
-              { id: '13', from_stage_id: '4-1', to_stage_id: '4-2', is_default: true }
+              { id: '13', from_stage_id: '4-1', to_stage_id: '4-2', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['4-2'],
@@ -651,7 +761,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 2,
             fields: [],
             transition_rules: [
-              { id: '14', from_stage_id: '4-2', to_stage_id: '4-3', is_default: true }
+              { id: '14', from_stage_id: '4-2', to_stage_id: '4-3', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['4-3', '4-1']
@@ -664,7 +774,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 3,
             fields: [],
             transition_rules: [
-              { id: '15', from_stage_id: '4-3', to_stage_id: '4-4', is_default: true }
+              { id: '15', from_stage_id: '4-3', to_stage_id: '4-4', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['4-4', '4-2']
@@ -779,7 +889,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 1,
             fields: [],
             transition_rules: [
-              { id: '16', from_stage_id: '5-1', to_stage_id: '5-2', is_default: true }
+              { id: '16', from_stage_id: '5-1', to_stage_id: '5-2', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['5-2'],
@@ -793,7 +903,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 2,
             fields: [],
             transition_rules: [
-              { id: '17', from_stage_id: '5-2', to_stage_id: '5-3', is_default: true }
+              { id: '17', from_stage_id: '5-2', to_stage_id: '5-3', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['5-3', '5-1']
@@ -806,7 +916,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             priority: 3,
             fields: [],
             transition_rules: [
-              { id: '18', from_stage_id: '5-3', to_stage_id: '5-4', is_default: true }
+              { id: '18', from_stage_id: '5-3', to_stage_id: '5-4', is_default: true, transition_type: 'single' }
             ],
             automation_rules: [],
             allowed_transitions: ['5-4', '5-2']
@@ -911,11 +1021,11 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     ];
 
     // إنشاء بيانات تجريبية كبيرة
-    const mockTickets = generateLargeTicketData(mockProcesses);
+    const mockTickets = generateLargeTicketData(fallbackProcesses);
 
-    setProcesses(mockProcesses);
+    setProcesses(fallbackProcesses);
     setTickets(mockTickets);
-    setSelectedProcess(mockProcesses[0]);
+    setSelectedProcess(fallbackProcesses[0]);
     setLoading(false);
   };
 
