@@ -28,14 +28,14 @@ import {
 } from 'lucide-react';
 
 export const ProcessManager: React.FC = () => {
-  const { processes, createProcess, updateProcess, deleteProcess } = useWorkflow();
-  const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
+  const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, removeFieldFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const [editingField, setEditingField] = useState<ProcessField | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isCreatingField, setIsCreatingField] = useState(false);
+  const [isDeletingField, setIsDeletingField] = useState<string | null>(null);
 
   const [processForm, setProcessForm] = useState({
     name: '',
@@ -408,14 +408,17 @@ export const ProcessManager: React.FC = () => {
 
       if (response.ok && result.success === true) {
         console.log('✅ تم إنشاء الحقل بنجاح:', result);
+        console.log('📋 العملية المختارة قبل التحديث:', selectedProcess);
+        console.log('📋 عدد الحقول قبل التحديث:', selectedProcess?.fields?.length || 0);
 
-        // تحديث العملية المختارة بالحقل الجديد
-        const updatedProcess = {
-          ...selectedProcess,
-          fields: [...selectedProcess.fields, result.data]
-        };
+        // استخدام الدالة المحسنة لتحديث الحالة بكفاءة
+        addFieldToProcess(selectedProcess.id, result.data);
 
-        setSelectedProcess(updatedProcess);
+        // انتظار قصير للتأكد من تحديث الحالة
+        setTimeout(() => {
+          console.log('📋 العملية المختارة بعد التحديث:', selectedProcess);
+          console.log('📋 عدد الحقول بعد التحديث:', selectedProcess?.fields?.length || 0);
+        }, 100);
 
         // إعادة تعيين النموذج وإغلاق المودال
         setFieldForm({ name: '', type: 'text', is_required: false, options: [] });
@@ -435,24 +438,94 @@ export const ProcessManager: React.FC = () => {
     }
   };
 
+  const handleDeleteField = async (fieldId: string) => {
+    try {
+      if (!selectedProcess) {
+        alert('لم يتم اختيار عملية لحذف الحقل منها');
+        return;
+      }
+
+      // العثور على الحقل للتحقق من أنه ليس حقل نظام
+      const field = selectedProcess.fields.find(f => f.id === fieldId);
+      if (!field) {
+        alert('الحقل غير موجود');
+        return;
+      }
+
+      if (field.is_system_field) {
+        alert('لا يمكن حذف حقول النظام');
+        return;
+      }
+
+      // تأكيد الحذف
+      const confirmDelete = window.confirm(
+        `هل أنت متأكد من حذف الحقل "${field.name}"؟\n\nسيتم حذف جميع البيانات المرتبطة بهذا الحقل نهائياً.`
+      );
+
+      if (!confirmDelete) {
+        return;
+      }
+
+      setIsDeletingField(fieldId);
+
+      // الحصول على token المصادقة
+      let token = localStorage.getItem('auth_token');
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+
+      if (!token) {
+        console.error('❌ رمز الوصول مطلوب لحذف الحقل');
+        alert('يجب تسجيل الدخول أولاً');
+        return;
+      }
+
+      console.log('🗑️ حذف الحقل:', fieldId);
+
+      // إرسال طلب DELETE إلى API
+      const response = await fetch(`http://localhost:3000/api/fields/${fieldId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('🚀 استجابة HTTP:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      const result = await response.json();
+      console.log('🚀 محتوى الاستجابة:', result);
+
+      if (response.ok && result.success === true) {
+        console.log('✅ تم حذف الحقل بنجاح:', result);
+
+        // استخدام الدالة المحسنة لحذف الحقل من الحالة بكفاءة
+        removeFieldFromProcess(selectedProcess.id, fieldId);
+
+        alert('تم حذف الحقل بنجاح!');
+      } else {
+        console.error('❌ فشل في حذف الحقل:', result);
+        alert(`فشل في حذف الحقل: ${result?.message || 'خطأ غير معروف'}`);
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في حذف الحقل:', error);
+      alert(`خطأ في حذف الحقل: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+    } finally {
+      setIsDeletingField(null);
+    }
+  };
+
   const handleDeleteStage = (stageId: string) => {
     if (!selectedProcess) return;
 
     const updatedProcess = {
       ...selectedProcess,
       stages: selectedProcess.stages.filter(stage => stage.id !== stageId)
-    };
-
-    updateProcess(selectedProcess.id, updatedProcess);
-    setSelectedProcess(updatedProcess);
-  };
-
-  const handleDeleteField = (fieldId: string) => {
-    if (!selectedProcess) return;
-
-    const updatedProcess = {
-      ...selectedProcess,
-      fields: selectedProcess.fields.filter(field => field.id !== fieldId)
     };
 
     updateProcess(selectedProcess.id, updatedProcess);
@@ -691,9 +764,14 @@ export const ProcessManager: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleDeleteField(field.id)}
-                          className="p-1 rounded hover:bg-red-50"
+                          disabled={isDeletingField === field.id}
+                          className="p-1 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                         >
-                          <Trash2 className="w-4 h-4 text-red-500" />
+                          {isDeletingField === field.id ? (
+                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          )}
                         </button>
                       </div>
                     </div>

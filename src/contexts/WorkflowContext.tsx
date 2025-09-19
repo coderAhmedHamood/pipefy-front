@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Process, Ticket, Stage } from '../types/workflow';
+import { Process, Ticket, Stage, ProcessField } from '../types/workflow';
 import { useAuth } from './AuthContext';
 
 interface WorkflowContextType {
@@ -16,6 +16,8 @@ interface WorkflowContextType {
   updateProcess: (processId: string, updates: Partial<Process>) => Promise<boolean>;
   deleteProcess: (processId: string) => Promise<boolean>;
   getProcessUsers: (processId: string) => User[];
+  addFieldToProcess: (processId: string, newField: ProcessField) => void;
+  removeFieldFromProcess: (processId: string, fieldId: string) => void;
 }
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
@@ -1519,6 +1521,73 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return processUsersMap[processId] || [];
   };
 
+  // إضافة حقل جديد إلى عملية محددة
+  const addFieldToProcess = (processId: string, newField: ProcessField) => {
+    console.log('🔄 إضافة حقل جديد إلى العملية:', processId, newField);
+    console.log('📋 العملية المختارة الحالية:', selectedProcess);
+    console.log('📋 عدد الحقول الحالي:', selectedProcess?.fields?.length || 0);
+
+    // تحديث قائمة العمليات في الحالة العامة
+    setProcesses(prevProcesses => {
+      const updatedProcesses = prevProcesses.map(process =>
+        process.id === processId
+          ? { ...process, fields: [...process.fields, newField] }
+          : process
+      );
+      console.log('📋 تم تحديث قائمة العمليات');
+      return updatedProcesses;
+    });
+
+    // تحديث العملية المختارة إذا كانت هي نفس العملية
+    setSelectedProcess(prevSelected => {
+      if (prevSelected && prevSelected.id === processId) {
+        const updatedSelected = { ...prevSelected, fields: [...prevSelected.fields, newField] };
+        console.log('📋 تم تحديث العملية المختارة:', updatedSelected);
+        console.log('📋 عدد الحقول الجديد:', updatedSelected.fields.length);
+        return updatedSelected;
+      }
+      console.log('📋 لم يتم تحديث العملية المختارة - العملية غير متطابقة');
+      return prevSelected;
+    });
+
+    console.log('✅ تم تحديث الحقول في الحالة المحلية');
+  };
+
+  // حذف حقل من عملية محددة
+  const removeFieldFromProcess = (processId: string, fieldId: string) => {
+    console.log('🗑️ حذف حقل من العملية:', processId, fieldId);
+    console.log('📋 العملية المختارة الحالية:', selectedProcess);
+    console.log('📋 عدد الحقول الحالي:', selectedProcess?.fields?.length || 0);
+
+    // تحديث قائمة العمليات في الحالة العامة
+    setProcesses(prevProcesses => {
+      const updatedProcesses = prevProcesses.map(process =>
+        process.id === processId
+          ? { ...process, fields: process.fields.filter(field => field.id !== fieldId) }
+          : process
+      );
+      console.log('📋 تم تحديث قائمة العمليات - حذف الحقل');
+      return updatedProcesses;
+    });
+
+    // تحديث العملية المختارة إذا كانت هي نفس العملية
+    setSelectedProcess(prevSelected => {
+      if (prevSelected && prevSelected.id === processId) {
+        const updatedSelected = {
+          ...prevSelected,
+          fields: prevSelected.fields.filter(field => field.id !== fieldId)
+        };
+        console.log('📋 تم تحديث العملية المختارة - حذف الحقل:', updatedSelected);
+        console.log('📋 عدد الحقول الجديد:', updatedSelected.fields.length);
+        return updatedSelected;
+      }
+      console.log('📋 لم يتم تحديث العملية المختارة - العملية غير متطابقة');
+      return prevSelected;
+    });
+
+    console.log('✅ تم حذف الحقل من الحالة المحلية');
+  };
+
   const value = {
     processes,
     tickets,
@@ -1532,7 +1601,9 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     createProcess,
     updateProcess,
     deleteProcess,
-    getProcessUsers
+    getProcessUsers,
+    addFieldToProcess,
+    removeFieldFromProcess
   };
 
   return (
