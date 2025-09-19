@@ -18,6 +18,8 @@ interface WorkflowContextType {
   getProcessUsers: (processId: string) => User[];
   addFieldToProcess: (processId: string, newField: ProcessField) => void;
   removeFieldFromProcess: (processId: string, fieldId: string) => void;
+  addStageToProcess: (processId: string, newStage: Stage) => void;
+  removeStageFromProcess: (processId: string, stageId: string) => void;
 }
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
@@ -1588,6 +1590,73 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.log('✅ تم حذف الحقل من الحالة المحلية');
   };
 
+  // إضافة مرحلة جديدة إلى عملية محددة
+  const addStageToProcess = (processId: string, newStage: Stage) => {
+    console.log('🔄 إضافة مرحلة جديدة إلى العملية:', processId, newStage);
+    console.log('📋 العملية المختارة الحالية:', selectedProcess);
+    console.log('📋 عدد المراحل الحالي:', selectedProcess?.stages?.length || 0);
+
+    // تحديث قائمة العمليات في الحالة العامة
+    setProcesses(prevProcesses => {
+      const updatedProcesses = prevProcesses.map(process =>
+        process.id === processId
+          ? { ...process, stages: [...process.stages, newStage] }
+          : process
+      );
+      console.log('📋 تم تحديث قائمة العمليات - إضافة المرحلة');
+      return updatedProcesses;
+    });
+
+    // تحديث العملية المختارة إذا كانت هي نفس العملية
+    setSelectedProcess(prevSelected => {
+      if (prevSelected && prevSelected.id === processId) {
+        const updatedSelected = { ...prevSelected, stages: [...prevSelected.stages, newStage] };
+        console.log('📋 تم تحديث العملية المختارة - إضافة المرحلة:', updatedSelected);
+        console.log('📋 عدد المراحل الجديد:', updatedSelected.stages.length);
+        return updatedSelected;
+      }
+      console.log('📋 لم يتم تحديث العملية المختارة - العملية غير متطابقة');
+      return prevSelected;
+    });
+
+    console.log('✅ تم إضافة المرحلة إلى الحالة المحلية');
+  };
+
+  // حذف مرحلة من عملية محددة
+  const removeStageFromProcess = (processId: string, stageId: string) => {
+    console.log('🗑️ حذف مرحلة من العملية:', processId, stageId);
+    console.log('📋 العملية المختارة الحالية:', selectedProcess);
+    console.log('📋 عدد المراحل الحالي:', selectedProcess?.stages?.length || 0);
+
+    // تحديث قائمة العمليات في الحالة العامة
+    setProcesses(prevProcesses => {
+      const updatedProcesses = prevProcesses.map(process =>
+        process.id === processId
+          ? { ...process, stages: process.stages.filter(stage => stage.id !== stageId) }
+          : process
+      );
+      console.log('📋 تم تحديث قائمة العمليات - حذف المرحلة');
+      return updatedProcesses;
+    });
+
+    // تحديث العملية المختارة إذا كانت هي نفس العملية
+    setSelectedProcess(prevSelected => {
+      if (prevSelected && prevSelected.id === processId) {
+        const updatedSelected = {
+          ...prevSelected,
+          stages: prevSelected.stages.filter(stage => stage.id !== stageId)
+        };
+        console.log('📋 تم تحديث العملية المختارة - حذف المرحلة:', updatedSelected);
+        console.log('📋 عدد المراحل الجديد:', updatedSelected.stages.length);
+        return updatedSelected;
+      }
+      console.log('📋 لم يتم تحديث العملية المختارة - العملية غير متطابقة');
+      return prevSelected;
+    });
+
+    console.log('✅ تم حذف المرحلة من الحالة المحلية');
+  };
+
   const value = {
     processes,
     tickets,
@@ -1603,7 +1672,9 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     deleteProcess,
     getProcessUsers,
     addFieldToProcess,
-    removeFieldFromProcess
+    removeFieldFromProcess,
+    addStageToProcess,
+    removeStageFromProcess
   };
 
   return (

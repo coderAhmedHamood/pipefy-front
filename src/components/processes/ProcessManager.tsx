@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 export const ProcessManager: React.FC = () => {
-  const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, removeFieldFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
+  const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, removeFieldFromProcess, addStageToProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
@@ -36,6 +36,7 @@ export const ProcessManager: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isCreatingField, setIsCreatingField] = useState(false);
   const [isDeletingField, setIsDeletingField] = useState<string | null>(null);
+  const [isCreatingStage, setIsCreatingStage] = useState(false);
 
   const [processForm, setProcessForm] = useState({
     name: '',
@@ -309,36 +310,119 @@ export const ProcessManager: React.FC = () => {
     });
   };
 
-  const handleAddStage = () => {
-    if (!selectedProcess) return;
+  const handleAddStage = async () => {
+    try {
+      if (!selectedProcess) {
+        alert('لم يتم اختيار عملية لإضافة المرحلة إليها');
+        return;
+      }
 
-    const newStage: Stage = {
-      id: Date.now().toString(),
-      ...stageForm,
-      order: selectedProcess.stages.length + 1,
-      fields: [],
-      transition_rules: [],
-      automation_rules: []
-    };
+      // التحقق من صحة البيانات
+      if (!stageForm.name.trim()) {
+        alert('اسم المرحلة مطلوب');
+        return;
+      }
 
-    const updatedProcess = {
-      ...selectedProcess,
-      stages: [...selectedProcess.stages, newStage]
-    };
+      setIsCreatingStage(true);
 
-    updateProcess(selectedProcess.id, updatedProcess);
-    setSelectedProcess(updatedProcess);
-    setStageForm({ 
-      name: '', 
-      description: '', 
-      color: 'bg-gray-500', 
-      order: 1, 
-      priority: selectedProcess.stages.length + 1,
-      allowed_transitions: [],
-      is_initial: false,
-      is_final: false,
-      sla_hours: undefined
-    });
+      // الحصول على token المصادقة
+      let token = localStorage.getItem('auth_token');
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+
+      if (!token) {
+        console.error('❌ رمز الوصول مطلوب لإنشاء المرحلة');
+        alert('يجب تسجيل الدخول أولاً');
+        return;
+      }
+
+      // إعداد بيانات المرحلة للإرسال إلى API
+      const stageData = {
+        process_id: selectedProcess.id,
+        name: stageForm.name.trim(),
+        description: stageForm.description?.trim() || '',
+        color: stageForm.color || '#6B7280',
+        order_index: selectedProcess.stages.length + 1,
+        priority: selectedProcess.stages.length + 1,
+        is_initial: stageForm.is_initial || false,
+        is_final: stageForm.is_final || false,
+        sla_hours: stageForm.sla_hours || null,
+        required_permissions: [],
+        automation_rules: [],
+        settings: {}
+      };
+
+      console.log('📝 إرسال بيانات المرحلة إلى API:', stageData);
+
+      // إرسال طلب POST إلى API
+      const response = await fetch('http://localhost:3000/api/stages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(stageData)
+      });
+
+      console.log('🚀 استجابة HTTP:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      const result = await response.json();
+      console.log('🚀 محتوى الاستجابة:', result);
+
+      if (response.ok && result.success === true) {
+        console.log('✅ تم إنشاء المرحلة بنجاح:', result);
+
+        // تحويل البيانات من API إلى تنسيق الواجهة
+        const newStage: Stage = {
+          id: result.data.id,
+          name: result.data.name,
+          description: result.data.description,
+          color: result.data.color,
+          order: result.data.order_index,
+          priority: result.data.priority,
+          allowed_transitions: [],
+          is_initial: result.data.is_initial,
+          is_final: result.data.is_final,
+          sla_hours: result.data.sla_hours,
+          fields: [],
+          transition_rules: [],
+          automation_rules: []
+        };
+
+        // استخدام الدالة المحسنة لتحديث الحالة بكفاءة
+        addStageToProcess(selectedProcess.id, newStage);
+
+        // إعادة تعيين النموذج وإغلاق المودال
+        setStageForm({
+          name: '',
+          description: '',
+          color: 'bg-gray-500',
+          order: 1,
+          priority: selectedProcess.stages.length + 2,
+          allowed_transitions: [],
+          is_initial: false,
+          is_final: false,
+          sla_hours: undefined
+        });
+        setEditingStage(null);
+
+        alert('تم إنشاء المرحلة بنجاح!');
+      } else {
+        console.error('❌ فشل في إنشاء المرحلة:', result);
+        alert(`فشل في إنشاء المرحلة: ${result?.message || 'خطأ غير معروف'}`);
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في إنشاء المرحلة:', error);
+      alert(`خطأ في إنشاء المرحلة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+    } finally {
+      setIsCreatingStage(false);
+    }
   };
 
   const handleAddField = async () => {
@@ -1025,10 +1109,17 @@ export const ProcessManager: React.FC = () => {
               </button>
               <button
                 onClick={handleAddStage}
-                disabled={!stageForm.name}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!stageForm.name || isCreatingStage}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
               >
-                {editingStage.id ? 'حفظ' : 'إضافة'}
+                {isCreatingStage ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>جاري الإنشاء...</span>
+                  </>
+                ) : (
+                  <span>{editingStage.id ? 'حفظ' : 'إضافة'}</span>
+                )}
               </button>
             </div>
           </div>
