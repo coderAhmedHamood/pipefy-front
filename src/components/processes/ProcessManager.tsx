@@ -1,30 +1,49 @@
 import React, { useState } from 'react';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { Process, Stage, ProcessField, FieldType } from '../../types/workflow';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Save, 
-  X, 
-  Settings, 
-  Palette, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  Settings,
+  Palette,
   Layers,
   FileText,
   ArrowRight,
   Copy,
   Eye,
-  EyeOff
+  EyeOff,
+  FolderOpen,
+  Users,
+  Calendar,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Star,
+  Heart,
+  Zap,
+  Target
 } from 'lucide-react';
 
 export const ProcessManager: React.FC = () => {
   const { processes, createProcess, updateProcess, deleteProcess } = useWorkflow();
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const [editingField, setEditingField] = useState<ProcessField | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const [processForm, setProcessForm] = useState({
+    name: '',
+    description: '',
+    color: 'bg-blue-500',
+    icon: 'FolderOpen'
+  });
+
+  const [editForm, setEditForm] = useState({
     name: '',
     description: '',
     color: 'bg-blue-500',
@@ -54,6 +73,21 @@ export const ProcessManager: React.FC = () => {
     'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-red-500',
     'bg-yellow-500', 'bg-indigo-500', 'bg-pink-500', 'bg-teal-500',
     'bg-orange-500', 'bg-cyan-500', 'bg-lime-500', 'bg-rose-500'
+  ];
+
+  const iconOptions = [
+    { value: 'FolderOpen', label: 'مجلد', icon: FolderOpen },
+    { value: 'Settings', label: 'إعدادات', icon: Settings },
+    { value: 'Users', label: 'مستخدمين', icon: Users },
+    { value: 'FileText', label: 'ملف', icon: FileText },
+    { value: 'Calendar', label: 'تقويم', icon: Calendar },
+    { value: 'Clock', label: 'ساعة', icon: Clock },
+    { value: 'CheckCircle', label: 'تحقق', icon: CheckCircle },
+    { value: 'AlertCircle', label: 'تنبيه', icon: AlertCircle },
+    { value: 'Star', label: 'نجمة', icon: Star },
+    { value: 'Heart', label: 'قلب', icon: Heart },
+    { value: 'Zap', label: 'برق', icon: Zap },
+    { value: 'Target', label: 'هدف', icon: Target }
   ];
 
   const fieldTypes: { value: FieldType; label: string }[] = [
@@ -165,6 +199,113 @@ export const ProcessManager: React.FC = () => {
       console.error("❌ خطأ في الاتصال بـ API:", error);
       alert('خطأ في الاتصال بالخادم. تأكد من أن الخادم يعمل.');
     }
+  };
+
+  // دالة حذف العملية
+  const handleDeleteProcess = async (processId: string) => {
+    try {
+      // تأكيد الحذف من المستخدم
+      const confirmDelete = window.confirm('هل أنت متأكد من حذف هذه العملية؟ سيتم حذف جميع البيانات المرتبطة بها.');
+
+      if (!confirmDelete) {
+        return;
+      }
+
+      console.log('🗑️ بدء حذف العملية:', processId);
+
+      // استدعاء دالة الحذف من Context
+      const success = await deleteProcess(processId);
+
+      if (success) {
+        console.log('✅ تم حذف العملية بنجاح');
+        alert('تم حذف العملية بنجاح!');
+
+        // إغلاق تفاصيل العملية إذا كانت مفتوحة
+        if (selectedProcess && selectedProcess.id === processId) {
+          setSelectedProcess(null);
+        }
+      } else {
+        console.error('❌ فشل في حذف العملية');
+        alert('فشل في حذف العملية. يرجى المحاولة مرة أخرى.');
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في حذف العملية:', error);
+      alert(`خطأ في حذف العملية: ${error.message}`);
+    }
+  };
+
+  // دالة بدء تحرير العملية
+  const handleStartEdit = (process: Process) => {
+    setEditForm({
+      name: process.name,
+      description: process.description || '',
+      color: process.color || 'bg-blue-500',
+      icon: process.icon || 'FolderOpen'
+    });
+    setIsEditing(true);
+  };
+
+  // دالة تحديث العملية
+  const handleUpdateProcess = async () => {
+    try {
+      if (!selectedProcess) {
+        alert('لم يتم اختيار عملية للتحديث');
+        return;
+      }
+
+      // التحقق من صحة البيانات
+      if (!editForm.name.trim()) {
+        alert('اسم العملية مطلوب');
+        return;
+      }
+
+      setIsUpdating(true);
+
+      // إعداد بيانات التحديث
+      const updateData = {
+        name: editForm.name.trim(),
+        description: editForm.description.trim(),
+        color: editForm.color,
+        icon: editForm.icon
+      };
+
+      console.log('📝 بدء تحديث العملية:', selectedProcess.id, updateData);
+
+      // استدعاء دالة التحديث من Context
+      const success = await updateProcess(selectedProcess.id, updateData);
+
+      if (success) {
+        console.log('✅ تم تحديث العملية بنجاح');
+        alert('تم تحديث العملية بنجاح!');
+
+        // إغلاق نموذج التحرير
+        setIsEditing(false);
+
+        // تحديث العملية المختارة في الحالة المحلية
+        setSelectedProcess(prev => prev ? { ...prev, ...updateData } : null);
+      } else {
+        console.error('❌ فشل في تحديث العملية');
+        alert('فشل في تحديث العملية. يرجى المحاولة مرة أخرى.');
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في تحديث العملية:', error);
+      alert(`خطأ في تحديث العملية: ${error.message}`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // دالة إلغاء التحرير
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditForm({
+      name: '',
+      description: '',
+      color: 'bg-blue-500',
+      icon: 'FolderOpen'
+    });
   };
 
   const handleAddStage = () => {
@@ -326,11 +467,14 @@ export const ProcessManager: React.FC = () => {
                     <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
                       <Copy className="w-4 h-4 text-gray-500" />
                     </button>
-                    <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <button
+                      onClick={() => handleStartEdit(selectedProcess)}
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
                       <Edit className="w-4 h-4 text-gray-500" />
                     </button>
-                    <button 
-                      onClick={() => deleteProcess(selectedProcess.id)}
+                    <button
+                      onClick={() => handleDeleteProcess(selectedProcess.id)}
                       className="p-2 rounded-lg hover:bg-red-50 transition-colors"
                     >
                       <Trash2 className="w-4 h-4 text-red-500" />
@@ -854,6 +998,106 @@ export const ProcessManager: React.FC = () => {
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingField.id ? 'حفظ' : 'إضافة'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Process Modal */}
+      {isEditing && selectedProcess && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">تعديل العملية</h3>
+              <button
+                onClick={handleCancelEdit}
+                className="p-2 rounded-lg hover:bg-gray-100"
+                disabled={isUpdating}
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">اسم العملية *</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="مثال: عملية المشتريات"
+                  disabled={isUpdating}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">الوصف</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="وصف العملية..."
+                  rows={3}
+                  disabled={isUpdating}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">اللون</label>
+                <div className="flex flex-wrap gap-2">
+                  {colorOptions.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setEditForm({ ...editForm, color })}
+                      className={`w-8 h-8 rounded-full border-2 ${color} ${
+                        editForm.color === color ? 'border-gray-800' : 'border-gray-300'
+                      }`}
+                      disabled={isUpdating}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">الأيقونة</label>
+                <div className="grid grid-cols-6 gap-2">
+                  {iconOptions.map((icon) => (
+                    <button
+                      key={icon.value}
+                      onClick={() => setEditForm({ ...editForm, icon: icon.value })}
+                      className={`p-2 rounded-lg border ${
+                        editForm.icon === icon.value
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                      disabled={isUpdating}
+                    >
+                      <icon.icon className="w-5 h-5 text-gray-600" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 space-x-reverse p-6 border-t border-gray-200">
+              <button
+                onClick={handleCancelEdit}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                disabled={isUpdating}
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleUpdateProcess}
+                disabled={!editForm.name.trim() || isUpdating}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
+              >
+                {isUpdating && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                )}
+                <span>{isUpdating ? 'جاري التحديث...' : 'حفظ التغييرات'}</span>
               </button>
             </div>
           </div>

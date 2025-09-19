@@ -13,8 +13,8 @@ interface WorkflowContextType {
   deleteTicket: (ticketId: string) => void;
   loading: boolean;
   createProcess: (processData: Partial<Process>) => void;
-  updateProcess: (processId: string, updates: Partial<Process>) => void;
-  deleteProcess: (processId: string) => void;
+  updateProcess: (processId: string, updates: Partial<Process>) => Promise<boolean>;
+  deleteProcess: (processId: string) => Promise<boolean>;
   getProcessUsers: (processId: string) => User[];
 }
 
@@ -106,9 +106,20 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     // إنشاء 60 تذكرة لكل عملية
     mockProcesses.forEach((process) => {
+      // التأكد من وجود مراحل في العملية
+      if (!process.stages || process.stages.length === 0) {
+        return; // تخطي هذه العملية إذا لم تكن لها مراحل
+      }
+
       for (let i = 0; i < 60; i++) {
         const stageIndex = Math.floor(Math.random() * process.stages.length);
         const stage = process.stages[stageIndex];
+
+        // التأكد من وجود المرحلة
+        if (!stage || !stage.id) {
+          continue; // تخطي هذه التذكرة إذا كانت المرحلة غير صحيحة
+        }
+
         const titleIndex = Math.floor(Math.random() * sampleTitles.length);
         const descIndex = Math.floor(Math.random() * sampleDescriptions.length);
         const priority = priorities[Math.floor(Math.random() * priorities.length)];
@@ -1274,16 +1285,112 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setProcesses(prev => [...prev, newProcess]);
   };
 
-  const updateProcess = (processId: string, updates: Partial<Process>) => {
-    setProcesses(prev => prev.map(process => 
-      process.id === processId ? { ...process, ...updates } : process
-    ));
+  const updateProcess = async (processId: string, updates: Partial<Process>): Promise<boolean> => {
+    try {
+      // الحصول على token المصادقة
+      let token = localStorage.getItem('auth_token');
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+
+      if (!token) {
+        console.error('❌ رمز الوصول مطلوب للتحديث');
+        return false;
+      }
+
+      console.log('📝 تحديث العملية:', processId, updates);
+
+      // إرسال طلب PUT إلى API
+      const response = await fetch(`http://localhost:3000/api/processes/${processId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updates)
+      });
+
+      console.log('🚀 استجابة HTTP:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      const result = await response.json();
+      console.log('🚀 محتوى الاستجابة:', result);
+
+      if (response.ok && result.success === true) {
+        console.log('✅ تم تحديث العملية بنجاح:', result);
+
+        // تحديث العملية في الحالة المحلية
+        setProcesses(prev => prev.map(process =>
+          process.id === processId ? { ...process, ...result.data } : process
+        ));
+
+        return true;
+      } else {
+        console.error('❌ فشل في تحديث العملية:', result);
+        return false;
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في تحديث العملية:', error);
+      return false;
+    }
   };
 
-  const deleteProcess = (processId: string) => {
-    setProcesses(prev => prev.filter(process => process.id !== processId));
-    // حذف التذاكر المرتبطة بالعملية
-    setTickets(prev => prev.filter(ticket => ticket.process_id !== processId));
+  const deleteProcess = async (processId: string): Promise<boolean> => {
+    try {
+      // الحصول على token المصادقة
+      let token = localStorage.getItem('auth_token');
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+
+      if (!token) {
+        console.error('❌ رمز الوصول مطلوب للحذف');
+        return false;
+      }
+
+      console.log('🗑️ حذف العملية:', processId);
+
+      // إرسال طلب DELETE إلى API
+      const response = await fetch(`http://localhost:3000/api/processes/${processId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('🚀 استجابة HTTP:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      const result = await response.json();
+      console.log('🚀 محتوى الاستجابة:', result);
+
+      if (response.ok && result.success === true) {
+        console.log('✅ تم حذف العملية بنجاح:', result);
+
+        // حذف العملية من الحالة المحلية
+        setProcesses(prev => prev.filter(process => process.id !== processId));
+
+        // حذف التذاكر المرتبطة بالعملية
+        setTickets(prev => prev.filter(ticket => ticket.process_id !== processId));
+
+        return true;
+      } else {
+        console.error('❌ فشل في حذف العملية:', result);
+        return false;
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في حذف العملية:', error);
+      return false;
+    }
   };
 
   const getProcessUsers = (processId: string): User[] => {
