@@ -35,6 +35,7 @@ export const ProcessManager: React.FC = () => {
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
   const [editingField, setEditingField] = useState<ProcessField | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isCreatingField, setIsCreatingField] = useState(false);
 
   const [processForm, setProcessForm] = useState({
     name: '',
@@ -340,26 +341,98 @@ export const ProcessManager: React.FC = () => {
     });
   };
 
-  const handleAddField = () => {
-    if (!selectedProcess) return;
+  const handleAddField = async () => {
+    try {
+      if (!selectedProcess) {
+        alert('لم يتم اختيار عملية لإضافة الحقل إليها');
+        return;
+      }
 
-    const newField: ProcessField = {
-      id: Date.now().toString(),
-      ...fieldForm,
-      is_system_field: false,
-      options: fieldForm.type === 'select' || fieldForm.type === 'multiselect' || fieldForm.type === 'radio' 
-        ? fieldForm.options.map((opt, idx) => ({ id: idx.toString(), ...opt, color: 'bg-gray-100' }))
-        : undefined
-    };
+      // التحقق من صحة البيانات
+      if (!fieldForm.name.trim()) {
+        alert('اسم الحقل مطلوب');
+        return;
+      }
 
-    const updatedProcess = {
-      ...selectedProcess,
-      fields: [...selectedProcess.fields, newField]
-    };
+      setIsCreatingField(true);
 
-    updateProcess(selectedProcess.id, updatedProcess);
-    setSelectedProcess(updatedProcess);
-    setFieldForm({ name: '', type: 'text', is_required: false, options: [] });
+      // الحصول على token المصادقة
+      let token = localStorage.getItem('auth_token');
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+
+      if (!token) {
+        console.error('❌ رمز الوصول مطلوب لإنشاء الحقل');
+        alert('يجب تسجيل الدخول أولاً');
+        return;
+      }
+
+      // إعداد بيانات الحقل للإرسال إلى API
+      const fieldData = {
+        process_id: selectedProcess.id,
+        name: fieldForm.name.trim(),
+        label: fieldForm.name.trim(), // استخدام الاسم كـ label افتراضياً
+        field_type: fieldForm.type,
+        is_required: fieldForm.is_required,
+        is_system_field: false,
+        is_searchable: true,
+        is_filterable: true,
+        options: fieldForm.type === 'select' || fieldForm.type === 'multiselect' || fieldForm.type === 'radio'
+          ? fieldForm.options.filter(opt => opt.label && opt.value) // تصفية الخيارات الفارغة
+          : [],
+        validation_rules: [],
+        width: 'full'
+      };
+
+      console.log('📝 إرسال بيانات الحقل إلى API:', fieldData);
+
+      // إرسال طلب POST إلى API
+      const response = await fetch('http://localhost:3000/api/fields', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(fieldData)
+      });
+
+      console.log('🚀 استجابة HTTP:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      const result = await response.json();
+      console.log('� محتوى الاستجابة:', result);
+
+      if (response.ok && result.success === true) {
+        console.log('✅ تم إنشاء الحقل بنجاح:', result);
+
+        // تحديث العملية المختارة بالحقل الجديد
+        const updatedProcess = {
+          ...selectedProcess,
+          fields: [...selectedProcess.fields, result.data]
+        };
+
+        setSelectedProcess(updatedProcess);
+
+        // إعادة تعيين النموذج وإغلاق المودال
+        setFieldForm({ name: '', type: 'text', is_required: false, options: [] });
+        setEditingField(null);
+
+        alert('تم إنشاء الحقل بنجاح!');
+      } else {
+        console.error('❌ فشل في إنشاء الحقل:', result);
+        alert(`فشل في إنشاء الحقل: ${result?.message || 'خطأ غير معروف'}`);
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في إنشاء الحقل:', error);
+      alert(`خطأ في إنشاء الحقل: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+    } finally {
+      setIsCreatingField(false);
+    }
   };
 
   const handleDeleteStage = (stageId: string) => {
@@ -988,16 +1061,25 @@ export const ProcessManager: React.FC = () => {
             <div className="flex items-center justify-end space-x-3 space-x-reverse p-6 border-t border-gray-200">
               <button
                 onClick={() => setEditingField(null)}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                disabled={isCreatingField}
               >
                 إلغاء
               </button>
               <button
                 onClick={handleAddField}
-                disabled={!fieldForm.name}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!fieldForm.name.trim() || isCreatingField}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
               >
-                {editingField.id ? 'حفظ' : 'إضافة'}
+                {isCreatingField && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                )}
+                <span>
+                  {isCreatingField
+                    ? 'جاري الإنشاء...'
+                    : editingField.id ? 'حفظ' : 'إضافة'
+                  }
+                </span>
               </button>
             </div>
           </div>
