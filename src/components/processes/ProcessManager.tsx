@@ -338,14 +338,22 @@ export const ProcessManager: React.FC = () => {
         return;
       }
 
+      // حساب الأولوية والترتيب التالي بناءً على القيم الموجودة
+      const maxOrderIndex = selectedProcess.stages.length > 0
+        ? Math.max(...selectedProcess.stages.map(s => s.order || 0))
+        : 0;
+      const maxPriority = selectedProcess.stages.length > 0
+        ? Math.max(...selectedProcess.stages.map(s => s.priority || 0))
+        : 0;
+
       // إعداد بيانات المرحلة للإرسال إلى API
       const stageData = {
         process_id: selectedProcess.id,
         name: stageForm.name.trim(),
         description: stageForm.description?.trim() || '',
         color: stageForm.color || '#6B7280',
-        order_index: selectedProcess.stages.length + 1,
-        priority: selectedProcess.stages.length + 1,
+        order_index: maxOrderIndex + 1,
+        priority: maxPriority + 1,
         is_initial: stageForm.is_initial || false,
         is_final: stageForm.is_final || false,
         sla_hours: stageForm.sla_hours || null,
@@ -398,13 +406,18 @@ export const ProcessManager: React.FC = () => {
         // استخدام الدالة المحسنة لتحديث الحالة بكفاءة
         addStageToProcess(selectedProcess.id, newStage);
 
+        // حساب الأولوية التالية بعد إضافة المرحلة الجديدة
+        const newMaxPriority = selectedProcess.stages.length > 0
+          ? Math.max(...selectedProcess.stages.map(s => s.priority || 0)) + 1
+          : 1;
+
         // إعادة تعيين النموذج وإغلاق المودال
         setStageForm({
           name: '',
           description: '',
           color: 'bg-gray-500',
           order: 1,
-          priority: selectedProcess.stages.length + 2,
+          priority: newMaxPriority + 1,
           allowed_transitions: [],
           is_initial: false,
           is_final: false,

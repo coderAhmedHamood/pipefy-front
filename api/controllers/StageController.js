@@ -80,12 +80,33 @@ class StageController {
       });
     } catch (error) {
       console.error('خطأ في إنشاء المرحلة:', error);
-      
-      if (error.code === '23505') { // Unique constraint violation
+
+      // التحقق من أخطاء التحقق المخصصة
+      if (error.message && error.message.includes('موجود بالفعل في نفس المستوى الهرمي')) {
         return res.status(400).json({
           success: false,
-          message: 'اسم المرحلة موجود مسبقاً في هذه العملية'
+          message: error.message
         });
+      }
+
+      if (error.code === '23505') { // Unique constraint violation
+        // تحديد نوع القيد المنتهك
+        if (error.constraint && error.constraint.includes('order')) {
+          return res.status(400).json({
+            success: false,
+            message: 'ترتيب المرحلة موجود مسبقاً في هذه العملية'
+          });
+        } else if (error.constraint && error.constraint.includes('priority')) {
+          return res.status(400).json({
+            success: false,
+            message: 'أولوية المرحلة موجودة مسبقاً في هذه العملية'
+          });
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: 'اسم المرحلة موجود مسبقاً في هذه العملية'
+          });
+        }
       }
 
       res.status(500).json({
@@ -118,12 +139,33 @@ class StageController {
       });
     } catch (error) {
       console.error('خطأ في تحديث المرحلة:', error);
-      
-      if (error.code === '23505') {
+
+      // التحقق من أخطاء التحقق المخصصة
+      if (error.message && error.message.includes('موجود بالفعل في نفس المستوى الهرمي')) {
         return res.status(400).json({
           success: false,
-          message: 'اسم المرحلة موجود مسبقاً في هذه العملية'
+          message: error.message
         });
+      }
+
+      if (error.code === '23505') {
+        // تحديد نوع القيد المنتهك
+        if (error.constraint && error.constraint.includes('order')) {
+          return res.status(400).json({
+            success: false,
+            message: 'ترتيب المرحلة موجود مسبقاً في هذه العملية'
+          });
+        } else if (error.constraint && error.constraint.includes('priority')) {
+          return res.status(400).json({
+            success: false,
+            message: 'أولوية المرحلة موجودة مسبقاً في هذه العملية'
+          });
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: 'اسم المرحلة موجود مسبقاً في هذه العملية'
+          });
+        }
       }
 
       res.status(500).json({

@@ -15,31 +15,35 @@ class Stage {
       sla_hours,
       required_permissions = [],
       automation_rules = [],
-      settings = {}
+      settings = {},
+      parent_stage_id = null
     } = stageData;
 
-    // التحقق من عدم تكرار الترتيب أو الأولوية
-    const checkQuery = `
-      SELECT id FROM stages 
-      WHERE process_id = $1 AND (order_index = $2 OR priority = $3)
+    // التحقق من تكرار اسم المرحلة في نفس المستوى الهرمي
+    await this.validateUniqueNameInHierarchy(process_id, name, parent_stage_id);
+
+    // التحقق من عدم تكرار الترتيب أو الأولوية والحصول على القيم التالية
+    const checkAndGetNextQuery = `
+      SELECT
+        COALESCE(MAX(order_index), 0) + 1 as next_order,
+        COALESCE(MAX(priority), 0) + 1 as next_priority,
+        COUNT(CASE WHEN order_index = $2 THEN 1 END) as order_exists,
+        COUNT(CASE WHEN priority = $3 THEN 1 END) as priority_exists
+      FROM stages
+      WHERE process_id = $1
     `;
-    const checkResult = await pool.query(checkQuery, [process_id, order_index, priority]);
-    
-    if (checkResult.rows.length > 0) {
-      // إعادة ترتيب المراحل الموجودة
-      await this.reorderStages(process_id);
-      
-      // الحصول على الترتيب والأولوية التالية
-      const nextOrderQuery = `
-        SELECT COALESCE(MAX(order_index), 0) + 1 as next_order,
-               COALESCE(MAX(priority), 0) + 1 as next_priority
-        FROM stages WHERE process_id = $1
-      `;
-      const nextOrderResult = await pool.query(nextOrderQuery, [process_id]);
-      const { next_order, next_priority } = nextOrderResult.rows[0];
-      
-      stageData.order_index = order_index || next_order;
-      stageData.priority = priority || next_priority;
+    const checkResult = await pool.query(checkAndGetNextQuery, [process_id, order_index, priority]);
+    const { next_order, next_priority, order_exists, priority_exists } = checkResult.rows[0];
+
+    // استخدام القيم التالية المتاحة إذا كانت القيم المرسلة مكررة
+    if (parseInt(order_exists) > 0 || parseInt(priority_exists) > 0) {
+      console.log(`🔄 تعديل القيم المكررة - الترتيب: ${order_index} → ${next_order}, الأولوية: ${priority} → ${next_priority}`);
+      stageData.order_index = next_order;
+      stageData.priority = next_priority;
+    } else {
+      // استخدام القيم المرسلة إذا لم تكن مكررة
+      stageData.order_index = order_index;
+      stageData.priority = priority;
     }
 
     const query = `
@@ -69,6 +73,37 @@ class Stage {
 
     const result = await pool.query(query, values);
     return result.rows[0];
+  }
+
+  // التحقق من تفرد اسم المرحلة في نفس المستوى الهرمي
+  static async validateUniqueNameInHierarchy(process_id, name, parent_stage_id = null, exclude_id = null) {
+    let query;
+    let params;
+
+    if (parent_stage_id) {
+      // التحقق من التفرد في نفس المرحلة الأب
+      query = `
+        SELECT id, name FROM stages
+        WHERE process_id = $1 AND parent_stage_id = $2 AND LOWER(name) = LOWER($3)
+        ${exclude_id ? 'AND id != $4' : ''}
+      `;
+      params = exclude_id ? [process_id, parent_stage_id, name, exclude_id] : [process_id, parent_stage_id, name];
+    } else {
+      // التحقق من التفرد في المستوى الجذر (المراحل الرئيسية)
+      query = `
+        SELECT id, name FROM stages
+        WHERE process_id = $1 AND parent_stage_id IS NULL AND LOWER(name) = LOWER($2)
+        ${exclude_id ? 'AND id != $3' : ''}
+      `;
+      params = exclude_id ? [process_id, name, exclude_id] : [process_id, name];
+    }
+
+    const result = await pool.query(query, params);
+
+    if (result.rows.length > 0) {
+      const hierarchyLevel = parent_stage_id ? 'المرحلة الفرعية' : 'المرحلة الرئيسية';
+      throw new Error(`اسم ${hierarchyLevel} "${name}" موجود بالفعل في نفس المستوى الهرمي`);
+    }
   }
 
   // جلب جميع مراحل عملية معينة
@@ -155,6 +190,17 @@ class Stage {
     let paramCount = 0;
 
     if (name !== undefined) {
+      // التحقق من تفرد الاسم الجديد في نفس المستوى الهرمي
+      const currentStage = await this.findById(id);
+      if (currentStage) {
+        await this.validateUniqueNameInHierarchy(
+          currentStage.process_id,
+          name,
+          currentStage.parent_stage_id,
+          id
+        );
+      }
+
       paramCount++;
       fields.push(`name = $${paramCount}`);
       values.push(name);
