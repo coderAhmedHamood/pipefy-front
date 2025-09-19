@@ -37,6 +37,7 @@ export const ProcessManager: React.FC = () => {
   const [isCreatingField, setIsCreatingField] = useState(false);
   const [isDeletingField, setIsDeletingField] = useState<string | null>(null);
   const [isCreatingStage, setIsCreatingStage] = useState(false);
+  const [isDeletingStage, setIsDeletingStage] = useState<string | null>(null);
 
   const [processForm, setProcessForm] = useState({
     name: '',
@@ -604,16 +605,97 @@ export const ProcessManager: React.FC = () => {
     }
   };
 
-  const handleDeleteStage = (stageId: string) => {
-    if (!selectedProcess) return;
+  const handleDeleteStage = async (stageId: string) => {
+    try {
+      if (!selectedProcess) {
+        alert('لم يتم اختيار عملية لحذف المرحلة منها');
+        return;
+      }
 
-    const updatedProcess = {
-      ...selectedProcess,
-      stages: selectedProcess.stages.filter(stage => stage.id !== stageId)
-    };
+      // العثور على المرحلة للتحقق من خصائصها
+      const stage = selectedProcess.stages.find(s => s.id === stageId);
+      if (!stage) {
+        alert('المرحلة غير موجودة');
+        return;
+      }
 
-    updateProcess(selectedProcess.id, updatedProcess);
-    setSelectedProcess(updatedProcess);
+      // منع حذف المرحلة الوحيدة في العملية
+      if (selectedProcess.stages.length <= 1) {
+        alert('لا يمكن حذف المرحلة الوحيدة في العملية');
+        return;
+      }
+
+      // تأكيد الحذف مع تحذير
+      const confirmDelete = window.confirm(
+        `هل أنت متأكد من حذف المرحلة "${stage.name}"؟\n\n` +
+        `تحذير: سيتم حذف جميع البيانات المرتبطة بهذه المرحلة نهائياً.\n` +
+        `إذا كانت هناك تذاكر في هذه المرحلة، فلن يتم حذفها.`
+      );
+
+      if (!confirmDelete) {
+        return;
+      }
+
+      setIsDeletingStage(stageId);
+
+      // الحصول على token المصادقة
+      let token = localStorage.getItem('auth_token');
+      if (!token) {
+        token = localStorage.getItem('token');
+      }
+
+      if (!token) {
+        console.error('❌ رمز الوصول مطلوب لحذف المرحلة');
+        alert('يجب تسجيل الدخول أولاً');
+        return;
+      }
+
+      console.log('🗑️ حذف المرحلة:', stageId);
+
+      // إرسال طلب DELETE إلى API
+      const response = await fetch(`http://localhost:3000/api/stages/${stageId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('🚀 استجابة HTTP:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      });
+
+      const result = await response.json();
+      console.log('🚀 محتوى الاستجابة:', result);
+
+      if (response.ok && result.success === true) {
+        console.log('✅ تم حذف المرحلة بنجاح');
+
+        // استخدام الدالة المحسنة لحذف المرحلة من الحالة بكفاءة
+        removeStageFromProcess(selectedProcess.id, stageId);
+
+        alert('تم حذف المرحلة بنجاح!');
+      } else {
+        console.error('❌ فشل في حذف المرحلة:', result);
+
+        // رسائل خطأ مخصصة حسب نوع المشكلة
+        if (result?.message?.includes('تحتوي على تذاكر')) {
+          alert('لا يمكن حذف المرحلة لأنها تحتوي على تذاكر نشطة.\nيرجى نقل التذاكر إلى مرحلة أخرى أولاً.');
+        } else if (result?.message?.includes('غير موجودة')) {
+          alert('المرحلة غير موجودة أو تم حذفها مسبقاً');
+        } else {
+          alert(`فشل في حذف المرحلة: ${result?.message || 'خطأ غير معروف'}`);
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في حذف المرحلة:', error);
+      alert(`خطأ في حذف المرحلة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+    } finally {
+      setIsDeletingStage(null);
+    }
   };
 
   return (
@@ -784,9 +866,14 @@ export const ProcessManager: React.FC = () => {
                               <div className="text-gray-400 font-medium">#{stage.priority}</div>
                               <button
                                 onClick={() => handleDeleteStage(stage.id)}
-                                className="p-1 rounded hover:bg-red-50"
+                                disabled={isDeletingStage === stage.id}
+                                className="p-1 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                               >
-                                <Trash2 className="w-4 h-4 text-red-500" />
+                                {isDeletingStage === stage.id ? (
+                                  <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                )}
                               </button>
                             </>
                         )}
