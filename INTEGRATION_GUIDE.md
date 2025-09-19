@@ -23,7 +23,7 @@ node server.js
 ### 2. تشغيل المشروع الأمامي (Frontend)
 
 ```bash
-npm run dev
+npm run dev 
 ```
 
 المشروع سيعمل على: `http://localhost:5174`
