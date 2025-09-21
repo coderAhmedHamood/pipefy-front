@@ -28,6 +28,7 @@ class Process {
     const {
       include_stages = false,
       include_fields = false,
+      include_transitions = false,
       is_active = true,
       created_by = null,
       limit = 50,
@@ -80,7 +81,7 @@ class Process {
     if (include_stages || include_fields) {
       for (let process of processes) {
         if (include_stages) {
-          process.stages = await this.getStages(process.id);
+          process.stages = await this.getStages(process.id, include_transitions);
         }
         if (include_fields) {
           process.fields = await this.getFields(process.id);
