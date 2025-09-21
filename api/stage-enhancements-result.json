@@ -1,0 +1,704 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "1",
+      "name": "المشتريات",
+      "description": "إدارة عمليات الشراء والتوريد",
+      "color": "bg-blue-500",
+      "icon": "ShoppingCart",
+      "created_by": "1",
+      "created_at": "2025-09-21T19:43:17.528Z",
+      "is_active": true,
+      "stages": [
+        {
+          "id": "1-1",
+          "process_id": "1",
+          "name": "طلب جديد",
+          "description": "طلبات شراء جديدة",
+          "color": "bg-gray-500",
+          "order_index": 1,
+          "priority": 1,
+          "is_initial": true,
+          "is_final": false,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": [
+            {
+              "id": "1",
+              "from_stage_id": "1-1",
+              "to_stage_id": "1-2",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": true,
+              "display_name": "إرسال للمراجعة",
+              "confirmation_required": false,
+              "button_color": "#3B82F6",
+              "button_icon": null,
+              "order_index": 1,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "مراجعة",
+              "to_stage_color": "bg-yellow-500"
+            }
+          ]
+        },
+        {
+          "id": "1-2",
+          "process_id": "1",
+          "name": "مراجعة",
+          "description": "مراجعة الطلبات",
+          "color": "bg-yellow-500",
+          "order_index": 2,
+          "priority": 2,
+          "is_initial": false,
+          "is_final": false,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": [
+            {
+              "id": "2",
+              "from_stage_id": "1-2",
+              "to_stage_id": "1-3",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": true,
+              "display_name": "موافقة",
+              "confirmation_required": false,
+              "button_color": "#10B981",
+              "button_icon": null,
+              "order_index": 1,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "موافقة",
+              "to_stage_color": "bg-green-500"
+            },
+            {
+              "id": "3",
+              "from_stage_id": "1-2",
+              "to_stage_id": "1-1",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": false,
+              "display_name": "رفض",
+              "confirmation_required": true,
+              "button_color": "#EF4444",
+              "button_icon": null,
+              "order_index": 2,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "طلب جديد",
+              "to_stage_color": "bg-gray-500"
+            }
+          ]
+        },
+        {
+          "id": "1-3",
+          "process_id": "1",
+          "name": "موافقة",
+          "description": "موافقة على الطلبات",
+          "color": "bg-green-500",
+          "order_index": 3,
+          "priority": 3,
+          "is_initial": false,
+          "is_final": false,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": [
+            {
+              "id": "4",
+              "from_stage_id": "1-3",
+              "to_stage_id": "1-4",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": true,
+              "display_name": "بدء التنفيذ",
+              "confirmation_required": false,
+              "button_color": "#3B82F6",
+              "button_icon": null,
+              "order_index": 1,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "تنفيذ",
+              "to_stage_color": "bg-blue-500"
+            },
+            {
+              "id": "5",
+              "from_stage_id": "1-3",
+              "to_stage_id": "1-2",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": false,
+              "display_name": "إعادة للمراجعة",
+              "confirmation_required": false,
+              "button_color": "#F59E0B",
+              "button_icon": null,
+              "order_index": 2,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "مراجعة",
+              "to_stage_color": "bg-yellow-500"
+            }
+          ]
+        },
+        {
+          "id": "1-4",
+          "process_id": "1",
+          "name": "تنفيذ",
+          "description": "تنفيذ عمليات الشراء",
+          "color": "bg-blue-500",
+          "order_index": 4,
+          "priority": 4,
+          "is_initial": false,
+          "is_final": false,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": [
+            {
+              "id": "6",
+              "from_stage_id": "1-4",
+              "to_stage_id": "1-5",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": true,
+              "display_name": "إكمال",
+              "confirmation_required": false,
+              "button_color": "#10B981",
+              "button_icon": null,
+              "order_index": 1,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "مكتمل",
+              "to_stage_color": "bg-green-600"
+            }
+          ]
+        },
+        {
+          "id": "1-5",
+          "process_id": "1",
+          "name": "مكتمل",
+          "description": "عمليات مكتملة",
+          "color": "bg-green-600",
+          "order_index": 5,
+          "priority": 5,
+          "is_initial": false,
+          "is_final": true,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": []
+        }
+      ],
+      "fields": [
+        {
+          "id": "title",
+          "name": "العنوان",
+          "type": "text",
+          "is_required": true,
+          "is_system_field": true
+        },
+        {
+          "id": "amount",
+          "name": "المبلغ",
+          "type": "number",
+          "is_required": true,
+          "is_system_field": false,
+          "default_value": 0
+        },
+        {
+          "id": "supplier",
+          "name": "المورد",
+          "type": "text",
+          "is_required": false,
+          "is_system_field": false
+        },
+        {
+          "id": "department",
+          "name": "القسم المطلوب",
+          "type": "select",
+          "is_required": true,
+          "is_system_field": false,
+          "options": [
+            {
+              "id": "it",
+              "label": "تكنولوجيا المعلومات",
+              "value": "it",
+              "color": "bg-blue-100"
+            },
+            {
+              "id": "hr",
+              "label": "الموارد البشرية",
+              "value": "hr",
+              "color": "bg-green-100"
+            },
+            {
+              "id": "finance",
+              "label": "المالية",
+              "value": "finance",
+              "color": "bg-yellow-100"
+            },
+            {
+              "id": "operations",
+              "label": "العمليات",
+              "value": "operations",
+              "color": "bg-purple-100"
+            }
+          ]
+        },
+        {
+          "id": "urgency",
+          "name": "مستوى الاستعجال",
+          "type": "radio",
+          "is_required": true,
+          "is_system_field": false,
+          "options": [
+            {
+              "id": "normal",
+              "label": "عادي",
+              "value": "normal",
+              "color": "bg-gray-100"
+            },
+            {
+              "id": "urgent",
+              "label": "عاجل",
+              "value": "urgent",
+              "color": "bg-orange-100"
+            },
+            {
+              "id": "critical",
+              "label": "حرج",
+              "value": "critical",
+              "color": "bg-red-100"
+            }
+          ]
+        },
+        {
+          "id": "budget_approved",
+          "name": "الميزانية معتمدة",
+          "type": "checkbox",
+          "is_required": false,
+          "is_system_field": false
+        },
+        {
+          "id": "purchase_reviewer",
+          "name": "مراجع طلب الشراء",
+          "type": "ticket_reviewer",
+          "is_required": true,
+          "is_system_field": false
+        }
+      ],
+      "settings": {
+        "auto_assign": false,
+        "due_date_required": true,
+        "allow_self_assignment": true,
+        "default_priority": "medium",
+        "notification_settings": {
+          "email_notifications": true,
+          "in_app_notifications": true,
+          "notify_on_assignment": true,
+          "notify_on_stage_change": true,
+          "notify_on_due_date": true,
+          "notify_on_overdue": true
+        }
+      }
+    },
+    {
+      "id": "2",
+      "name": "التوظيف",
+      "description": "إدارة عمليات التوظيف والموارد البشرية",
+      "color": "bg-purple-500",
+      "icon": "Users",
+      "created_by": "1",
+      "created_at": "2025-09-21T19:43:17.528Z",
+      "is_active": true,
+      "stages": [
+        {
+          "id": "2-1",
+          "process_id": "2",
+          "name": "طلب توظيف",
+          "description": "طلب توظيف جديد",
+          "color": "bg-gray-500",
+          "order_index": 1,
+          "priority": 1,
+          "is_initial": true,
+          "is_final": false,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": [
+            {
+              "id": "6",
+              "from_stage_id": "2-1",
+              "to_stage_id": "2-2",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": true,
+              "display_name": "بدء الفرز",
+              "confirmation_required": false,
+              "button_color": "#3B82F6",
+              "button_icon": null,
+              "order_index": 1,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "فرز المتقدمين",
+              "to_stage_color": "bg-yellow-500"
+            }
+          ]
+        },
+        {
+          "id": "2-2",
+          "process_id": "2",
+          "name": "فرز المتقدمين",
+          "description": "فرز وتقييم المتقدمين",
+          "color": "bg-yellow-500",
+          "order_index": 2,
+          "priority": 2,
+          "is_initial": false,
+          "is_final": false,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": [
+            {
+              "id": "7",
+              "from_stage_id": "2-2",
+              "to_stage_id": "2-3",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": true,
+              "display_name": "دعوة للمقابلة",
+              "confirmation_required": false,
+              "button_color": "#3B82F6",
+              "button_icon": null,
+              "order_index": 1,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "مقابلات",
+              "to_stage_color": "bg-blue-500"
+            },
+            {
+              "id": "8",
+              "from_stage_id": "2-2",
+              "to_stage_id": "2-1",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": false,
+              "display_name": "رفض",
+              "confirmation_required": true,
+              "button_color": "#EF4444",
+              "button_icon": null,
+              "order_index": 2,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "طلب توظيف",
+              "to_stage_color": "bg-gray-500"
+            }
+          ]
+        },
+        {
+          "id": "2-3",
+          "process_id": "2",
+          "name": "مقابلات",
+          "description": "إجراء المقابلات الشخصية",
+          "color": "bg-blue-500",
+          "order_index": 3,
+          "priority": 3,
+          "is_initial": false,
+          "is_final": false,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": [
+            {
+              "id": "9",
+              "from_stage_id": "2-3",
+              "to_stage_id": "2-4",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": true,
+              "display_name": "اتخاذ قرار",
+              "confirmation_required": false,
+              "button_color": "#3B82F6",
+              "button_icon": null,
+              "order_index": 1,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "اتخاذ قرار",
+              "to_stage_color": "bg-green-500"
+            },
+            {
+              "id": "10",
+              "from_stage_id": "2-3",
+              "to_stage_id": "2-2",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": false,
+              "display_name": "إعادة فرز",
+              "confirmation_required": false,
+              "button_color": "#F59E0B",
+              "button_icon": null,
+              "order_index": 2,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "فرز المتقدمين",
+              "to_stage_color": "bg-yellow-500"
+            }
+          ]
+        },
+        {
+          "id": "2-4",
+          "process_id": "2",
+          "name": "اتخاذ قرار",
+          "description": "اتخاذ قرار التوظيف النهائي",
+          "color": "bg-green-500",
+          "order_index": 4,
+          "priority": 4,
+          "is_initial": false,
+          "is_final": false,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": [
+            {
+              "id": "11",
+              "from_stage_id": "2-4",
+              "to_stage_id": "2-5",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": true,
+              "display_name": "توظيف",
+              "confirmation_required": false,
+              "button_color": "#10B981",
+              "button_icon": null,
+              "order_index": 1,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "تم التوظيف",
+              "to_stage_color": "bg-green-600"
+            },
+            {
+              "id": "12",
+              "from_stage_id": "2-4",
+              "to_stage_id": "2-3",
+              "transition_type": "manual",
+              "conditions": [],
+              "required_permissions": [],
+              "is_default": false,
+              "display_name": "مقابلة إضافية",
+              "confirmation_required": false,
+              "button_color": "#F59E0B",
+              "button_icon": null,
+              "order_index": 2,
+              "created_at": "2025-09-21T19:43:17.528Z",
+              "to_stage_name": "مقابلات",
+              "to_stage_color": "bg-blue-500"
+            }
+          ]
+        },
+        {
+          "id": "2-5",
+          "process_id": "2",
+          "name": "تم التوظيف",
+          "description": "تم التوظيف بنجاح",
+          "color": "bg-green-600",
+          "order_index": 5,
+          "priority": 5,
+          "is_initial": false,
+          "is_final": true,
+          "sla_hours": null,
+          "required_permissions": [],
+          "automation_rules": [],
+          "settings": {},
+          "created_at": "2025-09-21T19:43:17.528Z",
+          "updated_at": "2025-09-21T19:43:17.528Z",
+          "parent_stage_id": null,
+          "tickets_count": "0",
+          "transitions": []
+        }
+      ],
+      "fields": [
+        {
+          "id": "position",
+          "name": "المنصب",
+          "type": "text",
+          "is_required": true,
+          "is_system_field": false
+        },
+        {
+          "id": "department",
+          "name": "القسم",
+          "type": "select",
+          "is_required": true,
+          "is_system_field": false,
+          "options": [
+            {
+              "id": "it",
+              "label": "تكنولوجيا المعلومات",
+              "value": "it"
+            },
+            {
+              "id": "hr",
+              "label": "الموارد البشرية",
+              "value": "hr"
+            },
+            {
+              "id": "finance",
+              "label": "المالية",
+              "value": "finance"
+            }
+          ]
+        },
+        {
+          "id": "experience_years",
+          "name": "سنوات الخبرة المطلوبة",
+          "type": "number",
+          "is_required": true,
+          "is_system_field": false,
+          "default_value": 1
+        },
+        {
+          "id": "salary_range",
+          "name": "نطاق الراتب",
+          "type": "text",
+          "is_required": false,
+          "is_system_field": false
+        },
+        {
+          "id": "job_type",
+          "name": "نوع الوظيفة",
+          "type": "select",
+          "is_required": true,
+          "is_system_field": false,
+          "options": [
+            {
+              "id": "fulltime",
+              "label": "دوام كامل",
+              "value": "fulltime",
+              "color": "bg-green-100"
+            },
+            {
+              "id": "parttime",
+              "label": "دوام جزئي",
+              "value": "parttime",
+              "color": "bg-blue-100"
+            },
+            {
+              "id": "contract",
+              "label": "عقد مؤقت",
+              "value": "contract",
+              "color": "bg-yellow-100"
+            },
+            {
+              "id": "remote",
+              "label": "عمل عن بعد",
+              "value": "remote",
+              "color": "bg-purple-100"
+            }
+          ]
+        },
+        {
+          "id": "skills_required",
+          "name": "المهارات المطلوبة",
+          "type": "multiselect",
+          "is_required": false,
+          "is_system_field": false,
+          "options": [
+            {
+              "id": "programming",
+              "label": "البرمجة",
+              "value": "programming",
+              "color": "bg-blue-100"
+            },
+            {
+              "id": "design",
+              "label": "التصميم",
+              "value": "design",
+              "color": "bg-pink-100"
+            },
+            {
+              "id": "management",
+              "label": "الإدارة",
+              "value": "management",
+              "color": "bg-green-100"
+            },
+            {
+              "id": "marketing",
+              "label": "التسويق",
+              "value": "marketing",
+              "color": "bg-orange-100"
+            },
+            {
+              "id": "sales",
+              "label": "المبيعات",
+              "value": "sales",
+              "color": "bg-red-100"
+            }
+          ]
+        }
+      ],
+      "settings": {
+        "auto_assign": true,
+        "due_date_required": false,
+        "allow_self_assignment": false,
+        "default_priority": "medium",
+        "notification_settings": {
+          "email_notifications": true,
+          "in_app_notifications": true,
+          "notify_on_assignment": true,
+          "notify_on_stage_change": true,
+          "notify_on_due_date": false,
+          "notify_on_overdue": false
+        }
+      }
+    }
+  ]
+}

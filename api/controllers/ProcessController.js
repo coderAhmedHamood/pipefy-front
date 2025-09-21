@@ -1092,9 +1092,34 @@ class ProcessController {
           }
         ];
 
+        // تطبيق نفس المنطق على البيانات التجريبية: ترتيب المراحل وتحديد الأنواع
+        const enhancedDemoProcesses = demoProcesses.map(process => {
+          // ترتيب المراحل حسب priority
+          const sortedStages = process.stages ?
+            [...process.stages].sort((a, b) => (a.priority || 0) - (b.priority || 0)) : [];
+
+          // تحديد أنواع المراحل بناءً على الترتيب
+          const enhancedStages = sortedStages.map((stage, index) => {
+            // تحديد نوع المرحلة: الأولى initial، الأخيرة final
+            const isInitial = index === 0 && sortedStages.length > 1;
+            const isFinal = index === sortedStages.length - 1 && sortedStages.length > 1;
+
+            return {
+              ...stage,
+              is_initial: isInitial,
+              is_final: isFinal
+            };
+          });
+
+          return {
+            ...process,
+            stages: enhancedStages
+          };
+        });
+
         return res.json({
           success: true,
-          data: demoProcesses
+          data: enhancedDemoProcesses
         });
       }
 
@@ -1119,59 +1144,74 @@ class ProcessController {
       const processes = await Process.findAll(options);
 
       // تحويل البيانات إلى تنسيق الفرونت إند
-      const frontendProcesses = processes.map(process => ({
-        id: process.id,
-        name: process.name,
-        description: process.description,
-        color: process.color,
-        icon: process.icon,
-        created_by: process.created_by,
-        created_at: process.created_at,
-        is_active: process.is_active,
-        stages: process.stages ? process.stages.map(stage => ({
-          id: stage.id,
-          process_id: stage.process_id,
-          name: stage.name,
-          description: stage.description,
-          color: stage.color,
-          order_index: stage.order_index,
-          priority: stage.priority,
-          is_initial: stage.is_initial || false,
-          is_final: stage.is_final || false,
-          sla_hours: stage.sla_hours,
-          required_permissions: stage.required_permissions || [],
-          automation_rules: stage.automation_rules || [],
-          settings: stage.settings || {},
-          created_at: stage.created_at,
-          updated_at: stage.updated_at,
-          parent_stage_id: stage.parent_stage_id,
-          tickets_count: stage.tickets_count || "0",
-          transitions: stage.transitions || []
-        })) : [],
-        fields: process.fields ? process.fields.map(field => ({
-          id: field.id,
-          name: field.name,
-          type: field.type,
-          is_required: field.is_required,
-          is_system_field: field.is_system_field,
-          options: field.options || [],
-          default_value: field.default_value
-        })) : [],
-        settings: {
-          auto_assign: process.settings?.auto_assign || false,
-          due_date_required: process.settings?.due_date_required || false,
-          allow_self_assignment: process.settings?.allow_self_assignment || false,
-          default_priority: process.settings?.default_priority || 'medium',
-          notification_settings: {
-            email_notifications: process.settings?.notification_settings?.email_notifications || true,
-            in_app_notifications: process.settings?.notification_settings?.in_app_notifications || true,
-            notify_on_assignment: process.settings?.notification_settings?.notify_on_assignment || true,
-            notify_on_stage_change: process.settings?.notification_settings?.notify_on_stage_change || true,
-            notify_on_due_date: process.settings?.notification_settings?.notify_on_due_date || false,
-            notify_on_overdue: process.settings?.notification_settings?.notify_on_overdue || false
+      const frontendProcesses = processes.map(process => {
+        // ترتيب المراحل حسب priority
+        const sortedStages = process.stages ?
+          [...process.stages].sort((a, b) => (a.priority || 0) - (b.priority || 0)) : [];
+
+        // تحديد أنواع المراحل بناءً على الترتيب والانتقالات
+        const enhancedStages = sortedStages.map((stage, index) => {
+          // تحديد نوع المرحلة
+          const isInitial = stage.is_initial || (index === 0 && sortedStages.length > 1);
+          const isFinal = stage.is_final || (index === sortedStages.length - 1 && sortedStages.length > 1);
+
+          return {
+            id: stage.id,
+            process_id: stage.process_id,
+            name: stage.name,
+            description: stage.description,
+            color: stage.color,
+            order_index: stage.order_index,
+            priority: stage.priority,
+            is_initial: isInitial,
+            is_final: isFinal,
+            sla_hours: stage.sla_hours,
+            required_permissions: stage.required_permissions || [],
+            automation_rules: stage.automation_rules || [],
+            settings: stage.settings || {},
+            created_at: stage.created_at,
+            updated_at: stage.updated_at,
+            parent_stage_id: stage.parent_stage_id,
+            tickets_count: stage.tickets_count || "0",
+            transitions: stage.transitions || []
+          };
+        });
+
+        return {
+          id: process.id,
+          name: process.name,
+          description: process.description,
+          color: process.color,
+          icon: process.icon,
+          created_by: process.created_by,
+          created_at: process.created_at,
+          is_active: process.is_active,
+          stages: enhancedStages,
+          fields: process.fields ? process.fields.map(field => ({
+            id: field.id,
+            name: field.name,
+            type: field.type,
+            is_required: field.is_required,
+            is_system_field: field.is_system_field,
+            options: field.options || [],
+            default_value: field.default_value
+          })) : [],
+          settings: {
+            auto_assign: process.settings?.auto_assign || false,
+            due_date_required: process.settings?.due_date_required || false,
+            allow_self_assignment: process.settings?.allow_self_assignment || false,
+            default_priority: process.settings?.default_priority || 'medium',
+            notification_settings: {
+              email_notifications: process.settings?.notification_settings?.email_notifications || true,
+              in_app_notifications: process.settings?.notification_settings?.in_app_notifications || true,
+              notify_on_assignment: process.settings?.notification_settings?.notify_on_assignment || true,
+              notify_on_stage_change: process.settings?.notification_settings?.notify_on_stage_change || true,
+              notify_on_due_date: process.settings?.notification_settings?.notify_on_due_date || false,
+              notify_on_overdue: process.settings?.notification_settings?.notify_on_overdue || false
+            }
           }
-        }
-      }));
+        };
+      });
 
       res.json({
         success: true,
