@@ -142,6 +142,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('خطأ في تسجيل الخروج:', error);
     } finally {
+      // إزالة العملية المختارة من localStorage
+      localStorage.removeItem('selected_process_id');
       dispatch({ type: 'LOGOUT' });
     }
   };

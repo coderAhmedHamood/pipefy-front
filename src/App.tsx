@@ -8,6 +8,7 @@ import { WorkflowProvider, useWorkflow } from './contexts/WorkflowContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { KanbanBoard } from './components/kanban/KanbanBoard';
 import { ProcessSelector } from './components/dashboard/ProcessSelector';
+import { HeaderProcessSelector } from './components/layout/HeaderProcessSelector';
 import { ProcessManager } from './components/processes/ProcessManager';
 import { UserManagerNew as UserManager } from './components/users/UserManagerNew';
 import { ReportsManager } from './components/reports/ReportsManager';
@@ -86,18 +87,31 @@ const KanbanContent: React.FC = () => {
 
   if (!selectedProcess) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
-        <div className="text-center p-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">ن</span>
+      <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+        <div className="text-center p-8 max-w-md">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <span className="text-white font-bold text-2xl">ن</span>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">مرحباً بك في نظام إدارة العمليات</h2>
-          <p className="text-gray-600 mb-6">اختر عملية للبدء في العمل على التذاكر</p>
-          <ProcessSelector
-            processes={processes}
-            selectedProcess={selectedProcess}
-            onProcessSelect={setSelectedProcess}
-          />
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">مرحباً بك في نظام إدارة العمليات</h2>
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            {processes.length > 0
+              ? "جاري تحميل العملية الافتراضية..."
+              : "اختر عملية للبدء في العمل على التذاكر"
+            }
+          </p>
+
+          {processes.length > 0 ? (
+            <div className="flex items-center justify-center space-x-2 space-x-reverse">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+              <span className="text-blue-600 font-medium">جاري التحميل...</span>
+            </div>
+          ) : (
+            <ProcessSelector
+              processes={processes}
+              selectedProcess={selectedProcess}
+              onProcessSelect={setSelectedProcess}
+            />
+          )}
         </div>
       </div>
     );
@@ -109,6 +123,7 @@ const KanbanContent: React.FC = () => {
 const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { processes, selectedProcess, setSelectedProcess } = useWorkflow();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
 
@@ -141,7 +156,14 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
                 <h1 className="text-xl font-bold text-gray-900">نظام إدارة العمليات</h1>
               </div>
-              
+
+              {/* Process Selector في الهيدر */}
+              <HeaderProcessSelector
+                processes={processes}
+                selectedProcess={selectedProcess}
+                onProcessSelect={setSelectedProcess}
+                compact={true}
+              />
 
             </div>
             
@@ -193,8 +215,35 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           onViewChange={handleViewChange}
         />
         
-        <div className="flex-1 overflow-hidden">
-          {children}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Header للوضع العادي */}
+          <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3 space-x-reverse">
+                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">ن</span>
+                </div>
+                <h1 className="text-lg font-bold text-gray-900">نظام إدارة العمليات</h1>
+              </div>
+
+              <div className="flex items-center space-x-4 space-x-reverse">
+                {/* Process Selector في الهيدر */}
+                <HeaderProcessSelector
+                  processes={processes}
+                  selectedProcess={selectedProcess}
+                  onProcessSelect={setSelectedProcess}
+                  compact={false}
+                />
+
+                <UserInfo />
+              </div>
+            </div>
+          </div>
+
+          {/* المحتوى الرئيسي */}
+          <div className="flex-1 overflow-hidden">
+            {children}
+          </div>
         </div>
       </div>
     </div>

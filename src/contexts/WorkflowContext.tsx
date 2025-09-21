@@ -7,6 +7,7 @@ interface WorkflowContextType {
   tickets: Ticket[];
   selectedProcess: Process | null;
   setSelectedProcess: (process: Process | null) => void;
+  clearSelectedProcess: () => void;
   createTicket: (ticketData: Partial<Ticket>) => void;
   updateTicket: (ticketId: string, updates: Partial<Ticket>) => void;
   moveTicket: (ticketId: string, toStageId: string) => void;
@@ -37,16 +38,58 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [processes, setProcesses] = useState<Process[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
+  const [selectedProcess, setSelectedProcessState] = useState<Process | null>(null);
+
+  // دالة محسنة لتعيين العملية المختارة مع حفظها في localStorage
+  const setSelectedProcess = (process: Process | null) => {
+    setSelectedProcessState(process);
+    if (process) {
+      localStorage.setItem('selected_process_id', process.id);
+    } else {
+      localStorage.removeItem('selected_process_id');
+    }
+  };
+
+  // دالة لإزالة العملية المختارة (عند تسجيل الخروج)
+  const clearSelectedProcess = () => {
+    setSelectedProcessState(null);
+    localStorage.removeItem('selected_process_id');
+  };
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // انتظار تحميل المصادقة أولاً
     if (!authLoading) {
-      // جلب البيانات من API
-      loadProcessesFromAPI();
+      if (isAuthenticated) {
+        // جلب البيانات من API
+        loadProcessesFromAPI();
+      } else {
+        // إزالة العملية المختارة عند تسجيل الخروج
+        clearSelectedProcess();
+      }
     }
   }, [authLoading, isAuthenticated]);
+
+  // استعادة العملية المختارة بعد تحميل العمليات
+  useEffect(() => {
+    if (processes.length > 0 && !selectedProcess && isAuthenticated) {
+      // محاولة استعادة العملية المختارة من localStorage
+      const savedProcessId = localStorage.getItem('selected_process_id');
+      if (savedProcessId) {
+        const savedProcess = processes.find(p => p.id === savedProcessId);
+        if (savedProcess) {
+          setSelectedProcessState(savedProcess);
+          return;
+        }
+      }
+
+      // إذا لم توجد عملية محفوظة، اختر أول عملية كافتراضية
+      if (processes.length > 0) {
+        const defaultProcess = processes[0];
+        setSelectedProcess(defaultProcess);
+      }
+    }
+  }, [processes, selectedProcess, isAuthenticated]);
 
   // إنشاء بيانات تجريبية كبيرة
   const generateLargeTicketData = (mockProcesses: Process[]) => {
@@ -1750,6 +1793,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     tickets,
     selectedProcess,
     setSelectedProcess,
+    clearSelectedProcess,
     createTicket,
     updateTicket,
     moveTicket,
