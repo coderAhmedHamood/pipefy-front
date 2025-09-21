@@ -480,6 +480,10 @@ export const ProcessManager: React.FC = () => {
       };
 
       console.log('📝 إرسال بيانات تحديث المرحلة إلى API:', updateData);
+      console.log('🔍 تفاصيل الحقول الحرجة:');
+      console.log('  - is_initial:', updateData.is_initial, '(نوع:', typeof updateData.is_initial, ')');
+      console.log('  - is_final:', updateData.is_final, '(نوع:', typeof updateData.is_final, ')');
+      console.log('  - allowed_transitions:', updateData.allowed_transitions, '(عدد:', updateData.allowed_transitions.length, ')');
 
       // التحقق من وجود رمز المصادقة
       const authToken = localStorage.getItem('auth_token');
@@ -1322,7 +1326,7 @@ export const ProcessManager: React.FC = () => {
               </div>
               
               {/* Stage Type */}
-              <div className="space-y-3">
+              <div className="space-y-3">N
                 <label className="block text-sm font-medium text-gray-700">نوع المرحلة</label>
                 <div className="space-y-2">
                   <label className="flex items-center">
