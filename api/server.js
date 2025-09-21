@@ -32,6 +32,18 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
 // API Routes
 app.use('/api', apiRoutes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    message: 'Pipefy API Server is running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    port: PORT,
+    version: '1.0.0'
+  });
+});
+
 // Basic route
 app.get('/', (req, res) => {
   res.json({

@@ -134,6 +134,16 @@ class Stage {
     if (include_transitions) {
       for (let stage of stages) {
         stage.transitions = await this.getTransitions(stage.id);
+        stage.allowed_transitions = stage.transitions.map(t => t.to_stage_id);
+      }
+    } else {
+      // جلب allowed_transitions لجميع المراحل
+      for (let stage of stages) {
+        const transitionsResult = await pool.query(
+          'SELECT to_stage_id FROM stage_transitions WHERE from_stage_id = $1 ORDER BY order_index',
+          [stage.id]
+        );
+        stage.allowed_transitions = transitionsResult.rows.map(t => t.to_stage_id);
       }
     }
 
@@ -164,6 +174,15 @@ class Stage {
 
     if (include_transitions) {
       stage.transitions = await this.getTransitions(id);
+      // إضافة allowed_transitions كمصفوفة من معرفات المراحل
+      stage.allowed_transitions = stage.transitions.map(t => t.to_stage_id);
+    } else {
+      // جلب allowed_transitions حتى لو لم يتم طلب التفاصيل الكاملة
+      const transitionsResult = await pool.query(
+        'SELECT to_stage_id FROM stage_transitions WHERE from_stage_id = $1 ORDER BY order_index',
+        [id]
+      );
+      stage.allowed_transitions = transitionsResult.rows.map(t => t.to_stage_id);
     }
 
     return stage;
@@ -182,7 +201,8 @@ class Stage {
       sla_hours,
       required_permissions,
       automation_rules,
-      settings
+      settings,
+      allowed_transitions
     } = updateData;
 
     const fields = [];
@@ -278,14 +298,23 @@ class Stage {
     values.push(id);
 
     const query = `
-      UPDATE stages 
+      UPDATE stages
       SET ${fields.join(', ')}
       WHERE id = $${paramCount}
       RETURNING *
     `;
 
     const result = await pool.query(query, values);
-    return result.rows[0];
+    const updatedStage = result.rows[0];
+
+    // تحديث الانتقالات المسموحة إذا تم تمريرها
+    if (allowed_transitions !== undefined && Array.isArray(allowed_transitions)) {
+      await this.updateAllowedTransitions(id, allowed_transitions);
+    }
+
+    // إرجاع المرحلة مع الانتقالات المحدثة
+    const stageWithTransitions = await this.findById(id, { include_transitions: true });
+    return stageWithTransitions;
   }
 
   // حذف مرحلة
@@ -547,6 +576,56 @@ class Stage {
       return result.rows;
     } catch (error) {
       throw error;
+    }
+  }
+
+  // تحديث الانتقالات المسموحة للمرحلة
+  static async updateAllowedTransitions(stageId, allowedTransitions) {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // حذف جميع الانتقالات الحالية للمرحلة
+      await client.query(
+        'DELETE FROM stage_transitions WHERE from_stage_id = $1',
+        [stageId]
+      );
+
+      // إضافة الانتقالات الجديدة
+      if (allowedTransitions && allowedTransitions.length > 0) {
+        for (let i = 0; i < allowedTransitions.length; i++) {
+          const toStageId = allowedTransitions[i];
+
+          // التحقق من وجود المرحلة المستهدفة
+          const stageExists = await client.query(
+            'SELECT id FROM stages WHERE id = $1',
+            [toStageId]
+          );
+
+          if (stageExists.rows.length > 0) {
+            await client.query(`
+              INSERT INTO stage_transitions (
+                from_stage_id, to_stage_id, transition_type,
+                is_default, order_index, display_name
+              )
+              VALUES ($1, $2, 'manual', false, $3, $4)
+            `, [
+              stageId,
+              toStageId,
+              i + 1,
+              `انتقال إلى المرحلة ${i + 1}`
+            ]);
+          }
+        }
+      }
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
   }
 }

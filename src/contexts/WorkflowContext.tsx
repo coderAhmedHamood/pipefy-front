@@ -19,6 +19,7 @@ interface WorkflowContextType {
   addFieldToProcess: (processId: string, newField: ProcessField) => void;
   removeFieldFromProcess: (processId: string, fieldId: string) => void;
   addStageToProcess: (processId: string, newStage: Stage) => void;
+  updateStageInProcess: (processId: string, updatedStage: Stage) => void;
   removeStageFromProcess: (processId: string, stageId: string) => void;
 }
 
@@ -1622,6 +1623,93 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.log('✅ تم إضافة المرحلة إلى الحالة المحلية');
   };
 
+  // تحديث مرحلة في عملية محددة
+  const updateStageInProcess = (processId: string, updatedStage: Stage) => {
+    try {
+      console.log('🔄 تحديث مرحلة في العملية:', processId, updatedStage);
+      console.log('📋 العملية المختارة الحالية:', selectedProcess);
+      console.log('📋 عدد المراحل الحالي:', selectedProcess?.stages?.length || 0);
+
+      // التحقق من صحة البيانات
+      if (!processId || !updatedStage || !updatedStage.id) {
+        console.error('❌ بيانات غير صحيحة لتحديث المرحلة:', { processId, updatedStage });
+        return;
+      }
+
+      // تحديث قائمة العمليات في الحالة العامة
+      setProcesses(prevProcesses => {
+        try {
+          const updatedProcesses = prevProcesses.map(process =>
+            process.id === processId
+              ? {
+                  ...process,
+                  stages: process.stages?.map(stage =>
+                    stage.id === updatedStage.id
+                      ? {
+                          ...stage,
+                          ...updatedStage,
+                          // التأكد من تضمين جميع الحقول المهمة
+                          allowed_transitions: updatedStage.allowed_transitions || stage.allowed_transitions || [],
+                          is_initial: updatedStage.is_initial !== undefined ? updatedStage.is_initial : stage.is_initial,
+                          is_final: updatedStage.is_final !== undefined ? updatedStage.is_final : stage.is_final,
+                          fields: updatedStage.fields || stage.fields || [],
+                          transition_rules: updatedStage.transition_rules || stage.transition_rules || [],
+                          automation_rules: updatedStage.automation_rules || stage.automation_rules || []
+                        }
+                      : stage
+                  ) || []
+                }
+              : process
+          );
+          console.log('📋 تم تحديث قائمة العمليات - تحديث المرحلة');
+          console.log('📋 المرحلة المحدثة:', updatedProcesses.find(p => p.id === processId)?.stages.find(s => s.id === updatedStage.id));
+          return updatedProcesses;
+        } catch (error) {
+          console.error('❌ خطأ في تحديث قائمة العمليات:', error);
+          return prevProcesses;
+        }
+      });
+
+      // تحديث العملية المختارة إذا كانت هي نفس العملية
+      setSelectedProcess(prevSelected => {
+        try {
+          if (prevSelected && prevSelected.id === processId) {
+            const updatedSelected = {
+              ...prevSelected,
+              stages: prevSelected.stages?.map(stage =>
+                stage.id === updatedStage.id
+                  ? {
+                      ...stage,
+                      ...updatedStage,
+                      // التأكد من تضمين جميع الحقول المهمة
+                      allowed_transitions: updatedStage.allowed_transitions || stage.allowed_transitions || [],
+                      is_initial: updatedStage.is_initial !== undefined ? updatedStage.is_initial : stage.is_initial,
+                      is_final: updatedStage.is_final !== undefined ? updatedStage.is_final : stage.is_final,
+                      fields: updatedStage.fields || stage.fields || [],
+                      transition_rules: updatedStage.transition_rules || stage.transition_rules || [],
+                      automation_rules: updatedStage.automation_rules || stage.automation_rules || []
+                    }
+                  : stage
+              ) || []
+            };
+            console.log('📋 تم تحديث العملية المختارة - تحديث المرحلة:', updatedSelected);
+            console.log('📋 عدد المراحل:', updatedSelected.stages.length);
+            console.log('📋 المرحلة المحدثة في العملية المختارة:', updatedSelected.stages.find(s => s.id === updatedStage.id));
+            return updatedSelected;
+          }
+          return prevSelected;
+        } catch (error) {
+          console.error('❌ خطأ في تحديث العملية المختارة:', error);
+          return prevSelected;
+        }
+      });
+
+      console.log('✅ تم تحديث المرحلة في الحالة المحلية');
+    } catch (error) {
+      console.error('❌ خطأ عام في تحديث المرحلة:', error);
+    }
+  };
+
   // حذف مرحلة من عملية محددة
   const removeStageFromProcess = (processId: string, stageId: string) => {
     console.log('🗑️ حذف مرحلة من العملية:', processId, stageId);
@@ -1674,6 +1762,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     addFieldToProcess,
     removeFieldFromProcess,
     addStageToProcess,
+    updateStageInProcess,
     removeStageFromProcess
   };
 

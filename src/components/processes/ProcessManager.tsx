@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { Process, Stage, ProcessField, FieldType } from '../../types/workflow';
+import { useToast, ToastContainer } from '../ui/Toast';
 import {
   Plus,
   Edit,
@@ -28,7 +29,8 @@ import {
 } from 'lucide-react';
 
 export const ProcessManager: React.FC = () => {
-  const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, removeFieldFromProcess, addStageToProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
+  const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, removeFieldFromProcess, addStageToProcess, updateStageInProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
+  const { toasts, showSuccess, showError, removeToast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
@@ -37,6 +39,7 @@ export const ProcessManager: React.FC = () => {
   const [isCreatingField, setIsCreatingField] = useState(false);
   const [isDeletingField, setIsDeletingField] = useState<string | null>(null);
   const [isCreatingStage, setIsCreatingStage] = useState(false);
+  const [isUpdatingStage, setIsUpdatingStage] = useState(false);
   const [isDeletingStage, setIsDeletingStage] = useState<string | null>(null);
 
   const [processForm, setProcessForm] = useState({
@@ -406,12 +409,15 @@ export const ProcessManager: React.FC = () => {
         // استخدام الدالة المحسنة لتحديث الحالة بكفاءة
         addStageToProcess(selectedProcess.id, newStage);
 
+        // إغلاق المودال أولاً لتجنب مشاكل الـ re-rendering
+        setEditingStage(null);
+
         // حساب الأولوية التالية بعد إضافة المرحلة الجديدة
         const newMaxPriority = selectedProcess.stages.length > 0
           ? Math.max(...selectedProcess.stages.map(s => s.priority || 0)) + 1
           : 1;
 
-        // إعادة تعيين النموذج وإغلاق المودال
+        // إعادة تعيين النموذج
         setStageForm({
           name: '',
           description: '',
@@ -423,19 +429,150 @@ export const ProcessManager: React.FC = () => {
           is_final: false,
           sla_hours: undefined
         });
-        setEditingStage(null);
 
-        alert('تم إنشاء المرحلة بنجاح!');
+        // عرض رسالة النجاح بعد إغلاق المودال
+        setTimeout(() => {
+          showSuccess('تم إنشاء المرحلة بنجاح!', 'تم إضافة المرحلة الجديدة إلى العملية');
+        }, 100);
       } else {
         console.error('❌ فشل في إنشاء المرحلة:', result);
-        alert(`فشل في إنشاء المرحلة: ${result?.message || 'خطأ غير معروف'}`);
+        showError('فشل في إنشاء المرحلة', result?.message || 'خطأ غير معروف');
       }
 
     } catch (error) {
       console.error('❌ خطأ في إنشاء المرحلة:', error);
-      alert(`خطأ في إنشاء المرحلة: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+      showError('خطأ في إنشاء المرحلة', error instanceof Error ? error.message : 'خطأ غير معروف');
     } finally {
       setIsCreatingStage(false);
+    }
+  };
+
+  // تحديث مرحلة موجودة
+  const handleUpdateStage = async () => {
+    try {
+      if (!selectedProcess || !editingStage || !editingStage.id) {
+        alert('لا يمكن تحديث المرحلة - بيانات غير صحيحة');
+        return;
+      }
+
+      // التحقق من صحة البيانات
+      if (!stageForm.name.trim()) {
+        alert('يرجى إدخال اسم المرحلة');
+        return;
+      }
+
+      setIsUpdatingStage(true);
+      console.log('🔄 بدء تحديث المرحلة:', editingStage.id);
+
+      // إعداد بيانات المرحلة للتحديث
+      const updateData = {
+        name: stageForm.name.trim(),
+        description: stageForm.description?.trim() || '',
+        color: stageForm.color || '#6B7280',
+        priority: stageForm.priority,
+        is_initial: Boolean(stageForm.is_initial), // ✅ إصلاح: استخدام Boolean() بدلاً من || false
+        is_final: Boolean(stageForm.is_final),     // ✅ إصلاح: استخدام Boolean() بدلاً من || false
+        sla_hours: stageForm.sla_hours || null,
+        allowed_transitions: stageForm.allowed_transitions || [],
+        required_permissions: [],
+        automation_rules: [],
+        settings: {}
+      };
+
+      console.log('📝 إرسال بيانات تحديث المرحلة إلى API:', updateData);
+
+      // التحقق من وجود رمز المصادقة
+      const authToken = localStorage.getItem('auth_token');
+      if (!authToken) {
+        alert('يجب تسجيل الدخول أولاً');
+        return;
+      }
+
+      // إرسال طلب التحديث إلى API
+      const response = await fetch(`http://localhost:3000/api/stages/${editingStage.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      console.log('🚀 استجابة HTTP:', { status: response.status, ok: response.ok });
+
+      if (!response.ok) {
+        const errorResult = await response.json();
+        throw new Error(errorResult.message || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('📋 استجابة API:', result);
+      console.log('📋 بيانات المرحلة المحدثة:', result.data);
+      console.log('📋 allowed_transitions في الاستجابة:', result.data?.allowed_transitions);
+      console.log('📋 is_initial في الاستجابة:', result.data?.is_initial);
+      console.log('📋 is_final في الاستجابة:', result.data?.is_final);
+
+      if (result.success) {
+        console.log('✅ تم تحديث المرحلة بنجاح:', result.data);
+
+        // إغلاق المودال أولاً لتجنب مشاكل الـ re-rendering
+        setEditingStage(null);
+
+        // إعادة تعيين النموذج
+        setStageForm({
+          name: '',
+          description: '',
+          color: 'bg-gray-500',
+          order: 1,
+          priority: 1,
+          allowed_transitions: [],
+          is_initial: false,
+          is_final: false,
+          sla_hours: undefined
+        });
+
+        // تحديث الحالة المحلية فوراً
+        try {
+          updateStageInProcess(selectedProcess.id, result.data);
+          showSuccess('تم تحديث المرحلة بنجاح!', 'تم حفظ التغييرات في قاعدة البيانات');
+        } catch (updateError) {
+          console.error('❌ خطأ في تحديث الحالة المحلية:', updateError);
+          showError('خطأ في تحديث الواجهة', 'تم تحديث المرحلة في قاعدة البيانات، لكن حدث خطأ في تحديث الواجهة. يرجى إعادة تحميل الصفحة.');
+        }
+
+      } else {
+        console.error('❌ فشل في تحديث المرحلة:', result);
+        showError('فشل في تحديث المرحلة', result?.message || 'خطأ غير معروف');
+      }
+
+    } catch (error) {
+      console.error('❌ خطأ في تحديث المرحلة:', error);
+
+      // تحديد نوع الخطأ وعرض رسالة مناسبة
+      let errorMessage = 'خطأ غير معروف';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'فشل في الاتصال بالخادم. تأكد من:\n' +
+                        '• تشغيل الخادم الخلفي (node server.js)\n' +
+                        '• الخادم يعمل على المنفذ 3000\n' +
+                        '• لا توجد مشاكل في الشبكة';
+        } else if (error.message.includes('401')) {
+          errorMessage = 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى';
+        } else if (error.message.includes('403')) {
+          errorMessage = 'ليس لديك صلاحية لتحديث هذه المرحلة';
+        } else if (error.message.includes('404')) {
+          errorMessage = 'المرحلة غير موجودة أو تم حذفها';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'خطأ في الخادم. يرجى المحاولة لاحقاً';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      showError('خطأ في تحديث المرحلة', errorMessage);
+    } finally {
+      setIsUpdatingStage(false);
     }
   };
 
@@ -841,7 +978,41 @@ export const ProcessManager: React.FC = () => {
                   </h3>
                   
                   <button
-                    onClick={() => setEditingStage({ id: '', name: '', color: 'bg-gray-500', order: selectedProcess.stages.length + 1, fields: [], transition_rules: [], automation_rules: [] })}
+                    onClick={() => {
+                      const maxPriority = selectedProcess.stages.length > 0
+                        ? Math.max(...selectedProcess.stages.map(s => s.priority || 0))
+                        : 0;
+
+                      // إعداد حالة المرحلة الجديدة
+                      setEditingStage({
+                        id: '',
+                        name: '',
+                        description: '',
+                        color: 'bg-gray-500',
+                        order: selectedProcess.stages.length + 1,
+                        priority: maxPriority + 1,
+                        allowed_transitions: [],
+                        is_initial: false,
+                        is_final: false,
+                        sla_hours: null,
+                        fields: [],
+                        transition_rules: [],
+                        automation_rules: []
+                      });
+
+                      // إعداد نموذج المرحلة الجديدة
+                      setStageForm({
+                        name: '',
+                        description: '',
+                        color: 'bg-gray-500',
+                        order: selectedProcess.stages.length + 1,
+                        priority: maxPriority + 1,
+                        allowed_transitions: [],
+                        is_initial: false,
+                        is_final: false,
+                        sla_hours: undefined
+                      });
+                    }}
                     className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse text-sm"
                   >
                     <Plus className="w-4 h-4" />
@@ -869,7 +1040,23 @@ export const ProcessManager: React.FC = () => {
                       
                       <div className="flex items-center space-x-2 space-x-reverse">
                         <button
-                          onClick={() => setEditingStage(stage)}
+                          onClick={() => {
+                            // إعداد حالة المرحلة للتحرير
+                            setEditingStage(stage);
+
+                            // ملء النموذج بالبيانات الحالية للمرحلة
+                            setStageForm({
+                              name: stage.name || '',
+                              description: stage.description || '',
+                              color: stage.color || 'bg-gray-500',
+                              order: stage.order || 1,
+                              priority: stage.priority || 1,
+                              allowed_transitions: stage.allowed_transitions || [],
+                              is_initial: stage.is_initial || false,
+                              is_final: stage.is_final || false,
+                              sla_hours: stage.sla_hours || undefined
+                            });
+                          }}
                           className="p-1 rounded hover:bg-gray-100"
                         >
                           <Edit className="w-4 h-4 text-gray-500" />
@@ -1208,17 +1395,17 @@ export const ProcessManager: React.FC = () => {
                 إلغاء
               </button>
               <button
-                onClick={handleAddStage}
-                disabled={!stageForm.name || isCreatingStage}
+                onClick={editingStage?.id ? handleUpdateStage : handleAddStage}
+                disabled={!stageForm.name || isCreatingStage || isUpdatingStage}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
               >
-                {isCreatingStage ? (
+                {(isCreatingStage || isUpdatingStage) ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>جاري الإنشاء...</span>
+                    <span>{editingStage?.id ? 'جاري التحديث...' : 'جاري الإنشاء...'}</span>
                   </>
                 ) : (
-                  <span>{editingStage.id ? 'حفظ' : 'إضافة'}</span>
+                  <span>{editingStage?.id ? 'حفظ التغييرات' : 'إضافة مرحلة'}</span>
                 )}
               </button>
             </div>
@@ -1454,6 +1641,9 @@ export const ProcessManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 };
