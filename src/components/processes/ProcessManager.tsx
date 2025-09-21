@@ -1055,7 +1055,7 @@ export const ProcessManager: React.FC = () => {
                               color: stage.color || 'bg-gray-500',
                               order: stage.order || 1,
                               priority: stage.priority || 1,
-                              allowed_transitions: stage.allowed_transitions || [],
+                              allowed_transitions: stage.allowed_transitions || ((stage as any).transitions ? (stage as any).transitions.map((t: any) => t.to_stage_id) : []),
                               is_initial: stage.is_initial || false,
                               is_final: stage.is_final || false,
                               sla_hours: stage.sla_hours || undefined

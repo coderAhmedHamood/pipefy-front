@@ -238,7 +238,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               transition_type: rule.transition_type || 'single'
             })),
             automation_rules: stage.automation_rules || [],
-            allowed_transitions: stage.allowed_transitions || [],
+            allowed_transitions: stage.allowed_transitions || (stage.transitions ? stage.transitions.map((t: any) => t.to_stage_id) : []),
             is_initial: stage.is_initial || false
           })),
           fields: (process.fields || []).map((field: any) => ({
