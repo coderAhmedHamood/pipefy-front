@@ -80,7 +80,7 @@ class TicketController {
     try {
       const ticketData = {
         ...req.body,
-        created_by: req.user.userId
+        created_by: req.user.id
       };
 
       const ticket = await Ticket.create(ticketData);
@@ -179,7 +179,7 @@ class TicketController {
         });
       }
 
-      const result = await Ticket.changeStage(id, new_stage_id, req.user.userId, comment);
+      const result = await Ticket.changeStage(id, new_stage_id, req.user.id, comment);
 
       if (!result) {
         return res.status(404).json({
@@ -227,7 +227,7 @@ class TicketController {
       const activity = await Ticket.addActivity(id, {
         activity_type: 'comment',
         description: comment,
-        performed_by: req.user.userId,
+        performed_by: req.user.id,
         metadata: { is_internal }
       });
 
@@ -274,7 +274,7 @@ class TicketController {
       const { id } = req.params;
       const { assigned_to } = req.body;
 
-      const ticket = await Ticket.assign(id, assigned_to, req.user.userId);
+      const ticket = await Ticket.assign(id, assigned_to, req.user.id);
 
       if (!ticket) {
         return res.status(404).json({

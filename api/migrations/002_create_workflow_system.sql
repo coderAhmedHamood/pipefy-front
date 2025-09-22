@@ -310,7 +310,7 @@ CREATE INDEX IF NOT EXISTS idx_recurring_active ON recurring_rules(is_active);
 CREATE INDEX IF NOT EXISTS idx_recurring_type ON recurring_rules(schedule_type);
 
 -- دالة لتوليد رقم التذكرة
-CREATE OR REPLACE FUNCTION generate_ticket_number(process_id UUID)
+CREATE OR REPLACE FUNCTION generate_ticket_number(p_process_id UUID)
 RETURNS TEXT AS $$
 DECLARE
   process_name TEXT;
@@ -318,17 +318,17 @@ DECLARE
   ticket_number TEXT;
 BEGIN
   -- جلب اسم العملية
-  SELECT UPPER(LEFT(name, 3)) INTO process_name FROM processes WHERE id = process_id;
-  
+  SELECT UPPER(LEFT(name, 3)) INTO process_name FROM processes WHERE id = p_process_id;
+
   -- جلب العداد التالي
-  SELECT COALESCE(MAX(CAST(SUBSTRING(ticket_number FROM '[0-9]+$') AS INTEGER)), 0) + 1
+  SELECT COALESCE(MAX(CAST(SUBSTRING(t.ticket_number FROM '[0-9]+$') AS INTEGER)), 0) + 1
   INTO counter
-  FROM tickets 
-  WHERE tickets.process_id = generate_ticket_number.process_id;
-  
+  FROM tickets t
+  WHERE t.process_id = p_process_id;
+
   -- تكوين رقم التذكرة
   ticket_number := process_name || '-' || LPAD(counter::TEXT, 6, '0');
-  
+
   RETURN ticket_number;
 END;
 $$ LANGUAGE plpgsql;
