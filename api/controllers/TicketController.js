@@ -357,6 +357,108 @@ class TicketController {
       });
     }
   }
+
+  // جلب التذاكر مجمعة حسب المراحل
+  static async getTicketsByStages(req, res) {
+    try {
+      const { process_id, stage_ids } = req.query;
+
+      // التحقق من المعاملات المطلوبة
+      if (!process_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف العملية (process_id) مطلوب'
+        });
+      }
+
+      if (!stage_ids) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرفات المراحل (stage_ids) مطلوبة'
+        });
+      }
+
+      // تحويل stage_ids إلى مصفوفة إذا لم تكن كذلك
+      let stageIdsArray;
+      try {
+        if (typeof stage_ids === 'string') {
+          // إذا كانت string، قد تكون JSON أو مفصولة بفواصل
+          if (stage_ids.startsWith('[')) {
+            stageIdsArray = JSON.parse(stage_ids);
+          } else {
+            stageIdsArray = stage_ids.split(',').map(id => id.trim());
+          }
+        } else if (Array.isArray(stage_ids)) {
+          stageIdsArray = stage_ids;
+        } else {
+          throw new Error('تنسيق غير صحيح');
+        }
+      } catch (parseError) {
+        return res.status(400).json({
+          success: false,
+          message: 'تنسيق معرفات المراحل غير صحيح. يجب أن تكون مصفوفة JSON أو قيم مفصولة بفواصل'
+        });
+      }
+
+      if (!Array.isArray(stageIdsArray) || stageIdsArray.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرفات المراحل يجب أن تكون مصفوفة غير فارغة'
+        });
+      }
+
+      // استخراج المعاملات الإضافية
+      const {
+        assigned_to,
+        priority,
+        status,
+        search,
+        due_date_from,
+        due_date_to,
+        limit = 100,
+        order_by = 'created_at',
+        order_direction = 'DESC'
+      } = req.query;
+
+      const options = {
+        assigned_to,
+        priority,
+        status,
+        search,
+        due_date_from,
+        due_date_to,
+        limit: parseInt(limit),
+        order_by,
+        order_direction
+      };
+
+      // جلب التذاكر مجمعة حسب المراحل
+      const result = await Ticket.findByStages(process_id, stageIdsArray, options);
+
+      res.json({
+        success: true,
+        data: result.tickets_by_stage,
+        statistics: result.statistics,
+        message: 'تم جلب التذاكر مجمعة حسب المراحل بنجاح'
+      });
+
+    } catch (error) {
+      console.error('خطأ في جلب التذاكر حسب المراحل:', error);
+
+      if (error.message.includes('معرف العملية') || error.message.includes('معرفات المراحل')) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في الخادم',
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = TicketController;

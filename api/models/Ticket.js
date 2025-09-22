@@ -975,6 +975,159 @@ class Ticket {
       throw error;
     }
   }
+
+  // جلب التذاكر مجمعة حسب المراحل
+  static async findByStages(processId, stageIds, options = {}) {
+    try {
+      const {
+        assigned_to,
+        priority,
+        status = 'active',
+        search,
+        due_date_from,
+        due_date_to,
+        limit = 100,
+        order_by = 'created_at',
+        order_direction = 'DESC'
+      } = options;
+
+      // التحقق من المعاملات المطلوبة
+      if (!processId) {
+        throw new Error('معرف العملية مطلوب');
+      }
+
+      if (!stageIds || !Array.isArray(stageIds) || stageIds.length === 0) {
+        throw new Error('معرفات المراحل مطلوبة ويجب أن تكون مصفوفة غير فارغة');
+      }
+
+      // بناء الاستعلام الأساسي
+      let query = `
+        SELECT t.*,
+               p.name as process_name,
+               p.color as process_color,
+               p.icon as process_icon,
+               s.name as stage_name,
+               s.color as stage_color,
+               s.is_final as stage_is_final,
+               s.priority as stage_priority,
+               u1.name as assigned_to_name,
+               u1.email as assigned_to_email,
+               u2.name as created_by_name,
+               u2.email as created_by_email
+        FROM tickets t
+        JOIN processes p ON t.process_id = p.id
+        JOIN stages s ON t.current_stage_id = s.id
+        LEFT JOIN users u1 ON t.assigned_to = u1.id
+        LEFT JOIN users u2 ON t.created_by = u2.id
+        WHERE t.process_id = $1
+        AND t.current_stage_id = ANY($2)
+      `;
+
+      const params = [processId, stageIds];
+      let paramIndex = 3;
+
+      // إضافة فلاتر إضافية
+      if (assigned_to) {
+        query += ` AND t.assigned_to = $${paramIndex}`;
+        params.push(assigned_to);
+        paramIndex++;
+      }
+
+      if (priority) {
+        query += ` AND t.priority = $${paramIndex}`;
+        params.push(priority);
+        paramIndex++;
+      }
+
+      if (status) {
+        query += ` AND t.status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
+      }
+
+      if (search) {
+        query += ` AND (
+          t.title ILIKE $${paramIndex} OR
+          t.description ILIKE $${paramIndex} OR
+          t.ticket_number ILIKE $${paramIndex}
+        )`;
+        params.push(`%${search}%`);
+        paramIndex++;
+      }
+
+      if (due_date_from) {
+        query += ` AND t.due_date >= $${paramIndex}`;
+        params.push(due_date_from);
+        paramIndex++;
+      }
+
+      if (due_date_to) {
+        query += ` AND t.due_date <= $${paramIndex}`;
+        params.push(due_date_to);
+        paramIndex++;
+      }
+
+      // ترتيب النتائج
+      const validOrderColumns = ['created_at', 'updated_at', 'title', 'priority', 'due_date'];
+      const orderColumn = validOrderColumns.includes(order_by) ? order_by : 'created_at';
+      const orderDir = order_direction.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+
+      query += ` ORDER BY t.${orderColumn} ${orderDir}`;
+
+      // إضافة حد أقصى للنتائج
+      if (limit) {
+        query += ` LIMIT $${paramIndex}`;
+        params.push(parseInt(limit));
+      }
+
+      // تنفيذ الاستعلام
+      const result = await pool.query(query, params);
+
+      // تجميع النتائج حسب المرحلة
+      const ticketsByStage = {};
+
+      // تهيئة جميع المراحل المطلوبة بمصفوفات فارغة
+      stageIds.forEach(stageId => {
+        ticketsByStage[stageId] = [];
+      });
+
+      // تجميع التذاكر حسب المرحلة
+      result.rows.forEach(ticket => {
+        const stageId = ticket.current_stage_id;
+        if (ticketsByStage[stageId]) {
+          ticketsByStage[stageId].push({
+            ...ticket,
+            data: ticket.data
+          });
+        }
+      });
+
+      // حساب الإحصائيات
+      const totalTickets = result.rows.length;
+      const stageStats = {};
+
+      Object.keys(ticketsByStage).forEach(stageId => {
+        stageStats[stageId] = {
+          count: ticketsByStage[stageId].length,
+          stage_name: ticketsByStage[stageId][0]?.stage_name || null,
+          stage_color: ticketsByStage[stageId][0]?.stage_color || null
+        };
+      });
+
+      return {
+        tickets_by_stage: ticketsByStage,
+        statistics: {
+          total_tickets: totalTickets,
+          stage_stats: stageStats,
+          process_id: processId,
+          stage_ids: stageIds
+        }
+      };
+
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = Ticket;

@@ -281,7 +281,180 @@ const TicketController = require('../controllers/TicketController');
  *         $ref: '#/components/responses/ServerError'
  */
 
+/**
+ * @swagger
+ * /api/tickets/by-stages:
+ *   get:
+ *     summary: جلب التذاكر مجمعة حسب المراحل
+ *     description: جلب التذاكر مجمعة حسب المراحل لعملية محددة مع إمكانية التصفية
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: process_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف العملية المطلوب جلب تذاكرها
+ *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *       - in: query
+ *         name: stage_ids
+ *         required: true
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *             format: uuid
+ *         style: form
+ *         explode: false
+ *         description: مصفوفة معرفات المراحل المطلوب جلب تذاكرها (يمكن تمريرها كـ JSON أو قيم مفصولة بفواصل)
+ *         example: ["123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174002"]
+ *       - in: query
+ *         name: assigned_to
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: تصفية حسب المستخدم المكلف
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [urgent, high, medium, low]
+ *         description: تصفية حسب الأولوية
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, completed, cancelled, on_hold]
+ *         description: تصفية حسب الحالة
+ *         default: active
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: البحث في العنوان أو الوصف أو رقم التذكرة
+ *       - in: query
+ *         name: due_date_from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: تصفية من تاريخ الاستحقاق
+ *       - in: query
+ *         name: due_date_to
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: تصفية إلى تاريخ الاستحقاق
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 500
+ *           default: 100
+ *         description: الحد الأقصى لعدد التذاكر المرجعة
+ *       - in: query
+ *         name: order_by
+ *         schema:
+ *           type: string
+ *           enum: [created_at, updated_at, title, priority, due_date]
+ *           default: created_at
+ *         description: حقل الترتيب
+ *       - in: query
+ *         name: order_direction
+ *         schema:
+ *           type: string
+ *           enum: [ASC, DESC]
+ *           default: DESC
+ *         description: اتجاه الترتيب
+ *     responses:
+ *       200:
+ *         description: تم جلب التذاكر مجمعة حسب المراحل بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: array
+ *                     items:
+ *                       $ref: '#/components/schemas/Ticket'
+ *                   description: التذاكر مجمعة حسب معرف المرحلة
+ *                   example:
+ *                     "123e4567-e89b-12d3-a456-426614174001":
+ *                       - id: "123e4567-e89b-12d3-a456-426614174010"
+ *                         ticket_number: "SUP-000001"
+ *                         title: "مشكلة في تسجيل الدخول"
+ *                         stage_name: "جديد"
+ *                         stage_color: "bg-blue-500"
+ *                     "123e4567-e89b-12d3-a456-426614174002":
+ *                       - id: "123e4567-e89b-12d3-a456-426614174011"
+ *                         ticket_number: "SUP-000002"
+ *                         title: "طلب ميزة جديدة"
+ *                         stage_name: "قيد المراجعة"
+ *                         stage_color: "bg-yellow-500"
+ *                 statistics:
+ *                   type: object
+ *                   properties:
+ *                     total_tickets:
+ *                       type: integer
+ *                       description: إجمالي عدد التذاكر
+ *                       example: 15
+ *                     stage_stats:
+ *                       type: object
+ *                       additionalProperties:
+ *                         type: object
+ *                         properties:
+ *                           count:
+ *                             type: integer
+ *                           stage_name:
+ *                             type: string
+ *                           stage_color:
+ *                             type: string
+ *                       description: إحصائيات كل مرحلة
+ *                     process_id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: معرف العملية
+ *                     stage_ids:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         format: uuid
+ *                       description: معرفات المراحل المطلوبة
+ *                 message:
+ *                   type: string
+ *                   example: "تم جلب التذاكر مجمعة حسب المراحل بنجاح"
+ *       400:
+ *         description: معاملات غير صحيحة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "معرف العملية (process_id) مطلوب"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
 // Routes
+router.get('/by-stages', authenticateToken, requirePermissions(['tickets.read']), TicketController.getTicketsByStages);
 router.get('/', authenticateToken, requirePermissions(['tickets.read']), TicketController.getAllTickets);
 router.get('/:id', authenticateToken, requirePermissions(['tickets.read']), TicketController.getTicketById);
 router.post('/', authenticateToken, requirePermissions(['tickets.create']), TicketController.createTicket);
