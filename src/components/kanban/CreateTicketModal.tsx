@@ -3,6 +3,7 @@ import { X, Save, Plus, Trash2, Upload, Calendar, User, Flag, Tag, FileText, Ale
 import { Process, ProcessField, Priority, Ticket } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { getPriorityLabel } from '../../utils/priorityUtils';
+import { ticketService, CreateTicketData } from '../../services';
 
 interface CreateTicketModalProps {
   process: Process;
@@ -29,6 +30,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // إضافة console.log للتأكد من تمرير البيانات
   useEffect(() => {
@@ -40,7 +42,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
       ...prev,
       [fieldId]: value
     }));
-    
+
     // إزالة الخطأ عند التعديل
     if (errors[fieldId]) {
       setErrors(prev => {
@@ -48,6 +50,11 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         delete newErrors[fieldId];
         return newErrors;
       });
+    }
+
+    // إزالة خطأ الإرسال عند التعديل
+    if (submitError) {
+      setSubmitError(null);
     }
   };
 
@@ -74,16 +81,15 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
   // حفظ التذكرة
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
-    
+    setSubmitError(null);
+
     try {
-      // محاكاة تأخير الحفظ
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const ticketData: Partial<Ticket> = {
+      // إعداد بيانات التذكرة للـ API
+      const apiTicketData: CreateTicketData = {
         title: formData.title,
         description: formData.description,
         process_id: process.id,
@@ -97,9 +103,27 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         tags: formData.tags || []
       };
 
-      onSave(ticketData);
-    } catch (error) {
+      // إرسال التذكرة إلى الـ API
+      const response = await ticketService.createTicket(apiTicketData);
+
+      if (response.success && response.data) {
+        // إعداد بيانات التذكرة للحالة المحلية
+        const localTicketData: Partial<Ticket> = {
+          ...response.data,
+          data: Object.fromEntries(
+            process.fields.map(field => [field.id, formData[field.id]])
+          ),
+          tags: formData.tags || []
+        };
+
+        // حفظ في الحالة المحلية أيضاً
+        onSave(localTicketData);
+      } else {
+        throw new Error(response.message || 'فشل في إنشاء التذكرة');
+      }
+    } catch (error: any) {
       console.error('Error creating ticket:', error);
+      setSubmitError(error.message || 'حدث خطأ أثناء إنشاء التذكرة. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsSubmitting(false);
     }
@@ -543,6 +567,19 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* Error Message */}
+              {submitError && (
+                <div className="px-6 pb-3">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                      <div className="text-red-700 text-sm">{submitError}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="p-6 space-y-3">
                 <button
