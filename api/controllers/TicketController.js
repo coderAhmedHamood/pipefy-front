@@ -122,14 +122,62 @@ class TicketController {
       const { id } = req.params;
       const updateData = req.body;
 
-      const ticket = await Ticket.update(id, updateData);
-
-      if (!ticket) {
+      // التحقق من وجود التذكرة أولاً
+      const existingTicket = await Ticket.findById(id);
+      if (!existingTicket) {
         return res.status(404).json({
           success: false,
           message: 'التذكرة غير موجودة'
         });
       }
+
+      // التحقق من الصلاحيات - المالك أو المعين أو المدير
+      const isOwner = existingTicket.created_by === req.user.id;
+      const isAssigned = existingTicket.assigned_to === req.user.id;
+      const isAdmin = (req.user.role && req.user.role.name === 'Super Admin') ||
+                     (req.user.role_name === 'Super Admin') ||
+                     (req.user.role && req.user.role.name === 'admin') ||
+                     (req.user.role_name === 'admin');
+
+      if (!isOwner && !isAssigned && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'غير مسموح لك بتعديل هذه التذكرة'
+        });
+      }
+
+      // التحقق من صحة البيانات
+      const validationErrors = [];
+
+      if (updateData.title && updateData.title.trim().length === 0) {
+        validationErrors.push('عنوان التذكرة لا يمكن أن يكون فارغاً');
+      }
+
+      if (updateData.title && updateData.title.length > 500) {
+        validationErrors.push('عنوان التذكرة طويل جداً (الحد الأقصى 500 حرف)');
+      }
+
+      if (updateData.priority && !['low', 'medium', 'high', 'urgent'].includes(updateData.priority)) {
+        validationErrors.push('أولوية التذكرة غير صحيحة');
+      }
+
+      if (updateData.status && !['active', 'completed', 'archived', 'cancelled'].includes(updateData.status)) {
+        validationErrors.push('حالة التذكرة غير صحيحة');
+      }
+
+      if (updateData.due_date && new Date(updateData.due_date) < new Date()) {
+        validationErrors.push('تاريخ الاستحقاق لا يمكن أن يكون في الماضي');
+      }
+
+      if (validationErrors.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'بيانات غير صحيحة',
+          errors: validationErrors
+        });
+      }
+
+      const ticket = await Ticket.update(id, updateData, req.user.id);
 
       res.json({
         success: true,
@@ -138,10 +186,18 @@ class TicketController {
       });
     } catch (error) {
       console.error('خطأ في تحديث التذكرة:', error);
+
+      if (error.code === '23503') {
+        return res.status(400).json({
+          success: false,
+          message: 'المستخدم المعين أو العملية المحددة غير موجودة'
+        });
+      }
+
       res.status(500).json({
         success: false,
         message: 'خطأ في الخادم',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'SERVER_ERROR'
       });
     }
   }
@@ -150,10 +206,56 @@ class TicketController {
   static async deleteTicket(req, res) {
     try {
       const { id } = req.params;
+      const { permanent = false } = req.query;
 
-      const deleted = await Ticket.delete(id);
+      // التحقق من وجود التذكرة أولاً
+      const existingTicket = await Ticket.findById(id);
+      if (!existingTicket) {
+        return res.status(404).json({
+          success: false,
+          message: 'التذكرة غير موجودة'
+        });
+      }
 
-      if (!deleted) {
+      // التحقق من الصلاحيات - المالك أو المدير فقط
+      const isOwner = existingTicket.created_by === req.user.id;
+      const isAdmin = (req.user.role && req.user.role.name === 'Super Admin') ||
+                     (req.user.role_name === 'Super Admin') ||
+                     (req.user.role && req.user.role.name === 'admin') ||
+                     (req.user.role_name === 'admin');
+
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'غير مسموح لك بحذف هذه التذكرة'
+        });
+      }
+
+      // التحقق من وجود تعليقات أو مرفقات
+      const hasComments = await Ticket.hasComments(id);
+      const hasAttachments = await Ticket.hasAttachments(id);
+
+      if ((hasComments || hasAttachments) && permanent === 'true') {
+        return res.status(400).json({
+          success: false,
+          message: 'لا يمكن حذف التذكرة نهائياً لأنها تحتوي على تعليقات أو مرفقات. استخدم الحذف المؤقت بدلاً من ذلك.',
+          details: {
+            has_comments: hasComments,
+            has_attachments: hasAttachments
+          }
+        });
+      }
+
+      let result;
+      if (permanent === 'true' && isAdmin) {
+        // الحذف النهائي (للمديرين فقط)
+        result = await Ticket.permanentDelete(id, req.user.id);
+      } else {
+        // الحذف المؤقت (soft delete)
+        result = await Ticket.softDelete(id, req.user.id);
+      }
+
+      if (!result) {
         return res.status(404).json({
           success: false,
           message: 'التذكرة غير موجودة'
@@ -162,19 +264,34 @@ class TicketController {
 
       res.json({
         success: true,
-        message: 'تم حذف التذكرة بنجاح'
+        message: permanent === 'true' ? 'تم حذف التذكرة نهائياً' : 'تم حذف التذكرة مؤقتاً',
+        data: {
+          ticket_id: id,
+          ticket_number: existingTicket.ticket_number,
+          deletion_type: permanent === 'true' ? 'permanent' : 'soft',
+          deleted_by: req.user.id,
+          deleted_at: new Date().toISOString()
+        }
       });
     } catch (error) {
       console.error('خطأ في حذف التذكرة:', error);
+
+      if (error.message.includes('foreign key constraint')) {
+        return res.status(400).json({
+          success: false,
+          message: 'لا يمكن حذف التذكرة لأنها مرتبطة ببيانات أخرى'
+        });
+      }
+
       res.status(500).json({
         success: false,
         message: 'خطأ في الخادم',
-        error: error.message
+        error: process.env.NODE_ENV === 'development' ? error.message : 'SERVER_ERROR'
       });
     }
   }
 
-  // تغيير مرحلة التذكرة
+  // تغيير مرحلة التذكرة (الطريقة القديمة - للتوافق مع الإصدارات السابقة)
   static async changeStage(req, res) {
     try {
       const { id } = req.params;
@@ -203,7 +320,7 @@ class TicketController {
       });
     } catch (error) {
       console.error('خطأ في تغيير مرحلة التذكرة:', error);
-      
+
       if (error.message.includes('transition not allowed')) {
         return res.status(400).json({
           success: false,
@@ -215,6 +332,121 @@ class TicketController {
         success: false,
         message: 'خطأ في الخادم',
         error: error.message
+      });
+    }
+  }
+
+  // تحريك التذكرة بين المراحل (الطريقة المحسنة)
+  static async moveTicket(req, res) {
+    try {
+      const { id } = req.params;
+      const {
+        target_stage_id,
+        comment,
+        validate_transitions = true,
+        notify_assignee = true
+      } = req.body;
+
+      if (!target_stage_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف المرحلة المستهدفة مطلوب'
+        });
+      }
+
+      // التحقق من وجود التذكرة أولاً
+      const existingTicket = await Ticket.findById(id);
+      if (!existingTicket) {
+        return res.status(404).json({
+          success: false,
+          message: 'التذكرة غير موجودة'
+        });
+      }
+
+      // التحقق من الصلاحيات
+      const isOwner = existingTicket.created_by === req.user.id;
+      const isAssigned = existingTicket.assigned_to === req.user.id;
+      const isAdmin = (req.user.role && req.user.role.name === 'Super Admin') ||
+                     (req.user.role_name === 'Super Admin') ||
+                     (req.user.role && req.user.role.name === 'admin') ||
+                     (req.user.role_name === 'admin');
+
+      if (!isOwner && !isAssigned && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'غير مسموح لك بتحريك هذه التذكرة'
+        });
+      }
+
+      // التحقق من أن المرحلة المستهدفة مختلفة عن المرحلة الحالية
+      if (existingTicket.current_stage_id === target_stage_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'التذكرة موجودة بالفعل في هذه المرحلة'
+        });
+      }
+
+      const result = await Ticket.moveToStage(
+        id,
+        target_stage_id,
+        req.user.id,
+        {
+          comment,
+          validate_transitions,
+          notify_assignee,
+          moved_by: req.user.id
+        }
+      );
+
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          message: 'التذكرة أو المرحلة المستهدفة غير موجودة'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'تم تحريك التذكرة بنجاح',
+        data: {
+          ...result,
+          movement_details: {
+            from_stage: existingTicket.current_stage_id,
+            to_stage: target_stage_id,
+            moved_by: req.user.id,
+            moved_at: new Date().toISOString(),
+            comment: comment || null
+          }
+        }
+      });
+    } catch (error) {
+      console.error('خطأ في تحريك التذكرة:', error);
+
+      if (error.message.includes('transition not allowed')) {
+        return res.status(400).json({
+          success: false,
+          message: 'الانتقال إلى هذه المرحلة غير مسموح من المرحلة الحالية'
+        });
+      }
+
+      if (error.message.includes('stage not found')) {
+        return res.status(404).json({
+          success: false,
+          message: 'المرحلة المستهدفة غير موجودة'
+        });
+      }
+
+      if (error.message.includes('same process')) {
+        return res.status(400).json({
+          success: false,
+          message: 'المرحلة المستهدفة يجب أن تكون في نفس العملية'
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في الخادم',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'SERVER_ERROR'
       });
     }
   }

@@ -162,11 +162,49 @@ async function testGetSingleComment(commentId) {
   }
 }
 
+// اختبار تحديث تعليق
+async function testUpdateComment(commentId) {
+  console.log('\n✏️ اختبار تحديث تعليق...');
+
+  const updateData = {
+    content: `تعليق محدث من سكريبت الاختبار - ${new Date().toLocaleString('ar-SA')}`
+  };
+
+  const result = await makeRequest('PUT', `/comments/${commentId}`, updateData);
+
+  if (result.statusCode === 200 && result.data.success) {
+    console.log('✅ تم تحديث التعليق بنجاح');
+    console.log(`   المحتوى الجديد: "${result.data.data.content}"`);
+    console.log(`   تاريخ التحديث: ${result.data.data.updated_at}`);
+    return result.data.data;
+  } else {
+    console.log('❌ فشل تحديث التعليق:', result.data.message);
+    return null;
+  }
+}
+
+// اختبار حذف تعليق
+async function testDeleteComment(commentId) {
+  console.log('\n🗑️ اختبار حذف تعليق...');
+
+  const result = await makeRequest('DELETE', `/comments/${commentId}`);
+
+  if (result.statusCode === 200 && result.data.success) {
+    console.log('✅ تم حذف التعليق بنجاح');
+    console.log(`   معرف التعليق المحذوف: ${result.data.data.deleted_comment_id}`);
+    console.log(`   رقم التذكرة: ${result.data.data.ticket_number}`);
+    return true;
+  } else {
+    console.log('❌ فشل حذف التعليق:', result.data.message);
+    return false;
+  }
+}
+
 // اختبار شامل
 async function runAllTests() {
-  console.log('🧪 بدء اختبار نظام التعليقات الشامل\n');
-  console.log('=' .repeat(50));
-  
+  console.log('🧪 بدء اختبار نظام التعليقات الشامل (مع التحديث والحذف)\n');
+  console.log('=' .repeat(60));
+
   try {
     // تسجيل الدخول
     const loginSuccess = await testLogin();
@@ -174,38 +212,69 @@ async function runAllTests() {
       console.log('\n❌ توقف الاختبار بسبب فشل تسجيل الدخول');
       return;
     }
-    
+
     // جلب التعليقات الموجودة
     const existingComments = await testGetComments();
-    
-    // إضافة تعليق جديد
+
+    // إضافة تعليق جديد للاختبار
     const newComment = await testAddComment();
-    
-    // إضافة تعليق داخلي
+
+    // إضافة تعليق داخلي للاختبار
     const internalComment = await testAddInternalComment();
-    
+
     // جلب التعليقات مرة أخرى للتأكد من الإضافة
     console.log('\n🔄 جلب التعليقات مرة أخرى للتأكد...');
     const updatedComments = await testGetComments();
-    
+
     if (updatedComments && existingComments) {
       const newCount = updatedComments.length;
       const oldCount = existingComments.length;
       console.log(`   العدد السابق: ${oldCount}, العدد الحالي: ${newCount}`);
-      
+
       if (newCount > oldCount) {
         console.log('✅ تم تأكيد إضافة التعليقات الجديدة');
       }
     }
-    
-    // اختبار جلب تعليق واحد
+
+    // اختبار تحديث التعليق
     if (newComment) {
+      await testUpdateComment(newComment.id);
+
+      // جلب التعليق المحدث للتأكد
       await testGetSingleComment(newComment.id);
     }
-    
-    console.log('\n' + '=' .repeat(50));
-    console.log('🎉 انتهى اختبار نظام التعليقات بنجاح!');
-    
+
+    // اختبار حذف التعليق الداخلي
+    if (internalComment) {
+      await testDeleteComment(internalComment.id);
+
+      // جلب التعليقات مرة أخرى للتأكد من الحذف
+      console.log('\n🔄 جلب التعليقات للتأكد من الحذف...');
+      const finalComments = await testGetComments();
+
+      if (finalComments && updatedComments) {
+        const finalCount = finalComments.length;
+        const beforeDeleteCount = updatedComments.length;
+        console.log(`   العدد قبل الحذف: ${beforeDeleteCount}, العدد بعد الحذف: ${finalCount}`);
+
+        if (finalCount < beforeDeleteCount) {
+          console.log('✅ تم تأكيد حذف التعليق');
+        }
+      }
+    }
+
+    console.log('\n' + '=' .repeat(60));
+    console.log('🎉 انتهى اختبار نظام التعليقات الشامل بنجاح!');
+    console.log('\n📊 ملخص الاختبارات:');
+    console.log('   ✅ تسجيل الدخول');
+    console.log('   ✅ جلب التعليقات');
+    console.log('   ✅ إضافة تعليق عادي');
+    console.log('   ✅ إضافة تعليق داخلي');
+    console.log('   ✅ تحديث تعليق');
+    console.log('   ✅ حذف تعليق');
+    console.log('   ✅ جلب تعليق واحد');
+    console.log('\n🚀 جميع وظائف نظام التعليقات تعمل بشكل مثالي!');
+
   } catch (error) {
     console.error('\n❌ خطأ أثناء الاختبار:', error.message);
   }

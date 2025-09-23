@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus, Clock, User, Loader2 } from 'lucide-react';
+import { MessageSquare, Plus, Clock, User, Loader2, Edit2, Trash2, Save, X } from 'lucide-react';
 import { useComments } from '../../hooks/useComments';
 import { Comment } from '../../services/commentService';
 
@@ -12,17 +12,21 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   ticketId, 
   onCommentAdded 
 }) => {
-  const { 
-    comments, 
-    loading, 
-    error, 
-    addComment, 
-    refreshComments 
+  const {
+    comments,
+    loading,
+    error,
+    addComment,
+    updateComment,
+    deleteComment,
+    refreshComments
   } = useComments(ticketId);
 
   const [newComment, setNewComment] = useState('');
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
 
   const handleAddComment = async () => {
     if (!newComment.trim() || isSubmitting) return;
@@ -41,6 +45,46 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       }
     } catch (error) {
       console.error('خطأ في إضافة التعليق:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditComment = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditingContent(comment.content);
+  };
+
+  const handleSaveEdit = async (commentId: string) => {
+    if (!editingContent.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await updateComment(commentId, {
+        content: editingContent.trim()
+      });
+      setEditingCommentId(null);
+      setEditingContent('');
+    } catch (error) {
+      console.error('خطأ في تحديث التعليق:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingContent('');
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذا التعليق؟')) return;
+
+    setIsSubmitting(true);
+    try {
+      await deleteComment(commentId);
+    } catch (error) {
+      console.error('خطأ في حذف التعليق:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -162,13 +206,79 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                   <span className="font-medium text-gray-900">
                     {comment.author_name}
                   </span>
-                  <span className="text-xs text-gray-500">
-                    {formatDate(comment.created_at)}
-                  </span>
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <span className="text-xs text-gray-500">
+                      {formatDate(comment.created_at)}
+                    </span>
+                    {/* أزرار التحديث والحذف */}
+                    <div className="flex items-center space-x-1 space-x-reverse">
+                      <button
+                        type="button"
+                        onClick={() => handleEditComment(comment)}
+                        disabled={isSubmitting || editingCommentId === comment.id}
+                        className="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
+                        title="تعديل التعليق"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteComment(comment.id)}
+                        disabled={isSubmitting}
+                        className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                        title="حذف التعليق"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                  {comment.content}
-                </p>
+
+                {editingCommentId === comment.id ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      rows={3}
+                      placeholder="تعديل التعليق..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+                      disabled={isSubmitting}
+                    />
+                    <div className="flex items-center justify-end space-x-2 space-x-reverse">
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        disabled={isSubmitting}
+                        className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm"
+                      >
+                        إلغاء
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSaveEdit(comment.id)}
+                        disabled={!editingContent.trim() || isSubmitting}
+                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center space-x-1 space-x-reverse"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            <span>حفظ...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-3 h-3" />
+                            <span>حفظ</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                    {comment.content}
+                  </p>
+                )}
+
                 {comment.is_internal && (
                   <div className="mt-2">
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">

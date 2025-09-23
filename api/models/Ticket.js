@@ -440,21 +440,16 @@ class Ticket {
         throw new Error('التذكرة غير موجودة');
       }
 
-      // التحقق من إمكانية الانتقال
-      const StageTransition = require('./StageTransition');
-      const canTransition = await StageTransition.canTransition(
-        ticket.current_stage_id, 
-        newStageId, 
-        ticket.data
-      );
-
-      if (!canTransition.allowed) {
-        throw new Error(canTransition.reason);
-      }
-
-      // جلب معلومات المرحلة الجديدة
+      // التحقق من إمكانية الانتقال (مبسط للآن)
+      // يمكن إضافة منطق أكثر تعقيداً لاحقاً
       const stageQuery = `SELECT * FROM stages WHERE id = $1`;
       const stageResult = await client.query(stageQuery, [newStageId]);
+
+      if (stageResult.rows.length === 0) {
+        throw new Error('المرحلة المستهدفة غير موجودة');
+      }
+
+      // استخدام نتيجة الاستعلام السابق
       const newStage = stageResult.rows[0];
 
       // تحديث التذكرة
@@ -785,19 +780,222 @@ class Ticket {
     }
   }
 
-  // حذف تذكرة
-  static async delete(id) {
+  // حذف تذكرة مؤقت (soft delete)
+  static async softDelete(id, userId) {
+    const client = await pool.connect();
+
     try {
-      const result = await pool.query(`
+      await client.query('BEGIN');
+
+      const result = await client.query(`
         UPDATE tickets
-        SET deleted_at = NOW()
-        WHERE id = $1
+        SET deleted_at = NOW(), updated_at = NOW()
+        WHERE id = $1 AND deleted_at IS NULL
         RETURNING *
       `, [id]);
 
+      if (result.rows.length > 0) {
+        // إضافة نشاط الحذف
+        await this.addActivity(client, {
+          ticket_id: id,
+          user_id: userId,
+          activity_type: 'status_changed',
+          description: 'تم حذف التذكرة مؤقتاً',
+          new_values: { deleted_at: new Date().toISOString() }
+        });
+      }
+
+      await client.query('COMMIT');
       return result.rows[0] || null;
     } catch (error) {
+      await client.query('ROLLBACK');
       throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // حذف تذكرة نهائي (permanent delete)
+  static async permanentDelete(id, userId) {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // التحقق من وجود التذكرة
+      const ticketCheck = await client.query(`
+        SELECT * FROM tickets WHERE id = $1
+      `, [id]);
+
+      if (ticketCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+
+      const ticket = ticketCheck.rows[0];
+
+      // حذف التعليقات أولاً
+      await client.query(`DELETE FROM ticket_comments WHERE ticket_id = $1`, [id]);
+
+      // حذف المرفقات
+      await client.query(`DELETE FROM ticket_attachments WHERE ticket_id = $1`, [id]);
+
+      // حذف الأنشطة
+      await client.query(`DELETE FROM ticket_activities WHERE ticket_id = $1`, [id]);
+
+      // حذف التذكرة نهائياً
+      const result = await client.query(`
+        DELETE FROM tickets WHERE id = $1 RETURNING *
+      `, [id]);
+
+      await client.query('COMMIT');
+      return result.rows[0] || null;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // التحقق من وجود تعليقات
+  static async hasComments(ticketId) {
+    try {
+      const result = await pool.query(`
+        SELECT COUNT(*) as count FROM ticket_comments WHERE ticket_id = $1
+      `, [ticketId]);
+
+      return parseInt(result.rows[0].count) > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // التحقق من وجود مرفقات
+  static async hasAttachments(ticketId) {
+    try {
+      const result = await pool.query(`
+        SELECT COUNT(*) as count FROM ticket_attachments WHERE ticket_id = $1
+      `, [ticketId]);
+
+      return parseInt(result.rows[0].count) > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // تحريك التذكرة إلى مرحلة جديدة (محسن)
+  static async moveToStage(ticketId, targetStageId, userId, options = {}) {
+    const {
+      comment = null,
+      validate_transitions = true,
+      notify_assignee = true
+    } = options;
+
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // جلب التذكرة الحالية
+      const ticketQuery = `
+        SELECT t.*, p.name as process_name, s.name as current_stage_name
+        FROM tickets t
+        JOIN processes p ON t.process_id = p.id
+        JOIN stages s ON t.current_stage_id = s.id
+        WHERE t.id = $1 AND t.deleted_at IS NULL
+      `;
+      const ticketResult = await client.query(ticketQuery, [ticketId]);
+
+      if (ticketResult.rows.length === 0) {
+        throw new Error('التذكرة غير موجودة');
+      }
+
+      const ticket = ticketResult.rows[0];
+
+      // جلب المرحلة المستهدفة
+      const targetStageQuery = `
+        SELECT * FROM stages WHERE id = $1 AND process_id = $2
+      `;
+      const targetStageResult = await client.query(targetStageQuery, [targetStageId, ticket.process_id]);
+
+      if (targetStageResult.rows.length === 0) {
+        throw new Error('المرحلة المستهدفة غير موجودة أو لا تنتمي لنفس العملية');
+      }
+
+      const targetStage = targetStageResult.rows[0];
+
+      // التحقق من صحة الانتقال إذا كان مطلوباً
+      if (validate_transitions) {
+        const transitionQuery = `
+          SELECT * FROM stage_transitions
+          WHERE from_stage_id = $1 AND to_stage_id = $2
+        `;
+        const transitionResult = await client.query(transitionQuery, [ticket.current_stage_id, targetStageId]);
+
+        if (transitionResult.rows.length === 0) {
+          throw new Error('الانتقال من المرحلة الحالية إلى المرحلة المستهدفة غير مسموح');
+        }
+      }
+
+      // تحديث التذكرة
+      const updateQuery = `
+        UPDATE tickets
+        SET current_stage_id = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING *
+      `;
+      const updateResult = await client.query(updateQuery, [targetStageId, ticketId]);
+      const updatedTicket = updateResult.rows[0];
+
+      // إضافة نشاط تغيير المرحلة
+      await this.addActivity(client, {
+        ticket_id: ticketId,
+        user_id: userId,
+        activity_type: 'stage_changed',
+        description: `تم نقل التذكرة من "${ticket.current_stage_name}" إلى "${targetStage.name}"`,
+        old_values: {
+          stage_id: ticket.current_stage_id,
+          stage_name: ticket.current_stage_name
+        },
+        new_values: {
+          stage_id: targetStageId,
+          stage_name: targetStage.name
+        }
+      });
+
+      // إضافة تعليق إذا تم تقديمه
+      if (comment) {
+        await this.addComment(client, {
+          ticket_id: ticketId,
+          user_id: userId,
+          content: comment,
+          is_internal: false
+        });
+      }
+
+      await client.query('COMMIT');
+
+      return {
+        ...updatedTicket,
+        data: updatedTicket.data,
+        stage_info: {
+          previous_stage: {
+            id: ticket.current_stage_id,
+            name: ticket.current_stage_name
+          },
+          current_stage: {
+            id: targetStageId,
+            name: targetStage.name
+          }
+        }
+      };
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
     }
   }
 

@@ -688,6 +688,122 @@ const CommentController = require('../controllers/CommentController');
  *         $ref: '#/components/responses/ServerError'
  */
 
+/**
+ * @swagger
+ * /api/tickets/{id}/move:
+ *   post:
+ *     summary: تحريك التذكرة بين المراحل
+ *     description: تحريك التذكرة من المرحلة الحالية إلى مرحلة جديدة مع إمكانية إضافة تعليق
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - target_stage_id
+ *             properties:
+ *               target_stage_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: معرف المرحلة المستهدفة
+ *               comment:
+ *                 type: string
+ *                 description: تعليق اختياري على عملية التحريك
+ *               validate_transitions:
+ *                 type: boolean
+ *                 default: true
+ *                 description: التحقق من صحة الانتقالات المسموحة
+ *               notify_assignee:
+ *                 type: boolean
+ *                 default: true
+ *                 description: إشعار المستخدم المعين
+ *           examples:
+ *             basic_move:
+ *               summary: تحريك بسيط
+ *               value:
+ *                 target_stage_id: "550e8400-e29b-41d4-a716-446655440001"
+ *             move_with_comment:
+ *               summary: تحريك مع تعليق
+ *               value:
+ *                 target_stage_id: "550e8400-e29b-41d4-a716-446655440001"
+ *                 comment: "تم حل المشكلة وجاهز للمراجعة"
+ *                 validate_transitions: true
+ *                 notify_assignee: true
+ *     responses:
+ *       200:
+ *         description: تم تحريك التذكرة بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم تحريك التذكرة بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     current_stage_id:
+ *                       type: string
+ *                       format: uuid
+ *                     movement_details:
+ *                       type: object
+ *                       properties:
+ *                         from_stage:
+ *                           type: string
+ *                           format: uuid
+ *                         to_stage:
+ *                           type: string
+ *                           format: uuid
+ *                         moved_by:
+ *                           type: string
+ *                           format: uuid
+ *                         moved_at:
+ *                           type: string
+ *                           format: date-time
+ *                         comment:
+ *                           type: string
+ *                           nullable: true
+ *       400:
+ *         description: بيانات غير صحيحة أو انتقال غير مسموح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     - "معرف المرحلة المستهدفة مطلوب"
+ *                     - "التذكرة موجودة بالفعل في هذه المرحلة"
+ *                     - "الانتقال إلى هذه المرحلة غير مسموح من المرحلة الحالية"
+ *       403:
+ *         description: غير مسموح لك بتحريك هذه التذكرة
+ *       404:
+ *         description: التذكرة أو المرحلة المستهدفة غير موجودة
+ */
+
 // Routes
 router.get('/by-stages', authenticateToken, requirePermissions(['tickets.read']), TicketController.getTicketsByStages);
 router.get('/', authenticateToken, requirePermissions(['tickets.read']), TicketController.getAllTickets);
@@ -696,6 +812,7 @@ router.post('/', authenticateToken, requirePermissions(['tickets.create']), Tick
 router.put('/:id', authenticateToken, requirePermissions(['tickets.update']), TicketController.updateTicket);
 router.delete('/:id', authenticateToken, requirePermissions(['tickets.delete']), TicketController.deleteTicket);
 router.post('/:id/change-stage', authenticateToken, requirePermissions(['tickets.update']), TicketController.changeStage);
+router.post('/:id/move', authenticateToken, requirePermissions(['tickets.update']), TicketController.moveTicket);
 router.get('/:id/comments', authenticateToken, requirePermissions(['tickets.read']), CommentController.getTicketComments);
 router.post('/:id/comments', authenticateToken, requirePermissions(['tickets.update']), CommentController.create);
 router.get('/:id/activities', authenticateToken, requirePermissions(['tickets.read']), TicketController.getActivities);

@@ -1,0 +1,95 @@
+{
+  "timestamp": "2025-09-23T17:45:18.332Z",
+  "total_tests": 9,
+  "passed_tests": 5,
+  "failed_tests": 4,
+  "tests": [
+    {
+      "test_name": "تسجيل الدخول",
+      "success": true,
+      "timestamp": "2025-09-23T17:45:18.632Z",
+      "details": {
+        "user_id": "588be31f-7130-40f2-92c9-34da41a20142"
+      }
+    },
+    {
+      "test_name": "جلب العمليات والمراحل",
+      "success": true,
+      "timestamp": "2025-09-23T17:45:18.748Z",
+      "details": {
+        "process_id": "049a99f6-d427-4f21-b3a6-be2c01a03f00",
+        "stages_count": 4
+      }
+    },
+    {
+      "test_name": "إنشاء تذكرة اختبار",
+      "success": true,
+      "timestamp": "2025-09-23T17:45:18.849Z",
+      "details": {
+        "ticket_id": "87823491-2585-4c6c-81f2-07d70918d9a5",
+        "ticket_number": "TKT-000011"
+      }
+    },
+    {
+      "test_name": "تحديث التذكرة",
+      "success": true,
+      "timestamp": "2025-09-23T17:45:18.939Z",
+      "details": {
+        "updated_fields": [
+          "title",
+          "description",
+          "priority",
+          "estimated_hours",
+          "actual_hours",
+          "tags"
+        ],
+        "new_priority": "high"
+      }
+    },
+    {
+      "test_name": "تحريك التذكرة",
+      "success": false,
+      "timestamp": "2025-09-23T17:45:19.101Z",
+      "details": {
+        "error": "خطأ في الخادم"
+      }
+    },
+    {
+      "test_name": "تغيير المرحلة (الطريقة القديمة)",
+      "success": false,
+      "timestamp": "2025-09-23T17:45:20.059Z",
+      "details": {
+        "error": "خطأ في الخادم"
+      }
+    },
+    {
+      "test_name": "جلب التذكرة المحدثة",
+      "success": true,
+      "timestamp": "2025-09-23T17:45:20.292Z",
+      "details": {
+        "ticket_id": "87823491-2585-4c6c-81f2-07d70918d9a5",
+        "current_stage": "50e26e53-e661-43fb-94ff-5b3103ab5f27",
+        "priority": "high",
+        "comments_count": 0,
+        "activities_count": 0
+      }
+    },
+    {
+      "test_name": "الحذف المؤقت للتذكرة",
+      "success": false,
+      "timestamp": "2025-09-23T17:45:20.374Z",
+      "details": {
+        "error": "خطأ في الخادم"
+      }
+    },
+    {
+      "test_name": "التحقق من الحذف",
+      "success": false,
+      "timestamp": "2025-09-23T17:45:20.392Z",
+      "details": {
+        "error": "التذكرة ما زالت موجودة بعد الحذف",
+        "status": 200
+      }
+    }
+  ]
+}
