@@ -1,55 +1,113 @@
-import React, { useState, useMemo } from 'react';
-import { DndContext, DragEndEvent, DragOverEvent, DragStartEvent, closestCenter } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import React, { useState, useMemo, useEffect } from 'react';
+import { DndContext, DragEndEvent, DragStartEvent, closestCenter } from '@dnd-kit/core';
 import { KanbanColumn } from './KanbanColumn';
-import { KanbanCard } from './KanbanCard';
 import { TicketModal } from './TicketModal';
 import { CreateTicketModal } from './CreateTicketModal';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { Ticket, Process } from '../../types/workflow';
-import { Plus, Filter, Search, LayoutGrid, List, Settings, HelpCircle } from 'lucide-react';
+import { Plus, Search, LayoutGrid, List, RefreshCw, AlertCircle, Settings, HelpCircle, Filter } from 'lucide-react';
 import { getPriorityColor, getPriorityLabel } from '../../utils/priorityUtils';
+import ticketService, { TicketsByStagesResponse, TicketsByStagesApiResponse } from '../../services/ticketService';
+import { useToast } from '../ui/Toast';
 
 interface KanbanBoardProps {
   process: Process;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
-  const { tickets, moveTicket, createTicket, updateTicket } = useWorkflow();
+  const { moveTicket } = useWorkflow();
+  const { showSuccess, showError } = useToast();
+
+  // State management
+  const [ticketsByStages, setTicketsByStages] = useState<TicketsByStagesResponse>({});
+  const [statistics, setStatistics] = useState<TicketsByStagesApiResponse['statistics'] | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [creatingTicketStageId, setCreatingTicketStageId] = useState<string | null>(null);
   const [draggedTicket, setDraggedTicket] = useState<Ticket | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // فلترة التذاكر حسب العملية المختارة والبحث
-  const filteredTickets = useMemo(() => {
-    return tickets.filter(ticket => {
-      const matchesProcess = ticket.process_id === process.id;
-      const matchesSearch = searchQuery === '' || 
+  // جلب التذاكر من API عند تحميل المكون أو تغيير العملية
+  const loadTickets = async () => {
+    if (!process.id || !process.stages.length) {
+      console.log('لا يمكن جلب التذاكر: معرف العملية أو المراحل مفقود', { processId: process.id, stagesCount: process.stages.length });
+      return;
+    }
+
+    console.log('بدء جلب التذاكر للعملية:', process.id);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const stageIds = process.stages.map(stage => stage.id);
+      console.log('معرفات المراحل:', stageIds);
+
+      const response = await ticketService.getTicketsByStages({
+        process_id: process.id,
+        stage_ids: stageIds,
+        limit: 100
+      });
+
+      console.log('استجابة جلب التذاكر:', response);
+
+      if (response.success && response.data) {
+        setTicketsByStages(response.data);
+        setStatistics(response.statistics);
+        showSuccess('تم جلب التذاكر', `تم جلب ${response.statistics.total_tickets} تذكرة بنجاح`);
+      } else {
+        const errorMsg = response.message || 'فشل في جلب التذاكر';
+        console.error('فشل في جلب التذاكر:', errorMsg);
+        setError(errorMsg);
+        showError('خطأ في جلب التذاكر', errorMsg);
+      }
+    } catch (error) {
+      console.error('خطأ في جلب التذاكر:', error);
+      const errorMsg = error instanceof Error ? error.message : 'حدث خطأ أثناء جلب التذاكر من الخادم';
+      setError(errorMsg);
+      showError('خطأ في جلب التذاكر', errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTickets();
+  }, [process.id, process.stages]);
+
+  // فلترة التذاكر حسب البحث
+  const filteredTicketsByStages = useMemo(() => {
+    if (!searchQuery) return ticketsByStages;
+
+    const filtered: TicketsByStagesResponse = {};
+    Object.entries(ticketsByStages).forEach(([stageId, tickets]) => {
+      filtered[stageId] = tickets.filter(ticket =>
         ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return matchesProcess && matchesSearch;
+        ticket.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        JSON.stringify(ticket.data || {}).toLowerCase().includes(searchQuery.toLowerCase())
+      );
     });
-  }, [tickets, process.id, searchQuery]);
+    return filtered;
+  }, [ticketsByStages, searchQuery]);
 
-  // تجميع التذاكر حسب المرحلة
-  const ticketsByStage = useMemo(() => {
-    const groups: Record<string, Ticket[]> = {};
-    
-    process.stages.forEach(stage => {
-      groups[stage.id] = filteredTickets.filter(ticket => ticket.current_stage_id === stage.id);
+
+
+  // تحويل التذاكر المجمعة إلى قائمة مسطحة للإحصائيات
+  const allTickets = useMemo(() => {
+    const tickets: Ticket[] = [];
+    Object.values(ticketsByStages).forEach(stageTickets => {
+      tickets.push(...stageTickets);
     });
-    
-    return groups;
-  }, [filteredTickets, process.stages]);
+    return tickets;
+  }, [ticketsByStages]);
   
   const sortedStages = [...process.stages].sort((a, b) => a.priority - b.priority);
 
   const handleDragStart = (event: DragStartEvent) => {
-    const ticket = filteredTickets.find(t => t.id === event.active.id);
+    const ticketId = event.active.id as string;
+    const ticket = allTickets.find(t => t.id === ticketId);
     setDraggedTicket(ticket || null);
   };
 
@@ -62,7 +120,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     const ticketId = active.id as string;
     const newStageId = over.id as string;
     
-    const ticket = filteredTickets.find(t => t.id === ticketId);
+    const ticket = allTickets.find(t => t.id === ticketId);
     if (!ticket) return;
 
     const currentStage = process.stages.find(s => s.id === ticket.current_stage_id);
@@ -71,11 +129,44 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     if (!currentStage || !targetStage || ticket.current_stage_id === newStageId) return;
 
     // التحقق من صحة الانتقال
-    if (!currentStage.allowed_transitions?.includes(newStageId)) {
-      alert(`لا يمكن نقل التذكرة من "${currentStage.name}" إلى "${targetStage.name}". الانتقال غير مسموح.`);
+    if (currentStage.allowed_transitions && !currentStage.allowed_transitions.includes(newStageId)) {
+      showError('لا يمكن نقل التذكرة', `لا يمكن نقل التذكرة من "${currentStage.name}" إلى "${targetStage.name}". الانتقال غير مسموح.`);
       return;
     }
-    moveTicket(ticketId, newStageId);
+
+    // تحديث الحالة المحلية فوراً للاستجابة السريعة
+    setTicketsByStages(prev => {
+      const updated = { ...prev };
+
+      // إزالة التذكرة من المرحلة القديمة
+      if (updated[ticket.current_stage_id]) {
+        updated[ticket.current_stage_id] = updated[ticket.current_stage_id]
+          .filter(t => t.id !== ticketId);
+      }
+
+      // إضافة التذكرة للمرحلة الجديدة
+      if (!updated[newStageId]) {
+        updated[newStageId] = [];
+      }
+      updated[newStageId].push({
+        ...ticket,
+        current_stage_id: newStageId
+      });
+
+      return updated;
+    });
+
+    // استدعاء API لحفظ التغيير
+    moveTicket(ticketId, newStageId)
+      .then(() => {
+        showSuccess('تم نقل التذكرة', `تم نقل "${ticket.title}" إلى "${targetStage.name}" بنجاح`);
+      })
+      .catch((error: any) => {
+        console.error('خطأ في نقل التذكرة:', error);
+        showError('خطأ في نقل التذكرة', 'حدث خطأ أثناء نقل التذكرة');
+        // إعادة تحميل البيانات في حالة الخطأ
+        loadTickets();
+      });
   };
 
   const handleTicketClick = (ticket: Ticket) => {
@@ -104,12 +195,57 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
       setIsCreatingTicket(true);
     }
   };
-  
-  const handleSaveNewTicket = (ticketData: Partial<Ticket>) => {
-    createTicket(ticketData);
+
+  const handleTicketCreated = (ticketData: Partial<Ticket>) => {
+    // Create a complete ticket object
+    const newTicket: Ticket = {
+      id: Date.now().toString(),
+      title: ticketData.title || '',
+      description: ticketData.description,
+      process_id: process.id,
+      current_stage_id: ticketData.current_stage_id || creatingTicketStageId || process.stages[0]?.id || '',
+      created_by: 'current-user',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      priority: ticketData.priority || 'medium',
+      data: ticketData.data || {},
+      attachments: [],
+      activities: [],
+      tags: ticketData.tags || [],
+      child_tickets: []
+    };
+
+    // تحديث الحالة المحلية
+    setTicketsByStages(prev => {
+      const updated = { ...prev };
+      if (!updated[newTicket.current_stage_id]) {
+        updated[newTicket.current_stage_id] = [];
+      }
+      updated[newTicket.current_stage_id].unshift(newTicket);
+      return updated;
+    });
+
     setIsCreatingTicket(false);
     setCreatingTicketStageId(null);
+    showSuccess('تم إنشاء التذكرة', `تم إنشاء التذكرة "${newTicket.title}" بنجاح`);
   };
+
+  const handleTicketUpdated = (updatedTicket: Ticket) => {
+    // تحديث الحالة المحلية
+    setTicketsByStages(prev => {
+      const updated = { ...prev };
+      Object.keys(updated).forEach(stageId => {
+        updated[stageId] = updated[stageId].map(ticket =>
+          ticket.id === updatedTicket.id ? updatedTicket : ticket
+        );
+      });
+      return updated;
+    });
+
+    showSuccess('تم تحديث التذكرة', `تم تحديث التذكرة "${updatedTicket.title}" بنجاح`);
+  };
+  
+
 
   if (viewMode === 'list') {
     return (
@@ -122,9 +258,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                 <span className="text-white font-bold text-sm">{process.name.charAt(0)}</span>
               </div>
               <h1 className="text-2xl font-bold text-gray-900">{process.name}</h1>
-              <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
-                {filteredTickets.length} تذكرة
-              </span>
+              <div className="flex items-center space-x-4 space-x-reverse text-sm text-gray-600">
+                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+                  إجمالي: {statistics?.total_tickets || allTickets.length}
+                </span>
+                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+                  مكتملة: {allTickets.filter(t =>
+                    process.stages.find(s => s.id === t.current_stage_id)?.is_final
+                  ).length}
+                </span>
+                <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-medium">
+                  قيد التنفيذ: {allTickets.filter(t =>
+                    !process.stages.find(s => s.id === t.current_stage_id)?.is_final
+                  ).length}
+                </span>
+              </div>
             </div>
             
             <div className="flex items-center space-x-4 space-x-reverse">
@@ -144,11 +292,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
               </div>
               
               <button
+                type="button"
                 onClick={() => setIsCreatingTicket(true)}
                 className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
               >
                 <Plus className="w-4 h-4" />
                 <span>تذكرة جديدة</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={loadTickets}
+                disabled={loading}
+                className="flex items-center space-x-2 space-x-reverse px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>تحديث</span>
               </button>
               
               <button
@@ -202,7 +361,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredTickets.map((ticket) => {
+                {allTickets.map((ticket: Ticket) => {
                   const stage = process.stages.find(s => s.id === ticket.current_stage_id);
                   return (
                     <tr 
@@ -242,7 +401,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
               </tbody>
             </table>
             
-            {filteredTickets.length === 0 && (
+            {allTickets.length === 0 && (
               <div className="text-center py-12">
                 <div className="text-gray-400 text-lg mb-2">لا توجد تذاكر</div>
                 <p className="text-gray-500 text-sm">ابدأ بإنشاء تذكرة جديدة</p>
@@ -264,9 +423,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
               <span className="text-white font-bold text-sm">{process.name.charAt(0)}</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{process.name}</h1>
-            <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
-              {filteredTickets.length} تذكرة
-            </span>
+            <div className="flex items-center space-x-4 space-x-reverse text-sm text-gray-600">
+              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
+                إجمالي: {statistics?.total_tickets || allTickets.length}
+              </span>
+              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+                مكتملة: {allTickets.filter(t =>
+                  process.stages.find(s => s.id === t.current_stage_id)?.is_final
+                ).length}
+              </span>
+              <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-medium">
+                قيد التنفيذ: {allTickets.filter(t =>
+                  !process.stages.find(s => s.id === t.current_stage_id)?.is_final
+                ).length}
+              </span>
+            </div>
           </div>
           
           <div className="flex items-center space-x-4 space-x-reverse">
@@ -322,27 +493,58 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 p-6 overflow-x-auto overflow-y-hidden">
-        <DndContext 
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex gap-6 min-h-0 pb-6" style={{ minWidth: `${process.stages.length * 320 + (process.stages.length - 1) * 24}px` }}>
-            {process.stages.map((stage) => (
-              <KanbanColumn
-                key={stage.id}
-                stage={stage}
-                tickets={ticketsByStage[stage.id] || []}
-                onCreateTicket={() => handleCreateTicket(stage.id)}
-                onTicketClick={handleTicketClick}
-                draggedTicket={draggedTicket}
-              />
-            ))}
+      {/* Loading State */}
+      {loading && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center space-x-3 space-x-reverse">
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+            <span className="text-gray-600 text-lg">جاري تحميل التذاكر...</span>
           </div>
-        </DndContext>
-      </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">حدث خطأ في تحميل التذاكر</h3>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              type="button"
+              onClick={loadTickets}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              إعادة المحاولة
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Kanban Board */}
+      {!loading && !error && (
+        <div className="flex-1 p-6 overflow-x-auto overflow-y-hidden">
+          <DndContext
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="flex gap-6 min-h-0 pb-6" style={{ minWidth: `${process.stages.length * 320 + (process.stages.length - 1) * 24}px` }}>
+              {sortedStages.map((stage) => (
+                <KanbanColumn
+                  key={stage.id}
+                  stage={stage}
+                  tickets={filteredTicketsByStages[stage.id] || []}
+                  onCreateTicket={() => handleCreateTicket(stage.id)}
+                  onTicketClick={handleTicketClick}
+                  draggedTicket={draggedTicket}
+                  allowedDropStages={[stage.id]}
+                />
+              ))}
+            </div>
+          </DndContext>
+        </div>
+      )}
 
       {/* Modals */}
       {selectedTicket && (
@@ -352,14 +554,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
           onClose={() => {
             setSelectedTicket(null);
           }}
-          onSave={(ticketData) => {
-            // تحديث التذكرة
-            updateTicket(selectedTicket.id, ticketData);
+          onSave={(updatedTicket) => {
+            if (updatedTicket.id) {
+              handleTicketUpdated(updatedTicket as Ticket);
+            }
             setSelectedTicket(null);
           }}
-          onMoveToStage={(stageId) => {
-            handleMoveToStage(stageId);
-          }}
+          onMoveToStage={handleMoveToStage}
         />
       )}
 
@@ -371,7 +572,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
             setIsCreatingTicket(false);
             setCreatingTicketStageId(null);
           }}
-          onSave={handleSaveNewTicket}
+          onSave={handleTicketCreated}
         />
       )}
     </div>

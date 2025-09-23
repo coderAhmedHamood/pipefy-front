@@ -45,6 +45,29 @@ export interface MoveTicketData {
   update_data?: Record<string, any>;
 }
 
+export interface TicketsByStagesParams {
+  process_id: string;
+  stage_ids: string[];
+  limit?: number;
+  offset?: number;
+}
+
+export interface TicketsByStagesResponse {
+  [stageId: string]: Ticket[];
+}
+
+export interface TicketsByStagesApiResponse {
+  success: boolean;
+  data: TicketsByStagesResponse;
+  statistics: {
+    total_tickets: number;
+    stage_stats: Record<string, number>;
+    process_id: string;
+    stage_ids: string[];
+  };
+  message: string;
+}
+
 export interface TicketStats {
   total_tickets: number;
   open_tickets: number;
@@ -157,6 +180,32 @@ class TicketService {
       return response;
     } catch (error) {
       console.error('خطأ في جلب إحصائيات التذاكر:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * جلب التذاكر مجمعة حسب المراحل للكانبان
+   */
+  async getTicketsByStages(params: TicketsByStagesParams): Promise<TicketsByStagesApiResponse> {
+    try {
+      // تحويل stage_ids إلى JSON string كما يتوقع الـ API
+      const queryParams: any = {
+        process_id: params.process_id,
+        stage_ids: JSON.stringify(params.stage_ids),
+        limit: params.limit || 50,
+        offset: params.offset || 0
+      };
+
+      console.log('إرسال طلب جلب التذاكر:', queryParams);
+
+      const response = await apiClient.get(`${this.endpoint}/by-stages`, { params: queryParams });
+
+      console.log('استجابة جلب التذاكر:', response);
+
+      return response;
+    } catch (error) {
+      console.error('خطأ في جلب التذاكر حسب المراحل:', error);
       throw error;
     }
   }
