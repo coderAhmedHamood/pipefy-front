@@ -52,7 +52,15 @@ class TicketController {
   static async getTicketById(req, res) {
     try {
       const { id } = req.params;
-      const ticket = await Ticket.findById(id);
+      const { include_comments = 'true', include_activities = 'false', include_attachments = 'false' } = req.query;
+
+      const options = {
+        include_comments: include_comments === 'true',
+        include_activities: include_activities === 'true',
+        include_attachments: include_attachments === 'true'
+      };
+
+      const ticket = await Ticket.findById(id, options);
 
       if (!ticket) {
         return res.status(404).json({

@@ -599,7 +599,11 @@ class Ticket {
   // جلب تعليقات التذكرة
   static async getComments(ticketId, includeInternal = true) {
     let query = `
-      SELECT tc.*, u.name as user_name, u.email as user_email
+      SELECT
+        tc.*,
+        u.name as author_name,
+        u.email as author_email,
+        u.avatar_url as author_avatar
       FROM ticket_comments tc
       JOIN users u ON tc.user_id = u.id
       WHERE tc.ticket_id = $1
@@ -609,12 +613,12 @@ class Ticket {
       query += ` AND tc.is_internal = false`;
     }
 
-    query += ` ORDER BY tc.created_at ASC`;
+    query += ` ORDER BY tc.created_at DESC`;
 
     const result = await pool.query(query, [ticketId]);
     return result.rows.map(comment => ({
       ...comment,
-      attachments: comment.attachments
+      attachments: comment.attachments || []
     }));
   }
 

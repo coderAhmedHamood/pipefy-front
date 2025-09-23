@@ -208,6 +208,75 @@ router.get('/', authenticateToken, (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/comments/search:
+ *   get:
+ *     summary: البحث في التعليقات
+ *     tags: [Comments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: نص البحث
+ *       - in: query
+ *         name: ticket_id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: تصفية حسب التذكرة
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: تصفية حسب المستخدم
+ *       - in: query
+ *         name: is_internal
+ *         schema:
+ *           type: boolean
+ *         description: تصفية حسب نوع التعليق
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: رقم الصفحة
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: عدد العناصر في الصفحة
+ *     responses:
+ *       200:
+ *         description: تم البحث بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     allOf:
+ *                       - $ref: '#/components/schemas/Comment'
+ *                       - type: object
+ *                         properties:
+ *                           ticket_title:
+ *                             type: string
+ *                           ticket_number:
+ *                             type: string
+ *                 pagination:
+ *                   $ref: '#/components/schemas/Pagination'
+ */
+router.get('/search', authenticateToken, CommentController.search);
+
 router.get('/:id', authenticateToken, CommentController.getById);
 
 /**
@@ -298,74 +367,5 @@ router.put('/:id', authenticateToken, CommentController.update);
  *         description: التعليق غير موجود
  */
 router.delete('/:id', authenticateToken, CommentController.delete);
-
-/**
- * @swagger
- * /api/comments/search:
- *   get:
- *     summary: البحث في التعليقات
- *     tags: [Comments]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: q
- *         schema:
- *           type: string
- *         description: نص البحث
- *       - in: query
- *         name: ticket_id
- *         schema:
- *           type: string
- *           format: uuid
- *         description: تصفية حسب التذكرة
- *       - in: query
- *         name: user_id
- *         schema:
- *           type: string
- *           format: uuid
- *         description: تصفية حسب المستخدم
- *       - in: query
- *         name: is_internal
- *         schema:
- *           type: boolean
- *         description: تصفية حسب نوع التعليق
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: رقم الصفحة
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 20
- *         description: عدد العناصر في الصفحة
- *     responses:
- *       200:
- *         description: تم البحث بنجاح
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: array
- *                   items:
- *                     allOf:
- *                       - $ref: '#/components/schemas/Comment'
- *                       - type: object
- *                         properties:
- *                           ticket_title:
- *                             type: string
- *                           ticket_number:
- *                             type: string
- *                 pagination:
- *                   $ref: '#/components/schemas/Pagination'
- */
-router.get('/search', authenticateToken, CommentController.search);
 
 module.exports = router;

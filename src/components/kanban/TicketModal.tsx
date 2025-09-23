@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Ticket, Process, Stage, Activity, Priority } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
+import { CommentsSection } from '../comments/CommentsSection';
 import { 
   X, 
   Save, 
@@ -69,8 +70,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [showStageSelector, setShowStageSelector] = useState(false);
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [transitionType, setTransitionType] = useState<'single' | 'multiple'>('single');
-  const [newComment, setNewComment] = useState('');
-  const [isAddingComment, setIsAddingComment] = useState(false);
+
   
   const [formData, setFormData] = useState({
     title: ticket.title,
@@ -116,27 +116,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     }
   };
 
-  const handleAddComment = () => {
-    if (!newComment.trim()) return;
 
-    const newActivity: Activity = {
-      id: Date.now().toString(),
-      ticket_id: ticket.id,
-      user_id: '1',
-      user_name: 'أحمد محمد',
-      type: 'comment_added',
-      description: newComment,
-      created_at: new Date().toISOString()
-    };
-
-    const updatedTicket = {
-      activities: [...(ticket.activities || []), newActivity]
-    };
-
-    onSave(updatedTicket);
-    setNewComment('');
-    setIsAddingComment(false);
-  };
 
   const handleFieldChange = (fieldId: string, value: any) => {
     setFormData(prev => ({
@@ -443,80 +423,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             )}
 
             {/* Comments Section */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <MessageSquare className="w-5 h-5 text-purple-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    التعليقات ({ticket.activities?.filter(a => a.type === 'comment_added').length || 0})
-                  </h3>
-                </div>
-                
-                <button
-                  onClick={() => setIsAddingComment(true)}
-                  className="text-purple-600 hover:text-purple-700 flex items-center space-x-1 space-x-reverse text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>إضافة تعليق</span>
-                </button>
-              </div>
-
-              {isAddingComment && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    rows={3}
-                    placeholder="اكتب تعليقك هنا..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  />
-                  <div className="flex items-center justify-end space-x-2 space-x-reverse mt-3">
-                    <button
-                      onClick={() => {
-                        setIsAddingComment(false);
-                        setNewComment('');
-                      }}
-                      className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm"
-                    >
-                      إلغاء
-                    </button>
-                    <button
-                      onClick={handleAddComment}
-                      disabled={!newComment.trim()}
-                      className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50 text-sm"
-                    >
-                      إضافة
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-4 max-h-64 overflow-y-auto">
-                {ticket.activities?.filter(activity => activity.type === 'comment_added').map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3 space-x-reverse">
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-xs">{activity.user_name?.charAt(0)}</span>
-                    </div>
-                    <div className="flex-1 bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-gray-900">{activity.user_name}</span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(activity.created_at).toLocaleString('ar-SA')}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 text-sm leading-relaxed">{activity.description}</p>
-                    </div>
-                  </div>
-                ))}
-                
-                {(!ticket.activities || ticket.activities.filter(a => a.type === 'comment_added').length === 0) && (
-                  <div className="text-center py-8 text-gray-400">
-                    <MessageSquare className="w-12 h-12 mx-auto mb-2" />
-                    <p className="text-sm">لا توجد تعليقات بعد</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <CommentsSection
+              ticketId={ticket.id}
+              onCommentAdded={(comment) => {
+                console.log('تم إضافة تعليق جديد:', comment);
+                // يمكن إضافة منطق إضافي هنا إذا لزم الأمر
+              }}
+            />
 
             {/* Activity Log */}
             <div className="bg-white border border-gray-200 rounded-lg p-6">

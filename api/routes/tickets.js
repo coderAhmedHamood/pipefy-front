@@ -3,6 +3,7 @@ const router = express.Router();
 const { authenticateToken, requirePermissions } = require('../middleware/auth');
 
 const TicketController = require('../controllers/TicketController');
+const CommentController = require('../controllers/CommentController');
 
 /**
  * @swagger
@@ -453,6 +454,240 @@ const TicketController = require('../controllers/TicketController');
  *         $ref: '#/components/responses/ServerError'
  */
 
+/**
+ * @swagger
+ * /api/tickets/{id}/comments:
+ *   get:
+ *     summary: جلب تعليقات التذكرة
+ *     description: جلب جميع التعليقات الخاصة بتذكرة محددة مع معلومات المؤلفين
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: رقم الصفحة
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *         description: عدد التعليقات في الصفحة
+ *     responses:
+ *       200:
+ *         description: تم جلب التعليقات بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         description: معرف التعليق
+ *                       ticket_id:
+ *                         type: string
+ *                         format: uuid
+ *                         description: معرف التذكرة
+ *                       user_id:
+ *                         type: string
+ *                         format: uuid
+ *                         description: معرف المؤلف
+ *                       content:
+ *                         type: string
+ *                         description: محتوى التعليق
+ *                       is_internal:
+ *                         type: boolean
+ *                         description: تعليق داخلي (للفريق فقط)
+ *                       author_name:
+ *                         type: string
+ *                         description: اسم مؤلف التعليق
+ *                       author_email:
+ *                         type: string
+ *                         description: بريد مؤلف التعليق
+ *                       author_avatar:
+ *                         type: string
+ *                         description: صورة مؤلف التعليق
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                         description: تاريخ إنشاء التعليق
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                         description: تاريخ آخر تحديث
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     total:
+ *                       type: integer
+ *                     pages:
+ *                       type: integer
+ *                 message:
+ *                   type: string
+ *                   example: "تم جلب التعليقات بنجاح"
+ *       404:
+ *         description: التذكرة غير موجودة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "التذكرة غير موجودة"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
+/**
+ * @swagger
+ * /api/tickets/{id}/comments:
+ *   post:
+ *     summary: إضافة تعليق جديد للتذكرة
+ *     description: إضافة تعليق جديد لتذكرة محددة مع تسجيل النشاط تلقائياً
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *         example: "123e4567-e89b-12d3-a456-426614174000"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 description: محتوى التعليق
+ *                 example: "تم مراجعة التذكرة وهي جاهزة للمرحلة التالية"
+ *               is_internal:
+ *                 type: boolean
+ *                 default: false
+ *                 description: تعليق داخلي (للفريق فقط)
+ *                 example: false
+ *     responses:
+ *       201:
+ *         description: تم إضافة التعليق بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم إضافة التعليق بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: معرف التعليق الجديد
+ *                     ticket_id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: معرف التذكرة
+ *                     user_id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: معرف المؤلف
+ *                     content:
+ *                       type: string
+ *                       description: محتوى التعليق
+ *                     is_internal:
+ *                       type: boolean
+ *                       description: تعليق داخلي
+ *                     author_name:
+ *                       type: string
+ *                       description: اسم مؤلف التعليق
+ *                     author_email:
+ *                       type: string
+ *                       description: بريد مؤلف التعليق
+ *                     created_at:
+ *                       type: string
+ *                       format: date-time
+ *                       description: تاريخ إنشاء التعليق
+ *       400:
+ *         description: محتوى التعليق مطلوب
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "محتوى التعليق مطلوب"
+ *       404:
+ *         description: التذكرة غير موجودة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "التذكرة غير موجودة"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+
 // Routes
 router.get('/by-stages', authenticateToken, requirePermissions(['tickets.read']), TicketController.getTicketsByStages);
 router.get('/', authenticateToken, requirePermissions(['tickets.read']), TicketController.getAllTickets);
@@ -461,7 +696,8 @@ router.post('/', authenticateToken, requirePermissions(['tickets.create']), Tick
 router.put('/:id', authenticateToken, requirePermissions(['tickets.update']), TicketController.updateTicket);
 router.delete('/:id', authenticateToken, requirePermissions(['tickets.delete']), TicketController.deleteTicket);
 router.post('/:id/change-stage', authenticateToken, requirePermissions(['tickets.update']), TicketController.changeStage);
-router.post('/:id/comments', authenticateToken, requirePermissions(['tickets.update']), TicketController.addComment);
+router.get('/:id/comments', authenticateToken, requirePermissions(['tickets.read']), CommentController.getTicketComments);
+router.post('/:id/comments', authenticateToken, requirePermissions(['tickets.update']), CommentController.create);
 router.get('/:id/activities', authenticateToken, requirePermissions(['tickets.read']), TicketController.getActivities);
 
 module.exports = router;
