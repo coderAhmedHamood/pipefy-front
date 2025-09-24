@@ -813,6 +813,145 @@ router.put('/:id', authenticateToken, requirePermissions(['tickets.update']), Ti
 router.delete('/:id', authenticateToken, requirePermissions(['tickets.delete']), TicketController.deleteTicket);
 router.post('/:id/change-stage', authenticateToken, requirePermissions(['tickets.update']), TicketController.changeStage);
 router.post('/:id/move', authenticateToken, requirePermissions(['tickets.update']), TicketController.moveTicket);
+/**
+ * @swagger
+ * /api/tickets/{id}/move-simple:
+ *   post:
+ *     summary: تحريك التذكرة بأبسط طريقة
+ *     description: نقل التذكرة من مرحلتها الحالية إلى مرحلة جديدة بدون تعقيد
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *         example: "38ef3e75-7acd-47d5-a801-383b8689bf2d"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - target_stage_id
+ *             properties:
+ *               target_stage_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: معرف المرحلة الجديدة
+ *                 example: "19f66b1c-b05c-43ae-9604-3ccb0b137474"
+ *     responses:
+ *       200:
+ *         description: تم تحريك التذكرة بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم تحريك التذكرة بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ticket_id:
+ *                       type: string
+ *                       example: "38ef3e75-7acd-47d5-a801-383b8689bf2d"
+ *                     ticket_number:
+ *                       type: string
+ *                       example: "TKT-000009"
+ *                     from_stage:
+ *                       type: string
+ *                       example: "مرحلة جديدة"
+ *                     to_stage:
+ *                       type: string
+ *                       example: "مكتملة"
+ *                     moved_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-09-24T18:36:08.329Z"
+ *       404:
+ *         description: التذكرة أو المرحلة غير موجودة
+ *       500:
+ *         description: خطأ في الخادم
+ */
+// دالة بسيطة لتحريك التذكرة - بدون تعقيد
+router.post('/:id/move-simple', authenticateToken, async (req, res) => {
+  const { pool } = require('../config/database');
+  const ticketId = req.params.id;
+  const { target_stage_id } = req.body;
+
+  try {
+    // 1. التحقق من وجود التذكرة والحصول على معلوماتها
+    const ticketQuery = `
+      SELECT t.*, s.name as current_stage_name
+      FROM tickets t
+      LEFT JOIN stages s ON t.current_stage_id = s.id
+      WHERE t.id = $1
+    `;
+    const ticketResult = await pool.query(ticketQuery, [ticketId]);
+
+    if (ticketResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'التذكرة غير موجودة'
+      });
+    }
+
+    const ticket = ticketResult.rows[0];
+
+    // 2. التحقق من وجود المرحلة المستهدفة
+    const stageQuery = 'SELECT name FROM stages WHERE id = $1';
+    const stageResult = await pool.query(stageQuery, [target_stage_id]);
+
+    if (stageResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'المرحلة المستهدفة غير موجودة'
+      });
+    }
+
+    const targetStage = stageResult.rows[0];
+
+    // 3. تحريك التذكرة (تحديث المرحلة)
+    const updateQuery = `
+      UPDATE tickets
+      SET current_stage_id = $1, updated_at = NOW()
+      WHERE id = $2
+    `;
+    await pool.query(updateQuery, [target_stage_id, ticketId]);
+
+    // 4. إرجاع النتيجة
+    res.json({
+      success: true,
+      message: 'تم تحريك التذكرة بنجاح',
+      data: {
+        ticket_id: ticketId,
+        ticket_number: ticket.ticket_number,
+        from_stage: ticket.current_stage_name,
+        to_stage: targetStage.name,
+        moved_at: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('خطأ في تحريك التذكرة:', error);
+    res.status(500).json({
+      success: false,
+      message: 'خطأ في الخادم',
+      error: error.message
+    });
+  }
+});
+
 router.get('/:id/comments', authenticateToken, requirePermissions(['tickets.read']), CommentController.getTicketComments);
 router.post('/:id/comments', authenticateToken, requirePermissions(['tickets.update']), CommentController.create);
 router.get('/:id/activities', authenticateToken, requirePermissions(['tickets.read']), TicketController.getActivities);
