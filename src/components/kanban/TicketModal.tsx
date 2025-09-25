@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Ticket, Process, Stage, Activity, Priority } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
+import { useSimpleMove } from '../../hooks/useSimpleMove';
 import { CommentsSection } from '../comments/CommentsSection';
 import { 
   X, 
@@ -66,6 +67,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   onMoveToStage
 }) => {
   const { getProcessUsers } = useWorkflow();
+  const { moveTicket, isMoving } = useSimpleMove();
   const [isEditing, setIsEditing] = useState(false);
   const [showStageSelector, setShowStageSelector] = useState(false);
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
@@ -102,17 +104,24 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     setIsEditing(false);
   };
 
-  const handleStageMove = () => {
+  const handleStageMove = async () => {
+    if (isMoving) return;
+
     if (transitionType === 'single' && selectedStages.length === 1) {
-      onMoveToStage(selectedStages[0]);
-      setShowStageSelector(false);
-      setSelectedStages([]);
+      const success = await moveTicket(ticket.id, selectedStages[0]);
+      if (success) {
+        onMoveToStage(selectedStages[0]);
+        setShowStageSelector(false);
+        setSelectedStages([]);
+      }
     } else if (transitionType === 'multiple' && selectedStages.length > 0) {
       // للانتقال المتعدد، نختار أول مرحلة كمثال
-      // في التطبيق الحقيقي، يمكن تنفيذ منطق أكثر تعقيداً
-      onMoveToStage(selectedStages[0]);
-      setShowStageSelector(false);
-      setSelectedStages([]);
+      const success = await moveTicket(ticket.id, selectedStages[0]);
+      if (success) {
+        onMoveToStage(selectedStages[0]);
+        setShowStageSelector(false);
+        setSelectedStages([]);
+      }
     }
   };
 
@@ -523,12 +532,20 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       
                       {isAllowedTransition && !isCurrentStage && (
                         <button
-                          onClick={() => {
-                            setSelectedStages([stage.id]);
-                            setTransitionType('single');
-                            handleStageMove();
+                          onClick={async () => {
+                            if (!isMoving) {
+                              const success = await moveTicket(ticket.id, stage.id);
+                              if (success) {
+                                onMoveToStage(stage.id);
+                              }
+                            }
                           }}
-                          className="text-yellow-600 hover:text-yellow-700 p-1 rounded"
+                          className={`p-1 rounded transition-colors ${
+                            isMoving
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : 'text-yellow-600 hover:text-yellow-700'
+                          }`}
+                          disabled={isMoving}
                         >
                           <ArrowRight className="w-4 h-4" />
                         </button>
@@ -760,13 +777,22 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             <div className="p-6 space-y-3">
               <button
                 onClick={handleStageMove}
-                disabled={selectedStages.length === 0}
+                disabled={selectedStages.length === 0 || isMoving}
                 className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ArrowRight className="w-4 h-4" />
-                <span>
-                  {transitionType === 'single' ? 'نقل إلى المرحلة' : `نقل إلى ${selectedStages.length} مرحلة`}
-                </span>
+                {isMoving ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>جاري التحريك...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4" />
+                    <span>
+                      {transitionType === 'single' ? 'نقل إلى المرحلة' : `نقل إلى ${selectedStages.length} مرحلة`}
+                    </span>
+                  </>
+                )}
               </button>
               
               <button
