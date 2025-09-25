@@ -3,6 +3,7 @@ import { Ticket, Process, Stage, Activity, Priority } from '../../types/workflow
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { useSimpleMove } from '../../hooks/useSimpleMove';
 import { useSimpleDelete } from '../../hooks/useSimpleDelete';
+import { useSimpleUpdate } from '../../hooks/useSimpleUpdate';
 import { CommentsSection } from '../comments/CommentsSection';
 import { 
   X, 
@@ -72,6 +73,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const { getProcessUsers } = useWorkflow();
   const { moveTicket, isMoving } = useSimpleMove();
   const { deleteTicket, isDeleting } = useSimpleDelete();
+  const { updateTicket, isUpdating } = useSimpleUpdate();
   const [isEditing, setIsEditing] = useState(false);
   const [showStageSelector, setShowStageSelector] = useState(false);
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
@@ -99,14 +101,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   // ترتيب المراحل حسب الأولوية
   const sortedStages = [...process.stages].sort((a, b) => a.priority - b.priority);
 
-  const handleSave = () => {
-    const updatedTicket = {
-      ...formData,
-      data: formData.data
-    };
-
-    onSave(updatedTicket);
-    setIsEditing(false);
+  const handleSave = async () => {
+    // استخدام handleUpdate للحفظ عبر API
+    await handleUpdate();
   };
 
   const handleDelete = async () => {
@@ -143,6 +140,38 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     } else {
       console.error('❌ فشل في حذف التذكرة من API');
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (isUpdating) return;
+
+    console.log(`📝 بدء تحديث التذكرة: ${ticket.title}`);
+    console.log(`📋 معرف التذكرة: ${ticket.id}`);
+    console.log('📋 البيانات الجديدة:', formData);
+
+    // إعداد البيانات للتحديث
+    const updateData = {
+      title: formData.title,
+      description: formData.description,
+      priority: formData.priority,
+      due_date: formData.due_date,
+      data: formData.data
+    };
+
+    const success = await updateTicket(ticket.id, updateData);
+    console.log(`📡 نتيجة API: ${success ? 'نجح' : 'فشل'}`);
+
+    if (success) {
+      console.log('✅ نجح تحديث التذكرة من API - بدء تحديث الواجهة...');
+
+      // تحديث البيانات المحلية
+      onSave(formData);
+      setIsEditing(false);
+
+      console.log('🎊 تم تحديث التذكرة بنجاح');
+    } else {
+      console.error('❌ فشل في تحديث التذكرة من API');
     }
   };
 
@@ -671,10 +700,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 <>
                   <button
                     onClick={handleSave}
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium"
+                    disabled={isUpdating}
+                    className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium ${
+                      isUpdating ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
                     <Save className="w-4 h-4" />
-                    <span>حفظ التغييرات</span>
+                    <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ التغييرات'}</span>
                   </button>
                   
                   <button
