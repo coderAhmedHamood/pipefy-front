@@ -208,6 +208,36 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     }
   };
 
+  const handleDeleteTicket = () => {
+    if (selectedTicket) {
+      console.log(`🗑️ حذف التذكرة من KanbanBoard: ${selectedTicket.title}`);
+
+      // تحديث ticketsByStages state فوراً لإزالة التذكرة
+      setTicketsByStages(prev => {
+        const updated = { ...prev };
+
+        // إزالة التذكرة من المرحلة الحالية
+        if (updated[selectedTicket.current_stage_id]) {
+          updated[selectedTicket.current_stage_id] = updated[selectedTicket.current_stage_id]
+            .filter(t => t.id !== selectedTicket.id);
+
+          console.log(`✅ تم إزالة التذكرة من المرحلة: ${selectedTicket.current_stage_id}`);
+          console.log(`📊 عدد التذاكر المتبقية في المرحلة: ${updated[selectedTicket.current_stage_id].length}`);
+        }
+
+        return updated;
+      });
+
+      // إغلاق المودال
+      setSelectedTicket(null);
+
+      // إظهار رسالة نجاح
+      showSuccess('تم حذف التذكرة', `تم حذف "${selectedTicket.title}" بنجاح`);
+
+      console.log('🎊 تم تحديث واجهة KanbanBoard فوراً');
+    }
+  };
+
   const handleCreateTicket = (stageId: string) => {
     setCreatingTicketStageId(stageId);
     setIsCreatingTicket(true);
@@ -587,6 +617,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
             setSelectedTicket(null);
           }}
           onMoveToStage={handleMoveToStage}
+          onDelete={handleDeleteTicket}
         />
       )}
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Ticket, Process, Stage, Activity, Priority } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { useSimpleMove } from '../../hooks/useSimpleMove';
+import { useSimpleDelete } from '../../hooks/useSimpleDelete';
 import { CommentsSection } from '../comments/CommentsSection';
 import { 
   X, 
@@ -57,6 +58,7 @@ interface TicketModalProps {
   onClose: () => void;
   onSave: (ticketData: Partial<Ticket>) => void;
   onMoveToStage: (stageId: string) => void;
+  onDelete?: () => void;
 }
 
 export const TicketModal: React.FC<TicketModalProps> = ({
@@ -64,14 +66,17 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   process,
   onClose,
   onSave,
-  onMoveToStage
+  onMoveToStage,
+  onDelete
 }) => {
   const { getProcessUsers } = useWorkflow();
   const { moveTicket, isMoving } = useSimpleMove();
+  const { deleteTicket, isDeleting } = useSimpleDelete();
   const [isEditing, setIsEditing] = useState(false);
   const [showStageSelector, setShowStageSelector] = useState(false);
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [transitionType, setTransitionType] = useState<'single' | 'multiple'>('single');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   
   const [formData, setFormData] = useState({
@@ -99,9 +104,34 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       ...formData,
       data: formData.data
     };
-    
+
     onSave(updatedTicket);
     setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (isDeleting) return;
+
+    console.log(`🗑️ بدء حذف التذكرة: ${ticket.title}`);
+
+    const success = await deleteTicket(ticket.id);
+    if (success) {
+      console.log('✅ نجح حذف التذكرة من API');
+
+      // إشعار المكون الأب (KanbanBoard) بالحذف لتحديث الواجهة فوراً
+      if (onDelete) {
+        console.log('📡 إشعار KanbanBoard بالحذف...');
+        onDelete();
+      }
+
+      // إغلاق مربع التأكيد
+      setShowDeleteConfirm(false);
+
+      console.log('🎊 تم إنجاز عملية الحذف بنجاح');
+    } else {
+      console.error('❌ فشل في حذف التذكرة');
+      setShowDeleteConfirm(false);
+    }
   };
 
   const handleStageMove = async () => {
@@ -204,7 +234,22 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               >
                 <Edit className="w-5 h-5" />
               </button>
-              
+
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={isDeleting}
+                className={`bg-red-500 bg-opacity-80 hover:bg-opacity-100 text-white p-2 rounded-lg transition-colors ${
+                  isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                title="حذف التذكرة"
+              >
+                {isDeleting ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-5 h-5" />
+                )}
+              </button>
+
               <button
                 onClick={onClose}
                 className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-colors"
@@ -803,6 +848,64 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   setSelectedStages([]);
                 }}
                 className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
+              >
+                <X className="w-4 h-4" />
+                <span>إلغاء</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-60 p-4" dir="rtl">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center space-x-3 space-x-reverse mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">تأكيد حذف التذكرة</h3>
+                <p className="text-sm text-gray-600">هذا الإجراء لا يمكن التراجع عنه</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 mb-2">
+                هل أنت متأكد من حذف التذكرة:
+              </p>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="font-medium text-gray-900">{ticket.title}</p>
+                <p className="text-sm text-gray-600">رقم التذكرة: {ticket.ticket_number}</p>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 space-x-reverse">
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className={`flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 space-x-reverse ${
+                  isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>جاري الحذف...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>حذف التذكرة</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
               >
                 <X className="w-4 h-4" />
                 <span>إلغاء</span>
