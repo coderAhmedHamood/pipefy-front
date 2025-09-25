@@ -1621,6 +1621,20 @@ class Ticket {
       client.release();
     }
   }
+
+  // حذف تذكرة بسيط
+  static async simpleDelete(id) {
+    try {
+      const result = await pool.query(
+        'DELETE FROM tickets WHERE id = $1 RETURNING ticket_number, title',
+        [id]
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = Ticket;

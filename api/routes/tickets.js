@@ -810,7 +810,7 @@ router.get('/', authenticateToken, requirePermissions(['tickets.read']), TicketC
 router.get('/:id', authenticateToken, requirePermissions(['tickets.read']), TicketController.getTicketById);
 router.post('/', authenticateToken, requirePermissions(['tickets.create']), TicketController.createTicket);
 router.put('/:id', authenticateToken, requirePermissions(['tickets.update']), TicketController.updateTicket);
-router.delete('/:id', authenticateToken, requirePermissions(['tickets.delete']), TicketController.deleteTicket);
+
 router.post('/:id/change-stage', authenticateToken, requirePermissions(['tickets.update']), TicketController.changeStage);
 router.post('/:id/move', authenticateToken, requirePermissions(['tickets.update']), TicketController.moveTicket);
 /**
@@ -1242,5 +1242,83 @@ router.get('/:id/activities', authenticateToken, requirePermissions(['tickets.re
 // مسارات المراجعين والمسندين
 router.post('/:ticket_id/assign-multiple', authenticateToken, requirePermissions(['tickets.update']), TicketController.assignMultiple);
 router.get('/:ticket_id/reviewers-assignees', authenticateToken, requirePermissions(['tickets.read']), TicketController.getReviewersAndAssignees);
+
+// حذف تذكرة بسيط
+/**
+ * @swagger
+ * /api/tickets/{id}:
+ *   delete:
+ *     summary: حذف تذكرة
+ *     description: حذف تذكرة نهائياً من النظام
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *     responses:
+ *       200:
+ *         description: تم حذف التذكرة بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم حذف التذكرة بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ticket_id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     ticket_number:
+ *                       type: string
+ *                       example: "TKT-000001"
+ *                     deleted_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T10:30:00.000Z"
+ *       404:
+ *         description: التذكرة غير موجودة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "التذكرة غير موجودة"
+ *       500:
+ *         description: خطأ في الخادم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "خطأ في الخادم"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection failed"
+ */
+router.delete('/:id', authenticateToken, TicketController.simpleDelete);
 
 module.exports = router;

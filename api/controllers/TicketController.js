@@ -898,6 +898,40 @@ class TicketController {
       });
     }
   }
+
+  // حذف تذكرة بسيط
+  static async simpleDelete(req, res) {
+    try {
+      const { id } = req.params;
+
+      // حذف التذكرة مباشرة
+      const result = await Ticket.simpleDelete(id);
+
+      if (result) {
+        res.json({
+          success: true,
+          message: 'تم حذف التذكرة بنجاح',
+          data: {
+            ticket_id: id,
+            ticket_number: result.ticket_number,
+            deleted_at: new Date().toISOString()
+          }
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'التذكرة غير موجودة'
+        });
+      }
+    } catch (error) {
+      console.error('خطأ في حذف التذكرة:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في الخادم',
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = TicketController;
