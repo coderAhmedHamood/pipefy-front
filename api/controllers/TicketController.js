@@ -932,6 +932,45 @@ class TicketController {
       });
     }
   }
+
+  // تعديل تذكرة بسيط
+  static async simpleUpdate(req, res) {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+
+      // التحقق من وجود بيانات للتحديث
+      if (!updateData || Object.keys(updateData).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'لا توجد بيانات للتحديث'
+        });
+      }
+
+      // تعديل التذكرة مباشرة
+      const result = await Ticket.simpleUpdate(id, updateData);
+
+      if (result) {
+        res.json({
+          success: true,
+          message: 'تم تعديل التذكرة بنجاح',
+          data: result
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: 'التذكرة غير موجودة'
+        });
+      }
+    } catch (error) {
+      console.error('خطأ في تعديل التذكرة:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في الخادم',
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = TicketController;

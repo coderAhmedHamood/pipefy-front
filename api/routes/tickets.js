@@ -809,7 +809,143 @@ router.get('/by-stages', authenticateToken, requirePermissions(['tickets.read'])
 router.get('/', authenticateToken, requirePermissions(['tickets.read']), TicketController.getAllTickets);
 router.get('/:id', authenticateToken, requirePermissions(['tickets.read']), TicketController.getTicketById);
 router.post('/', authenticateToken, requirePermissions(['tickets.create']), TicketController.createTicket);
-router.put('/:id', authenticateToken, requirePermissions(['tickets.update']), TicketController.updateTicket);
+// تعديل تذكرة بسيط
+/**
+ * @swagger
+ * /api/tickets/{id}:
+ *   put:
+ *     summary: تعديل تذكرة
+ *     description: تعديل بيانات التذكرة بشكل بسيط ومباشر
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: عنوان التذكرة
+ *                 example: "عنوان محدث للتذكرة"
+ *               description:
+ *                 type: string
+ *                 description: وصف التذكرة
+ *                 example: "وصف محدث للتذكرة"
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high, urgent]
+ *                 description: أولوية التذكرة
+ *                 example: "high"
+ *               status:
+ *                 type: string
+ *                 enum: [active, completed, archived, cancelled]
+ *                 description: حالة التذكرة
+ *                 example: "active"
+ *           examples:
+ *             تعديل العنوان فقط:
+ *               value:
+ *                 title: "عنوان جديد للتذكرة"
+ *             تعديل متعدد:
+ *               value:
+ *                 title: "عنوان محدث"
+ *                 description: "وصف محدث"
+ *                 priority: "high"
+ *                 status: "active"
+ *     responses:
+ *       200:
+ *         description: تم تعديل التذكرة بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم تعديل التذكرة بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                       example: "550e8400-e29b-41d4-a716-446655440000"
+ *                     ticket_number:
+ *                       type: string
+ *                       example: "TKT-000001"
+ *                     title:
+ *                       type: string
+ *                       example: "عنوان محدث للتذكرة"
+ *                     description:
+ *                       type: string
+ *                       example: "وصف محدث للتذكرة"
+ *                     priority:
+ *                       type: string
+ *                       example: "high"
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *                     updated_at:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2024-01-15T10:30:00.000Z"
+ *       400:
+ *         description: لا توجد بيانات للتحديث
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "لا توجد بيانات للتحديث"
+ *       404:
+ *         description: التذكرة غير موجودة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "التذكرة غير موجودة"
+ *       500:
+ *         description: خطأ في الخادم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "خطأ في الخادم"
+ *                 error:
+ *                   type: string
+ *                   example: "Database connection failed"
+ */
+router.put('/:id', authenticateToken, TicketController.simpleUpdate);
 
 router.post('/:id/change-stage', authenticateToken, requirePermissions(['tickets.update']), TicketController.changeStage);
 router.post('/:id/move', authenticateToken, requirePermissions(['tickets.update']), TicketController.moveTicket);

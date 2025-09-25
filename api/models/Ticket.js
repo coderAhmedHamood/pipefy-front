@@ -1635,6 +1635,45 @@ class Ticket {
       throw error;
     }
   }
+
+  // تعديل تذكرة بسيط
+  static async simpleUpdate(id, updateData) {
+    try {
+      // بناء الاستعلام ديناميكياً
+      const fields = [];
+      const values = [];
+      let paramCount = 1;
+
+      // إضافة الحقول المراد تحديثها
+      for (const [key, value] of Object.entries(updateData)) {
+        if (value !== undefined && value !== null) {
+          fields.push(`${key} = $${paramCount}`);
+          values.push(value);
+          paramCount++;
+        }
+      }
+
+      if (fields.length === 0) {
+        throw new Error('لا توجد بيانات للتحديث');
+      }
+
+      // إضافة updated_at
+      fields.push(`updated_at = NOW()`);
+      values.push(id);
+
+      const query = `
+        UPDATE tickets
+        SET ${fields.join(', ')}
+        WHERE id = $${paramCount}
+        RETURNING id, ticket_number, title, description, priority, status, updated_at
+      `;
+
+      const result = await pool.query(query, values);
+      return result.rows[0] || null;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 module.exports = Ticket;
