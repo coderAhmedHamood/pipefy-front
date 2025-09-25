@@ -487,7 +487,7 @@ export const UserManagerNew: React.FC = () => {
   }
 
   return (
-    <div className="h-full bg-gray-50">
+    <div className="min-h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">

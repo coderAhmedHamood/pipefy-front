@@ -180,7 +180,7 @@ export const UserManager: React.FC = () => {
   };
 
   return (
-    <div className="h-full bg-gray-50">
+    <div className="min-h-full bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
@@ -278,7 +278,7 @@ export const UserManager: React.FC = () => {
             </div>
 
             {/* Users Table */}
-            <div className="overflow-x-auto max-h-96 overflow-y-auto">
+            <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
