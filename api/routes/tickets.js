@@ -956,4 +956,291 @@ router.get('/:id/comments', authenticateToken, requirePermissions(['tickets.read
 router.post('/:id/comments', authenticateToken, requirePermissions(['tickets.update']), CommentController.create);
 router.get('/:id/activities', authenticateToken, requirePermissions(['tickets.read']), TicketController.getActivities);
 
+/**
+ * @swagger
+ * /api/tickets/{ticket_id}/assign-multiple:
+ *   post:
+ *     summary: إضافة مراجعين ومسندين متعددين إلى التذكرة
+ *     description: يسمح بإضافة مراجعين ومسندين متعددين إلى التذكرة الواحدة في طلب واحد
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: ticket_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reviewers:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *                 description: مصفوفة معرفات المراجعين
+ *                 example: ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"]
+ *               assignees:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *                 description: مصفوفة معرفات المسندين
+ *                 example: ["550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440004"]
+ *           examples:
+ *             مراجعين_ومسندين:
+ *               summary: إضافة مراجعين ومسندين
+ *               value:
+ *                 reviewers: ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"]
+ *                 assignees: ["550e8400-e29b-41d4-a716-446655440003"]
+ *             مراجعين_فقط:
+ *               summary: إضافة مراجعين فقط
+ *               value:
+ *                 reviewers: ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440002"]
+ *             مسندين_فقط:
+ *               summary: إضافة مسندين فقط
+ *               value:
+ *                 assignees: ["550e8400-e29b-41d4-a716-446655440003", "550e8400-e29b-41d4-a716-446655440004"]
+ *     responses:
+ *       200:
+ *         description: تم تنفيذ العملية بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم تنفيذ العملية بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ticket:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         number:
+ *                           type: string
+ *                         title:
+ *                           type: string
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         reviewers:
+ *                           type: object
+ *                           properties:
+ *                             requested:
+ *                               type: integer
+ *                             added:
+ *                               type: integer
+ *                             existing:
+ *                               type: integer
+ *                             invalid:
+ *                               type: integer
+ *                         assignees:
+ *                           type: object
+ *                           properties:
+ *                             requested:
+ *                               type: integer
+ *                             added:
+ *                               type: integer
+ *                             existing:
+ *                               type: integer
+ *                             invalid:
+ *                               type: integer
+ *                     details:
+ *                       type: object
+ *                       properties:
+ *                         reviewers:
+ *                           type: object
+ *                           properties:
+ *                             added:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                                 properties:
+ *                                   user_id:
+ *                                     type: string
+ *                                     format: uuid
+ *                                   name:
+ *                                     type: string
+ *                                   email:
+ *                                     type: string
+ *                                   assigned_at:
+ *                                     type: string
+ *                                     format: date-time
+ *                             existing:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                             invalid:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                         assignees:
+ *                           type: object
+ *                           properties:
+ *                             added:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                             existing:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *                             invalid:
+ *                               type: array
+ *                               items:
+ *                                 type: object
+ *       207:
+ *         description: تم تنفيذ العملية جزئياً - بعض المستخدمين غير صحيحين
+ *       400:
+ *         description: خطأ في البيانات المرسلة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "يجب تحديد مراجعين أو مسندين على الأقل"
+ *       403:
+ *         description: غير مسموح - ليس لديك صلاحية
+ *       404:
+ *         description: التذكرة غير موجودة
+ *       500:
+ *         description: خطأ في الخادم
+ */
+
+/**
+ * @swagger
+ * /api/tickets/{ticket_id}/reviewers-assignees:
+ *   get:
+ *     summary: جلب مراجعي ومسندي التذكرة
+ *     description: جلب قائمة بجميع المراجعين والمسندين المرتبطين بالتذكرة
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: ticket_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *     responses:
+ *       200:
+ *         description: تم جلب البيانات بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ticket:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         number:
+ *                           type: string
+ *                         title:
+ *                           type: string
+ *                     reviewers:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           user_id:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                             enum: [pending, reviewed, rejected]
+ *                           assigned_at:
+ *                             type: string
+ *                             format: date-time
+ *                           reviewed_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                           assigned_by_name:
+ *                             type: string
+ *                     assignees:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           user_id:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           status:
+ *                             type: string
+ *                             enum: [active, completed, removed]
+ *                           assigned_at:
+ *                             type: string
+ *                             format: date-time
+ *                           completed_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                           assigned_by_name:
+ *                             type: string
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         total_reviewers:
+ *                           type: integer
+ *                         total_assignees:
+ *                           type: integer
+ *                         pending_reviews:
+ *                           type: integer
+ *                         active_assignees:
+ *                           type: integer
+ *       404:
+ *         description: التذكرة غير موجودة
+ *       500:
+ *         description: خطأ في الخادم
+ */
+
+// مسارات المراجعين والمسندين
+router.post('/:ticket_id/assign-multiple', authenticateToken, requirePermissions(['tickets.update']), TicketController.assignMultiple);
+router.get('/:ticket_id/reviewers-assignees', authenticateToken, requirePermissions(['tickets.read']), TicketController.getReviewersAndAssignees);
+
 module.exports = router;

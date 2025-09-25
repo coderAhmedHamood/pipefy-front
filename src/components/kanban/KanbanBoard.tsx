@@ -176,9 +176,35 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   
   const handleMoveToStage = (stageId: string) => {
     if (selectedTicket) {
-      moveTicket(selectedTicket.id, stageId);
+      // تحديث ticketsByStages state فوراً للتحديث المرئي الفوري
+      setTicketsByStages(prev => {
+        const updated = { ...prev };
+
+        // إزالة التذكرة من المرحلة القديمة
+        if (updated[selectedTicket.current_stage_id]) {
+          updated[selectedTicket.current_stage_id] = updated[selectedTicket.current_stage_id]
+            .filter(t => t.id !== selectedTicket.id);
+        }
+
+        // إضافة التذكرة للمرحلة الجديدة
+        if (!updated[stageId]) {
+          updated[stageId] = [];
+        }
+        updated[stageId].push({
+          ...selectedTicket,
+          current_stage_id: stageId,
+          updated_at: new Date().toISOString()
+        });
+
+        return updated;
+      });
+
       // تحديث التذكرة المحددة لتعكس المرحلة الجديدة
       setSelectedTicket({ ...selectedTicket, current_stage_id: stageId });
+
+      // إظهار رسالة نجاح
+      const targetStage = process.stages.find(s => s.id === stageId);
+      showSuccess('تم نقل التذكرة', `تم نقل "${selectedTicket.title}" إلى "${targetStage?.name}" بنجاح`);
     }
   };
 

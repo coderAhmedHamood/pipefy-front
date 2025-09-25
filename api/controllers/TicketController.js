@@ -699,6 +699,205 @@ class TicketController {
       });
     }
   }
+
+  // إضافة مراجعين ومسندين متعددين إلى التذكرة
+  static async assignMultiple(req, res) {
+    try {
+      const { ticket_id } = req.params;
+      const { reviewers = [], assignees = [] } = req.body;
+
+      // التحقق من صحة معرف التذكرة
+      if (!ticket_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف التذكرة مطلوب'
+        });
+      }
+
+      // التحقق من وجود بيانات للإضافة
+      if ((!reviewers || reviewers.length === 0) && (!assignees || assignees.length === 0)) {
+        return res.status(400).json({
+          success: false,
+          message: 'يجب تحديد مراجعين أو مسندين على الأقل'
+        });
+      }
+
+      // التحقق من صحة تنسيق المصفوفات
+      if (reviewers && !Array.isArray(reviewers)) {
+        return res.status(400).json({
+          success: false,
+          message: 'المراجعون يجب أن يكونوا في شكل مصفوفة'
+        });
+      }
+
+      if (assignees && !Array.isArray(assignees)) {
+        return res.status(400).json({
+          success: false,
+          message: 'المسندون يجب أن يكونوا في شكل مصفوفة'
+        });
+      }
+
+      // التحقق من صحة معرفات المستخدمين
+      const allUserIds = [...(reviewers || []), ...(assignees || [])];
+      const invalidIds = allUserIds.filter(id => !id || typeof id !== 'string');
+
+      if (invalidIds.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرفات المستخدمين يجب أن تكون نصوص صحيحة',
+          invalid_ids: invalidIds
+        });
+      }
+
+      // التحقق من عدم تكرار المعرفات
+      const uniqueReviewers = [...new Set(reviewers || [])];
+      const uniqueAssignees = [...new Set(assignees || [])];
+
+      if (uniqueReviewers.length !== (reviewers || []).length) {
+        return res.status(400).json({
+          success: false,
+          message: 'يوجد تكرار في معرفات المراجعين'
+        });
+      }
+
+      if (uniqueAssignees.length !== (assignees || []).length) {
+        return res.status(400).json({
+          success: false,
+          message: 'يوجد تكرار في معرفات المسندين'
+        });
+      }
+
+      // التحقق من الصلاحيات - يجب أن يكون المستخدم مالك التذكرة أو مدير
+      const ticket = await Ticket.findById(ticket_id);
+      if (!ticket) {
+        return res.status(404).json({
+          success: false,
+          message: 'التذكرة غير موجودة'
+        });
+      }
+
+      const isOwner = ticket.created_by === req.user.id;
+      const isAssigned = ticket.assigned_to === req.user.id;
+      const isAdmin = (req.user.role && req.user.role.name === 'Super Admin') ||
+                     (req.user.role_name === 'Super Admin') ||
+                     (req.user.role && req.user.role.name === 'admin') ||
+                     (req.user.role_name === 'admin');
+
+      if (!isOwner && !isAssigned && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'غير مسموح لك بإضافة مراجعين أو مسندين لهذه التذكرة'
+        });
+      }
+
+      // تنفيذ العملية
+      const result = await Ticket.assignMultiple(
+        ticket_id,
+        uniqueReviewers,
+        uniqueAssignees,
+        req.user.id
+      );
+
+      // إعداد الرد
+      const response = {
+        success: true,
+        message: 'تم تنفيذ العملية بنجاح',
+        data: {
+          ticket: {
+            id: result.ticket_id,
+            number: result.ticket_number,
+            title: result.ticket_title
+          },
+          summary: {
+            reviewers: {
+              requested: uniqueReviewers.length,
+              added: result.reviewers.added.length,
+              existing: result.reviewers.existing.length,
+              invalid: result.reviewers.invalid.length
+            },
+            assignees: {
+              requested: uniqueAssignees.length,
+              added: result.assignees.added.length,
+              existing: result.assignees.existing.length,
+              invalid: result.assignees.invalid.length
+            }
+          },
+          details: {
+            reviewers: result.reviewers,
+            assignees: result.assignees
+          }
+        }
+      };
+
+      // تحديد رمز الحالة بناءً على النتائج
+      let statusCode = 200;
+      if (result.reviewers.invalid.length > 0 || result.assignees.invalid.length > 0) {
+        statusCode = 207; // Multi-Status - بعض العمليات نجحت وبعضها فشل
+        response.message = 'تم تنفيذ العملية جزئياً - بعض المستخدمين غير صحيحين';
+      } else if (result.reviewers.existing.length > 0 || result.assignees.existing.length > 0) {
+        response.message = 'تم تنفيذ العملية - بعض المستخدمين موجودين مسبقاً';
+      }
+
+      res.status(statusCode).json(response);
+
+    } catch (error) {
+      console.error('خطأ في إضافة المراجعين والمسندين:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في الخادم',
+        error: error.message
+      });
+    }
+  }
+
+  // جلب مراجعي ومسندي التذكرة
+  static async getReviewersAndAssignees(req, res) {
+    try {
+      const { ticket_id } = req.params;
+
+      // التحقق من وجود التذكرة
+      const ticket = await Ticket.findById(ticket_id);
+      if (!ticket) {
+        return res.status(404).json({
+          success: false,
+          message: 'التذكرة غير موجودة'
+        });
+      }
+
+      // جلب المراجعين والمسندين
+      const [reviewers, assignees] = await Promise.all([
+        Ticket.getReviewers(ticket_id),
+        Ticket.getAssignees(ticket_id)
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          ticket: {
+            id: ticket.id,
+            number: ticket.ticket_number,
+            title: ticket.title
+          },
+          reviewers: reviewers,
+          assignees: assignees,
+          summary: {
+            total_reviewers: reviewers.length,
+            total_assignees: assignees.length,
+            pending_reviews: reviewers.filter(r => r.status === 'pending').length,
+            active_assignees: assignees.filter(a => a.status === 'active').length
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('خطأ في جلب المراجعين والمسندين:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في الخادم',
+        error: error.message
+      });
+    }
+  }
 }
 
 module.exports = TicketController;

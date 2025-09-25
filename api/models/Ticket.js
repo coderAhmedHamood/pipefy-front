@@ -1330,6 +1330,297 @@ class Ticket {
       throw error;
     }
   }
+
+  // إضافة مراجعين ومسندين متعددين إلى التذكرة
+  static async assignMultiple(ticketId, reviewers = [], assignees = [], assignedBy) {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // التحقق من وجود التذكرة
+      const ticketCheck = await client.query(
+        'SELECT id, title, ticket_number FROM tickets WHERE id = $1',
+        [ticketId]
+      );
+
+      if (ticketCheck.rows.length === 0) {
+        throw new Error('التذكرة غير موجودة');
+      }
+
+      const ticket = ticketCheck.rows[0];
+      const results = {
+        ticket_id: ticketId,
+        ticket_number: ticket.ticket_number,
+        ticket_title: ticket.title,
+        reviewers: {
+          added: [],
+          existing: [],
+          invalid: []
+        },
+        assignees: {
+          added: [],
+          existing: [],
+          invalid: []
+        }
+      };
+
+      // معالجة المراجعين
+      if (reviewers && reviewers.length > 0) {
+        for (const userId of reviewers) {
+          // التحقق من وجود المستخدم
+          const userCheck = await client.query(
+            'SELECT id, name, email FROM users WHERE id = $1 AND is_active = true',
+            [userId]
+          );
+
+          if (userCheck.rows.length === 0) {
+            results.reviewers.invalid.push({
+              user_id: userId,
+              reason: 'المستخدم غير موجود أو غير نشط'
+            });
+            continue;
+          }
+
+          const user = userCheck.rows[0];
+
+          // التحقق من وجود المراجع مسبقاً
+          const existingReviewer = await client.query(
+            'SELECT id FROM ticket_reviewers WHERE ticket_id = $1 AND user_id = $2',
+            [ticketId, userId]
+          );
+
+          if (existingReviewer.rows.length > 0) {
+            results.reviewers.existing.push({
+              user_id: userId,
+              name: user.name,
+              email: user.email
+            });
+            continue;
+          }
+
+          // إضافة المراجع
+          const insertReviewer = await client.query(`
+            INSERT INTO ticket_reviewers (ticket_id, user_id, assigned_by)
+            VALUES ($1, $2, $3)
+            RETURNING id, assigned_at
+          `, [ticketId, userId, assignedBy]);
+
+          results.reviewers.added.push({
+            id: insertReviewer.rows[0].id,
+            user_id: userId,
+            name: user.name,
+            email: user.email,
+            assigned_at: insertReviewer.rows[0].assigned_at
+          });
+        }
+      }
+
+      // معالجة المسندين
+      if (assignees && assignees.length > 0) {
+        for (const userId of assignees) {
+          // التحقق من وجود المستخدم
+          const userCheck = await client.query(
+            'SELECT id, name, email FROM users WHERE id = $1 AND is_active = true',
+            [userId]
+          );
+
+          if (userCheck.rows.length === 0) {
+            results.assignees.invalid.push({
+              user_id: userId,
+              reason: 'المستخدم غير موجود أو غير نشط'
+            });
+            continue;
+          }
+
+          const user = userCheck.rows[0];
+
+          // التحقق من وجود المسند مسبقاً
+          const existingAssignee = await client.query(
+            'SELECT id FROM ticket_assignees WHERE ticket_id = $1 AND user_id = $2',
+            [ticketId, userId]
+          );
+
+          if (existingAssignee.rows.length > 0) {
+            results.assignees.existing.push({
+              user_id: userId,
+              name: user.name,
+              email: user.email
+            });
+            continue;
+          }
+
+          // إضافة المسند
+          const insertAssignee = await client.query(`
+            INSERT INTO ticket_assignees (ticket_id, user_id, assigned_by)
+            VALUES ($1, $2, $3)
+            RETURNING id, assigned_at
+          `, [ticketId, userId, assignedBy]);
+
+          results.assignees.added.push({
+            id: insertAssignee.rows[0].id,
+            user_id: userId,
+            name: user.name,
+            email: user.email,
+            assigned_at: insertAssignee.rows[0].assigned_at
+          });
+        }
+      }
+
+      // تسجيل النشاط
+      if (results.reviewers.added.length > 0 || results.assignees.added.length > 0) {
+        const activityData = {
+          reviewers_added: results.reviewers.added.length,
+          assignees_added: results.assignees.added.length,
+          reviewers_names: results.reviewers.added.map(r => r.name),
+          assignees_names: results.assignees.added.map(a => a.name)
+        };
+
+        await client.query(`
+          INSERT INTO ticket_activities (ticket_id, user_id, activity_type, description)
+          VALUES ($1, $2, $3, $4)
+        `, [
+          ticketId,
+          assignedBy,
+          'assigned',
+          `تم إضافة ${results.reviewers.added.length} مراجع و ${results.assignees.added.length} مسند`
+        ]);
+      }
+
+      await client.query('COMMIT');
+      return results;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // جلب مراجعي التذكرة
+  static async getReviewers(ticketId) {
+    const query = `
+      SELECT tr.id, tr.user_id, tr.status, tr.assigned_at, tr.reviewed_at, tr.notes,
+             u.name, u.email, u.avatar_url,
+             assigned_by_user.name as assigned_by_name
+      FROM ticket_reviewers tr
+      JOIN users u ON tr.user_id = u.id
+      LEFT JOIN users assigned_by_user ON tr.assigned_by = assigned_by_user.id
+      WHERE tr.ticket_id = $1
+      ORDER BY tr.assigned_at DESC
+    `;
+
+    const result = await pool.query(query, [ticketId]);
+    return result.rows;
+  }
+
+  // جلب مسندي التذكرة
+  static async getAssignees(ticketId) {
+    const query = `
+      SELECT ta.id, ta.user_id, ta.status, ta.assigned_at, ta.completed_at, ta.notes,
+             u.name, u.email, u.avatar_url,
+             assigned_by_user.name as assigned_by_name
+      FROM ticket_assignees ta
+      JOIN users u ON ta.user_id = u.id
+      LEFT JOIN users assigned_by_user ON ta.assigned_by = assigned_by_user.id
+      WHERE ta.ticket_id = $1
+      ORDER BY ta.assigned_at DESC
+    `;
+
+    const result = await pool.query(query, [ticketId]);
+    return result.rows;
+  }
+
+  // إزالة مراجع من التذكرة
+  static async removeReviewer(ticketId, userId, removedBy) {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // التحقق من وجود المراجع
+      const reviewerCheck = await client.query(
+        'SELECT id FROM ticket_reviewers WHERE ticket_id = $1 AND user_id = $2',
+        [ticketId, userId]
+      );
+
+      if (reviewerCheck.rows.length === 0) {
+        throw new Error('المراجع غير موجود في هذه التذكرة');
+      }
+
+      // حذف المراجع
+      await client.query(
+        'DELETE FROM ticket_reviewers WHERE ticket_id = $1 AND user_id = $2',
+        [ticketId, userId]
+      );
+
+      // تسجيل النشاط
+      await client.query(`
+        INSERT INTO ticket_activities (ticket_id, user_id, activity_type, description)
+        VALUES ($1, $2, $3, $4)
+      `, [
+        ticketId,
+        removedBy,
+        'updated',
+        'تم إزالة مراجع من التذكرة'
+      ]);
+
+      await client.query('COMMIT');
+      return true;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  // إزالة مسند من التذكرة
+  static async removeAssignee(ticketId, userId, removedBy) {
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      // التحقق من وجود المسند
+      const assigneeCheck = await client.query(
+        'SELECT id FROM ticket_assignees WHERE ticket_id = $1 AND user_id = $2',
+        [ticketId, userId]
+      );
+
+      if (assigneeCheck.rows.length === 0) {
+        throw new Error('المسند غير موجود في هذه التذكرة');
+      }
+
+      // حذف المسند
+      await client.query(
+        'DELETE FROM ticket_assignees WHERE ticket_id = $1 AND user_id = $2',
+        [ticketId, userId]
+      );
+
+      // تسجيل النشاط
+      await client.query(`
+        INSERT INTO ticket_activities (ticket_id, user_id, activity_type, description)
+        VALUES ($1, $2, $3, $4)
+      `, [
+        ticketId,
+        removedBy,
+        'updated',
+        'تم إزالة مسند من التذكرة'
+      ]);
+
+      await client.query('COMMIT');
+      return true;
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 }
 
 module.exports = Ticket;

@@ -110,6 +110,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     if (transitionType === 'single' && selectedStages.length === 1) {
       const success = await moveTicket(ticket.id, selectedStages[0]);
       if (success) {
+        // تحديث الـ state في KanbanBoard فوراً
         onMoveToStage(selectedStages[0]);
         setShowStageSelector(false);
         setSelectedStages([]);
@@ -118,6 +119,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       // للانتقال المتعدد، نختار أول مرحلة كمثال
       const success = await moveTicket(ticket.id, selectedStages[0]);
       if (success) {
+        // تحديث الـ state في KanbanBoard فوراً
         onMoveToStage(selectedStages[0]);
         setShowStageSelector(false);
         setSelectedStages([]);
