@@ -113,15 +113,27 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     if (isDeleting) return;
 
     console.log(`🗑️ بدء حذف التذكرة: ${ticket.title}`);
+    console.log(`📋 معرف التذكرة: ${ticket.id}`);
+    console.log(`📍 المرحلة الحالية: ${ticket.current_stage_id}`);
+    console.log(`🔗 onDelete callback متوفر: ${onDelete ? 'نعم' : 'لا'}`);
 
     const success = await deleteTicket(ticket.id);
+    console.log(`📡 نتيجة API: ${success ? 'نجح' : 'فشل'}`);
+
     if (success) {
-      console.log('✅ نجح حذف التذكرة من API');
+      console.log('✅ نجح حذف التذكرة من API - بدء تحديث الواجهة...');
 
       // إشعار المكون الأب (KanbanBoard) بالحذف لتحديث الواجهة فوراً
       if (onDelete) {
-        console.log('📡 إشعار KanbanBoard بالحذف...');
-        onDelete();
+        console.log('📡 استدعاء onDelete callback...');
+        try {
+          onDelete();
+          console.log('✅ تم استدعاء onDelete بنجاح');
+        } catch (error) {
+          console.error('❌ خطأ في استدعاء onDelete:', error);
+        }
+      } else {
+        console.error('❌ onDelete callback غير متوفر!');
       }
 
       // إغلاق مربع التأكيد
@@ -129,7 +141,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
       console.log('🎊 تم إنجاز عملية الحذف بنجاح');
     } else {
-      console.error('❌ فشل في حذف التذكرة');
+      console.error('❌ فشل في حذف التذكرة من API');
       setShowDeleteConfirm(false);
     }
   };

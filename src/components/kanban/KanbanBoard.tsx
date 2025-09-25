@@ -29,6 +29,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forceUpdate, setForceUpdate] = useState(0);
+
+  // مراقبة تغييرات ticketsByStages للتشخيص
+  useEffect(() => {
+    console.log('🔄 ticketsByStages تم تحديثه:', ticketsByStages);
+    const totalTickets = Object.values(ticketsByStages).reduce((sum, tickets) => sum + tickets.length, 0);
+    console.log(`📊 إجمالي التذاكر: ${totalTickets}`);
+
+    Object.keys(ticketsByStages).forEach(stageId => {
+      console.log(`   📋 ${stageId}: ${ticketsByStages[stageId].length} تذاكر`);
+    });
+  }, [ticketsByStages]);
 
   // جلب التذاكر من API عند تحميل المكون أو تغيير العملية
   const loadTickets = async () => {
@@ -209,32 +221,53 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   };
 
   const handleDeleteTicket = () => {
+    console.log('🔥 handleDeleteTicket تم استدعاؤها!');
+
     if (selectedTicket) {
       console.log(`🗑️ حذف التذكرة من KanbanBoard: ${selectedTicket.title}`);
+      console.log(`📋 معرف التذكرة: ${selectedTicket.id}`);
+      console.log(`📍 المرحلة الحالية: ${selectedTicket.current_stage_id}`);
 
       // تحديث ticketsByStages state فوراً لإزالة التذكرة
       setTicketsByStages(prev => {
+        console.log('🔄 بدء تحديث ticketsByStages state...');
         const updated = { ...prev };
 
         // إزالة التذكرة من المرحلة الحالية
         if (updated[selectedTicket.current_stage_id]) {
+          const beforeCount = updated[selectedTicket.current_stage_id].length;
+          console.log(`📊 عدد التذاكر قبل الحذف: ${beforeCount}`);
+
           updated[selectedTicket.current_stage_id] = updated[selectedTicket.current_stage_id]
             .filter(t => t.id !== selectedTicket.id);
 
+          const afterCount = updated[selectedTicket.current_stage_id].length;
           console.log(`✅ تم إزالة التذكرة من المرحلة: ${selectedTicket.current_stage_id}`);
-          console.log(`📊 عدد التذاكر المتبقية في المرحلة: ${updated[selectedTicket.current_stage_id].length}`);
+          console.log(`📊 عدد التذاكر بعد الحذف: ${afterCount}`);
+          console.log(`🔢 الفرق: ${beforeCount - afterCount} تذكرة محذوفة`);
+        } else {
+          console.error(`❌ المرحلة غير موجودة: ${selectedTicket.current_stage_id}`);
         }
 
+        console.log('✅ تم تحديث ticketsByStages state');
         return updated;
       });
 
       // إغلاق المودال
+      console.log('🚪 إغلاق المودال...');
       setSelectedTicket(null);
 
       // إظهار رسالة نجاح
+      console.log('📢 عرض رسالة النجاح...');
       showSuccess('تم حذف التذكرة', `تم حذف "${selectedTicket.title}" بنجاح`);
 
+      // فرض إعادة الرسم
+      console.log('🔄 فرض إعادة الرسم...');
+      setForceUpdate(prev => prev + 1);
+
       console.log('🎊 تم تحديث واجهة KanbanBoard فوراً');
+    } else {
+      console.error('❌ selectedTicket غير موجودة!');
     }
   };
 
@@ -588,7 +621,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
             <div className="flex gap-6 min-h-0 pb-6" style={{ minWidth: `${process.stages.length * 320 + (process.stages.length - 1) * 24}px` }}>
               {sortedStages.map((stage) => (
                 <KanbanColumn
-                  key={stage.id}
+                  key={`${stage.id}-${forceUpdate}`}
                   stage={stage}
                   tickets={filteredTicketsByStages[stage.id] || []}
                   onCreateTicket={() => handleCreateTicket(stage.id)}

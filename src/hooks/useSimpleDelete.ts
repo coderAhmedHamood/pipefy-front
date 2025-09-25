@@ -2,13 +2,17 @@ import { useState } from 'react';
 import apiClient from '../lib/api';
 
 interface DeleteResponse {
-  success: boolean;
-  message: string;
+  success?: boolean;
+  message?: string;
   data?: {
     ticket_id: string;
     ticket_number: string;
     deleted_at: string;
   };
+  // للاستجابة المباشرة
+  ticket_id?: string;
+  ticket_number?: string;
+  deleted_at?: string;
 }
 
 export const useSimpleDelete = () => {
@@ -25,16 +29,17 @@ export const useSimpleDelete = () => {
 
     try {
       const response = await apiClient.delete<DeleteResponse>(`/tickets/${ticketId}`);
-      
+
       console.log('📡 استجابة API للحذف:', response.data);
 
-      if (response.data.success) {
+      // حل بسيط: إذا كانت الاستجابة تحتوي على ticket_id فهي ناجحة
+      if (response.data.ticket_id) {
         console.log('✅ تم حذف التذكرة بنجاح');
-        console.log(`   📋 رقم التذكرة: ${response.data.data?.ticket_number}`);
-        console.log(`   📅 تاريخ الحذف: ${response.data.data?.deleted_at}`);
+        console.log(`   📋 رقم التذكرة: ${response.data.ticket_number}`);
+        console.log(`   📅 تاريخ الحذف: ${response.data.deleted_at}`);
         return true;
       } else {
-        console.error('❌ فشل في حذف التذكرة:', response.data.message);
+        console.error('❌ فشل في حذف التذكرة:', response.data.message || 'لا يوجد ticket_id في الاستجابة');
         return false;
       }
     } catch (error: any) {
