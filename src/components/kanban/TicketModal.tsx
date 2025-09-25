@@ -165,11 +165,14 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     if (success) {
       console.log('✅ نجح تحديث التذكرة من API - بدء تحديث الواجهة...');
 
-      // تحديث البيانات المحلية
+      // تحديث البيانات المحلية فوراً
+      Object.assign(ticket, formData);
+
+      // تحديث البيانات في المكون الأب
       onSave(formData);
       setIsEditing(false);
 
-      console.log('🎊 تم تحديث التذكرة بنجاح');
+      console.log('🎊 تم تحديث التذكرة بنجاح - الواجهة محدثة فوراً');
     } else {
       console.error('❌ فشل في تحديث التذكرة من API');
     }
@@ -241,7 +244,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 <span className="text-white font-bold text-lg">{process.name.charAt(0)}</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold">{ticket.title}</h1>
+                <h1 className="text-2xl font-bold">{isEditing ? formData.title : ticket.title}</h1>
                 <div className="flex items-center space-x-3 space-x-reverse text-blue-100">
                   <span>{process.name}</span>
                   <span>•</span>
