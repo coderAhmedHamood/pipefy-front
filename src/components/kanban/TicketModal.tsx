@@ -276,6 +276,49 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </button>
               )}
               
+   <div className="p-6 space-y-3">
+              {isEditing ? (
+                <>
+                  <button
+                    onClick={handleSave}
+                    disabled={isUpdating}
+                    className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium ${
+                      isUpdating ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ التغييرات'}</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>إلغاء التعديل</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span>تعديل التذكرة</span>
+                  </button>
+                  
+                   
+                  
+                 
+                </>
+              )}
+            </div>
+
+
+
+
+
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-colors"
@@ -724,51 +767,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="p-6 space-y-3">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={isUpdating}
-                    className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium ${
-                      isUpdating ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ التغييرات'}</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>إلغاء التعديل</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span>تعديل التذكرة</span>
-                  </button>
-                  
-                  <button className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse">
-                    <Copy className="w-4 h-4" />
-                    <span>نسخ التذكرة</span>
-                  </button>
-                  
-                  <button className="w-full border border-red-300 text-red-700 py-2 px-4 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse">
-                    <Trash2 className="w-4 h-4" />
-                    <span>حذف التذكرة</span>
-                  </button>
-                </>
-              )}
-            </div>
+          
           </div>
         </div>
       </div>
