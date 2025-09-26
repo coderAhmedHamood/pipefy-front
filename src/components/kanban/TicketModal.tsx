@@ -4,6 +4,7 @@ import { useWorkflow } from '../../contexts/WorkflowContext';
 import { useSimpleMove } from '../../hooks/useSimpleMove';
 import { useSimpleDelete } from '../../hooks/useSimpleDelete';
 import { useSimpleUpdate } from '../../hooks/useSimpleUpdate';
+import { useAttachments } from '../../hooks/useAttachments';
 import { CommentsSection } from '../comments/CommentsSection';
 import { 
   X, 
@@ -89,6 +90,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     assigned_to: ticket.assigned_to || '',
     data: { ...ticket.data }
   });
+
+  // استخدام hook المرفقات
+  const { attachments, isLoading: attachmentsLoading } = useAttachments(ticket.id);
 
   // الحصول على المرحلة الحالية
   const currentStage = process.stages.find(s => s.id === ticket.current_stage_id);
@@ -688,7 +692,30 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   </div>
                 ))}
                 
-                {(!ticket.attachments || ticket.attachments.length === 0) && (
+                {/* عرض المرفقات من API */}
+                {attachmentsLoading ? (
+                  <div className="text-center py-4 text-gray-400">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-xs">جاري تحميل المرفقات...</p>
+                  </div>
+                ) : attachments.length > 0 ? (
+                  attachments.map((attachment) => (
+                    <div key={attachment.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{attachment.original_filename}</p>
+                          <p className="text-xs text-gray-500">
+                            {(Number(attachment.file_size) / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <button className="text-blue-600 hover:text-blue-700 p-1 rounded">
+                        <Download className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                ) : (
                   <div className="text-center py-4 text-gray-400">
                     <Paperclip className="w-8 h-8 mx-auto mb-2" />
                     <p className="text-xs">لا توجد مرفقات</p>
