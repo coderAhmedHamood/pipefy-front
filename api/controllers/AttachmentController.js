@@ -136,10 +136,10 @@ class AttachmentController {
         for (const file of req.files) {
           const result = await pool.query(`
             INSERT INTO ticket_attachments (
-              ticket_id, filename, original_filename, file_path, 
-              file_size, mime_type, description, uploaded_by
+              ticket_id, filename, original_filename, file_path,
+              file_size, mime_type, description, uploaded_by, user_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
           `, [
             ticket_id,
@@ -149,6 +149,7 @@ class AttachmentController {
             file.size,
             file.mimetype,
             description || null,
+            req.user.id,
             req.user.id
           ]);
           
@@ -158,13 +159,13 @@ class AttachmentController {
         // إضافة نشاط للتذكرة
         await pool.query(`
           INSERT INTO ticket_activities (
-            ticket_id, user_id, activity_type, description, data
+            ticket_id, user_id, activity_type, description, metadata
           )
           VALUES ($1, $2, $3, $4, $5)
         `, [
           ticket_id, req.user.id, 'attachment_added',
           `رفع ${attachments.length} مرفق${attachments.length > 1 ? 'ات' : ''}`,
-          JSON.stringify({ 
+          JSON.stringify({
             attachment_count: attachments.length,
             attachment_ids: attachments.map(a => a.id)
           })
@@ -221,12 +222,8 @@ class AttachmentController {
         });
       }
       
-      // تحديث عدد التحميلات
-      await pool.query(`
-        UPDATE ticket_attachments 
-        SET download_count = download_count + 1
-        WHERE id = $1
-      `, [id]);
+      // تسجيل نشاط التحميل (اختياري)
+      // يمكن إضافة تسجيل نشاط التحميل هنا إذا لزم الأمر
       
       res.setHeader('Content-Disposition', `attachment; filename="${attachment.original_filename}"`);
       res.setHeader('Content-Type', attachment.mime_type);
@@ -283,13 +280,13 @@ class AttachmentController {
       // إضافة نشاط للتذكرة
       await pool.query(`
         INSERT INTO ticket_activities (
-          ticket_id, user_id, activity_type, description, data
+          ticket_id, user_id, activity_type, description, metadata
         )
         VALUES ($1, $2, $3, $4, $5)
       `, [
         attachment.ticket_id, req.user.id, 'attachment_deleted',
         `حذف مرفق: ${attachment.original_filename}`,
-        JSON.stringify({ 
+        JSON.stringify({
           attachment_id: id,
           filename: attachment.original_filename
         })
@@ -297,7 +294,12 @@ class AttachmentController {
       
       res.json({
         success: true,
-        message: 'تم حذف المرفق بنجاح'
+        message: 'تم حذف المرفق بنجاح',
+        data: {
+          id: attachment.id,
+          original_filename: attachment.original_filename,
+          deleted_at: new Date().toISOString()
+        }
       });
     } catch (error) {
       console.error('خطأ في حذف المرفق:', error);

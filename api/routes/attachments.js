@@ -217,6 +217,9 @@ router.get('/', authenticateToken, (req, res) => {
   });
 });
 
+// يجب أن يكون route البحث قبل route المعرف
+router.get('/search', authenticateToken, AttachmentController.search);
+
 router.get('/:id', authenticateToken, AttachmentController.getById);
 
 /**
@@ -359,6 +362,5 @@ router.delete('/:id', authenticateToken, AttachmentController.delete);
  *                 pagination:
  *                   $ref: '#/components/schemas/Pagination'
  */
-router.get('/search', authenticateToken, AttachmentController.search);
 
 module.exports = router;

@@ -4,6 +4,7 @@ const { authenticateToken, requirePermissions } = require('../middleware/auth');
 
 const TicketController = require('../controllers/TicketController');
 const CommentController = require('../controllers/CommentController');
+const AttachmentController = require('../controllers/AttachmentController');
 
 /**
  * @swagger
@@ -1456,5 +1457,9 @@ router.get('/:ticket_id/reviewers-assignees', authenticateToken, requirePermissi
  *                   example: "Database connection failed"
  */
 router.delete('/:id', authenticateToken, TicketController.simpleDelete);
+
+// مسارات المرفقات للتذاكر
+router.get('/:ticket_id/attachments', authenticateToken, AttachmentController.getTicketAttachments);
+router.post('/:ticket_id/attachments', authenticateToken, AttachmentController.upload);
 
 module.exports = router;
