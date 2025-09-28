@@ -910,9 +910,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
               </div>
               
-              <div className="space-y-2">
+              {/* منطقة المرفقات مع Scroll */}
+              <div className="max-h-64 overflow-y-auto space-y-2 pr-2 scrollbar-thin border border-gray-200 rounded-lg p-3 bg-gray-50">
                 {ticket.attachments?.map((attachment) => (
-                  <div key={attachment.id} className="flex items-center space-x-3 space-x-reverse p-2 bg-gray-50 rounded-lg">
+                  <div key={attachment.id} className="flex items-center space-x-3 space-x-reverse p-2 bg-white rounded-lg shadow-sm border border-gray-100">
                     <Paperclip className="w-4 h-4 text-gray-500" />
                     <div className="flex-1">
                       <div className="text-sm font-medium text-gray-900">{attachment.name}</div>
@@ -934,7 +935,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   </div>
                 ) : attachments.length > 0 ? (
                   attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                    <div key={attachment.id} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm border border-gray-100">
                       <div className="flex items-center space-x-2 space-x-reverse">
                         <FileText className="w-4 h-4 text-gray-500" />
                         <div>
@@ -975,6 +976,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   </div>
                 )}
               </div>
+
+              {/* مؤشر الـ scroll عندما يكون هناك الكثير من المرفقات */}
+              {((ticket.attachments?.length || 0) + (attachments?.length || 0)) > 3 && (
+                <div className="mt-2 text-center">
+                  <div className="inline-flex items-center space-x-1 space-x-reverse text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    <span>📜</span>
+                    <span>مرر للأسفل لرؤية جميع المرفقات</span>
+                  </div>
+                </div>
+              )}
             </div>
 
           
