@@ -83,6 +83,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [showDeleteAttachmentConfirm, setShowDeleteAttachmentConfirm] = useState(false);
   const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(null);
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
 
   const [formData, setFormData] = useState({
@@ -209,6 +211,98 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       alert('حدث خطأ أثناء حذف المرفق');
     } finally {
       setIsDeletingAttachment(false);
+    }
+  };
+
+  const handleUploadAttachment = async (files: FileList) => {
+    if (isUploadingAttachment || files.length === 0) return;
+
+    console.log(`📎 محاولة رفع ${files.length} مرفق للتذكرة: ${ticket.id}`);
+
+    setIsUploadingAttachment(true);
+    setUploadProgress(0);
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      console.log(`🔑 التوكن: ${token ? 'موجود' : 'غير موجود'}`);
+      console.log(`🔑 التوكن الكامل: ${token}`);
+
+      // طباعة معلومات المستخدم الحالي
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        console.log(`👤 المستخدم الحالي: ${user.email}`);
+        console.log(`🔐 دور المستخدم: ${user.role?.name || user.role_name || 'غير محدد'}`);
+        console.log(`📋 معرف المستخدم: ${user.id}`);
+      }
+
+      // إنشاء FormData للملفات
+      const formData = new FormData();
+
+      // إضافة الملفات إلى FormData (يجب استخدام 'files' كما هو متوقع من API)
+      Array.from(files).forEach((file, index) => {
+        formData.append('files', file);
+        console.log(`📁 ملف ${index + 1}: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+      });
+
+      // إضافة وصف اختياري للمرفقات
+      formData.append('description', `مرفقات للتذكرة: ${ticket.title}`);
+
+      // طباعة محتويات FormData للتشخيص
+      console.log(`📤 رفع المرفقات للتذكرة: ${ticket.id}`);
+      console.log('📋 محتويات FormData:');
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`  ${key}: ${value.name} (${value.size} bytes, ${value.type})`);
+        } else {
+          console.log(`  ${key}: ${value}`);
+        }
+      }
+
+      const response = await fetch(`http://localhost:3000/api/tickets/${ticket.id}/attachments`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // لا نضع Content-Type للـ multipart/form-data - المتصفح سيضعه تلقائياً
+        },
+        body: formData,
+      });
+
+      console.log(`📡 استجابة الخادم: ${response.status} ${response.statusText}`);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✅ تم رفع المرفقات بنجاح:`, result);
+
+        // إعادة تحميل المرفقات لتحديث القائمة
+        await refreshAttachments();
+
+        // إعادة تعيين progress
+        setUploadProgress(100);
+
+        // رسالة نجاح
+        alert(`تم رفع ${files.length} مرفق بنجاح!`);
+
+      } else {
+        const errorData = await response.json();
+        console.log(`❌ فشل الرفع:`, errorData);
+
+        // رسالة خطأ مفصلة
+        let errorMessage = errorData.message || 'خطأ غير معروف';
+        if (response.status === 403) {
+          errorMessage += '\n\nتأكد من أنك مسجل دخول بحساب له صلاحيات رفع المرفقات';
+        } else if (response.status === 413) {
+          errorMessage = 'حجم الملف كبير جداً. يرجى اختيار ملف أصغر.';
+        }
+
+        alert(`فشل في رفع المرفقات: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في رفع المرفقات:', error);
+      alert('حدث خطأ أثناء رفع المرفقات');
+    } finally {
+      setIsUploadingAttachment(false);
+      setUploadProgress(0);
     }
   };
 
@@ -776,12 +870,44 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
                   <Paperclip className="w-5 h-5 text-gray-500" />
-                  <span>المرفقات ({ticket.attachments?.length || 0})</span>
+                  <span>المرفقات ({(ticket.attachments?.length || 0) + (attachments?.length || 0)})</span>
                 </h3>
                 
-                <button className="text-blue-600 hover:text-blue-700 p-1 rounded">
-                  <Upload className="w-4 h-4" />
-                </button>
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <input
+                    type="file"
+                    multiple
+                    accept="*/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleUploadAttachment(e.target.files);
+                        // إعادة تعيين قيمة input لتمكين رفع نفس الملف مرة أخرى
+                        e.target.value = '';
+                      }
+                    }}
+                    className="hidden"
+                    id="attachment-upload"
+                    disabled={isUploadingAttachment}
+                  />
+                  <label
+                    htmlFor="attachment-upload"
+                    className={`cursor-pointer text-blue-600 hover:text-blue-700 p-1 rounded transition-colors ${
+                      isUploadingAttachment ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    title="رفع مرفقات"
+                  >
+                    {isUploadingAttachment ? (
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                  </label>
+                  {isUploadingAttachment && uploadProgress > 0 && (
+                    <div className="text-xs text-blue-600">
+                      {uploadProgress}%
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="space-y-2">
