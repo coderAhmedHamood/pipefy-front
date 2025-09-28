@@ -80,8 +80,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
   const [transitionType, setTransitionType] = useState<'single' | 'multiple'>('single');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteAttachmentConfirm, setShowDeleteAttachmentConfirm] = useState(false);
+  const [attachmentToDelete, setAttachmentToDelete] = useState<string | null>(null);
+  const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
 
-  
+
   const [formData, setFormData] = useState({
     title: ticket.title,
     description: ticket.description || '',
@@ -92,7 +95,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   });
 
   // استخدام hook المرفقات
-  const { attachments, isLoading: attachmentsLoading } = useAttachments(ticket.id);
+  const { attachments, isLoading: attachmentsLoading, refreshAttachments } = useAttachments(ticket.id);
 
   // الحصول على المرحلة الحالية
   const currentStage = process.stages.find(s => s.id === ticket.current_stage_id);
@@ -144,6 +147,68 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     } else {
       console.error('❌ فشل في حذف التذكرة من API');
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (isDeletingAttachment) return;
+
+    console.log(`🗑️ محاولة حذف المرفق: ${attachmentId}`);
+
+    setIsDeletingAttachment(true);
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      console.log(`🔑 التوكن: ${token ? 'موجود' : 'غير موجود'}`);
+      console.log(`🔑 التوكن الكامل: ${token}`);
+
+      // طباعة معلومات المستخدم الحالي
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const user = JSON.parse(userData);
+        console.log(`👤 المستخدم الحالي: ${user.email}`);
+        console.log(`🔐 دور المستخدم: ${user.role?.name || user.role_name || 'غير محدد'}`);
+        console.log(`📋 معرف المستخدم: ${user.id}`);
+      }
+
+      console.log(`🗑️ محاولة حذف المرفق: ${attachmentId}`);
+
+      const response = await fetch(`http://localhost:3000/api/attachments/${attachmentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      console.log(`📡 استجابة الخادم: ${response.status} ${response.statusText}`);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✅ تم حذف المرفق بنجاح:`, result);
+
+        // إعادة تحميل المرفقات لتحديث القائمة
+        await refreshAttachments();
+
+        setShowDeleteAttachmentConfirm(false);
+        setAttachmentToDelete(null);
+      } else {
+        const errorData = await response.json();
+        console.log(`❌ فشل الحذف:`, errorData);
+
+        // رسالة خطأ مفصلة
+        let errorMessage = errorData.message || 'خطأ غير معروف';
+        if (response.status === 403) {
+          errorMessage += '\n\nتأكد من أنك مسجل دخول بحساب له صلاحيات حذف المرفقات (مثل admin@pipefy.com)';
+        }
+
+        alert(`فشل في حذف المرفق: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في حذف المرفق:', error);
+      alert('حدث خطأ أثناء حذف المرفق');
+    } finally {
+      setIsDeletingAttachment(false);
     }
   };
 
@@ -753,9 +818,28 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                           </p>
                         </div>
                       </div>
-                      <button className="text-blue-600 hover:text-blue-700 p-1 rounded">
-                        <Download className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <button className="text-blue-600 hover:text-blue-700 p-1 rounded" title="تحميل">
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAttachmentToDelete(attachment.id);
+                            setShowDeleteAttachmentConfirm(true);
+                          }}
+                          disabled={isDeletingAttachment}
+                          className={`text-red-600 hover:text-red-700 p-1 rounded transition-colors ${
+                            isDeletingAttachment ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          title="حذف المرفق"
+                        >
+                          {isDeletingAttachment && attachmentToDelete === attachment.id ? (
+                            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -978,6 +1062,63 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isDeleting}
+                className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
+              >
+                <X className="w-4 h-4" />
+                <span>إلغاء</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Attachment Delete Confirmation Dialog */}
+      {showDeleteAttachmentConfirm && attachmentToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-60 p-4" dir="rtl">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center space-x-3 space-x-reverse mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">تأكيد حذف المرفق</h3>
+                <p className="text-sm text-gray-600">هذا الإجراء لا يمكن التراجع عنه</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700">
+                هل أنت متأكد من أنك تريد حذف هذا المرفق؟
+              </p>
+            </div>
+
+            <div className="flex space-x-3 space-x-reverse">
+              <button
+                onClick={() => handleDeleteAttachment(attachmentToDelete)}
+                disabled={isDeletingAttachment}
+                className={`flex-1 bg-red-600 hover:bg-red-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 space-x-reverse ${
+                  isDeletingAttachment ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {isDeletingAttachment ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>جاري الحذف...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>حذف المرفق</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowDeleteAttachmentConfirm(false);
+                  setAttachmentToDelete(null);
+                }}
+                disabled={isDeletingAttachment}
                 className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
               >
                 <X className="w-4 h-4" />

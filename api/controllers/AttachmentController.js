@@ -257,8 +257,9 @@ class AttachmentController {
       
       const attachment = result.rows[0];
       
-      // التحقق من الصلاحية (المرفوع أو مدير)
-      if (attachment.uploaded_by !== req.user.id && !req.user.is_admin) {
+      // التحقق من الصلاحية (المرفوع أو مدير أو Super Admin)
+      const isAdmin = req.user.role?.name === 'Super Admin' || req.user.is_admin;
+      if (attachment.uploaded_by !== req.user.id && !isAdmin) {
         return res.status(403).json({
           success: false,
           message: 'غير مسموح لك بحذف هذا المرفق'
