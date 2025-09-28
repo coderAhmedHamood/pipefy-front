@@ -397,8 +397,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     new Date(ticket.due_date) < new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
 
   return (
+    <>
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" dir="rtl">
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
           <div className="flex items-center justify-between">
@@ -773,16 +774,145 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             </div>
           </div>
 
-          {/* Right Sidebar */}
-          <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col">
-            {/* Stage Flow */}
-            <div className="p-6 bg-white border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                <Target className="w-5 h-5 text-blue-500" />
-                <span>مسار العملية</span>
-              </h3>
-              
-              <div className="space-y-3">
+          {/* Right Sidebar - Horizontal Layout */}
+          <div className="w-96 lg:w-[500px] border-r border-gray-200 bg-gray-50 flex flex-col"> 
+            {/* Horizontal Container for Process Path and Attachments */}
+            <div className="flex flex-col md:flex-row h-full min-h-[400px]">
+            
+              {/* Attachments - Right Column */}
+              <div className="flex-1 md:w-1/2">
+                <div className="p-4 bg-white h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
+                      <Paperclip className="w-5 h-5 text-gray-500" />
+                      <span>المرفقات ({(ticket.attachments?.length || 0) + (attachments?.length || 0)})</span>
+                    </h3>
+
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <input
+                    type="file"
+                    multiple
+                    accept="*/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        handleUploadAttachment(e.target.files);
+                        // إعادة تعيين قيمة input لتمكين رفع نفس الملف مرة أخرى
+                        e.target.value = '';
+                      }
+                    }}
+                    className="hidden"
+                    id="attachment-upload"
+                    disabled={isUploadingAttachment}
+                  />
+                  <label
+                    htmlFor="attachment-upload"
+                    className={`cursor-pointer text-blue-600 hover:text-blue-700 p-1 rounded transition-colors ${
+                      isUploadingAttachment ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    title="رفع مرفقات"
+                  >
+                    {isUploadingAttachment ? (
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                  </label>
+                      {isUploadingAttachment && uploadProgress > 0 && (
+                        <div className="text-xs text-blue-600">
+                          {uploadProgress}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* منطقة المرفقات مع Scroll */}
+                  <div className="max-h-80 md:max-h-96 overflow-y-auto space-y-2 pr-2 scrollbar-thin border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    {ticket.attachments?.map((attachment) => (
+                      <div key={attachment.id} className="flex items-center space-x-3 space-x-reverse p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                        <Paperclip className="w-4 h-4 text-gray-500" />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-900">{attachment.name}</div>
+                          <div className="text-xs text-gray-500">
+                            {(attachment.size / 1024 / 1024).toFixed(1)} MB
+                          </div>
+                        </div>
+                        <button className="text-blue-600 hover:text-blue-700 p-1 rounded">
+                          <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                
+                {/* عرض المرفقات من API */}
+                {attachmentsLoading ? (
+                  <div className="text-center py-4 text-gray-400">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-xs">جاري تحميل المرفقات...</p>
+                  </div>
+                ) : attachments.length > 0 ? (
+                  attachments.map((attachment) => (
+                    <div key={attachment.id} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{attachment.original_filename}</p>
+                          <p className="text-xs text-gray-500">
+                            {(Number(attachment.file_size) / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <button className="text-blue-600 hover:text-blue-700 p-1 rounded" title="تحميل">
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setAttachmentToDelete(attachment.id);
+                            setShowDeleteAttachmentConfirm(true);
+                          }}
+                          disabled={isDeletingAttachment}
+                          className={`text-red-600 hover:text-red-700 p-1 rounded transition-colors ${
+                            isDeletingAttachment ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          title="حذف المرفق"
+                        >
+                          {isDeletingAttachment && attachmentToDelete === attachment.id ? (
+                            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-gray-400">
+                    <Paperclip className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-xs">لا توجد مرفقات</p>
+                  </div>
+                )}
+              </div>
+
+                  {/* مؤشر الـ scroll عندما يكون هناك الكثير من المرفقات */}
+                  {((ticket.attachments?.length || 0) + (attachments?.length || 0)) > 3 && (
+                    <div className="mt-2 text-center">
+                      <div className="inline-flex items-center space-x-1 space-x-reverse text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        <span>📜</span>
+                        <span>مرر للأسفل لرؤية جميع المرفقات</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            
+              {/* Stage Flow - Left Column */}
+              <div className="flex-1 md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200">
+                <div className="p-4 bg-white h-full">
+                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                    <Target className="w-5 h-5 text-blue-500" />
+                    <span>مسار العملية</span>
+                  </h3>
+
+                  <div className="space-y-3 max-h-96 overflow-y-auto pr-2 scrollbar-thin">
                 {sortedStages.map((stage) => {
                   const isCurrentStage = stage.id === ticket.current_stage_id;
                   const isAllowedTransition = currentStage?.allowed_transitions?.includes(stage.id);
@@ -861,134 +991,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     <ArrowRight className="w-4 h-4" />
                     <span>خيارات النقل المتقدمة</span>
                   </button>
-                </div>
-              )}
-            </div>
-
-            {/* Attachments */}
-            <div className="p-6 bg-white border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
-                  <Paperclip className="w-5 h-5 text-gray-500" />
-                  <span>المرفقات ({(ticket.attachments?.length || 0) + (attachments?.length || 0)})</span>
-                </h3>
-                
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <input
-                    type="file"
-                    multiple
-                    accept="*/*"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        handleUploadAttachment(e.target.files);
-                        // إعادة تعيين قيمة input لتمكين رفع نفس الملف مرة أخرى
-                        e.target.value = '';
-                      }
-                    }}
-                    className="hidden"
-                    id="attachment-upload"
-                    disabled={isUploadingAttachment}
-                  />
-                  <label
-                    htmlFor="attachment-upload"
-                    className={`cursor-pointer text-blue-600 hover:text-blue-700 p-1 rounded transition-colors ${
-                      isUploadingAttachment ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    title="رفع مرفقات"
-                  >
-                    {isUploadingAttachment ? (
-                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                  </label>
-                  {isUploadingAttachment && uploadProgress > 0 && (
-                    <div className="text-xs text-blue-600">
-                      {uploadProgress}%
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* منطقة المرفقات مع Scroll */}
-              <div className="max-h-64 overflow-y-auto space-y-2 pr-2 scrollbar-thin border border-gray-200 rounded-lg p-3 bg-gray-50">
-                {ticket.attachments?.map((attachment) => (
-                  <div key={attachment.id} className="flex items-center space-x-3 space-x-reverse p-2 bg-white rounded-lg shadow-sm border border-gray-100">
-                    <Paperclip className="w-4 h-4 text-gray-500" />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900">{attachment.name}</div>
-                      <div className="text-xs text-gray-500">
-                        {(attachment.size / 1024 / 1024).toFixed(1)} MB
-                      </div>
-                    </div>
-                    <button className="text-blue-600 hover:text-blue-700 p-1 rounded">
-                      <Download className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                
-                {/* عرض المرفقات من API */}
-                {attachmentsLoading ? (
-                  <div className="text-center py-4 text-gray-400">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p className="text-xs">جاري تحميل المرفقات...</p>
-                  </div>
-                ) : attachments.length > 0 ? (
-                  attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm border border-gray-100">
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <FileText className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{attachment.original_filename}</p>
-                          <p className="text-xs text-gray-500">
-                            {(Number(attachment.file_size) / 1024).toFixed(1)} KB
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <button className="text-blue-600 hover:text-blue-700 p-1 rounded" title="تحميل">
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setAttachmentToDelete(attachment.id);
-                            setShowDeleteAttachmentConfirm(true);
-                          }}
-                          disabled={isDeletingAttachment}
-                          className={`text-red-600 hover:text-red-700 p-1 rounded transition-colors ${
-                            isDeletingAttachment ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          title="حذف المرفق"
-                        >
-                          {isDeletingAttachment && attachmentToDelete === attachment.id ? (
-                            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-4 text-gray-400">
-                    <Paperclip className="w-8 h-8 mx-auto mb-2" />
-                    <p className="text-xs">لا توجد مرفقات</p>
                   </div>
                 )}
+                </div>
               </div>
 
-              {/* مؤشر الـ scroll عندما يكون هناك الكثير من المرفقات */}
-              {((ticket.attachments?.length || 0) + (attachments?.length || 0)) > 3 && (
-                <div className="mt-2 text-center">
-                  <div className="inline-flex items-center space-x-1 space-x-reverse text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                    <span>📜</span>
-                    <span>مرر للأسفل لرؤية جميع المرفقات</span>
-                  </div>
-                </div>
-              )}
+            
             </div>
-
-          
           </div>
         </div>
       </div>
@@ -1266,5 +1275,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         </div>
       )}
     </div>
+    </>
   );
 };
+
+export default TicketModal;
