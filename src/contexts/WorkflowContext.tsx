@@ -18,6 +18,7 @@ interface WorkflowContextType {
   deleteProcess: (processId: string) => Promise<boolean>;
   getProcessUsers: (processId: string) => User[];
   addFieldToProcess: (processId: string, newField: ProcessField) => void;
+  updateFieldInProcess: (processId: string, updatedField: ProcessField) => void;
   removeFieldFromProcess: (processId: string, fieldId: string) => void;
   addStageToProcess: (processId: string, newStage: Stage) => void;
   updateStageInProcess: (processId: string, updatedStage: Stage) => void;
@@ -1599,6 +1600,44 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.log('✅ تم تحديث الحقول في الحالة المحلية');
   };
 
+  // تحديث حقل موجود في عملية محددة
+  const updateFieldInProcess = (processId: string, updatedField: ProcessField) => {
+    console.log('✏️ تحديث حقل في العملية:', processId, updatedField);
+    console.log('📋 العملية المختارة الحالية:', selectedProcess);
+    console.log('📋 عدد الحقول الحالي:', selectedProcess?.fields?.length || 0);
+
+    // تحديث قائمة العمليات في الحالة العامة
+    setProcesses(prevProcesses => {
+      const updatedProcesses = prevProcesses.map(process =>
+        process.id === processId
+          ? {
+              ...process,
+              fields: process.fields.map(field =>
+                field.id === updatedField.id ? updatedField : field
+              )
+            }
+          : process
+      );
+      console.log('📋 العمليات المحدثة:', updatedProcesses);
+      return updatedProcesses;
+    });
+
+    // تحديث العملية المختارة إذا كانت هي نفسها
+    if (selectedProcess && selectedProcess.id === processId) {
+      const updatedSelectedProcess = {
+        ...selectedProcess,
+        fields: selectedProcess.fields.map(field =>
+          field.id === updatedField.id ? updatedField : field
+        )
+      };
+      console.log('📋 العملية المختارة المحدثة:', updatedSelectedProcess);
+      console.log('📋 عدد الحقول الجديد:', updatedSelectedProcess.fields.length);
+      setSelectedProcess(updatedSelectedProcess);
+    }
+
+    console.log('✅ تم تحديث الحقل في الحالة المحلية');
+  };
+
   // حذف حقل من عملية محددة
   const removeFieldFromProcess = (processId: string, fieldId: string) => {
     console.log('🗑️ حذف حقل من العملية:', processId, fieldId);
@@ -1804,6 +1843,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     deleteProcess,
     getProcessUsers,
     addFieldToProcess,
+    updateFieldInProcess,
     removeFieldFromProcess,
     addStageToProcess,
     updateStageInProcess,

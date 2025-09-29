@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 
 export const ProcessManager: React.FC = () => {
-  const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, removeFieldFromProcess, addStageToProcess, updateStageInProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
+  const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, updateFieldInProcess, removeFieldFromProcess, addStageToProcess, updateStageInProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
   const { toasts, showSuccess, showError, removeToast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -111,6 +111,27 @@ export const ProcessManager: React.FC = () => {
     { value: 'file', label: 'ملف' },
     { value: 'ticket_reviewer', label: 'مراجع التذكرة' }
   ];
+
+  // تحميل بيانات الحقل عند فتح نموذج التحديث
+  React.useEffect(() => {
+    if (editingField && editingField.id) {
+      // تحميل بيانات الحقل الموجود للتحديث
+      setFieldForm({
+        name: editingField.name || '',
+        type: (editingField as any).field_type || editingField.type || 'text',
+        is_required: editingField.is_required || false,
+        options: (editingField as any).options || []
+      });
+    } else if (editingField && !editingField.id) {
+      // إعادة تعيين النموذج للحقل الجديد
+      setFieldForm({
+        name: '',
+        type: 'text',
+        is_required: false,
+        options: []
+      });
+    }
+  }, [editingField]);
 
   const handleCreateProcess = async () => {
     try {
@@ -626,9 +647,19 @@ export const ProcessManager: React.FC = () => {
 
       console.log('📝 إرسال بيانات الحقل إلى API:', fieldData);
 
-      // إرسال طلب POST إلى API
-      const response = await fetch('http://localhost:3000/api/fields', {
-        method: 'POST',
+      // تحديد ما إذا كان هذا تحديث أم إنشاء جديد
+      const isUpdating = editingField && editingField.id;
+      console.log(isUpdating ? '✏️ تحديث حقل موجود:' : '📝 إنشاء حقل جديد:', fieldForm);
+
+      // تحديد URL والطريقة بناءً على نوع العملية
+      const url = isUpdating
+        ? `http://localhost:3000/api/fields/${editingField.id}`
+        : 'http://localhost:3000/api/fields';
+      const method = isUpdating ? 'PUT' : 'POST';
+
+      // إرسال طلب إلى API
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -646,12 +677,17 @@ export const ProcessManager: React.FC = () => {
       console.log('� محتوى الاستجابة:', result);
 
       if (response.ok && result.success === true) {
-        console.log('✅ تم إنشاء الحقل بنجاح:', result);
+        console.log(isUpdating ? '✅ تم تحديث الحقل بنجاح:' : '✅ تم إنشاء الحقل بنجاح:', result);
         console.log('📋 العملية المختارة قبل التحديث:', selectedProcess);
         console.log('📋 عدد الحقول قبل التحديث:', selectedProcess?.fields?.length || 0);
 
-        // استخدام الدالة المحسنة لتحديث الحالة بكفاءة
-        addFieldToProcess(selectedProcess.id, result.data);
+        if (isUpdating) {
+          // تحديث الحقل الموجود في الحالة
+          updateFieldInProcess(selectedProcess.id, result.data);
+        } else {
+          // إضافة الحقل الجديد إلى الحالة
+          addFieldToProcess(selectedProcess.id, result.data);
+        }
 
         // انتظار قصير للتأكد من تحديث الحالة
         setTimeout(() => {
@@ -663,15 +699,16 @@ export const ProcessManager: React.FC = () => {
         setFieldForm({ name: '', type: 'text', is_required: false, options: [] });
         setEditingField(null);
 
-        alert('تم إنشاء الحقل بنجاح!');
+        alert(isUpdating ? 'تم تحديث الحقل بنجاح!' : 'تم إنشاء الحقل بنجاح!');
       } else {
-        console.error('❌ فشل في إنشاء الحقل:', result);
-        alert(`فشل في إنشاء الحقل: ${result?.message || 'خطأ غير معروف'}`);
+        console.error(isUpdating ? '❌ فشل في تحديث الحقل:' : '❌ فشل في إنشاء الحقل:', result);
+        alert(`فشل في ${isUpdating ? 'تحديث' : 'إنشاء'} الحقل: ${result?.message || 'خطأ غير معروف'}`);
       }
 
     } catch (error) {
-      console.error('❌ خطأ في إنشاء الحقل:', error);
-      alert(`خطأ في إنشاء الحقل: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+      const isUpdating = editingField && editingField.id;
+      console.error(isUpdating ? '❌ خطأ في تحديث الحقل:' : '❌ خطأ في إنشاء الحقل:', error);
+      alert(`خطأ في ${isUpdating ? 'تحديث' : 'إنشاء'} الحقل: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
     } finally {
       setIsCreatingField(false);
     }
