@@ -253,9 +253,21 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       const data = await response.json();
-      console.log(data);
+      console.log('✅ بيانات API الخام:', data);
 
       if (data.success && data.data) {
+        // تسجيل مفصل للحقول قبل المعالجة
+        console.log('🔍 فحص الحقول في البيانات الخام:');
+        data.data.forEach((process: any, index: number) => {
+          if (process.fields && process.fields.length > 0) {
+            console.log(`📋 العملية "${process.name}" - الحقول:`, process.fields.map((f: any) => ({
+              name: f.name,
+              field_type: f.field_type,
+              type: f.type,
+              options: f.options?.length || 0
+            })));
+          }
+        });
         // تحويل البيانات إلى تنسيق Process
         const apiProcesses: Process[] = data.data.map((process: any) => ({
           id: process.id.toString(),
@@ -288,15 +300,14 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           fields: (process.fields || []).map((field: any) => ({
             id: field.id.toString(),
             name: field.name,
-            type: field.type,
-            required: field.required || false,
+            type: field.field_type || field.type || 'text', // استخدام field_type من API
+            is_required: field.is_required || false,
+            is_system_field: field.is_system_field || false,
             options: field.options || [],
-            description: field.description || '',
-            order: field.order || 1,
-            validation_rules: field.validation_rules || {},
+            validation_rules: field.validation_rules || [],
             default_value: field.default_value,
-            placeholder: field.placeholder || '',
-            help_text: field.help_text || ''
+            help_text: field.help_text || '',
+            placeholder: field.placeholder || ''
           })),
           settings: process.settings || {
             auto_assign: false,
@@ -315,6 +326,19 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           }
         }));
+
+        // تسجيل مفصل للحقول بعد المعالجة
+        console.log('🔍 فحص الحقول بعد المعالجة:');
+        apiProcesses.forEach((process: any, index: number) => {
+          if (process.fields && process.fields.length > 0) {
+            console.log(`📋 العملية "${process.name}" - الحقول المعالجة:`, process.fields.map((f: any) => ({
+              name: f.name,
+              type: f.type,
+              is_required: f.is_required,
+              options: f.options?.length || 0
+            })));
+          }
+        });
 
         setProcesses(apiProcesses);
 

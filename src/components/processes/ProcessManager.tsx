@@ -115,13 +115,41 @@ export const ProcessManager: React.FC = () => {
   // تحميل بيانات الحقل عند فتح نموذج التحديث
   React.useEffect(() => {
     if (editingField && editingField.id) {
+      console.log('🔄 تحميل بيانات الحقل للتحديث:', editingField);
+      console.log('🔍 جميع خصائص الحقل:', Object.keys(editingField));
+      console.log('🔍 البيانات الكاملة:', JSON.stringify(editingField, null, 2));
+
+      // استخراج جميع البيانات من الحقل
+      const fieldData = editingField as any;
+
+      // تجربة جميع الطرق الممكنة لاستخراج نوع الحقل
+      console.log('🔍 field_type:', fieldData.field_type);
+      console.log('🔍 type:', fieldData.type);
+      console.log('🔍 fieldType:', fieldData.fieldType);
+
+      // البيانات القادمة من API تستخدم field_type وليس type
+      const fieldType = fieldData.field_type || fieldData.type || fieldData.fieldType || 'text';
+      const fieldOptions = fieldData.options || [];
+
+      console.log('📝 نوع الحقل المستخرج:', fieldType);
+      console.log('📋 خيارات الحقل:', fieldOptions);
+      console.log('✅ حالة الإجبارية:', fieldData.is_required);
+
       // تحميل بيانات الحقل الموجود للتحديث
-      setFieldForm({
-        name: editingField.name || '',
-        type: (editingField as any).field_type || editingField.type || 'text',
-        is_required: editingField.is_required || false,
-        options: (editingField as any).options || []
-      });
+      const formData = {
+        name: fieldData.name || fieldData.label || '',
+        type: fieldType,
+        is_required: fieldData.is_required || false,
+        options: fieldOptions.map((option: any) => ({
+          label: option.label || '',
+          value: option.value || ''
+        }))
+      };
+
+      console.log('📋 بيانات النموذج النهائية:', formData);
+      setFieldForm(formData);
+
+      console.log('✅ تم تحميل بيانات الحقل بنجاح');
     } else if (editingField && !editingField.id) {
       // إعادة تعيين النموذج للحقل الجديد
       setFieldForm({
@@ -132,6 +160,11 @@ export const ProcessManager: React.FC = () => {
       });
     }
   }, [editingField]);
+
+  // مراقبة تغييرات fieldForm
+  React.useEffect(() => {
+    console.log('🔄 تغيير في fieldForm:', fieldForm);
+  }, [fieldForm]);
 
   const handleCreateProcess = async () => {
     try {
@@ -1160,7 +1193,7 @@ export const ProcessManager: React.FC = () => {
                       <div className="flex items-center space-x-3 space-x-reverse">
                         <div className="font-medium text-gray-900">{field.name}</div>
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                          {fieldTypes.find(t => t.value === field.type)?.label}
+                          {fieldTypes.find(t => t.value === (field as any).field_type || field.type)?.label || 'غير محدد'}
                         </span>
                         {field.is_required && (
                           <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">إجباري</span>
@@ -1169,7 +1202,15 @@ export const ProcessManager: React.FC = () => {
                       
                       <div className="flex items-center space-x-2 space-x-reverse">
                         <button
-                          onClick={() => setEditingField(field)}
+                          onClick={() => {
+                            console.log('🖱️ النقر على تحرير الحقل:', field);
+                            console.log('🔍 نوع البيانات:', typeof field);
+                            console.log('🔍 خصائص الحقل:', Object.keys(field));
+                            console.log('🔍 field.field_type:', (field as any).field_type);
+                            console.log('🔍 field.type:', (field as any).type);
+                            console.log('🔍 البيانات الكاملة:', JSON.stringify(field, null, 2));
+                            setEditingField(field);
+                          }}
                           className="p-1 rounded hover:bg-gray-100"
                         >
                           <Edit className="w-4 h-4 text-gray-500" />
@@ -1486,7 +1527,10 @@ export const ProcessManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">نوع الحقل</label>
                 <select
                   value={fieldForm.type}
-                  onChange={(e) => setFieldForm({ ...fieldForm, type: e.target.value as FieldType })}
+                  onChange={(e) => {
+                    console.log('🔄 تغيير نوع الحقل من', fieldForm.type, 'إلى', e.target.value);
+                    setFieldForm({ ...fieldForm, type: e.target.value as FieldType });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {fieldTypes.map((type) => (
