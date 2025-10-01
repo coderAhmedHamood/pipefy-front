@@ -740,9 +740,20 @@ class ProcessController {
               {
                 id: 'supplier',
                 name: 'المورد',
-                type: 'text',
+                label: 'اسم المورد',
+                field_type: 'text',
                 is_required: false,
-                is_system_field: false
+                is_system_field: false,
+                is_searchable: true,
+                is_filterable: true,
+                default_value: null,
+                options: [],
+                validation_rules: [],
+                help_text: 'اسم المورد أو الشركة المقترحة',
+                placeholder: 'مثال: شركة التقنية المتقدمة',
+                order_index: 3,
+                group_name: 'معلومات المورد',
+                width: 'half'
               },
               {
                 id: 'department',
