@@ -704,17 +704,38 @@ class ProcessController {
               {
                 id: 'title',
                 name: 'العنوان',
-                type: 'text',
+                label: 'عنوان الطلب',
+                field_type: 'text',
                 is_required: true,
-                is_system_field: true
+                is_system_field: true,
+                is_searchable: true,
+                is_filterable: true,
+                default_value: null,
+                options: [],
+                validation_rules: [{ type: 'required', message: 'العنوان مطلوب' }],
+                help_text: 'أدخل عنوان واضح للطلب',
+                placeholder: 'مثال: شراء أجهزة كمبيوتر',
+                order_index: 1,
+                group_name: 'معلومات أساسية',
+                width: 'full'
               },
               {
                 id: 'amount',
                 name: 'المبلغ',
-                type: 'number',
+                label: 'المبلغ المطلوب',
+                field_type: 'number',
                 is_required: true,
                 is_system_field: false,
-                default_value: 0
+                is_searchable: true,
+                is_filterable: true,
+                default_value: 0,
+                options: [],
+                validation_rules: [{ type: 'required', message: 'المبلغ مطلوب' }, { type: 'min', value: 0, message: 'المبلغ يجب أن يكون أكبر من صفر' }],
+                help_text: 'أدخل المبلغ المطلوب بالريال السعودي',
+                placeholder: '1000',
+                order_index: 2,
+                group_name: 'معلومات مالية',
+                width: 'half'
               },
               {
                 id: 'supplier',
@@ -1190,11 +1211,20 @@ class ProcessController {
           fields: process.fields ? process.fields.map(field => ({
             id: field.id,
             name: field.name,
-            type: field.type,
+            label: field.label,
+            field_type: field.field_type,
             is_required: field.is_required,
             is_system_field: field.is_system_field,
+            is_searchable: field.is_searchable,
+            is_filterable: field.is_filterable,
+            default_value: field.default_value,
             options: field.options || [],
-            default_value: field.default_value
+            validation_rules: field.validation_rules || [],
+            help_text: field.help_text,
+            placeholder: field.placeholder,
+            order_index: field.order_index,
+            group_name: field.group_name,
+            width: field.width
           })) : [],
           settings: {
             auto_assign: process.settings?.auto_assign || false,
