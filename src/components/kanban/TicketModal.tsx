@@ -667,6 +667,50 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               </select>
                             )}
                             
+                            {field.type === 'file' && (
+                              <div className="space-y-2">
+                                <input
+                                  type="file"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      // إنشاء كائن ملف مؤقت
+                                      const fileObject = {
+                                        name: file.name,
+                                        size: file.size,
+                                        type: file.type,
+                                        url: URL.createObjectURL(file),
+                                        file: file // الملف الفعلي للرفع لاحقاً
+                                      };
+                                      handleFieldChange(field.id, fileObject);
+                                    }
+                                  }}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  accept="*/*"
+                                />
+                                {value && typeof value === 'object' && (
+                                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center space-x-2 space-x-reverse">
+                                        <FileText className="w-4 h-4 text-blue-500" />
+                                        <span className="text-sm font-medium">{value.name}</span>
+                                        <span className="text-xs text-gray-500">
+                                          ({(value.size / 1024).toFixed(1)} KB)
+                                        </span>
+                                      </div>
+                                      <button
+                                        onClick={() => handleFieldChange(field.id, null)}
+                                        className="text-red-500 hover:text-red-700 p-1"
+                                        title="حذف الملف"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {field.type === 'ticket_reviewer' && (
                               <div className="space-y-2">
                                 <select
@@ -717,8 +761,23 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               </div>
                             ) : field.type === 'select' ? (
                               field.options?.find(o => o.value === value)?.label || value || 'غير محدد'
+                            ) : field.type === 'file' && value && typeof value === 'object' ? (
+                              <div className="flex items-center space-x-2 space-x-reverse">
+                                <FileText className="w-4 h-4 text-blue-500" />
+                                <a
+                                  href={value.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-700 underline"
+                                >
+                                  {value.name}
+                                </a>
+                                <span className="text-xs text-gray-500">
+                                  ({(value.size / 1024).toFixed(1)} KB)
+                                </span>
+                              </div>
                             ) : (
-                              value || 'غير محدد'
+                              typeof value === 'object' ? JSON.stringify(value) : (value || 'غير محدد')
                             )}
                           </div>
                         )}
