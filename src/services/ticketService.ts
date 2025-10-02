@@ -158,6 +158,21 @@ class TicketService {
   }
 
   /**
+   * تحريك تذكرة بطريقة بسيطة مع إضافة تعليق تلقائي
+   */
+  async moveTicketSimple(id: string, targetStageId: string): Promise<ApiResponse<any>> {
+    try {
+      const response = await apiClient.post(`${this.endpoint}/${id}/move-simple`, {
+        target_stage_id: targetStageId
+      });
+      return response;
+    } catch (error) {
+      console.error(`خطأ في تحريك التذكرة ${id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * تعيين تذكرة لمستخدم
    */
   async assignTicket(id: string, assignedTo: string): Promise<ApiResponse<Ticket>> {

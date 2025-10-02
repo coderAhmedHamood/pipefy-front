@@ -15,7 +15,7 @@ interface KanbanBoardProps {
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
-  const { moveTicket } = useWorkflow();
+  const { } = useWorkflow();
   const { showSuccess, showError } = useToast();
 
   // State management
@@ -168,10 +168,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
       return updated;
     });
 
-    // استدعاء API لحفظ التغيير
-    moveTicket(ticketId, newStageId)
-      .then(() => {
-        showSuccess('تم نقل التذكرة', `تم نقل "${ticket.title}" إلى "${targetStage.name}" بنجاح`);
+    // استدعاء API الجديد لحفظ التغيير مع إضافة تعليق تلقائي
+    ticketService.moveTicketSimple(ticketId, newStageId)
+      .then((response) => {
+        console.log('✅ تم تحريك التذكرة مع إضافة تعليق:', response.data);
+        showSuccess('تم نقل التذكرة', `تم نقل "${ticket.title}" إلى "${targetStage.name}" بنجاح مع إضافة تعليق`);
       })
       .catch((error: any) => {
         console.error('خطأ في نقل التذكرة:', error);
@@ -182,7 +183,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   };
 
   const handleTicketClick = (ticket: Ticket) => {
-    console.log('Ticket clicked:', ticket.title); // للتأكد من أن الحدث يعمل
+    console.log('Ticket clicked:', ticket.title);
     setSelectedTicket(ticket);
   };
   

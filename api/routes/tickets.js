@@ -1066,7 +1066,16 @@ router.post('/:id/move-simple', authenticateToken, async (req, res) => {
     `;
     await pool.query(updateQuery, [target_stage_id, ticketId]);
 
-    // 4. إرجاع النتيجة
+    // 4. إضافة تعليق تلقائي عن التحريك
+    const userName = req.user.name || req.user.email || 'مستخدم';
+    const moveComment = `🔄 تم تحريك التذكرة بواسطة: ${userName}\n📍 من مرحلة: "${ticket.current_stage_name || 'غير محدد'}"\n🎯 إلى مرحلة: "${targetStage.name}"`;
+
+    await pool.query(`
+      INSERT INTO ticket_comments (ticket_id, user_id, content, is_internal, created_at)
+      VALUES ($1, $2, $3, $4, NOW())
+    `, [ticketId, req.user.id, moveComment, false]);
+
+    // 5. إرجاع النتيجة
     res.json({
       success: true,
       message: 'تم تحريك التذكرة بنجاح',
