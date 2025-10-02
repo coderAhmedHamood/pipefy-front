@@ -85,7 +85,12 @@ class TicketController {
 
   // إنشاء تذكرة جديدة
   static async createTicket(req, res) {
+    const { pool } = require('../config/database');
+    const client = await pool.connect();
+
     try {
+      await client.query('BEGIN');
+
       const ticketData = {
         ...req.body,
         created_by: req.user.id
@@ -93,12 +98,24 @@ class TicketController {
 
       const ticket = await Ticket.create(ticketData);
 
+      // إضافة تعليق تلقائي يوضح من قام بإنشاء التذكرة
+      const creatorName = req.user.name || req.user.email || 'مستخدم';
+      const creationComment = `تم إنشاء هذه التذكرة بواسطة: ${creatorName}`;
+
+      await client.query(`
+        INSERT INTO ticket_comments (ticket_id, user_id, content, is_internal, created_at)
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [ticket.id, req.user.id, creationComment, false]);
+
+      await client.query('COMMIT');
+
       res.status(201).json({
         success: true,
         message: 'تم إنشاء التذكرة بنجاح',
         data: ticket
       });
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('خطأ في إنشاء التذكرة:', error);
       
       if (error.code === '23503') { // Foreign key constraint violation
@@ -113,6 +130,8 @@ class TicketController {
         message: 'خطأ في الخادم',
         error: error.message
       });
+    } finally {
+      client.release();
     }
   }
 
