@@ -288,7 +288,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const handleTicketCreated = (ticketData: Partial<Ticket>) => {
     // Create a complete ticket object
     const newTicket: Ticket = {
-      id: Date.now().toString(),
+      id: ticketData.id || Date.now().toString(),
       title: ticketData.title || '',
       description: ticketData.description,
       process_id: process.id,
