@@ -16,16 +16,40 @@ class Ticket {
       estimated_hours,
       tags = []
     } = ticketData;
-
     const client = await pool.connect();
     
     try {
       await client.query('BEGIN');
 
-      // توليد رقم التذكرة
-      const ticketNumberQuery = `SELECT generate_ticket_number($1) as ticket_number`;
-      const ticketNumberResult = await client.query(ticketNumberQuery, [process_id]);
-      const ticket_number = ticketNumberResult.rows[0].ticket_number;
+      // توليد رقم التذكرة الفريد
+      let ticket_number;
+      
+      // جلب اسم العملية
+      const processQuery = `SELECT UPPER(LEFT(name, 3)) as prefix FROM processes WHERE id = $1`;
+      const processResult = await client.query(processQuery, [process_id]);
+      const prefix = processResult.rows[0]?.prefix || 'عمل';
+      
+      // استخدام timestamp و random number لضمان الفرادة
+      const timestamp = Date.now();
+      const randomNum = Math.floor(Math.random() * 10000);
+      
+      // جلب أعلى رقم تذكرة للعملية
+      const counterQuery = `
+        SELECT COALESCE(MAX(
+          CASE 
+            WHEN ticket_number ~ '^[^-]+-[0-9]+$' THEN
+              CAST(SUBSTRING(ticket_number FROM '[0-9]+$') AS INTEGER)
+            ELSE 0
+          END
+        ), 0) + 1 as next_counter
+        FROM tickets 
+        WHERE process_id = $1
+      `;
+      const counterResult = await client.query(counterQuery, [process_id]);
+      const counter = counterResult.rows[0].next_counter;
+      
+      // تكوين رقم التذكرة مع timestamp للفرادة
+      ticket_number = `${prefix}-${String(counter).padStart(6, '0')}-${timestamp}-${randomNum}`;
 
       // جلب المرحلة الأولى للعملية
       const initialStageQuery = `
