@@ -22,6 +22,17 @@ class ProcessField {
       width = 'full'
     } = fieldData;
 
+    // التحقق من البيانات المطلوبة
+    if (!name) {
+      throw new Error('اسم الحقل مطلوب');
+    }
+    if (!label) {
+      throw new Error('تسمية الحقل مطلوبة');
+    }
+    if (!field_type) {
+      throw new Error('نوع الحقل مطلوب');
+    }
+
     // التحقق من عدم تكرار اسم الحقل
     const checkQuery = `
       SELECT id FROM process_fields 

@@ -118,7 +118,7 @@ class ProcessController {
         : null;
 
       const cleanFields = fields && Array.isArray(fields)
-        ? fields.filter(field => field && Object.keys(field).length > 0 && field.name)
+        ? fields.filter(field => field && Object.keys(field).length > 0 && field.name && field.label)
         : null;
 
       const cleanTransitions = transitions && Array.isArray(transitions)

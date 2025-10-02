@@ -128,7 +128,7 @@ class Ticket {
       JOIN stages s ON t.current_stage_id = s.id
       LEFT JOIN users u1 ON t.assigned_to = u1.id
       LEFT JOIN users u2 ON t.created_by = u2.id
-      WHERE 1=1
+      WHERE t.deleted_at IS NULL
     `;
 
     const values = [];
@@ -240,7 +240,7 @@ class Ticket {
       JOIN stages s ON t.current_stage_id = s.id
       LEFT JOIN users u1 ON t.assigned_to = u1.id
       LEFT JOIN users u2 ON t.created_by = u2.id
-      WHERE t.id = $1
+      WHERE t.id = $1 AND t.deleted_at IS NULL
     `;
 
     const result = await pool.query(query, [id]);
@@ -291,7 +291,7 @@ class Ticket {
       await client.query('BEGIN');
 
       // جلب البيانات الحالية للمقارنة
-      const currentQuery = `SELECT * FROM tickets WHERE id = $1`;
+      const currentQuery = `SELECT * FROM tickets WHERE id = $1 AND deleted_at IS NULL`;
       const currentResult = await client.query(currentQuery, [id]);
       const currentTicket = currentResult.rows[0];
 
@@ -646,7 +646,7 @@ class Ticket {
         LEFT JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN users u1 ON t.created_by = u1.id
         LEFT JOIN users u2 ON t.assigned_to = u2.id
-        WHERE 1=1
+        WHERE t.deleted_at IS NULL
       `;
 
       const params = [];
@@ -712,7 +712,7 @@ class Ticket {
       let countQuery = `
         SELECT COUNT(*) as total
         FROM tickets t
-        WHERE 1=1
+        WHERE t.deleted_at IS NULL
       `;
 
       const countParams = [];
