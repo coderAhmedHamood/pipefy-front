@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole, Permission } from '../../types/workflow';
 import { userService, roleService, permissionService } from '../../services';
+import { processService } from '../../services/processService';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Plus, 
@@ -27,6 +28,7 @@ interface UserManagerState {
   users: User[];
   roles: UserRole[];
   permissions: Permission[];
+  processes: any[];
   loading: boolean;
   error: string | null;
   success: string | null;
@@ -45,6 +47,7 @@ export const UserManagerNew: React.FC = () => {
     users: [],
     roles: [],
     permissions: [],
+    processes: [],
     loading: true,
     error: null,
     success: null,
@@ -56,7 +59,7 @@ export const UserManagerNew: React.FC = () => {
     }
   });
 
-  const [selectedTab, setSelectedTab] = useState<'users' | 'roles' | 'permissions'>('users');
+  const [selectedTab, setSelectedTab] = useState<'users' | 'roles' | 'permissions' | 'process-permissions'>('users');
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [isCreatingRole, setIsCreatingRole] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -84,6 +87,11 @@ export const UserManagerNew: React.FC = () => {
     permissions: [] as string[]
   });
 
+  // صلاحيات العمليات
+  const [selectedUserForProcesses, setSelectedUserForProcesses] = useState<any>(null);
+  const [selectedProcesses, setSelectedProcesses] = useState<string[]>([]);
+  const [isAssigningProcesses, setIsAssigningProcesses] = useState(false);
+
   // تحميل البيانات الأولية
   useEffect(() => {
     loadInitialData();
@@ -100,10 +108,11 @@ export const UserManagerNew: React.FC = () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
-      const [usersResponse, rolesResponse, permissionsResponse] = await Promise.all([
+      const [usersResponse, rolesResponse, permissionsResponse, processesResponse] = await Promise.all([
         userService.getAllUsers({ page: 1, per_page: 20 }),
         roleService.getAllRoles({ include_permissions: true }),
-        permissionService.getAllPermissions()
+        permissionService.getAllPermissions(),
+        processService.getProcesses()
       ]);
 
       setState(prev => ({
@@ -111,6 +120,7 @@ export const UserManagerNew: React.FC = () => {
         users: usersResponse.data || [],
         roles: rolesResponse || [],
         permissions: permissionsResponse || [],
+        processes: processesResponse.data || [],
         pagination: usersResponse.pagination || prev.pagination,
         loading: false
       }));
@@ -476,6 +486,65 @@ export const UserManagerNew: React.FC = () => {
     }
   };
 
+  // دالة معالجة إضافة العمليات للمستخدم
+  const handleAssignProcessesToUser = async () => {
+    if (!selectedUserForProcesses || selectedProcesses.length === 0) {
+      setState(prev => ({
+        ...prev,
+        error: 'يرجى اختيار مستخدم وعمليات'
+      }));
+      return;
+    }
+
+    try {
+      setState(prev => ({ ...prev, loading: true, error: null }));
+
+      // طباعة البيانات في Console كما طلبت
+      console.log('🎯 بيانات إضافة العمليات للمستخدم:');
+      console.log('👤 المستخدم المختار:', {
+        id: selectedUserForProcesses.id,
+        name: selectedUserForProcesses.name,
+        email: selectedUserForProcesses.email
+      });
+      console.log('🔧 العمليات المختارة:', selectedProcesses.map(processId => {
+        const process = state.processes.find(p => p.id === processId);
+        return {
+          id: processId,
+          name: process?.name || 'غير معروف',
+          description: process?.description || ''
+        };
+      }));
+      console.log('📊 إجمالي العمليات:', selectedProcesses.length);
+      console.log('🕒 الوقت:', new Date().toLocaleString('ar-SA'));
+
+      // هنا سيتم إضافة الكود لإرسال البيانات إلى الخادم لاحقاً
+      // TODO: إرسال البيانات إلى API
+
+      setState(prev => ({
+        ...prev,
+        success: `تم إضافة ${selectedProcesses.length} عملية للمستخدم ${selectedUserForProcesses.name}`,
+        loading: false
+      }));
+
+      // إعادة تعيين النموذج
+      setSelectedUserForProcesses(null);
+      setSelectedProcesses([]);
+      setIsAssigningProcesses(false);
+
+      setTimeout(() => {
+        setState(prev => ({ ...prev, success: null }));
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('❌ خطأ في إضافة العمليات:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'فشل في إضافة العمليات',
+        loading: false
+      }));
+    }
+  };
+
   const getRoleColor = (roleId: string) => {
     switch (roleId) {
       case 'admin': return 'bg-red-100 text-red-800';
@@ -536,6 +605,17 @@ export const UserManagerNew: React.FC = () => {
               >
                 <Shield className="w-4 h-4" />
                 <span>دور جديد</span>
+              </button>
+            )}
+
+            {selectedTab === 'process-permissions' && hasPermission('users', 'manage') && (
+              <button
+                onClick={() => setIsAssigningProcesses(true)}
+                className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
+                disabled={state.loading}
+              >
+                <Plus className="w-4 h-4" />
+                <span>إضافة صلاحيات عمليات</span>
               </button>
             )}
           </div>
@@ -604,6 +684,18 @@ export const UserManagerNew: React.FC = () => {
           >
             <Key className="w-4 h-4" />
             <span>الصلاحيات ({state.permissions.length})</span>
+          </button>
+
+          <button
+            onClick={() => setSelectedTab('process-permissions')}
+            className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              selectedTab === 'process-permissions'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Shield className="w-4 h-4" />
+            <span>صلاحيات العمليات ({state.processes.length})</span>
           </button>
         </div>
       </div>
@@ -880,6 +972,143 @@ export const UserManagerNew: React.FC = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Process Permissions Tab */}
+        {!state.loading && selectedTab === 'process-permissions' && (
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">إدارة صلاحيات العمليات</h3>
+              <p className="text-gray-600 mb-6">قم بإضافة صلاحيات العمليات للمستخدمين لتحديد العمليات التي يمكنهم الوصول إليها</p>
+
+              {/* قائمة المستخدمين والعمليات */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* المستخدمين */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">المستخدمين ({state.users.length})</h4>
+                  <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                    {state.users.map((user) => (
+                      <div
+                        key={user.id}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                          selectedUserForProcesses?.id === user.id
+                            ? 'bg-blue-50 border-blue-200 border'
+                            : 'hover:bg-gray-50 border border-transparent'
+                        }`}
+                        onClick={() => setSelectedUserForProcesses(user)}
+                      >
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-xs">{user.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 text-sm">{user.name}</div>
+                            <div className="text-xs text-gray-500">{user.email}</div>
+                          </div>
+                          <div className={`w-2 h-2 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* العمليات */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">العمليات المتاحة ({state.processes.length})</h4>
+                  <div className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                    {state.processes.map((process) => (
+                      <div
+                        key={process.id}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                          selectedProcesses.includes(process.id)
+                            ? 'bg-green-50 border-green-200 border'
+                            : 'hover:bg-gray-50 border border-transparent'
+                        }`}
+                        onClick={() => {
+                          if (selectedProcesses.includes(process.id)) {
+                            setSelectedProcesses(prev => prev.filter(id => id !== process.id));
+                          } else {
+                            setSelectedProcesses(prev => [...prev, process.id]);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <div 
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                            style={{ backgroundColor: process.color || '#3B82F6' }}
+                          >
+                            {process.name.charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900 text-sm">{process.name}</div>
+                            <div className="text-xs text-gray-500 truncate">{process.description}</div>
+                          </div>
+                          {selectedProcesses.includes(process.id) && (
+                            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* معلومات الاختيار */}
+              {(selectedUserForProcesses || selectedProcesses.length > 0) && (
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h5 className="font-medium text-blue-900 mb-2">ملخص الاختيار:</h5>
+                  <div className="space-y-1 text-sm text-blue-800">
+                    {selectedUserForProcesses && (
+                      <div>👤 المستخدم: <strong>{selectedUserForProcesses.name}</strong> ({selectedUserForProcesses.email})</div>
+                    )}
+                    <div>🔧 العمليات المختارة: <strong>{selectedProcesses.length}</strong> عملية</div>
+                    {selectedProcesses.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-xs text-blue-600 mb-1">العمليات:</div>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedProcesses.map(processId => {
+                            const process = state.processes.find(p => p.id === processId);
+                            return (
+                              <span key={processId} className="inline-flex items-center px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+                                {process?.name || 'غير معروف'}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* زر الإضافة */}
+              {selectedUserForProcesses && selectedProcesses.length > 0 && (
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={handleAssignProcessesToUser}
+                    disabled={state.loading}
+                    className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-6 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {state.loading ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        <span>جاري الإضافة...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>إضافة صلاحيات العمليات ({selectedProcesses.length})</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1382,6 +1611,204 @@ export const UserManagerNew: React.FC = () => {
                   </>
                 ) : (
                   <span>تحديث</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Process Assignment Modal */}
+      {isAssigningProcesses && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">إضافة صلاحيات العمليات</h3>
+              <button
+                onClick={() => {
+                  setIsAssigningProcesses(false);
+                  setSelectedUserForProcesses(null);
+                  setSelectedProcesses([]);
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* اختيار المستخدم */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">اختر المستخدم</h4>
+                  <div className="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                    {state.users.map((user) => (
+                      <div
+                        key={user.id}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                          selectedUserForProcesses?.id === user.id
+                            ? 'bg-blue-50 border-blue-200 border'
+                            : 'hover:bg-gray-50 border border-transparent'
+                        }`}
+                        onClick={() => setSelectedUserForProcesses(user)}
+                      >
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{user.name}</div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                            <div className="text-xs text-gray-400">{user.role?.name}</div>
+                          </div>
+                          {selectedUserForProcesses?.id === user.id && (
+                            <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* اختيار العمليات */}
+                <div>
+                  <h4 className="font-medium text-gray-900 mb-3">اختر العمليات ({selectedProcesses.length} مختارة)</h4>
+                  <div className="mb-3">
+                    <button
+                      onClick={() => {
+                        if (selectedProcesses.length === state.processes.length) {
+                          setSelectedProcesses([]);
+                        } else {
+                          setSelectedProcesses(state.processes.map(p => p.id));
+                        }
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      {selectedProcesses.length === state.processes.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
+                    </button>
+                  </div>
+                  <div className="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                    {state.processes.map((process) => (
+                      <div
+                        key={process.id}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                          selectedProcesses.includes(process.id)
+                            ? 'bg-green-50 border-green-200 border'
+                            : 'hover:bg-gray-50 border border-transparent'
+                        }`}
+                        onClick={() => {
+                          if (selectedProcesses.includes(process.id)) {
+                            setSelectedProcesses(prev => prev.filter(id => id !== process.id));
+                          } else {
+                            setSelectedProcesses(prev => [...prev, process.id]);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <div 
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                            style={{ backgroundColor: process.color || '#3B82F6' }}
+                          >
+                            {process.name.charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{process.name}</div>
+                            <div className="text-sm text-gray-500 truncate">{process.description}</div>
+                            <div className="text-xs text-gray-400">
+                              {process.is_active ? '🟢 نشط' : '🔴 غير نشط'}
+                            </div>
+                          </div>
+                          {selectedProcesses.includes(process.id) && (
+                            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ملخص الاختيار */}
+              {(selectedUserForProcesses || selectedProcesses.length > 0) && (
+                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+                  <h5 className="font-medium text-blue-900 mb-3">📋 ملخص العملية:</h5>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-blue-700 font-medium mb-1">👤 المستخدم المختار:</div>
+                      {selectedUserForProcesses ? (
+                        <div className="bg-white p-2 rounded border">
+                          <div className="font-medium">{selectedUserForProcesses.name}</div>
+                          <div className="text-gray-600 text-xs">{selectedUserForProcesses.email}</div>
+                        </div>
+                      ) : (
+                        <div className="text-gray-500 italic">لم يتم اختيار مستخدم</div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-blue-700 font-medium mb-1">🔧 العمليات المختارة: ({selectedProcesses.length})</div>
+                      {selectedProcesses.length > 0 ? (
+                        <div className="bg-white p-2 rounded border max-h-20 overflow-y-auto">
+                          <div className="flex flex-wrap gap-1">
+                            {selectedProcesses.slice(0, 3).map(processId => {
+                              const process = state.processes.find(p => p.id === processId);
+                              return (
+                                <span key={processId} className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                                  {process?.name || 'غير معروف'}
+                                </span>
+                              );
+                            })}
+                            {selectedProcesses.length > 3 && (
+                              <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-600">
+                                +{selectedProcesses.length - 3} أخرى
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-gray-500 italic">لم يتم اختيار عمليات</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* أزرار الإجراءات */}
+            <div className="flex items-center justify-end space-x-3 space-x-reverse p-6 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => {
+                  setIsAssigningProcesses(false);
+                  setSelectedUserForProcesses(null);
+                  setSelectedProcesses([]);
+                }}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                disabled={state.loading}
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleAssignProcessesToUser}
+                disabled={!selectedUserForProcesses || selectedProcesses.length === 0 || state.loading}
+                className="px-6 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {state.loading ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    <span>جاري الإضافة...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    <span>إضافة الصلاحيات ({selectedProcesses.length})</span>
+                  </>
                 )}
               </button>
             </div>
