@@ -224,7 +224,13 @@ router.get('/docs', (req, res) => {
       'GET /api/reports/performance': 'تقرير الأداء المفصل',
       'GET /api/reports/overdue': 'تقرير التذاكر المتأخرة',
       'GET /api/reports/usage': 'تقرير استخدام النظام',
-      'GET /api/reports/export': 'تصدير التقارير'
+      'GET /api/reports/export': 'تصدير التقارير',
+
+      // User Process Permissions
+      'GET /api/user-processes/report/users-with-processes': 'تقرير شامل - جلب جميع المستخدمين مع العمليات التي يمتلكونها',
+      'POST /api/user-processes/assign': 'إضافة صلاحيات عمليات للمستخدم',
+      'DELETE /api/user-processes/remove': 'إزالة صلاحيات عمليات من المستخدم',
+      'GET /api/user-processes/user/:userId': 'جلب صلاحيات عمليات مستخدم معين'
     }
   });
 });

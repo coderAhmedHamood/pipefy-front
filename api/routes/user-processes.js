@@ -80,6 +80,10 @@ const { authenticateToken, requirePermissions } = require('../middleware/auth');
  *                   items:
  *                     $ref: '#/components/schemas/UserProcess'
  */
+// المسارات المحددة يجب أن تأتي قبل المسارات العامة
+router.get('/report/users-with-processes', authenticateToken, UserProcessController.getUsersWithProcesses);
+router.get('/report/simple', authenticateToken, UserProcessController.getUsersProcessesSimple);
+
 router.get('/', authenticateToken, UserProcessController.list);
 
 /**
@@ -249,11 +253,7 @@ router.delete('/:id', authenticateToken, requirePermissions(['processes.update']
  *                       type: integer
  *                     total_assignments:
  *                       type: integer
- */
-router.get('/report/users-with-processes', authenticateToken, UserProcessController.getUsersWithProcesses);
-
-/**
- * @swagger
+ *
  * /api/user-processes/report/simple:
  *   get:
  *     summary: تقرير مبسط - أسماء المستخدمين وأسماء العمليات
@@ -288,6 +288,5 @@ router.get('/report/users-with-processes', authenticateToken, UserProcessControl
  *                         type: string
  *                         example: "نظام الدعم الفني (admin), إدارة المشاريع (member), نظام المحاسبة (viewer)"
  */
-router.get('/report/simple', authenticateToken, UserProcessController.getUsersProcessesSimple);
 
 module.exports = router;

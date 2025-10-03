@@ -2,26 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { User, UserRole, Permission } from '../../types/workflow';
 import { userService, roleService, permissionService } from '../../services';
 import { processService } from '../../services/processService';
+import { API_ENDPOINTS } from '../../config/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
-  Plus, 
+  Users, 
+  UserPlus, 
   Edit, 
   Trash2, 
-  Save, 
+  Search, 
+  Eye, 
+  EyeOff, 
   X, 
-  Users, 
+  Plus, 
   Shield, 
-  Key,
-  Search,
-  Filter,
-  MoreVertical,
-  UserPlus,
+  Key, 
+  Filter, 
+  MoreVertical, 
+  Loader,
   Crown,
-  Eye,
-  EyeOff,
   AlertCircle,
-  CheckCircle,
-  Loader
+  CheckCircle
 } from 'lucide-react';
 
 interface UserManagerState {
@@ -92,6 +92,7 @@ export const UserManagerNew: React.FC = () => {
   const [selectedProcesses, setSelectedProcesses] = useState<string[]>([]);
   const [isAssigningProcesses, setIsAssigningProcesses] = useState(false);
   const [usersProcessesReport, setUsersProcessesReport] = useState<any[]>([]);
+  const [reportStats, setReportStats] = useState<any>(null);
   const [loadingReport, setLoadingReport] = useState(false);
 
   // تحميل البيانات الأولية
@@ -103,6 +104,8 @@ export const UserManagerNew: React.FC = () => {
   useEffect(() => {
     if (selectedTab === 'users') {
       loadUsers();
+    } else if (selectedTab === 'process-permissions') {
+      loadUsersProcessesReport();
     }
   }, [selectedTab, searchQuery, filters, state.pagination.page]);
 
@@ -488,6 +491,130 @@ export const UserManagerNew: React.FC = () => {
     }
   };
 
+  // دالة تحميل تقرير المستخدمين والعمليات
+  const loadUsersProcessesReport = async () => {
+    try {
+      setLoadingReport(true);
+      setState(prev => ({ ...prev, error: null }));
+      
+      // التحقق من التوكن بأسماء مختلفة
+      let token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('لا يوجد رمز مصادقة. يرجى تسجيل الدخول مرة أخرى.');
+      }
+      console.log('🔑 تم العثور على التوكن:', token ? 'موجود' : 'غير موجود');
+      
+      console.log('🔄 جاري تحميل تقرير المستخدمين والعمليات...');
+      
+      // استدعاء API endpoint للحصول على التقرير
+      const apiUrl = API_ENDPOINTS.USER_PROCESSES.REPORTS.USERS_WITH_PROCESSES;
+      console.log('🌐 الرابط الكامل:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('📡 حالة الاستجابة:', response.status, response.statusText);
+      console.log('📄 نوع المحتوى:', response.headers.get('content-type'));
+      // قراءة النص أولاً للتحقق من نوع الاستجابة
+      const responseText = await response.text();
+      console.log('📏 حجم الاستجابة:', responseText.length, 'حرف');
+
+      if (responseText.startsWith('<!doctype') || responseText.startsWith('<html')) {
+        console.error('❌ الخادم يعيد HTML بدلاً من JSON');
+        console.log('🔍 بداية الاستجابة:', responseText.substring(0, 200));
+        
+        let errorMessage = 'خطأ في الخادم - يعيد صفحة HTML بدلاً من البيانات';
+        
+        if (responseText.includes('Cannot GET')) {
+          errorMessage = 'المسار غير موجود في الخادم. تأكد من تشغيل الخادم وتسجيل المسارات.';
+        } else if (responseText.includes('404')) {
+          errorMessage = 'الصفحة غير موجودة (404). تحقق من صحة المسار.';
+        } else if (responseText.includes('500')) {
+          errorMessage = 'خطأ داخلي في الخادم (500). تحقق من سجلات الخادم.';
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      if (!response.ok) {
+        let errorMessage = `خطأ HTTP ${response.status}: ${response.statusText}`;
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          // إذا لم يكن JSON صحيح، استخدم الرسالة الافتراضية
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      // محاولة تحليل JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('📊 البيانات الخام من API:', data);
+      } catch (parseError) {
+        console.error('❌ فشل في تحليل JSON:', parseError);
+        console.log('📄 محتوى الاستجابة:', responseText.substring(0, 500));
+        throw new Error('استجابة غير صحيحة من الخادم - ليست JSON صالح');
+      }
+
+      if (!data.success) {
+        throw new Error(data.message || 'فشل في جلب البيانات من الخادم');
+      }
+
+      // تحويل هيكل البيانات ليتوافق مع الواجهة
+      const transformedData = (data.data || []).map((item: any) => ({
+        id: item.user.id,
+        name: item.user.name,
+        email: item.user.email,
+        role_name: 'مستخدم', // يمكن تحسين هذا لاحقاً
+        is_active: item.user.is_active,
+        processes: (item.processes || []).map((process: any) => ({
+          id: process.process_id,
+          name: process.process_name,
+          description: process.process_description,
+          role: process.user_role
+        }))
+      }));
+      
+      setUsersProcessesReport(transformedData);
+      setReportStats(data.stats || null);
+      console.log('📊 البيانات المحولة:', transformedData);
+      console.log('📈 الإحصائيات:', data.stats);
+      console.log('✅ تم تحميل التقرير بنجاح');
+      
+    } catch (error: any) {
+      console.error('❌ خطأ في تحميل التقرير:', error);
+      
+      let userFriendlyMessage = error.message;
+      
+      if (error.message.includes('Failed to fetch') || error.message.includes('ECONNREFUSED')) {
+        userFriendlyMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم على المنفذ 3000.';
+      } else if (error.message.includes('NetworkError')) {
+        userFriendlyMessage = 'خطأ في الشبكة. تحقق من اتصال الإنترنت.';
+      } else if (error.message.includes('401')) {
+        userFriendlyMessage = 'انتهت صلاحية جلسة العمل. يرجى تسجيل الدخول مرة أخرى.';
+      } else if (error.message.includes('403')) {
+        userFriendlyMessage = 'ليس لديك صلاحية للوصول إلى هذه البيانات.';
+      }
+      
+      setState(prev => ({
+        ...prev,
+        error: userFriendlyMessage
+      }));
+    } finally {
+      setLoadingReport(false);
+    }
+  };
+
   // دالة معالجة إضافة العمليات للمستخدم
   const handleAssignProcessesToUser = async () => {
     if (!selectedUserForProcesses || selectedProcesses.length === 0) {
@@ -532,6 +659,9 @@ export const UserManagerNew: React.FC = () => {
       setSelectedUserForProcesses(null);
       setSelectedProcesses([]);
       setIsAssigningProcesses(false);
+
+      // إعادة تحميل التقرير لإظهار التحديثات
+      loadUsersProcessesReport();
 
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
@@ -1111,6 +1241,286 @@ export const UserManagerNew: React.FC = () => {
                   </button>
                 </div>
               )}
+
+              {/* تقرير المستخدمين والعمليات */}
+              <div className="mt-8 border-t border-gray-200 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">📊 تقرير صلاحيات العمليات</h3>
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <button
+                      onClick={loadUsersProcessesReport}
+                      disabled={loadingReport}
+                      className="flex items-center space-x-2 space-x-reverse px-3 py-1 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      {loadingReport ? (
+                        <>
+                          <Loader className="w-4 h-4 animate-spin" />
+                          <span>جاري التحديث...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <span>تحديث</span>
+                        </>
+                      )}
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        console.log('🔧 معلومات التشخيص:');
+                        console.log('🌐 الرابط:', API_ENDPOINTS.USER_PROCESSES.REPORTS.USERS_WITH_PROCESSES);
+                        const authToken = localStorage.getItem('auth_token');
+                        const token = localStorage.getItem('token');
+                        console.log('🔑 التوكنات المتاحة:', {
+                          auth_token: authToken ? 'موجود' : 'غير موجود',
+                          token: token ? 'موجود' : 'غير موجود',
+                          activeToken: authToken || token ? 'سيتم استخدام: ' + (authToken ? 'auth_token' : 'token') : 'لا يوجد'
+                        });
+                        console.log('📊 حالة البيانات:', {
+                          usersCount: usersProcessesReport.length,
+                          statsAvailable: !!reportStats,
+                          loadingState: loadingReport
+                        });
+                        
+                        // اختبار سريع للخادم
+                        fetch('http://localhost:3000/api')
+                          .then(response => {
+                            console.log('🏠 اختبار الصفحة الرئيسية:', response.status);
+                            return response.json();
+                          })
+                          .then(data => console.log('📋 معلومات الخادم:', data))
+                          .catch(error => console.error('❌ خطأ في الاتصال:', error));
+                        
+                        // اختبار endpoint التقرير مباشرة
+                        const testToken = authToken || token;
+                        if (testToken) {
+                          console.log('🧪 اختبار endpoint التقرير...');
+                          fetch(API_ENDPOINTS.USER_PROCESSES.REPORTS.USERS_WITH_PROCESSES, {
+                            headers: {
+                              'Authorization': `Bearer ${testToken}`,
+                              'Accept': 'application/json'
+                            }
+                          })
+                          .then(response => {
+                            console.log('📊 حالة التقرير:', response.status, response.statusText);
+                            console.log('📄 نوع المحتوى:', response.headers.get('content-type'));
+                            return response.text();
+                          })
+                          .then(text => {
+                            if (text.startsWith('<!doctype') || text.startsWith('<html')) {
+                              console.log('❌ يعيد HTML:', text.substring(0, 100));
+                            } else {
+                              try {
+                                const data = JSON.parse(text);
+                                console.log('✅ JSON صحيح - عدد المستخدمين:', data.data?.length || 0);
+                                console.log('📈 الإحصائيات:', data.stats);
+                              } catch {
+                                console.log('❌ JSON غير صحيح:', text.substring(0, 100));
+                              }
+                            }
+                          })
+                          .catch(error => console.error('💥 خطأ في اختبار التقرير:', error));
+                        }
+                      }}
+                      className="flex items-center space-x-1 space-x-reverse px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                      title="تشخيص المشاكل"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      <span>تشخيص</span>
+                    </button>
+                  </div>
+                </div>
+
+                {loadingReport ? (
+                  <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <Loader className="w-6 h-6 text-blue-500 animate-spin mx-auto mb-2" />
+                      <div className="text-sm text-gray-600">جاري تحميل التقرير...</div>
+                    </div>
+                  </div>
+                ) : state.error ? (
+                  <div className="text-center py-12 bg-red-50 rounded-lg border border-red-200">
+                    <div className="text-6xl mb-4">⚠️</div>
+                    <h3 className="text-lg font-medium text-red-900 mb-2">خطأ في تحميل التقرير</h3>
+                    <p className="text-red-700 mb-4">{state.error}</p>
+                    <div className="space-y-2 text-sm text-red-600 mb-4">
+                      <p>💡 جرب الحلول التالية:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>اضغط زر "تشخيص" للمزيد من المعلومات</li>
+                        <li>تأكد من تشغيل الخادم على المنفذ 3000</li>
+                        <li>تحقق من صحة رمز المصادقة</li>
+                        <li>أعد تحميل الصفحة وحاول مرة أخرى</li>
+                      </ul>
+                    </div>
+                    <button
+                      onClick={loadUsersProcessesReport}
+                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </div>
+                ) : usersProcessesReport.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-lg">
+                    <div className="text-gray-500 mb-2">📋</div>
+                    <div className="text-gray-600">لا توجد بيانات صلاحيات عمليات حالياً</div>
+                    <div className="text-sm text-gray-500 mt-1">قم بإضافة صلاحيات للمستخدمين لرؤية التقرير</div>
+                    <button
+                      onClick={loadUsersProcessesReport}
+                      className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* إحصائيات سريعة */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg">
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-blue-900">
+                              {reportStats?.total_users || usersProcessesReport.length}
+                            </div>
+                            <div className="text-sm text-blue-700">إجمالي المستخدمين</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg">
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                            <Shield className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-green-900">
+                              {reportStats?.total_assignments || usersProcessesReport.reduce((total, user) => total + (user.processes?.length || 0), 0)}
+                            </div>
+                            <div className="text-sm text-green-700">إجمالي الصلاحيات</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                            <Key className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <div className="text-2xl font-bold text-purple-900">
+                              {reportStats?.users_with_processes || usersProcessesReport.filter(user => user.processes && user.processes.length > 0).length}
+                            </div>
+                            <div className="text-sm text-purple-700">مستخدمين لديهم صلاحيات</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* جدول المستخدمين والعمليات */}
+                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                المستخدم
+                              </th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                الأدوار في العمليات
+                              </th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                العمليات المصرح بها
+                              </th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                عدد الصلاحيات
+                              </th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                الحالة
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {usersProcessesReport.map((user, index) => (
+                              <tr key={user.id || index} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center space-x-3 space-x-reverse">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                      <span className="text-white font-bold text-sm">{user.name?.charAt(0) || '؟'}</span>
+                                    </div>
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-900">{user.name || 'غير محدد'}</div>
+                                      <div className="text-sm text-gray-500">{user.email || 'غير محدد'}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex flex-wrap gap-1">
+                                    {user.processes && user.processes.length > 0 ? (
+                                      user.processes.map((process: any, idx: number) => (
+                                        <span key={idx} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                                          {process.role}
+                                        </span>
+                                      ))
+                                    ) : (
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                        لا توجد أدوار
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                  {user.processes && user.processes.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1 max-w-md">
+                                      {user.processes.slice(0, 3).map((process: any, idx: number) => (
+                                        <span
+                                          key={idx}
+                                          className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800"
+                                          title={process.description}
+                                        >
+                                          {process.name}
+                                        </span>
+                                      ))}
+                                      {user.processes.length > 3 && (
+                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                          +{user.processes.length - 3} أخرى
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-gray-400 italic">لا توجد صلاحيات</span>
+                                  )}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center space-x-2 space-x-reverse">
+                                    <span className="text-2xl font-bold text-gray-900">
+                                      {user.processes?.length || 0}
+                                    </span>
+                                    <span className="text-sm text-gray-500">عملية</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center space-x-2 space-x-reverse">
+                                    <div className={`w-2 h-2 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                                    <span className={`text-sm ${user.is_active ? 'text-green-700' : 'text-red-700'}`}>
+                                      {user.is_active ? 'نشط' : 'غير نشط'}
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
