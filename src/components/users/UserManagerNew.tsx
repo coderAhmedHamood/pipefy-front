@@ -95,6 +95,11 @@ export const UserManagerNew: React.FC = () => {
   const [reportStats, setReportStats] = useState<any>(null);
   const [loadingReport, setLoadingReport] = useState(false);
 
+  // عرض عمليات مستخدم محدد داخل جدول المستخدمين
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [expandedUserProcesses, setExpandedUserProcesses] = useState<Array<{ id: string; process_id: string; role?: string; is_active?: boolean; process_name?: string }>>([]);
+  const [loadingUserProcesses, setLoadingUserProcesses] = useState(false);
+
   // تحميل البيانات الأولية
   useEffect(() => {
     loadInitialData();
@@ -616,6 +621,69 @@ export const UserManagerNew: React.FC = () => {
   };
 
   // دالة معالجة إضافة العمليات للمستخدم
+  // تحميل عمليات مستخدم محدد
+  const loadUserProcesses = async (userId: string) => {
+    try {
+      setLoadingUserProcesses(true);
+      setState(prev => ({ ...prev, error: null }));
+
+      // توقع وجود API_ENDPOINTS.USER_PROCESSES.LIST التي تدعم ?user_id=
+      const url = `${API_ENDPOINTS.USER_PROCESSES.LIST}?user_id=${encodeURIComponent(userId)}`;
+      const res = await fetch(url, { headers: getAuthHeaders() });
+      const text = await res.text();
+      let data: any = null;
+      try { data = text ? JSON.parse(text) : null; } catch {}
+
+      if (!res.ok) {
+        const msg = (data && (data.message || data.error)) || `${res.status} ${res.statusText}`;
+        throw new Error(msg);
+      }
+
+      const items: any[] = Array.isArray(data) ? data : (data?.data || []);
+      // دمج أسماء العمليات من الحالة العامة
+      const withNames = items.map(item => {
+        const proc = state.processes.find((p: any) => p.id === item.process_id);
+        return { ...item, process_name: proc?.name || item.process_id };
+      });
+      setExpandedUserProcesses(withNames);
+    } catch (err: any) {
+      setState(prev => ({ ...prev, error: err?.message || 'فشل في جلب عمليات المستخدم' }));
+    } finally {
+      setLoadingUserProcesses(false);
+    }
+  };
+
+  // توسيع/إخفاء عمليات المستخدم في جدول المستخدمين
+  const toggleUserProcesses = (userId: string) => {
+    if (expandedUserId === userId) {
+      setExpandedUserId(null);
+      setExpandedUserProcesses([]);
+    } else {
+      setExpandedUserId(userId);
+      setExpandedUserProcesses([]);
+      loadUserProcesses(userId);
+    }
+  };
+
+  // حذف ربط عملية من مستخدم
+  const handleDeleteUserProcess = async (linkId: string) => {
+    if (!expandedUserId) return;
+    if (!confirm('هل أنت متأكد من حذف هذه العملية من المستخدم؟')) return;
+    try {
+      setLoadingUserProcesses(true);
+      const url = API_ENDPOINTS.USER_PROCESSES.DELETE(linkId);
+      const res = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      setState(prev => ({ ...prev, success: 'تم حذف العملية من المستخدم', error: null }));
+      await loadUserProcesses(expandedUserId);
+      setTimeout(() => setState(prev => ({ ...prev, success: null })), 2000);
+    } catch (err: any) {
+      setState(prev => ({ ...prev, error: err?.message || 'فشل في حذف العملية من المستخدم' }));
+    } finally {
+      setLoadingUserProcesses(false);
+    }
+  };
+
   const handleAssignProcessesToUser = async () => {
     if (!selectedUserForProcesses || selectedProcesses.length === 0) {
       setState(prev => ({
@@ -992,6 +1060,15 @@ export const UserManagerNew: React.FC = () => {
                       {hasPermission('users', 'manage') && (
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-2 space-x-reverse">
+                            {/* زر عرض/إخفاء صلاحيات العمليات */}
+                            <button
+                              onClick={() => toggleUserProcesses(user.id)}
+                              className={`p-2 rounded-lg border ${expandedUserId === user.id ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50 border-gray-300'}`}
+                              title={expandedUserId === user.id ? 'إخفاء صلاحيات العمليات' : 'عرض صلاحيات العمليات'}
+                            >
+                              <Shield className="w-4 h-4 text-gray-600" />
+                            </button>
+
                             <button
                               onClick={() => openEditUserModal(user)}
                               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -1013,6 +1090,42 @@ export const UserManagerNew: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+
+              {/* صف التفاصيل لعرض صلاحيات العمليات للمستخدم الموسع */}
+              {expandedUserId && (
+                <div className="px-6 py-4 border-t border-gray-200">
+                  {loadingUserProcesses ? (
+                    <div className="flex items-center space-x-2 space-x-reverse text-gray-600">
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span>جاري تحميل صلاحيات العمليات للمستخدم...</span>
+                    </div>
+                  ) : expandedUserProcesses.length === 0 ? (
+                    <div className="text-sm text-gray-500">لا توجد صلاحيات عمليات لهذا المستخدم.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {expandedUserProcesses.map((link) => (
+                        <div key={link.id} className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                          <div className="flex items-center space-x-3 space-x-reverse">
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: '#3B82F6' }}>
+                              {(link.process_name || link.process_id).charAt(0)}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{link.process_name || link.process_id}</div>
+                              {link.role && <div className="text-xs text-gray-500">دور: {link.role}</div>}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteUserProcess(link.id)}
+                            className="inline-flex items-center px-3 py-1 rounded text-xs bg-red-50 text-red-700 hover:bg-red-100"
+                          >
+                            <Trash2 className="w-4 h-4 mr-1 ml-1" /> حذف
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {state.users.length === 0 && (
                 <div className="text-center py-12">
@@ -1494,11 +1607,15 @@ export const UserManagerNew: React.FC = () => {
                               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 الحالة
                               </th>
+                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                الإجراءات
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
                             {usersProcessesReport.map((user, index) => (
-                              <tr key={user.id || index} className="hover:bg-gray-50">
+                              <React.Fragment key={user.id || index}>
+                                <tr className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <div className="flex items-center space-x-3 space-x-reverse">
                                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -1563,7 +1680,54 @@ export const UserManagerNew: React.FC = () => {
                                     </span>
                                   </div>
                                 </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <button
+                                    onClick={() => toggleUserProcesses(user.id)}
+                                    className={`px-2 py-1 rounded-lg border text-xs flex items-center space-x-1 space-x-reverse ${expandedUserId === user.id ? 'bg-blue-50 border-blue-300 text-blue-700' : 'hover:bg-gray-50 border-gray-300 text-gray-600'}`}
+                                    title={expandedUserId === user.id ? 'إخفاء صلاحيات العمليات' : 'عرض صلاحيات العمليات'}
+                                  >
+                                    <Shield className="w-4 h-4" />
+                                    <span>الصلاحيات</span>
+                                  </button>
+                                </td>
                               </tr>
+                              {expandedUserId === user.id && (
+                                <tr>
+                                  <td colSpan={6} className="px-6 py-3 bg-gray-50">
+                                    {loadingUserProcesses ? (
+                                      <div className="flex items-center space-x-2 space-x-reverse text-gray-600">
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                        <span>جاري تحميل صلاحيات العمليات للمستخدم...</span>
+                                      </div>
+                                    ) : expandedUserProcesses.length === 0 ? (
+                                      <div className="text-sm text-gray-500">لا توجد صلاحيات عمليات لهذا المستخدم.</div>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        {expandedUserProcesses.map((link) => (
+                                          <div key={link.id} className="flex items-center justify-between p-2 border border-gray-200 rounded bg-white">
+                                            <div className="flex items-center space-x-3 space-x-reverse">
+                                              <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: '#3B82F6' }}>
+                                                {(link.process_name || link.process_id).charAt(0)}
+                                              </div>
+                                              <div>
+                                                <div className="text-sm font-medium text-gray-900">{link.process_name || link.process_id}</div>
+                                                {link.role && <div className="text-xs text-gray-500">دور: {link.role}</div>}
+                                              </div>
+                                            </div>
+                                            <button
+                                              onClick={() => handleDeleteUserProcess(link.id)}
+                                              className="inline-flex items-center px-3 py-1 rounded text-xs bg-red-50 text-red-700 hover:bg-red-100"
+                                            >
+                                              <Trash2 className="w-4 h-4 mr-1 ml-1" /> حذف
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                              </React.Fragment>
                             ))}
                           </tbody>
                         </table>
