@@ -16,6 +16,7 @@ const commentRoutes = require('./comments');
 const attachmentRoutes = require('./attachments');
 const auditRoutes = require('./audit');
 const reportRoutes = require('./reports');
+const userProcessRoutes = require('./user-processes');
 
 const router = express.Router();
 
@@ -37,6 +38,7 @@ router.use('/comments', commentRoutes);
 router.use('/attachments', attachmentRoutes);
 router.use('/audit', auditRoutes);
 router.use('/reports', reportRoutes);
+router.use('/user-processes', userProcessRoutes);
 
 // Route للصفحة الرئيسية للـ API
 router.get('/', (req, res) => {
@@ -60,6 +62,7 @@ router.get('/', (req, res) => {
       recurring: '/api/recurring',
       comments: '/api/comments',
       attachments: '/api/attachments',
+      user_processes: '/api/user-processes',
       audit: '/api/audit',
       reports: '/api/reports'
     },

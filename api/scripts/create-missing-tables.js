@@ -103,6 +103,27 @@ async function createMissingTables() {
       CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_logs(created_at);
       CREATE INDEX IF NOT EXISTS idx_audit_resource_id ON audit_logs(resource_id);
     `);
+
+    // إنشاء جدول user_processes (ربط المستخدمين بالعمليات)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_processes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        process_id UUID NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
+        role VARCHAR(50) DEFAULT 'member',
+        is_active BOOLEAN DEFAULT TRUE,
+        added_by UUID REFERENCES users(id),
+        added_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, process_id)
+      );
+    `);
+    // فهارس جدول user_processes
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_processes_user ON user_processes(user_id);
+      CREATE INDEX IF NOT EXISTS idx_user_processes_process ON user_processes(process_id);
+      CREATE INDEX IF NOT EXISTS idx_user_processes_active ON user_processes(is_active);
+    `);
     
     console.log('✅ تم إنشاء جميع الجداول المفقودة بنجاح!');
     
@@ -111,7 +132,7 @@ async function createMissingTables() {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-      AND table_name IN ('recurring_rules', 'ticket_comments', 'ticket_attachments', 'audit_logs')
+      AND table_name IN ('recurring_rules', 'ticket_comments', 'ticket_attachments', 'audit_logs', 'user_processes')
       ORDER BY table_name
     `);
     

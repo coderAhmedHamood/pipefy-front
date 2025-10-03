@@ -91,6 +91,8 @@ export const UserManagerNew: React.FC = () => {
   const [selectedUserForProcesses, setSelectedUserForProcesses] = useState<any>(null);
   const [selectedProcesses, setSelectedProcesses] = useState<string[]>([]);
   const [isAssigningProcesses, setIsAssigningProcesses] = useState(false);
+  const [usersProcessesReport, setUsersProcessesReport] = useState<any[]>([]);
+  const [loadingReport, setLoadingReport] = useState(false);
 
   // تحميل البيانات الأولية
   useEffect(() => {

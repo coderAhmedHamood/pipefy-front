@@ -526,4 +526,38 @@ router.patch('/:id/toggle-status',
   UserController.toggleUserStatus
 );
 
+/**
+ * @swagger
+ * /api/users/{id}/processes:
+ *   get:
+ *     summary: جلب جميع العمليات المرتبطة بمستخدم معين
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *     responses:
+ *       200:
+ *         description: تم الجلب بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ */
+const UserProcessController = require('../controllers/UserProcessController');
+router.get('/:id/processes', authenticateToken, UserProcessController.getProcessesForUser);
+
 module.exports = router;

@@ -916,6 +916,29 @@ router.put('/:id/field-order', authenticateToken, requirePermissions(['processes
 
 /**
  * @swagger
+ * /api/processes/{id}/users:
+ *   get:
+ *     summary: جلب جميع المستخدمين المرتبطين بعملية معينة
+ *     tags: [Processes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف العملية
+ *     responses:
+ *       200:
+ *         description: تم الجلب بنجاح
+ */
+const UserProcessController = require('../controllers/UserProcessController');
+router.get('/:id/users', authenticateToken, UserProcessController.getUsersForProcess);
+
+/**
+ * @swagger
  * /api/processes/{id}/smart-transitions:
  *   post:
  *     summary: إنشاء انتقالات ذكية بين المراحل
