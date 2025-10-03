@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, UserRole, Permission } from '../../types/workflow';
 import { userService, roleService, permissionService } from '../../services';
 import { processService } from '../../services/processService';
-import { API_ENDPOINTS } from '../../config/api';
+import { API_ENDPOINTS, getAuthHeaders } from '../../config/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   Users, 
@@ -646,12 +646,63 @@ export const UserManagerNew: React.FC = () => {
       console.log('📊 إجمالي العمليات:', selectedProcesses.length);
       console.log('🕒 الوقت:', new Date().toLocaleString('ar-SA'));
 
-      // هنا سيتم إضافة الكود لإرسال البيانات إلى الخادم لاحقاً
-      // TODO: إرسال البيانات إلى API
+      // إرسال طلب فردي لكل عملية: POST /api/user-processes
+      const url = API_ENDPOINTS.USER_PROCESSES.CREATE;
+      const headers = getAuthHeaders();
+
+      const results: { processId: string; ok: boolean; message?: string }[] = [];
+      for (const processId of selectedProcesses) {
+        const body = {
+          user_id: selectedUserForProcesses.id,
+          process_id: processId,
+        };
+
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body)
+          });
+
+          const text = await response.text();
+          let data: any = null;
+          try { data = text ? JSON.parse(text) : null; } catch {}
+
+          if (!response.ok || (data && data.success === false)) {
+            const msg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+            console.error('❌ فشل ربط العملية:', { processId, msg, response: text });
+            results.push({ processId, ok: false, message: msg });
+          } else {
+            console.log('✅ تم الربط بنجاح:', data);
+            results.push({ processId, ok: true });
+          }
+        } catch (err: any) {
+          console.error('❌ خطأ شبكة أثناء الربط:', err);
+          results.push({ processId, ok: false, message: err?.message || 'Network error' });
+        }
+      }
+
+      const successCount = results.filter(r => r.ok).length;
+      const failCount = results.length - successCount;
+
+      const successMsg = `تم ربط ${successCount} من ${results.length} عملية للمستخدم ${selectedUserForProcesses.name}`;
+      const failMsg = failCount > 0 ? `فشل ربط ${failCount} عملية.` : '';
+
+      // إنشاء رسالة خطأ موجزة للعمليات التي فشلت
+      let errorMsg: string | null = null;
+      if (failCount > 0) {
+        const failed = results.filter(r => !r.ok).slice(0, 3).map(r => {
+          const p = state.processes.find(p => p.id === r.processId);
+          return p?.name || r.processId;
+        });
+        const more = failCount > 3 ? ` و${failCount - 3} أخرى` : '';
+        errorMsg = `تعذر ربط: ${failed.join(', ')}${more}.`;
+      }
 
       setState(prev => ({
         ...prev,
-        success: `تم إضافة ${selectedProcesses.length} عملية للمستخدم ${selectedUserForProcesses.name}`,
+        success: failMsg ? `${successMsg} ${failMsg}` : successMsg,
+        error: errorMsg || prev.error,
         loading: false
       }));
 
