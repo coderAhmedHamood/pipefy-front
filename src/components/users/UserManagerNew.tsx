@@ -176,13 +176,22 @@ export const UserManagerNew: React.FC = () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
-      const userData = {
-        name: userForm.name,
-        email: userForm.email,
+      // إعداد البيانات مع التحقق من القيم المطلوبة
+      const userData: any = {
+        name: userForm.name.trim(),
+        email: userForm.email.trim(),
         password: userForm.password,
         role_id: userForm.role_id,
-        phone: userForm.phone || undefined
+        language: 'ar', // إضافة اللغة الافتراضية
+        timezone: 'Asia/Riyadh' // إضافة المنطقة الزمنية الافتراضية
       };
+
+      // إضافة الهاتف فقط إذا تم إدخاله
+      if (userForm.phone && userForm.phone.trim()) {
+        userData.phone = userForm.phone.trim();
+      }
+
+      console.log('📤 إرسال بيانات المستخدم:', userData);
 
       await userService.createUser(userData);
       
@@ -202,9 +211,20 @@ export const UserManagerNew: React.FC = () => {
       }, 3000);
       
     } catch (error: any) {
+      console.error('❌ خطأ في إنشاء المستخدم:', error);
+      
+      // معالجة أفضل لرسائل الخطأ
+      let errorMessage = 'فشل في إنشاء المستخدم';
+      
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.data && error.data.message) {
+        errorMessage = error.data.message;
+      }
+      
       setState(prev => ({
         ...prev,
-        error: error.message || 'فشل في إنشاء المستخدم',
+        error: errorMessage,
         loading: false
       }));
     }

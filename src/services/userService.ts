@@ -85,15 +85,36 @@ class UserService {
   // إنشاء مستخدم جديد
   async createUser(userData: CreateUserRequest): Promise<User> {
     try {
+      console.log('🚀 إرسال طلب إنشاء المستخدم:', userData);
+      
       const response: ApiResponse<User> = await apiClient.post('/users', userData);
       
+      console.log('📥 استجابة الخادم:', response);
+      
       if (!response.success || !response.data) {
+        // إذا كان هناك أخطاء تفصيلية، اعرضها
+        if (response.data && (response.data as any).errors) {
+          const errors = (response.data as any).errors;
+          const errorMessages = errors.map((err: any) => err.message || err).join(', ');
+          throw new Error(`بيانات غير صحيحة: ${errorMessages}`);
+        }
         throw new Error(response.message || 'فشل في إنشاء المستخدم');
       }
       
       return response.data;
     } catch (error: any) {
       console.error('خطأ في إنشاء المستخدم:', error);
+      
+      // معالجة أفضل للأخطاء
+      if (error.data && error.data.errors) {
+        const errorMessages = error.data.errors.map((err: any) => {
+          if (typeof err === 'string') return err;
+          return err.message || err.msg || 'خطأ غير محدد';
+        }).join('\n');
+        
+        throw new Error(`فشل في إنشاء المستخدم:\n${errorMessages}`);
+      }
+      
       throw error;
     }
   }
