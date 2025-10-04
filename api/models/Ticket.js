@@ -84,7 +84,7 @@ class Ticket {
         process_id,
         current_stage_id,
         assigned_to,
-        created_by,
+        created_by, 
         priority,
         due_date,
         JSON.stringify(data),
