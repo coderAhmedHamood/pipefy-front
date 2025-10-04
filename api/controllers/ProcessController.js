@@ -1,5 +1,6 @@
 const Process = require('../models/Process');
 const WorkflowService = require('../services/WorkflowService');
+const UserProcess = require('../models/UserProcess');
 
 class ProcessController {
   // جلب جميع العمليات
@@ -1127,7 +1128,7 @@ class ProcessController {
         // تطبيق نفس المنطق على البيانات التجريبية: ترتيب المراحل وتحديد الأنواع
         const enhancedDemoProcesses = demoProcesses.map(process => {
           // ترتيب المراحل حسب priority
-          const sortedStages = process.stages ?
+          const sortedStages = process.stages ? 
             [...process.stages].sort((a, b) => (a.priority || 0) - (b.priority || 0)) : [];
 
           // تحديد أنواع المراحل بناءً على الترتيب
@@ -1173,7 +1174,28 @@ class ProcessController {
         offset: parseInt(offset)
       };
 
-      const processes = await Process.findAll(options);
+      // جلب جميع العمليات أولاً
+      let processes = await Process.findAll(options);
+
+      // تطبيق صلاحيات العرض بناءً على روابط المستخدم-العملية
+      // إذا كان المستخدم "Super Admin" نعيد الجميع، غير ذلك نعيد فقط العمليات المرتبط بها كـ member
+      const userRoleName = (req.user?.role_name || '').toLowerCase();
+      const isSuperAdmin = userRoleName === 'super admin' || userRoleName === 'super_admin' || userRoleName === 'superadmin';
+      if (!isSuperAdmin) {
+        try {
+          const links = await UserProcess.findAll({ user_id: req.user.id, is_active: true });
+          const allowedIds = new Set(
+            links
+              .filter(link => (link.role || '').toLowerCase() === 'member')
+              .map(link => link.process_id)
+          );
+          processes = processes.filter(p => allowedIds.has(p.id));
+        } catch (filterErr) {
+          // في حال حدوث خطأ أثناء الجلب، نعيد قائمة فارغة بدلاً من الفشل الكامل
+          console.error('خطأ في فلترة العمليات حسب روابط المستخدم:', filterErr);
+          processes = [];
+        }
+      }
 
       // تحويل البيانات إلى تنسيق الفرونت إند
       const frontendProcesses = processes.map(process => {
