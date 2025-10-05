@@ -946,7 +946,7 @@ router.post('/', authenticateToken, requirePermissions(['tickets.create']), Tick
  *                   type: string
  *                   example: "Database connection failed"
  */
-router.put('/:id', authenticateToken, TicketController.simpleUpdate);
+router.put('/:id', authenticateToken, requirePermissions(['tickets.update']), TicketController.simpleUpdate);
 
 router.post('/:id/change-stage', authenticateToken, requirePermissions(['tickets.update']), TicketController.changeStage);
 router.post('/:id/move', authenticateToken, requirePermissions(['tickets.update']), TicketController.moveTicket);
@@ -1021,7 +1021,7 @@ router.post('/:id/move', authenticateToken, requirePermissions(['tickets.update'
  *         description: خطأ في الخادم
  */
 // دالة بسيطة لتحريك التذكرة - بدون تعقيد
-router.post('/:id/move-simple', authenticateToken, async (req, res) => {
+router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.update']), async (req, res) => {
   const { pool } = require('../config/database');
   const ticketId = req.params.id;
   const { target_stage_id } = req.body;
@@ -1465,7 +1465,7 @@ router.get('/:ticket_id/reviewers-assignees', authenticateToken, requirePermissi
  *                   type: string
  *                   example: "Database connection failed"
  */
-router.delete('/:id', authenticateToken, TicketController.simpleDelete);
+router.delete('/:id', authenticateToken, requirePermissions(['tickets.delete']), TicketController.deleteTicket);
 
 // مسارات المرفقات للتذاكر
 router.get('/:ticket_id/attachments', authenticateToken, AttachmentController.getTicketAttachments);

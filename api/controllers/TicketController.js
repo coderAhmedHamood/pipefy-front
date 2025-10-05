@@ -236,14 +236,15 @@ class TicketController {
         });
       }
 
-      // التحقق من الصلاحيات - المالك أو المدير فقط
+      // التحقق من الصلاحيات - المالك أو المدير أو من لديه صلاحية الحذف
       const isOwner = existingTicket.created_by === req.user.id;
       const isAdmin = (req.user.role && req.user.role.name === 'Super Admin') ||
                      (req.user.role_name === 'Super Admin') ||
                      (req.user.role && req.user.role.name === 'admin') ||
                      (req.user.role_name === 'admin');
+      const hasDeletePermission = await req.user.hasPermission('tickets', 'delete');
 
-      if (!isOwner && !isAdmin) {
+      if (!isOwner && !isAdmin && !hasDeletePermission) {
         return res.status(403).json({
           success: false,
           message: 'غير مسموح لك بحذف هذه التذكرة'
