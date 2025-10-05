@@ -339,7 +339,7 @@ router.get('/:id',
  */
 router.post('/',
   authenticateToken,
-  requirePermission('users', 'manage'),
+  requirePermission('users', 'create'),
   validateUser,
   UserController.createUser
 );
@@ -430,7 +430,7 @@ router.post('/',
  */
 router.put('/:id',
   authenticateToken,
-  requirePermission('users', 'manage'),
+  requirePermission('users', 'edit'),
   validateUUID('id'),
   validateUserUpdate,
   UserController.updateUser
@@ -473,7 +473,7 @@ router.put('/:id',
  */
 router.delete('/:id',
   authenticateToken,
-  requirePermission('users', 'manage'),
+  requirePermission('users', 'delete'),
   validateUUID('id'),
   UserController.deleteUser
 );
