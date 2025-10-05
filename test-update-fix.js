@@ -70,7 +70,6 @@ const failedResponse = {
   success: false,
   message: 'فشل التحديث'
 };
-
 const result4 = testNewCondition(failedResponse);
 
 console.log('\n📊 ملخص النتائج:');

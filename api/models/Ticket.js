@@ -1670,10 +1670,18 @@ class Ticket {
 
       // إضافة الحقول المراد تحديثها
       for (const [key, value] of Object.entries(updateData)) {
-        if (value !== undefined && value !== null) {
-          fields.push(`${key} = $${paramCount}`);
-          values.push(value);
-          paramCount++;
+        // تجاهل القيم الفارغة والـ null والـ undefined
+        if (value !== undefined && value !== null && value !== '') {
+          // معالجة خاصة لحقل data (تحويله إلى JSON)
+          if (key === 'data' && typeof value === 'object') {
+            fields.push(`${key} = $${paramCount}`);
+            values.push(JSON.stringify(value));
+            paramCount++;
+          } else {
+            fields.push(`${key} = $${paramCount}`);
+            values.push(value);
+            paramCount++;
+          }
         }
       }
 
@@ -1689,12 +1697,13 @@ class Ticket {
         UPDATE tickets
         SET ${fields.join(', ')}
         WHERE id = $${paramCount}
-        RETURNING id, ticket_number, title, description, priority, status, updated_at
+        RETURNING id, ticket_number, title, description, priority, status, due_date, updated_at
       `;
 
       const result = await pool.query(query, values);
       return result.rows[0] || null;
     } catch (error) {
+      console.error('❌ خطأ في simpleUpdate:', error);
       throw error;
     }
   }
