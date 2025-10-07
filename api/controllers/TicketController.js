@@ -675,7 +675,7 @@ class TicketController {
         search,
         due_date_from,
         due_date_to,
-        limit = 100,
+        limit_per_stage = 25, // حد لكل مرحلة (افتراضي 25)
         order_by = 'created_at',
         order_direction = 'DESC'
       } = req.query;
@@ -687,7 +687,7 @@ class TicketController {
         search,
         due_date_from,
         due_date_to,
-        limit: parseInt(limit),
+        limit_per_stage: parseInt(limit_per_stage),
         order_by,
         order_direction
       };
