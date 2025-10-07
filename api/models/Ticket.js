@@ -14,7 +14,8 @@ class Ticket {
       data = {},
       parent_ticket_id,
       estimated_hours,
-      tags = []
+      tags = [],
+      current_stage_id: provided_stage_id // السماح بتمرير current_stage_id من الطلب
     } = ticketData;
     const client = await pool.connect();
     
@@ -51,20 +52,39 @@ class Ticket {
       // تكوين رقم التذكرة مع timestamp للفرادة
       ticket_number = `${prefix}-${String(counter).padStart(6, '0')}-${timestamp}-${randomNum}`;
 
-      // جلب المرحلة الأولى للعملية
-      const initialStageQuery = `
-        SELECT id FROM stages 
-        WHERE process_id = $1 AND is_initial = true
-        ORDER BY order_index, priority
-        LIMIT 1
-      `;
-      const initialStageResult = await client.query(initialStageQuery, [process_id]);
+      // تحديد المرحلة الحالية: استخدام المُرسلة إن كانت صحيحة، وإلا المرحلة الأولية
+      let current_stage_id;
       
-      if (initialStageResult.rows.length === 0) {
-        throw new Error('لا توجد مرحلة أولى محددة لهذه العملية');
+      if (provided_stage_id) {
+        // التحقق من أن المرحلة المُرسلة تنتمي لنفس العملية
+        const providedStageQuery = `
+          SELECT id FROM stages
+          WHERE id = $1 AND process_id = $2
+          LIMIT 1
+        `;
+        const providedStageResult = await client.query(providedStageQuery, [provided_stage_id, process_id]);
+        
+        if (providedStageResult.rows.length > 0) {
+          current_stage_id = providedStageResult.rows[0].id;
+        }
       }
 
-      const current_stage_id = initialStageResult.rows[0].id;
+      // إن لم يتم تحديد مرحلة صحيحة، نستخدم المرحلة الأولية
+      if (!current_stage_id) {
+        const initialStageQuery = `
+          SELECT id FROM stages 
+          WHERE process_id = $1 AND is_initial = true
+          ORDER BY order_index, priority
+          LIMIT 1
+        `;
+        const initialStageResult = await client.query(initialStageQuery, [process_id]);
+        
+        if (initialStageResult.rows.length === 0) {
+          throw new Error('لا توجد مرحلة أولى محددة لهذه العملية');
+        }
+
+        current_stage_id = initialStageResult.rows[0].id;
+      }
 
       // إنشاء التذكرة
       const ticketQuery = `
