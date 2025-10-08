@@ -17,6 +17,9 @@ const attachmentRoutes = require('./attachments');
 const auditRoutes = require('./audit');
 const reportRoutes = require('./reports');
 const userProcessRoutes = require('./user-processes');
+const ticketAssignmentRoutes = require('./ticket-assignments');
+const ticketReviewerRoutes = require('./ticket-reviewers');
+const evaluationRoutes = require('./evaluations');
 
 const router = express.Router();
 
@@ -39,6 +42,9 @@ router.use('/attachments', attachmentRoutes);
 router.use('/audit', auditRoutes);
 router.use('/reports', reportRoutes);
 router.use('/user-processes', userProcessRoutes);
+router.use('/ticket-assignments', ticketAssignmentRoutes);
+router.use('/ticket-reviewers', ticketReviewerRoutes);
+router.use('/evaluations', evaluationRoutes);
 
 // Route للصفحة الرئيسية للـ API
 router.get('/', (req, res) => {
@@ -63,6 +69,9 @@ router.get('/', (req, res) => {
       comments: '/api/comments',
       attachments: '/api/attachments',
       user_processes: '/api/user-processes',
+      ticket_assignments: '/api/ticket-assignments',
+      ticket_reviewers: '/api/ticket-reviewers',
+      evaluations: '/api/evaluations',
       audit: '/api/audit',
       reports: '/api/reports'
     },
