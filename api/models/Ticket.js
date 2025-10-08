@@ -1232,7 +1232,8 @@ class Ticket {
         search,
         due_date_from,
         due_date_to,
-        limit_per_stage = 250, // حد لكل مرحلة (افتراضي 25)
+        limit = 25, // حد لكل مرحلة (افتراضي 25)
+        offset = 0, // نقطة البداية (افتراضي 0)
         order_by = 'created_at',
         order_direction = 'DESC'
       } = options;
@@ -1246,9 +1247,10 @@ class Ticket {
         throw new Error('معرفات المراحل مطلوبة ويجب أن تكون مصفوفة غير فارغة');
       }
 
-      // حساب الحد الإجمالي: عدد المراحل × 25
-      const totalLimit = stageIds.length * parseInt(limit_per_stage);
-      const limitPerStage = parseInt(limit_per_stage);
+      // حساب الحد الإجمالي: عدد المراحل × limit
+      const totalLimit = stageIds.length * parseInt(limit);
+      const limitPerStage = parseInt(limit);
+      const offsetValue = parseInt(offset);
 
       // تهيئة النتائج
       const ticketsByStage = {};
@@ -1329,10 +1331,14 @@ class Ticket {
           paramIndex++;
         }
 
-        // ترتيب وحد لكل مرحلة
+        // ترتيب وحد وoffset لكل مرحلة
         query += ` ORDER BY t.${orderColumn} ${orderDir}`;
         query += ` LIMIT $${paramIndex}`;
         params.push(limitPerStage);
+        paramIndex++;
+        
+        query += ` OFFSET $${paramIndex}`;
+        params.push(offsetValue);
 
         // تنفيذ الاستعلام لهذه المرحلة
         const result = await pool.query(query, params);

@@ -30,6 +30,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forceUpdate, setForceUpdate] = useState(0);
+  
+  // Lazy Loading State
+  const [stageOffsets, setStageOffsets] = useState<Record<string, number>>({});
+  const [stageHasMore, setStageHasMore] = useState<Record<string, boolean>>({});
+  const [loadingMoreStages, setLoadingMoreStages] = useState<Record<string, boolean>>({});
+  const TICKETS_PER_PAGE = 25;
 
   // مراقبة تغييرات ticketsByStages للتشخيص
   useEffect(() => {
@@ -60,7 +66,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
       const response = await ticketService.getTicketsByStages({
         process_id: process.id,
         stage_ids: stageIds,
-        limit: 100
+        limit: TICKETS_PER_PAGE
       });
 
       console.log('استجابة جلب التذاكر:', response);
@@ -68,6 +74,20 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
       if (response.success && response.data) {
         setTicketsByStages(response.data);
         setStatistics(response.statistics);
+        
+        // تهيئة حالة الـ Lazy Loading لكل مرحلة
+        const initialOffsets: Record<string, number> = {};
+        const initialHasMore: Record<string, boolean> = {};
+        
+        stageIds.forEach(stageId => {
+          initialOffsets[stageId] = TICKETS_PER_PAGE;
+          // إذا كان عدد التذاكر المحملة يساوي الحد الأقصى، فهناك المزيد
+          initialHasMore[stageId] = (response.data[stageId]?.length || 0) >= TICKETS_PER_PAGE;
+        });
+        
+        setStageOffsets(initialOffsets);
+        setStageHasMore(initialHasMore);
+        
         showSuccess('تم جلب التذاكر', `تم جلب ${response.statistics.total_tickets} تذكرة بنجاح`);
       } else {
         const errorMsg = response.message || 'فشل في جلب التذاكر';
@@ -82,6 +102,55 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
       showError('خطأ في جلب التذاكر', errorMsg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // تحميل المزيد من التذاكر لمرحلة محددة
+  const loadMoreTickets = async (stageId: string) => {
+    if (!process.id || loadingMoreStages[stageId] || !stageHasMore[stageId]) {
+      return;
+    }
+
+    console.log(`جلب المزيد من التذاكر للمرحلة: ${stageId}`);
+    
+    setLoadingMoreStages(prev => ({ ...prev, [stageId]: true }));
+
+    try {
+      const response = await ticketService.getTicketsByStages({
+        process_id: process.id,
+        stage_ids: [stageId],
+        limit: TICKETS_PER_PAGE,
+        offset: stageOffsets[stageId] || 0
+      });
+
+      if (response.success && response.data && response.data[stageId]) {
+        const newTickets = response.data[stageId];
+        
+        // إضافة التذاكر الجديدة للتذاكر الموجودة
+        setTicketsByStages(prev => ({
+          ...prev,
+          [stageId]: [...(prev[stageId] || []), ...newTickets]
+        }));
+        
+        // تحديث الـ offset
+        setStageOffsets(prev => ({
+          ...prev,
+          [stageId]: (prev[stageId] || 0) + TICKETS_PER_PAGE
+        }));
+        
+        // تحديث حالة "هل يوجد المزيد"
+        setStageHasMore(prev => ({
+          ...prev,
+          [stageId]: newTickets.length >= TICKETS_PER_PAGE
+        }));
+        
+        showSuccess('تم التحميل', `تم تحميل ${newTickets.length} تذكرة إضافية`);
+      }
+    } catch (error) {
+      console.error('خطأ في تحميل المزيد من التذاكر:', error);
+      showError('خطأ', 'فشل في تحميل المزيد من التذاكر');
+    } finally {
+      setLoadingMoreStages(prev => ({ ...prev, [stageId]: false }));
     }
   };
 
@@ -629,13 +698,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                   onTicketClick={handleTicketClick}
                   draggedTicket={draggedTicket}
                   allowedDropStages={[stage.id]}
+                  hasMore={stageHasMore[stage.id] || false}
+                  loadingMore={loadingMoreStages[stage.id] || false}
+                  onLoadMore={() => loadMoreTickets(stage.id)}
                 />
               ))}
             </div>
           </DndContext>
         </div>
       )}
-
       {/* Modals */}
       {selectedTicket && (
         <TicketModal

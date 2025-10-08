@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { KanbanCard } from './KanbanCard';
 import { Stage, Ticket } from '../../types/workflow';
-import { Plus, MoreVertical } from 'lucide-react';
+import { Plus, MoreVertical, Loader2 } from 'lucide-react';
 
 interface KanbanColumnProps {
   stage: Stage;
@@ -12,6 +12,9 @@ interface KanbanColumnProps {
   onTicketClick: (ticket: Ticket) => void;
   draggedTicket: Ticket | null;
   allowedDropStages: string[];
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -20,14 +23,39 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   onCreateTicket,
   onTicketClick,
   draggedTicket,
-  allowedDropStages
+  allowedDropStages,
+  hasMore,
+  loadingMore,
+  onLoadMore
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id
   });
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const ticketIds = tickets.map(ticket => ticket.id);
   const isDropAllowed = !draggedTicket || allowedDropStages.includes(stage.id);
+  
+  // Infinite Scroll: تحميل تلقائي عند الوصول لنهاية العمود
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+    
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+      
+      // عندما يصل المستخدم إلى 90% من نهاية العمود
+      if (scrollPercentage > 0.9 && hasMore && !loadingMore) {
+        console.log(`🔄 Infinite Scroll: تحميل المزيد للمرحلة ${stage.name}`);
+        onLoadMore();
+      }
+    };
+    
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [hasMore, loadingMore, onLoadMore, stage.name]);
 
   return (
     <div className="flex flex-col w-80 bg-gray-100 rounded-lg shadow-sm flex-shrink-0">
@@ -83,7 +111,12 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 
       {/* Column Content */}
       <div 
-        ref={setNodeRef}
+        ref={(node) => {
+          setNodeRef(node);
+          if (node) {
+            (scrollContainerRef as React.MutableRefObject<HTMLDivElement>).current = node;
+          }
+        }}
         className={`
           flex-1 p-4 space-y-3 min-h-[200px] max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-hidden transition-colors
           ${isOver && isDropAllowed ? 'bg-blue-50 border-2 border-dashed border-blue-300' : 
@@ -122,6 +155,14 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
           <div className="text-center py-8 text-red-500">
             <div className="text-sm font-medium">الانتقال غير مسموح</div>
             <div className="text-xs mt-1">لا يمكن نقل التذكرة إلى هذه المرحلة</div>
+          </div>
+        )}
+        
+        {/* Loading Indicator for Infinite Scroll */}
+        {loadingMore && tickets.length > 0 && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+            <span className="mr-2 text-sm text-gray-600">جاري تحميل المزيد...</span>
           </div>
         )}
       </div>

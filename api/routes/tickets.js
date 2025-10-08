@@ -355,8 +355,15 @@ const AttachmentController = require('../controllers/AttachmentController');
  *           type: integer
  *           minimum: 1
  *           maximum: 500
- *           default: 100
- *         description: الحد الأقصى لعدد التذاكر المرجعة
+ *           default: 25
+ *         description: الحد الأقصى لعدد التذاكر المرجعة لكل مرحلة
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           default: 0
+ *         description: نقطة البداية لجلب التذاكر (للـ Lazy Loading)
  *       - in: query
  *         name: order_by
  *         schema:
