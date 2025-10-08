@@ -42,19 +42,40 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
     
+    let isLoadingTriggered = false;
+    let scrollTimeout: NodeJS.Timeout | null = null;
+    
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-      const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-      
-      // عندما يصل المستخدم إلى 90% من نهاية العمود
-      if (scrollPercentage > 0.9 && hasMore && !loadingMore) {
-        console.log(`🔄 Infinite Scroll: تحميل المزيد للمرحلة ${stage.name}`);
-        onLoadMore();
+      // منع الاستدعاءات المتعددة
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
       }
+      
+      scrollTimeout = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+        const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+        
+        // عندما يصل المستخدم إلى 90% من نهاية العمود
+        if (scrollPercentage > 0.9 && hasMore && !loadingMore && !isLoadingTriggered) {
+          console.log(`🔄 Infinite Scroll: تحميل المزيد للمرحلة ${stage.name}`);
+          isLoadingTriggered = true;
+          onLoadMore();
+          
+          // إعادة تعيين بعد ثانية واحدة
+          setTimeout(() => {
+            isLoadingTriggered = false;
+          }, 1000);
+        }
+      }, 150); // debounce 150ms
     };
     
-    scrollContainer.addEventListener('scroll', handleScroll);
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+    };
   }, [hasMore, loadingMore, onLoadMore, stage.name]);
 
   return (

@@ -107,11 +107,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
 
   // تحميل المزيد من التذاكر لمرحلة محددة
   const loadMoreTickets = async (stageId: string) => {
+    // حماية من الاستدعاءات المتعددة
     if (!process.id || loadingMoreStages[stageId] || !stageHasMore[stageId]) {
+      console.log(`⚠️ تم منع التحميل المكرر للمرحلة: ${stageId}`, {
+        hasProcessId: !!process.id,
+        isLoading: loadingMoreStages[stageId],
+        hasMore: stageHasMore[stageId]
+      });
       return;
     }
 
-    console.log(`جلب المزيد من التذاكر للمرحلة: ${stageId}`);
+    console.log(`🔄 جلب المزيد من التذاكر للمرحلة: ${stageId}, offset: ${stageOffsets[stageId] || 0}`);
     
     setLoadingMoreStages(prev => ({ ...prev, [stageId]: true }));
 
@@ -126,10 +132,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
       if (response.success && response.data && response.data[stageId]) {
         const newTickets = response.data[stageId];
         
-        // إضافة التذاكر الجديدة للتذاكر الموجودة
+        // حساب التذاكر الفريدة قبل التحديث
+        const existingTickets = ticketsByStages[stageId] || [];
+        const existingIds = new Set(existingTickets.map(t => t.id));
+        const uniqueNewTickets = newTickets.filter(ticket => !existingIds.has(ticket.id));
+        
+        console.log(`📊 التذاكر الموجودة: ${existingTickets.length}, الجديدة: ${newTickets.length}, الفريدة: ${uniqueNewTickets.length}`);
+        
+        // إضافة التذاكر الجديدة مع تجنب التكرار
         setTicketsByStages(prev => ({
           ...prev,
-          [stageId]: [...(prev[stageId] || []), ...newTickets]
+          [stageId]: [...(prev[stageId] || []), ...uniqueNewTickets]
         }));
         
         // تحديث الـ offset
@@ -144,7 +157,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
           [stageId]: newTickets.length >= TICKETS_PER_PAGE
         }));
         
-        showSuccess('تم التحميل', `تم تحميل ${newTickets.length} تذكرة إضافية`);
+        // عرض رسالة فقط إذا تم تحميل تذاكر جديدة فريدة
+        if (uniqueNewTickets.length > 0) {
+          showSuccess('تم التحميل', `تم تحميل ${uniqueNewTickets.length} تذكرة إضافية`);
+        } else {
+          console.log('⚠️ لا توجد تذاكر جديدة فريدة للإضافة');
+        }
       }
     } catch (error) {
       console.error('خطأ في تحميل المزيد من التذاكر:', error);
