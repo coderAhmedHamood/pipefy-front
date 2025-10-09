@@ -993,6 +993,198 @@ class TicketController {
       });
     }
   }
+
+  // نقل التذكرة بين العمليات
+  static async moveToProcess(req, res) {
+    const { pool } = require('../config/database');
+    const Stage = require('../models/Stage');
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const { id } = req.params;
+      const { target_process_id } = req.body;
+
+      // التحقق من وجود معرف العملية المستهدفة
+      if (!target_process_id) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          message: 'معرف العملية المستهدفة (target_process_id) مطلوب'
+        });
+      }
+
+      // جلب التذكرة الحالية
+      const ticket = await Ticket.findById(id);
+      if (!ticket) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({
+          success: false,
+          message: 'التذكرة غير موجودة'
+        });
+      }
+
+      // التحقق من أن العملية المستهدفة مختلفة عن العملية الحالية
+      if (ticket.process_id === target_process_id) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          success: false,
+          message: 'التذكرة موجودة بالفعل في هذه العملية'
+        });
+      }
+
+      // التحقق من وجود العملية المستهدفة
+      const processCheckQuery = `
+        SELECT id, name FROM processes WHERE id = $1 AND deleted_at IS NULL
+      `;
+      const processResult = await client.query(processCheckQuery, [target_process_id]);
+      
+      if (processResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({
+          success: false,
+          message: 'العملية المستهدفة غير موجودة'
+        });
+      }
+
+      const targetProcess = processResult.rows[0];
+
+      // البحث عن المرحلة الأولية في العملية المستهدفة
+      const initialStageQuery = `
+        SELECT id, name, color, order_index
+        FROM stages
+        WHERE process_id = $1 AND is_initial = true
+        ORDER BY order_index ASC, priority ASC
+        LIMIT 1
+      `;
+      let initialStageResult = await client.query(initialStageQuery, [target_process_id]);
+
+      // إذا لم توجد مرحلة أولية، نبحث عن المرحلة ذات أقل order_index
+      if (initialStageResult.rows.length === 0) {
+        const firstStageQuery = `
+          SELECT id, name, color, order_index
+          FROM stages
+          WHERE process_id = $1
+          ORDER BY order_index ASC, priority ASC
+          LIMIT 1
+        `;
+        initialStageResult = await client.query(firstStageQuery, [target_process_id]);
+
+        if (initialStageResult.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            success: false,
+            message: 'العملية المستهدفة لا تحتوي على أي مراحل'
+          });
+        }
+      }
+
+      const targetStage = initialStageResult.rows[0];
+
+      // حفظ معلومات المرحلة والعملية السابقة
+      const oldProcessId = ticket.process_id;
+      const oldProcessName = ticket.process_name;
+      const oldStageId = ticket.current_stage_id;
+      const oldStageName = ticket.stage_name;
+
+      // تحديث التذكرة لنقلها إلى العملية والمرحلة الجديدة
+      const updateQuery = `
+        UPDATE tickets
+        SET 
+          process_id = $1,
+          current_stage_id = $2,
+          updated_at = NOW()
+        WHERE id = $3
+        RETURNING *
+      `;
+      const updateResult = await client.query(updateQuery, [
+        target_process_id,
+        targetStage.id,
+        id
+      ]);
+
+      const updatedTicket = updateResult.rows[0];
+
+      // إنشاء تعليق تلقائي يوضح عملية النقل
+      const userName = req.user.name || req.user.email || 'مستخدم';
+      const moveComment = `🔄 تم نقل التذكرة بين العمليات بواسطة: ${userName}
+📦 من عملية: "${oldProcessName}"
+🎯 إلى عملية: "${targetProcess.name}"
+📍 من مرحلة: "${oldStageName}"
+🎯 إلى مرحلة: "${targetStage.name}"`;
+
+      await client.query(`
+        INSERT INTO ticket_comments (ticket_id, user_id, content, is_internal, created_at)
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [id, req.user.id, moveComment, false]);
+
+      // تسجيل النشاط في سجل التذكرة
+      await client.query(`
+        INSERT INTO ticket_activities (
+          ticket_id, user_id, activity_type, description, 
+          old_values, new_values, created_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `, [
+        id,
+        req.user.id,
+        'stage_changed',
+        `تم نقل التذكرة من عملية "${oldProcessName}" إلى عملية "${targetProcess.name}"`,
+        JSON.stringify({ process_id: oldProcessId, stage_id: oldStageId }),
+        JSON.stringify({ process_id: target_process_id, stage_id: targetStage.id })
+      ]);
+
+      await client.query('COMMIT');
+
+      // جلب التذكرة المحدثة مع جميع التفاصيل
+      const finalTicket = await Ticket.findById(id);
+
+      res.json({
+        success: true,
+        message: 'تم نقل التذكرة بين العمليات بنجاح',
+        data: {
+          ticket: finalTicket,
+          movement_details: {
+            from_process: {
+              id: oldProcessId,
+              name: oldProcessName
+            },
+            to_process: {
+              id: target_process_id,
+              name: targetProcess.name
+            },
+            from_stage: {
+              id: oldStageId,
+              name: oldStageName
+            },
+            to_stage: {
+              id: targetStage.id,
+              name: targetStage.name,
+              color: targetStage.color,
+              order_index: targetStage.order_index
+            },
+            moved_by: {
+              id: req.user.id,
+              name: userName
+            },
+            moved_at: new Date().toISOString()
+          }
+        }
+      });
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('خطأ في نقل التذكرة بين العمليات:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في الخادم',
+        error: error.message
+      });
+    } finally {
+      client.release();
+    }
+  }
 }
 
 module.exports = TicketController;

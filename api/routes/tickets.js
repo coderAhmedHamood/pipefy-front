@@ -1474,6 +1474,163 @@ router.get('/:ticket_id/reviewers-assignees', authenticateToken, requirePermissi
  */
 router.delete('/:id', authenticateToken, requirePermissions(['tickets.delete']), TicketController.deleteTicket);
 
+/**
+ * @swagger
+ * /api/tickets/{id}/move-to-process:
+ *   post:
+ *     summary: نقل التذكرة بين العمليات
+ *     description: نقل التذكرة من عملية إلى عملية أخرى مع تحديث المرحلة تلقائياً إلى المرحلة الأولية في العملية الجديدة
+ *     tags: [Tickets]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف التذكرة
+ *         example: "7a6981d3-5683-46cf-9ca1-d1f06bf8a154"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - target_process_id
+ *             properties:
+ *               target_process_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: معرف العملية المستهدفة التي سيتم نقل التذكرة إليها
+ *                 example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
+ *           examples:
+ *             نقل_تذكرة:
+ *               summary: نقل تذكرة إلى عملية جديدة
+ *               value:
+ *                 target_process_id: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
+ *     responses:
+ *       200:
+ *         description: تم نقل التذكرة بين العمليات بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم نقل التذكرة بين العمليات بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     ticket:
+ *                       $ref: '#/components/schemas/Ticket'
+ *                     movement_details:
+ *                       type: object
+ *                       properties:
+ *                         from_process:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                               format: uuid
+ *                               example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+ *                             name:
+ *                               type: string
+ *                               example: "عملية الدعم الفني"
+ *                         to_process:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                               format: uuid
+ *                               example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
+ *                             name:
+ *                               type: string
+ *                               example: "عملية جديدة اصدار ثاني"
+ *                         from_stage:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                               format: uuid
+ *                             name:
+ *                               type: string
+ *                               example: "قيد المراجعة"
+ *                         to_stage:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                               format: uuid
+ *                               example: "db634909-72c7-4445-930e-2e345ab49421"
+ *                             name:
+ *                               type: string
+ *                               example: "مرحلة جديدة"
+ *                             color:
+ *                               type: string
+ *                               example: "#6B7280"
+ *                             order_index:
+ *                               type: integer
+ *                               example: 1
+ *                         moved_by:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                               format: uuid
+ *                             name:
+ *                               type: string
+ *                               example: "مدير النظام العام"
+ *                         moved_at:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-10-10T00:30:00.000Z"
+ *       400:
+ *         description: بيانات غير صحيحة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     - "معرف العملية المستهدفة (target_process_id) مطلوب"
+ *                     - "التذكرة موجودة بالفعل في هذه العملية"
+ *                     - "العملية المستهدفة لا تحتوي على أي مراحل"
+ *       404:
+ *         description: التذكرة أو العملية المستهدفة غير موجودة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   examples:
+ *                     - "التذكرة غير موجودة"
+ *                     - "العملية المستهدفة غير موجودة"
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       500:
+ *         $ref: '#/components/responses/ServerError'
+ */
+router.post('/:id/move-to-process', authenticateToken, requirePermissions(['tickets.update']), TicketController.moveToProcess);
+
 // مسارات المرفقات للتذاكر
 router.get('/:ticket_id/attachments', authenticateToken, AttachmentController.getTicketAttachments);
 router.post('/:ticket_id/attachments', authenticateToken, AttachmentController.upload);
