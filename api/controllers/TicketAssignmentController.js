@@ -14,7 +14,7 @@ class TicketAssignmentController {
         });
       }
 
-      // التحقق من عدم وجود إسناد مسبق
+      // التحقق من وجود إسناد نشط
       const exists = await TicketAssignment.exists(ticket_id, user_id);
       if (exists) {
         return res.status(409).json({
@@ -23,17 +23,31 @@ class TicketAssignmentController {
         });
       }
 
-      const assignment = await TicketAssignment.create({
-        ticket_id,
-        user_id,
-        assigned_by,
-        role,
-        notes
-      });
+      // البحث عن إسناد محذوف سابقاً
+      const existingAssignment = await TicketAssignment.findExisting(ticket_id, user_id);
+      
+      let assignment;
+      if (existingAssignment && !existingAssignment.is_active) {
+        // إعادة تفعيل الإسناد المحذوف
+        assignment = await TicketAssignment.reactivate(existingAssignment.id, {
+          assigned_by,
+          role,
+          notes
+        });
+      } else {
+        // إنشاء إسناد جديد
+        assignment = await TicketAssignment.create({
+          ticket_id,
+          user_id,
+          assigned_by,
+          role,
+          notes
+        });
+      }
 
       res.status(201).json({
         success: true,
-        message: 'تم إسناد المستخدم بنجاح',
+        message: existingAssignment ? 'تم إعادة إسناد المستخدم بنجاح' : 'تم إسناد المستخدم بنجاح',
         data: assignment
       });
     } catch (error) {

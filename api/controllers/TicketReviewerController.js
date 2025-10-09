@@ -15,7 +15,7 @@ class TicketReviewerController {
         });
       }
 
-      // التحقق من عدم وجود مراجع مسبق
+      // التحقق من وجود مراجع نشط
       const exists = await TicketReviewer.exists(ticket_id, reviewer_id);
       if (exists) {
         return res.status(409).json({
@@ -24,19 +24,32 @@ class TicketReviewerController {
         });
       }
 
-      const reviewer = await TicketReviewer.create({
-        ticket_id,
-        reviewer_id,
-        added_by,
-        review_notes
-      });
+      // البحث عن مراجع محذوف سابقاً
+      const existingReviewer = await TicketReviewer.findExisting(ticket_id, reviewer_id);
+      
+      let reviewer;
+      if (existingReviewer && !existingReviewer.is_active) {
+        // إعادة تفعيل المراجع المحذوف
+        reviewer = await TicketReviewer.reactivate(existingReviewer.id, {
+          added_by,
+          review_notes
+        });
+      } else {
+        // إنشاء مراجع جديد
+        reviewer = await TicketReviewer.create({
+          ticket_id,
+          reviewer_id,
+          added_by,
+          review_notes
+        });
+      }
 
       // تحديث ملخص التقييم
       await TicketEvaluationSummary.calculateAndUpdate(ticket_id);
 
       res.status(201).json({
         success: true,
-        message: 'تم إضافة المراجع بنجاح',
+        message: existingReviewer ? 'تم إعادة إضافة المراجع بنجاح' : 'تم إضافة المراجع بنجاح',
         data: reviewer
       });
     } catch (error) {

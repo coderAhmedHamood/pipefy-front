@@ -160,7 +160,7 @@ class TicketAssignment {
     return result.rows;
   }
 
-  // التحقق من وجود إسناد
+  // التحقق من وجود إسناد نشط
   static async exists(ticketId, userId) {
     const query = `
       SELECT EXISTS(
@@ -171,6 +171,58 @@ class TicketAssignment {
 
     const result = await pool.query(query, [ticketId, userId]);
     return result.rows[0].exists;
+  }
+
+  // البحث عن إسناد موجود (حتى لو غير نشط)
+  static async findExisting(ticketId, userId) {
+    const query = `
+      SELECT * FROM ticket_assignments 
+      WHERE ticket_id = $1 AND user_id = $2
+      LIMIT 1
+    `;
+
+    const result = await pool.query(query, [ticketId, userId]);
+    return result.rows[0] || null;
+  }
+
+  // إعادة تفعيل إسناد محذوف
+  static async reactivate(id, updateData = {}) {
+    const { assigned_by, role, notes } = updateData;
+    
+    const updates = ['is_active = true'];
+    const values = [];
+    let paramIndex = 1;
+
+    if (assigned_by) {
+      updates.push(`assigned_by = $${paramIndex}`);
+      values.push(assigned_by);
+      paramIndex++;
+    }
+
+    if (role !== undefined) {
+      updates.push(`role = $${paramIndex}`);
+      values.push(role);
+      paramIndex++;
+    }
+
+    if (notes !== undefined) {
+      updates.push(`notes = $${paramIndex}`);
+      values.push(notes);
+      paramIndex++;
+    }
+
+    updates.push(`assigned_at = NOW()`, `updated_at = NOW()`);
+    values.push(id);
+
+    const query = `
+      UPDATE ticket_assignments 
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
   }
 
   // جلب إحصائيات الإسناد لتذكرة

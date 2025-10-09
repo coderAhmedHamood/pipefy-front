@@ -211,7 +211,7 @@ class TicketReviewer {
     return result.rows;
   }
 
-  // التحقق من وجود مراجع
+  // التحقق من وجود مراجع نشط
   static async exists(ticketId, reviewerId) {
     const query = `
       SELECT EXISTS(
@@ -222,6 +222,52 @@ class TicketReviewer {
 
     const result = await pool.query(query, [ticketId, reviewerId]);
     return result.rows[0].exists;
+  }
+
+  // البحث عن مراجع موجود (حتى لو غير نشط)
+  static async findExisting(ticketId, reviewerId) {
+    const query = `
+      SELECT * FROM ticket_reviewers 
+      WHERE ticket_id = $1 AND reviewer_id = $2
+      LIMIT 1
+    `;
+
+    const result = await pool.query(query, [ticketId, reviewerId]);
+    return result.rows[0] || null;
+  }
+
+  // إعادة تفعيل مراجع محذوف
+  static async reactivate(id, updateData = {}) {
+    const { added_by, review_notes } = updateData;
+    
+    const updates = ['is_active = true', 'review_status = \'pending\'', 'reviewed_at = NULL'];
+    const values = [];
+    let paramIndex = 1;
+
+    if (added_by) {
+      updates.push(`added_by = $${paramIndex}`);
+      values.push(added_by);
+      paramIndex++;
+    }
+
+    if (review_notes !== undefined) {
+      updates.push(`review_notes = $${paramIndex}`);
+      values.push(review_notes);
+      paramIndex++;
+    }
+
+    updates.push(`added_at = NOW()`, `updated_at = NOW()`);
+    values.push(id);
+
+    const query = `
+      UPDATE ticket_reviewers 
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
   }
 
   // جلب إحصائيات المراجعة لتذكرة
