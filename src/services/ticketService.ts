@@ -173,6 +173,21 @@ class TicketService {
   }
 
   /**
+   * نقل تذكرة إلى عملية أخرى
+   */
+  async moveTicketToProcess(id: string, targetProcessId: string): Promise<ApiResponse<Ticket>> {
+    try {
+      const response = await apiClient.post(`${this.endpoint}/${id}/move-to-process`, {
+        target_process_id: targetProcessId
+      });
+      return response;
+    } catch (error) {
+      console.error(`خطأ في نقل التذكرة ${id} إلى عملية:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * تعيين تذكرة لمستخدم
    */
   async assignTicket(id: string, assignedTo: string): Promise<ApiResponse<Ticket>> {
