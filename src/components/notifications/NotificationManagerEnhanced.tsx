@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Send, Users, CheckCircle, AlertCircle, Info, AlertTriangle, LayoutGrid } from 'lucide-react';
+import { Bell, Send, Users, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import notificationService from '../../services/notificationService';
 import apiClient from '../../lib/api';
 import { UsersList } from './UsersList';
@@ -214,48 +214,67 @@ export const NotificationManagerEnhanced: React.FC = () => {
   return (
     <div className="h-full bg-gray-50 overflow-hidden flex flex-col" dir="rtl">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3 space-x-reverse">
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-6 pt-4 pb-0">
+          <div className="flex items-center space-x-3 space-x-reverse mb-4">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
               <Bell className="w-6 h-6 text-white" />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">إدارة الإشعارات</h1>
-              <p className="text-sm text-gray-600">
-                {viewMode === 'send' ? 'إرسال إشعارات للمستخدمين' : 'عرض المستخدمين والإشعارات'}
-              </p>
+              <p className="text-sm text-gray-600">إرسال وعرض الإشعارات والمستخدمين</p>
             </div>
-          </div>
-
-          {/* أزرار التبديل */}
-          <div className="flex space-x-2 space-x-reverse">
-            <button
-              onClick={() => setViewMode('send')}
-              className={`px-4 py-2 rounded-lg font-medium flex items-center space-x-2 space-x-reverse transition-all ${
-                viewMode === 'send'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <Send className="w-4 h-4" />
-              <span>إرسال إشعار</span>
-            </button>
-            <button
-              onClick={() => setViewMode('reports')}
-              className={`px-4 py-2 rounded-lg font-medium flex items-center space-x-2 space-x-reverse transition-all ${
-                viewMode === 'reports'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              <span>التقارير</span>
-            </button>
           </div>
         </div>
 
+        {/* التبويبات الأفقية */}
+        <div className="flex space-x-1 space-x-reverse border-b border-gray-200">
+          <button
+            onClick={() => setViewMode('send')}
+            className={`px-6 py-3 font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
+              viewMode === 'send'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <Send className="w-5 h-5" />
+            <span>إرسال إشعار</span>
+          </button>
+          
+          <button
+            onClick={() => {
+              setViewMode('reports');
+              setReportView('users');
+            }}
+            className={`px-6 py-3 font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
+              viewMode === 'reports' && reportView === 'users'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <Users className="w-5 h-5" />
+            <span>المستخدمين</span>
+          </button>
+          
+          <button
+            onClick={() => {
+              setViewMode('reports');
+              setReportView('notifications');
+            }}
+            className={`px-6 py-3 font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
+              viewMode === 'reports' && reportView === 'notifications'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            }`}
+          >
+            <Bell className="w-5 h-5" />
+            <span>الإشعارات</span>
+          </button>
+        </div>
+
+        
         {/* رسائل النجاح/الخطأ */}
+        <div className="px-6 py-2">
         {successMessage && (
           <div className="mb-2 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-3 space-x-reverse">
             <CheckCircle className="w-5 h-5 text-green-600" />
@@ -269,6 +288,7 @@ export const NotificationManagerEnhanced: React.FC = () => {
             <p className="text-red-800 text-sm">{errorMessage}</p>
           </div>
         )}
+        </div>
       </div>
 
       {/* المحتوى */}
@@ -487,40 +507,6 @@ export const NotificationManagerEnhanced: React.FC = () => {
         ) : (
           /* واجهة التقارير */
           <div className="h-full flex flex-col">
-            {/* أزرار التبديل بين المستخدمين والإشعارات */}
-            <div className="bg-white border-b border-gray-200 px-6 py-3">
-              <div className="flex space-x-2 space-x-reverse">
-                <button
-                  onClick={() => {
-                    setReportView('users');
-                    setSelectedNotification(null);
-                  }}
-                  className={`px-4 py-2 rounded-lg font-medium flex items-center space-x-2 space-x-reverse transition-all ${
-                    reportView === 'users'
-                      ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  <span>المستخدمين</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setReportView('notifications');
-                    setSelectedUser(null);
-                  }}
-                  className={`px-4 py-2 rounded-lg font-medium flex items-center space-x-2 space-x-reverse transition-all ${
-                    reportView === 'notifications'
-                      ? 'bg-purple-100 text-purple-700 border border-purple-300'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <Bell className="w-4 h-4" />
-                  <span>الإشعارات</span>
-                </button>
-              </div>
-            </div>
-
             {/* محتوى التقارير */}
             <div className="flex-1 overflow-hidden p-6">
               <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
