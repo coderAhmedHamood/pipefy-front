@@ -351,34 +351,33 @@ class Notification {
     }
   }
 
-  // جلب الإشعارات مع المستخدمين المعنيين
+  // جلب الإشعارات مع المستخدمين المعنيين (مدمجة)
   static async findWithRelatedUsers(filters = {}) {
     try {
       let query = `
-        SELECT 
-          n.*,
-          u.name as user_name,
-          u.email as user_email,
-          NULL as user_avatar,
-          CASE 
-            WHEN n.data->>'related_user_ids' IS NOT NULL THEN
-              (
-                SELECT json_agg(json_build_object(
-                  'id', ru.id,
-                  'name', ru.name,
-                  'email', ru.email,
-                  'avatar', NULL
-                ))
-                FROM users ru
-                WHERE ru.id = ANY(
-                  SELECT jsonb_array_elements_text(n.data->'related_user_ids')::uuid
-                )
-              )
-            ELSE '[]'::json
-          END as related_users
-        FROM notifications n
-        LEFT JOIN users u ON n.user_id = u.id
-        WHERE 1=1
+        WITH grouped_notifications AS (
+          SELECT 
+            (array_agg(n.id ORDER BY n.created_at))[1] as id,
+            n.title,
+            n.message,
+            n.notification_type,
+            n.data,
+            n.action_url,
+            n.expires_at,
+            MIN(n.created_at) as created_at,
+            json_agg(
+              json_build_object(
+                'id', u.id,
+                'name', u.name,
+                'email', u.email,
+                'avatar', NULL,
+                'is_read', n.is_read,
+                'read_at', n.read_at
+              ) ORDER BY u.name
+            ) as related_users
+          FROM notifications n
+          LEFT JOIN users u ON n.user_id = u.id
+          WHERE 1=1
       `;
       const params = [];
       let paramCount = 1;
@@ -400,10 +399,34 @@ class Notification {
       // استبعاد الإشعارات المنتهية
       query += ` AND (n.expires_at IS NULL OR n.expires_at > NOW())`;
 
-      // الترتيب
-      query += ` ORDER BY n.created_at DESC`;
+      // التجميع حسب العنوان والرسالة والنوع
+      query += `
+          GROUP BY n.title, n.message, n.notification_type, n.data, n.action_url, n.expires_at
+        )
+        SELECT 
+          id,
+          title,
+          message,
+          notification_type,
+          data,
+          action_url,
+          expires_at,
+          created_at,
+          related_users,
+          (
+            SELECT COUNT(*)::int 
+            FROM json_array_elements(related_users) 
+            WHERE (value->>'is_read')::boolean = false
+          ) as unread_count,
+          (
+            SELECT COUNT(*)::int 
+            FROM json_array_elements(related_users)
+          ) as total_users
+        FROM grouped_notifications
+        ORDER BY created_at DESC
+      `;
 
-      // الحد والإزاحة
+      // الحد الأقصى
       const limit = filters.limit || 50;
       const offset = filters.offset || 0;
       query += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
