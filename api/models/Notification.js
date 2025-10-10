@@ -1,4 +1,4 @@
-const pool = require('../config/database');
+const { pool } = require('../config/database');
 
 class Notification {
   // جلب جميع الإشعارات مع الفلاتر
@@ -9,7 +9,7 @@ class Notification {
           n.*,
           u.name as user_name,
           u.email as user_email,
-          u.avatar as user_avatar
+          NULL as user_avatar
         FROM notifications n
         LEFT JOIN users u ON n.user_id = u.id
         WHERE 1=1
@@ -83,7 +83,7 @@ class Notification {
           n.*,
           u.name as user_name,
           u.email as user_email,
-          u.avatar as user_avatar
+          NULL as user_avatar
         FROM notifications n
         LEFT JOIN users u ON n.user_id = u.id
         WHERE n.id = $1
@@ -103,7 +103,7 @@ class Notification {
           n.*,
           u.name as user_name,
           u.email as user_email,
-          u.avatar as user_avatar
+          NULL as user_avatar
         FROM notifications n
         LEFT JOIN users u ON n.user_id = u.id
         WHERE n.user_id = $1
@@ -359,7 +359,7 @@ class Notification {
           n.*,
           u.name as user_name,
           u.email as user_email,
-          u.avatar as user_avatar,
+          NULL as user_avatar,
           CASE 
             WHEN n.data->>'related_user_ids' IS NOT NULL THEN
               (
@@ -367,7 +367,7 @@ class Notification {
                   'id', ru.id,
                   'name', ru.name,
                   'email', ru.email,
-                  'avatar', ru.avatar
+                  'avatar', NULL
                 ))
                 FROM users ru
                 WHERE ru.id = ANY(
