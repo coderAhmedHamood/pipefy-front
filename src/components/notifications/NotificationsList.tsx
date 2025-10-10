@@ -45,48 +45,50 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
     if (isLoading) return;
 
     console.log('🔔 بدء جلب الإشعارات...', { limit, offset: currentOffset });
-    setIsLoading(true);
     try {
       const response = await apiClient.get(`/notifications/with-users?limit=${limit}&offset=${currentOffset}`);
       
       console.log('📥 الاستجابة الكاملة:', response);
       console.log('📊 response.data:', response.data);
-      console.log('✅ response.data.success:', response.data?.success);
-      console.log('📋 response.data.data:', response.data?.data);
       
-      if (response.data && response.data.success) {
-        const newNotifications = response.data.data || [];
-        const pagination = response.data.pagination;
-
-        console.log('✅ عدد الإشعارات المستلمة:', newNotifications.length);
-        console.log('📊 الإشعارات:', newNotifications);
-
-        if (currentOffset === 0) {
-          setNotifications(newNotifications);
-          setTotalCount(newNotifications.length);
-          console.log('✅ تم تعيين الإشعارات (أول مرة)');
-        } else {
-          setNotifications(prev => [...prev, ...newNotifications]);
-          console.log('✅ تم إضافة الإشعارات');
-        }
-
-        // تحديث hasMore بناءً على عدد النتائج
-        if (newNotifications.length < limit) {
-          setHasMore(false);
-          console.log('⏹️ لا يوجد المزيد من الإشعارات');
-        } else {
-          setHasMore(true);
-          console.log('▶️ يوجد المزيد من الإشعارات');
-        }
-
-        // تحديث العدد الإجمالي إذا كان متوفراً
-        if (pagination && pagination.count !== undefined) {
-          setTotalCount(pagination.count);
-          console.log('📊 العدد الإجمالي:', pagination.count);
-        }
+      // apiClient يُرجع البيانات مباشرة في response.data
+      // تحقق من وجود البيانات
+      let newNotifications = [];
+      let pagination = null;
+      
+      if (Array.isArray(response.data)) {
+        // البيانات مباشرة كـ array
+        newNotifications = response.data;
+        console.log('✅ البيانات كـ array مباشرة');
+      } else if (response.data && response.data.data) {
+        // البيانات داخل wrapper
+        newNotifications = response.data.data || [];
+        pagination = response.data.pagination;
+        console.log('✅ البيانات داخل wrapper');
       } else {
-        console.warn('⚠️ استجابة غير متوقعة:', response.data);
+        console.warn('⚠️ صيغة غير متوقعة:', response.data);
+      }
+
+      console.log('📋 عدد الإشعارات:', newNotifications.length);
+      console.log('📊 الإشعارات:', newNotifications);
+
+      if (currentOffset === 0) {
+        setNotifications(newNotifications);
+        setTotalCount(newNotifications.length);
+      } else {
+        setNotifications(prev => [...prev, ...newNotifications]);
+      }
+
+      // تحديث hasMore بناءً على عدد النتائج
+      if (newNotifications.length < limit) {
         setHasMore(false);
+      } else {
+        setHasMore(true);
+      }
+
+      // تحديث العدد الإجمالي إذا كان متوفراً
+      if (pagination && pagination.count !== undefined) {
+        setTotalCount(pagination.count);
       }
     } catch (error: any) {
       console.error('❌ خطأ في جلب الإشعارات:', error);

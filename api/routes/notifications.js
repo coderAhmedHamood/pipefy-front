@@ -249,23 +249,15 @@ router.get('/user/:user_id', authenticateToken, NotificationController.getNotifi
 
 /**
  * @swagger
- * /api/notifications/{id}:
+ * /api/notifications/unread-count:
  *   get:
- *     summary: جلب إشعار واحد بدلالة ID
+ *     summary: جلب عدد الإشعارات غير المقروءة
  *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: معرف الإشعار
  *     responses:
  *       200:
- *         description: تم جلب الإشعار بنجاح
+ *         description: تم جلب العدد بنجاح
  *         content:
  *           application/json:
  *             schema:
@@ -273,36 +265,23 @@ router.get('/user/:user_id', authenticateToken, NotificationController.getNotifi
  *               properties:
  *                 success:
  *                   type: boolean
- *                 message:
- *                   type: string
  *                 data:
  *                   type: object
  *                   properties:
- *                     id:
- *                       type: string
- *                     user_id:
- *                       type: string
- *                     user_name:
- *                       type: string
- *                     user_email:
- *                       type: string
- *                     user_avatar:
- *                       type: string
- *                     title:
- *                       type: string
- *                     message:
- *                       type: string
- *                     notification_type:
- *                       type: string
- *                     is_read:
- *                       type: boolean
- *                     data:
- *                       type: object
- *                     created_at:
- *                       type: string
- *       404:
- *         description: الإشعار غير موجود
+ *                     unread_count:
+ *                       type: integer
+ *                       example: 5
  */
+router.get('/unread-count', authenticateToken, NotificationController.getUnreadCount);
+
+/**
+ * @swagger
+ * /api/notifications/{id}:
+ *   get:
+ *     summary: جلب إشعار بالمعرف
+ *     tags: [Notifications]
+ *     security:
+{{ ... }}
 router.get('/:id', authenticateToken, NotificationController.getNotificationById);
 
 /**
@@ -350,33 +329,6 @@ router.get('/:id', authenticateToken, NotificationController.getNotificationById
  *                   $ref: '#/components/schemas/Pagination'
  */
 router.get('/', authenticateToken, NotificationController.getUserNotifications);
-
-/**
- * @swagger
- * /api/notifications/unread-count:
- *   get:
- *     summary: جلب عدد الإشعارات غير المقروءة
- *     tags: [Notifications]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: تم جلب العدد بنجاح
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     unread_count:
- *                       type: integer
- *                       example: 5
- */
-router.get('/unread-count', authenticateToken, NotificationController.getUnreadCount);
 
 /**
  * @swagger
