@@ -9,6 +9,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { KanbanBoard } from './components/kanban/KanbanBoard';
 import { ProcessSelector } from './components/dashboard/ProcessSelector';
 import { HeaderProcessSelector } from './components/layout/HeaderProcessSelector';
+import { NotificationBell } from './components/notifications/NotificationBell';
 import { ProcessManager } from './components/processes/ProcessManager';
 import { UserManagerNew as UserManager } from './components/users/UserManagerNew';
 import { ReportsManager } from './components/reports/ReportsManager';
@@ -167,7 +168,10 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
             </div>
             
-            <UserInfo />
+            <div className="flex items-center space-x-3 space-x-reverse">
+              <NotificationBell />
+              <UserInfo />
+            </div>
           </div>
         </div>
 
@@ -235,6 +239,7 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   compact={false}
                 />
 
+                <NotificationBell />
                 <UserInfo />
               </div>
             </div>
