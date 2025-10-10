@@ -107,9 +107,9 @@ export const NotificationUsersDetail: React.FC<NotificationUsersDetailProps> = (
   const unreadUsers = notification.related_users.filter(u => !u.is_read);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col overflow-hidden">
+      {/* Header - مع max-height للسماح بالـ scroll */}
+      <div className="p-4 border-b border-gray-200 max-h-[30%] overflow-y-auto flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3 space-x-reverse">
             <div className="p-2 bg-purple-100 rounded-lg">

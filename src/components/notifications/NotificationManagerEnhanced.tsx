@@ -523,9 +523,9 @@ export const NotificationManagerEnhanced: React.FC = () => {
 
             {/* محتوى التقارير */}
             <div className="flex-1 overflow-hidden p-6">
-              <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
                 {/* القائمة */}
-                <div className="lg:col-span-1 h-full">
+                <div className="lg:col-span-1 h-full overflow-hidden">
                   {reportView === 'users' ? (
                     <UsersList 
                       onUserSelect={handleUserSelect}
@@ -540,7 +540,7 @@ export const NotificationManagerEnhanced: React.FC = () => {
                 </div>
 
                 {/* التفاصيل */}
-                <div className="lg:col-span-2 h-full">
+                <div className="lg:col-span-2 h-full overflow-hidden">
                   {selectedUser ? (
                     <UserNotificationsDetail
                       user={selectedUser}
