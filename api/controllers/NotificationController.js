@@ -112,6 +112,9 @@ class NotificationController {
   // 4. جلب الإشعارات مع المستخدمين المعنيين
   static async getNotificationsWithRelatedUsers(req, res) {
     try {
+      console.log('🔔 getNotificationsWithRelatedUsers - بدء الطلب');
+      console.log('📊 Query params:', req.query);
+      
       const filters = {
         notification_type: req.query.notification_type,
         from_date: req.query.from_date,
@@ -119,7 +122,14 @@ class NotificationController {
         offset: parseInt(req.query.offset) || 0
       };
 
+      console.log('🔍 Filters:', filters);
+
       const notifications = await Notification.findWithRelatedUsers(filters);
+
+      console.log('✅ عدد الإشعارات المسترجعة:', notifications.length);
+      if (notifications.length > 0) {
+        console.log('📋 أول إشعار:', notifications[0]);
+      }
 
       res.json({
         success: true,
@@ -132,7 +142,8 @@ class NotificationController {
         }
       });
     } catch (error) {
-      console.error('خطأ في جلب الإشعارات مع المستخدمين:', error);
+      console.error('❌ خطأ في جلب الإشعارات مع المستخدمين:', error);
+      console.error('❌ Stack:', error.stack);
       res.status(500).json({
         success: false,
         message: 'خطأ في جلب الإشعارات',
@@ -197,13 +208,27 @@ class NotificationController {
   // جلب عدد الإشعارات غير المقروءة
   static async getUnreadCount(req, res) {
     try {
+      console.log('🔔 getUnreadCount - بدء الطلب');
+      console.log('👤 req.user:', req.user);
+      
+      if (!req.user || !req.user.id) {
+        console.error('❌ المستخدم غير معرف');
+        return res.status(401).json({
+          success: false,
+          message: 'المستخدم غير مصادق'
+        });
+      }
+      
       const userId = req.user.id;
+      console.log('👤 userId:', userId);
       
       const result = await pool.query(`
         SELECT COUNT(*) as unread_count 
         FROM notifications 
         WHERE user_id = $1 AND is_read = false
       `, [userId]);
+      
+      console.log('✅ النتيجة:', result.rows[0]);
       
       res.json({
         success: true,
@@ -212,7 +237,8 @@ class NotificationController {
         }
       });
     } catch (error) {
-      console.error('خطأ في جلب عدد الإشعارات غير المقروءة:', error);
+      console.error('❌ خطأ في جلب عدد الإشعارات غير المقروءة:', error);
+      console.error('❌ Stack:', error.stack);
       res.status(500).json({
         success: false,
         message: 'خطأ في جلب عدد الإشعارات غير المقروءة',

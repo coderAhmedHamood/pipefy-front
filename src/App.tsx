@@ -17,7 +17,7 @@ import { SettingsManager } from './components/settings/SettingsManager';
 import { HelpCenter } from './components/help/HelpCenter';
 import { AutomationManager } from './components/automation/AutomationManager';
 import { RecurringManager } from './components/recurring/RecurringManager';
-import { NotificationManager } from './components/notifications/NotificationManager';
+import { NotificationManagerEnhanced as NotificationManager } from './components/notifications/NotificationManagerEnhanced';
 import { IntegrationManager } from './components/integrations/IntegrationManager';
 import { MainDashboard } from './components/dashboard/MainDashboard';
 import { SetupGuide } from './components/setup/SetupGuide';
