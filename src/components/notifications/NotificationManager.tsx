@@ -12,7 +12,7 @@ interface User {
   };
 }
 
-export const NotificationCenter: React.FC = () => {
+export const NotificationManager: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -69,7 +69,8 @@ export const NotificationCenter: React.FC = () => {
       });
 
       if (response.success) {
-        setSuccessMessage('تم إرسال الإشعار بنجاح!');
+        console.log('✅ تم إنشاء الإشعار:', response.data);
+        setSuccessMessage(`تم إرسال الإشعار بنجاح! (ID: ${response.data?.id || 'unknown'})`);
         resetForm();
       }
     } catch (error) {
@@ -100,7 +101,9 @@ export const NotificationCenter: React.FC = () => {
       });
 
       if (response.success) {
-        setSuccessMessage(`تم إرسال الإشعار إلى ${selectedUserIds.length} مستخدم بنجاح!`);
+        console.log('✅ تم إرسال الإشعارات:', response.data);
+        const sentCount = response.data?.sent_count || selectedUserIds.length;
+        setSuccessMessage(`تم إرسال الإشعار إلى ${sentCount} مستخدم بنجاح! (تم الإنشاء: ${sentCount})`);
         resetForm();
       }
     } catch (error) {

@@ -16,16 +16,18 @@ export interface CreateNotificationData {
   user_id: string;
   title: string;
   message: string;
-  type?: 'info' | 'success' | 'warning' | 'error';
-  data?: Record<string, any>;
+  notification_type?: string;
+  action_url?: string;
+  expires_at?: string;
 }
 
 export interface BulkNotificationData {
   user_ids: string[];
   title: string;
   message: string;
-  type?: 'info' | 'success' | 'warning' | 'error';
-  data?: Record<string, any>;
+  notification_type?: string;
+  action_url?: string;
+  expires_at?: string;
 }
 
 export interface NotificationListParams {

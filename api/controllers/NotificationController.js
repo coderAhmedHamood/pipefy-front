@@ -1,7 +1,147 @@
+const Notification = require('../models/Notification');
 const { pool } = require('../config/database');
 
 class NotificationController {
-  // جلب إشعارات المستخدم
+  // 1. جلب جميع الإشعارات (مع الفلاتر)
+  static async getAllNotifications(req, res) {
+    try {
+      const filters = {
+        user_id: req.query.user_id,
+        notification_type: req.query.notification_type,
+        is_read: req.query.is_read === 'true' ? true : req.query.is_read === 'false' ? false : undefined,
+        from_date: req.query.from_date,
+        to_date: req.query.to_date,
+        exclude_expired: req.query.exclude_expired === 'true',
+        limit: parseInt(req.query.limit) || 50,
+        offset: parseInt(req.query.offset) || 0,
+        order_by: req.query.order_by || 'created_at',
+        order_dir: req.query.order_dir || 'DESC'
+      };
+
+      const notifications = await Notification.findAll(filters);
+
+      res.json({
+        success: true,
+        message: 'تم جلب الإشعارات بنجاح',
+        data: notifications,
+        pagination: {
+          limit: filters.limit,
+          offset: filters.offset,
+          count: notifications.length
+        }
+      });
+    } catch (error) {
+      console.error('خطأ في جلب جميع الإشعارات:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في جلب الإشعارات',
+        error: error.message
+      });
+    }
+  }
+
+  // 2. جلب إشعار بالمعرف (ID)
+  static async getNotificationById(req, res) {
+    try {
+      const { id } = req.params;
+
+      const notification = await Notification.findById(id);
+
+      if (!notification) {
+        return res.status(404).json({
+          success: false,
+          message: 'الإشعار غير موجود'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'تم جلب الإشعار بنجاح',
+        data: notification
+      });
+    } catch (error) {
+      console.error('خطأ في جلب الإشعار:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في جلب الإشعار',
+        error: error.message
+      });
+    }
+  }
+
+  // 3. جلب إشعارات مستخدم معين
+  static async getNotificationsByUserId(req, res) {
+    try {
+      const { user_id } = req.params;
+
+      const filters = {
+        is_read: req.query.is_read === 'true' ? true : req.query.is_read === 'false' ? false : undefined,
+        notification_type: req.query.notification_type,
+        limit: parseInt(req.query.limit) || 50,
+        offset: parseInt(req.query.offset) || 0
+      };
+
+      const notifications = await Notification.findByUserId(user_id, filters);
+      const unreadCount = await Notification.getUnreadCount(user_id);
+      const stats = await Notification.getUserStats(user_id);
+
+      res.json({
+        success: true,
+        message: 'تم جلب إشعارات المستخدم بنجاح',
+        data: {
+          notifications,
+          unread_count: unreadCount,
+          stats
+        },
+        pagination: {
+          limit: filters.limit,
+          offset: filters.offset,
+          count: notifications.length
+        }
+      });
+    } catch (error) {
+      console.error('خطأ في جلب إشعارات المستخدم:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في جلب إشعارات المستخدم',
+        error: error.message
+      });
+    }
+  }
+
+  // 4. جلب الإشعارات مع المستخدمين المعنيين
+  static async getNotificationsWithRelatedUsers(req, res) {
+    try {
+      const filters = {
+        notification_type: req.query.notification_type,
+        from_date: req.query.from_date,
+        limit: parseInt(req.query.limit) || 50,
+        offset: parseInt(req.query.offset) || 0
+      };
+
+      const notifications = await Notification.findWithRelatedUsers(filters);
+
+      res.json({
+        success: true,
+        message: 'تم جلب الإشعارات مع المستخدمين المعنيين بنجاح',
+        data: notifications,
+        pagination: {
+          limit: filters.limit,
+          offset: filters.offset,
+          count: notifications.length
+        }
+      });
+    } catch (error) {
+      console.error('خطأ في جلب الإشعارات مع المستخدمين:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في جلب الإشعارات',
+        error: error.message
+      });
+    }
+  }
+
+  // جلب إشعارات المستخدم الحالي
   static async getUserNotifications(req, res) {
     try {
       const { page = 1, limit = 20, unread_only = false } = req.query;

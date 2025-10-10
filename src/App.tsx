@@ -17,7 +17,7 @@ import { SettingsManager } from './components/settings/SettingsManager';
 import { HelpCenter } from './components/help/HelpCenter';
 import { AutomationManager } from './components/automation/AutomationManager';
 import { RecurringManager } from './components/recurring/RecurringManager';
-import { NotificationCenter } from './components/notifications/NotificationCenter';
+import { NotificationManager } from './components/notifications/NotificationManager';
 import { IntegrationManager } from './components/integrations/IntegrationManager';
 import { MainDashboard } from './components/dashboard/MainDashboard';
 import { SetupGuide } from './components/setup/SetupGuide';
@@ -68,7 +68,7 @@ const ProtectedRoutes: React.FC = () => {
       <Route path="/processes" element={<MainApp><ProcessManager /></MainApp>} />
       <Route path="/users" element={<MainApp><UserManager /></MainApp>} />
       <Route path="/reports" element={<MainApp><ReportsManager /></MainApp>} />
-      <Route path="/notifications" element={<MainApp><NotificationCenter /></MainApp>} />
+      <Route path="/notifications" element={<MainApp><NotificationManager /></MainApp>} />
       <Route path="/automation" element={<MainApp><AutomationManager /></MainApp>} />
       <Route path="/recurring" element={<MainApp><RecurringManager /></MainApp>} />
       <Route path="/integrations" element={<MainApp><IntegrationManager /></MainApp>} />

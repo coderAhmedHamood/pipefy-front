@@ -58,9 +58,258 @@ const { authenticateToken } = require('../middleware/auth');
 
 /**
  * @swagger
+ * /api/notifications/all:
+ *   get:
+ *     summary: جلب جميع الإشعارات مع بيانات المستخدمين
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: user_id
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: فلتر حسب معرف المستخدم
+ *       - in: query
+ *         name: notification_type
+ *         schema:
+ *           type: string
+ *         description: فلتر حسب نوع الإشعار
+ *       - in: query
+ *         name: is_read
+ *         schema:
+ *           type: boolean
+ *         description: فلتر حسب حالة القراءة
+ *       - in: query
+ *         name: from_date
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: فلتر من تاريخ
+ *       - in: query
+ *         name: to_date
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: فلتر إلى تاريخ
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: عدد النتائج
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: الإزاحة
+ *     responses:
+ *       200:
+ *         description: تم جلب الإشعارات بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       user_id:
+ *                         type: string
+ *                       user_name:
+ *                         type: string
+ *                       user_email:
+ *                         type: string
+ *                       user_avatar:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       message:
+ *                         type: string
+ *                       notification_type:
+ *                         type: string
+ *                       is_read:
+ *                         type: boolean
+ *                       created_at:
+ *                         type: string
+ */
+router.get('/all', authenticateToken, NotificationController.getAllNotifications);
+
+/**
+ * @swagger
+ * /api/notifications/with-users:
+ *   get:
+ *     summary: جلب الإشعارات مع المستخدمين المعنيين
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: notification_type
+ *         schema:
+ *           type: string
+ *         description: فلتر حسب نوع الإشعار
+ *       - in: query
+ *         name: from_date
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: فلتر من تاريخ
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: عدد النتائج
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: الإزاحة
+ *     responses:
+ *       200:
+ *         description: تم جلب الإشعارات مع المستخدمين المعنيين بنجاح
+ */
+router.get('/with-users', authenticateToken, NotificationController.getNotificationsWithRelatedUsers);
+
+/**
+ * @swagger
+ * /api/notifications/user/{user_id}:
+ *   get:
+ *     summary: جلب إشعارات مستخدم معين
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *       - in: query
+ *         name: is_read
+ *         schema:
+ *           type: boolean
+ *         description: فلتر حسب حالة القراءة
+ *       - in: query
+ *         name: notification_type
+ *         schema:
+ *           type: string
+ *         description: فلتر حسب نوع الإشعار
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: عدد النتائج
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: الإزاحة
+ *     responses:
+ *       200:
+ *         description: تم جلب إشعارات المستخدم بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     notifications:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Notification'
+ *                     unread_count:
+ *                       type: integer
+ *                     stats:
+ *                       type: object
+ */
+router.get('/user/:user_id', authenticateToken, NotificationController.getNotificationsByUserId);
+
+/**
+ * @swagger
+ * /api/notifications/{id}:
+ *   get:
+ *     summary: جلب إشعار واحد بدلالة ID
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف الإشعار
+ *     responses:
+ *       200:
+ *         description: تم جلب الإشعار بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     user_id:
+ *                       type: string
+ *                     user_name:
+ *                       type: string
+ *                     user_email:
+ *                       type: string
+ *                     user_avatar:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     message:
+ *                       type: string
+ *                     notification_type:
+ *                       type: string
+ *                     is_read:
+ *                       type: boolean
+ *                     data:
+ *                       type: object
+ *                     created_at:
+ *                       type: string
+ *       404:
+ *         description: الإشعار غير موجود
+ */
+router.get('/:id', authenticateToken, NotificationController.getNotificationById);
+
+/**
+ * @swagger
  * /api/notifications:
  *   get:
- *     summary: جلب إشعارات المستخدم
+ *     summary: جلب إشعارات المستخدم الحالي
  *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
