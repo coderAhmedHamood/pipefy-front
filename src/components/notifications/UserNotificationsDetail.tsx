@@ -46,22 +46,53 @@ export const UserNotificationsDetail: React.FC<UserNotificationsDetailProps> = (
   const fetchUserNotifications = async () => {
     setIsLoading(true);
     try {
+      console.log('🔍 جلب إشعارات المستخدم:', user.id);
       const response = await apiClient.get(`/notifications/user/${user.id}`);
       
-      if (response.data && response.data.success) {
-        const notifs = response.data.data || [];
-        setNotifications(notifs);
-        
-        // حساب الإحصائيات
-        const unreadCount = notifs.filter((n: UserNotification) => !n.is_read).length;
-        setStats({
-          total: notifs.length,
-          unread: unreadCount,
-          read: notifs.length - unreadCount
-        });
+      console.log('📥 الاستجابة:', response);
+      
+      // apiClient يُرجع البيانات مباشرة أو داخل wrapper
+      let notifs = [];
+      
+      if (Array.isArray(response)) {
+        // البيانات مباشرة كـ array
+        notifs = response;
+        console.log('✅ البيانات كـ array مباشرة');
+      } else if (response.data) {
+        // البيانات داخل wrapper
+        if (Array.isArray(response.data)) {
+          notifs = response.data;
+          console.log('✅ البيانات في response.data');
+        } else if (response.data.notifications) {
+          // البيانات في response.data.notifications
+          notifs = response.data.notifications;
+          console.log('✅ البيانات في response.data.notifications');
+        } else if (response.data.data) {
+          // تحقق من نوع البيانات
+          if (Array.isArray(response.data.data)) {
+            notifs = response.data.data;
+            console.log('✅ البيانات في response.data.data كـ array');
+          } else if (response.data.data.notifications) {
+            notifs = response.data.data.notifications;
+            console.log('✅ البيانات في response.data.data.notifications');
+          }
+        }
       }
+      
+      console.log('📊 عدد الإشعارات:', notifs.length);
+      console.log('📋 الإشعارات:', notifs);
+      
+      setNotifications(notifs);
+      
+      // حساب الإحصائيات
+      const unreadCount = notifs.filter((n: UserNotification) => !n.is_read).length;
+      setStats({
+        total: notifs.length,
+        unread: unreadCount,
+        read: notifs.length - unreadCount
+      });
     } catch (error) {
-      console.error('خطأ في جلب إشعارات المستخدم:', error);
+      console.error('❌ خطأ في جلب إشعارات المستخدم:', error);
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +167,7 @@ export const UserNotificationsDetail: React.FC<UserNotificationsDetailProps> = (
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col overflow-hidden">
       {/* Header - مع max-height للسماح بالـ scroll */}
-      <div className="p-4 border-b border-gray-200 max-h-[30%] overflow-y-auto flex-shrink-0">
+      <div className="p-4 border-b border-gray-200 max-h-[45%] overflow-y-auto flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3 space-x-reverse">
             <div className="p-2 bg-blue-100 rounded-lg">
