@@ -1,7 +1,7 @@
 DB_CONNECTION=pgsql
 DB_HOST=localhost
 DB_PORT=5432
-DB_DATABASE=pipefy-main_v5
+DB_DATABASE=pipefy-main
 DB_USERNAME=postgres
 DB_PASSWORD=123456
 

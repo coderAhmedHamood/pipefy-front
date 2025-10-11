@@ -1095,18 +1095,26 @@ export const ProcessManager: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  {selectedProcess.stages.map((stage, index) => (
-                    <div key={stage.id} className="flex items-center space-x-4 space-x-reverse p-3 border border-gray-200 rounded-lg">
-                      <div className="flex items-center space-x-3 space-x-reverse flex-1">
-                        <div className="text-gray-400 font-medium">{index + 1}</div>
-                        <div className={`w-4 h-4 ${stage.color} rounded`}></div>
-                        <div>
-                          <div className="font-medium text-gray-900">{stage.name}</div>
-                          {stage.description && (
-                            <div className="text-sm text-gray-500">{stage.description}</div>
-                          )}
+                  {selectedProcess.stages.map((stage, index) => {
+                    // 🔍 سجل تشخيصي لكل مرحلة
+                    console.log(`🔍 المرحلة ${index + 1}: ${stage.name}`);
+                    console.log('   - is_initial:', stage.is_initial, '(نوع:', typeof stage.is_initial, ')');
+                    console.log('   - is_final:', stage.is_final, '(نوع:', typeof stage.is_final, ')');
+                    console.log('   - سيظهر badge "أولى"?', stage.is_initial ? 'نعم ✅' : 'لا ❌');
+                    console.log('   - سيظهر badge "نهائية"?', stage.is_final ? 'نعم ✅' : 'لا ❌');
+                    
+                    return (
+                      <div key={stage.id} className="flex items-center space-x-4 space-x-reverse p-3 border border-gray-200 rounded-lg">
+                        <div className="flex items-center space-x-3 space-x-reverse flex-1">
+                          <div className="text-gray-400 font-medium">{index + 1}</div>
+                          <div className={`w-4 h-4 ${stage.color} rounded`}></div>
+                          <div>
+                            <div className="font-medium text-gray-900">{stage.name}</div>
+                            {stage.description && (
+                              <div className="text-sm text-gray-500">{stage.description}</div>
+                            )}
+                          </div>
                         </div>
-                      </div>
                       
                       {index < selectedProcess.stages.length - 1 && (
                         <ArrowRight className="w-4 h-4 text-gray-400" />
@@ -1115,10 +1123,15 @@ export const ProcessManager: React.FC = () => {
                       <div className="flex items-center space-x-2 space-x-reverse">
                         <button
                           onClick={() => {
+                            console.log('🔍 فتح نموذج تعديل المرحلة:', stage);
+                            console.log('   - is_initial:', stage.is_initial, '(نوع:', typeof stage.is_initial, ')');
+                            console.log('   - is_final:', stage.is_final, '(نوع:', typeof stage.is_final, ')');
+
                             // إعداد حالة المرحلة للتحرير
                             setEditingStage(stage);
 
                             // ملء النموذج بالبيانات الحالية للمرحلة
+                            // ✅ إصلاح: استخدام === true بدلاً من || false للحفاظ على القيم الصحيحة
                             setStageForm({
                               name: stage.name || '',
                               description: stage.description || '',
@@ -1126,10 +1139,14 @@ export const ProcessManager: React.FC = () => {
                               order: stage.order || 1,
                               priority: stage.priority || 1,
                               allowed_transitions: stage.allowed_transitions || ((stage as any).transitions ? (stage as any).transitions.map((t: any) => t.to_stage_id) : []),
-                              is_initial: stage.is_initial || false,
-                              is_final: stage.is_final || false,
+                              is_initial: stage.is_initial === true,
+                              is_final: stage.is_final === true,
                               sla_hours: stage.sla_hours || undefined
                             });
+
+                            console.log('📝 النموذج بعد الملء:');
+                            console.log('   - is_initial:', stage.is_initial === true);
+                            console.log('   - is_final:', stage.is_final === true);
                           }}
                           className="p-1 rounded hover:bg-gray-100"
                         >
@@ -1166,7 +1183,8 @@ export const ProcessManager: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

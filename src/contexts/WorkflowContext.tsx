@@ -295,7 +295,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             })),
             automation_rules: stage.automation_rules || [],
             allowed_transitions: stage.allowed_transitions || (stage.transitions ? stage.transitions.map((t: any) => t.to_stage_id) : []),
-            is_initial: stage.is_initial || false
+            is_initial: stage.is_initial === true,
+            is_final: stage.is_final === true
           })),
           fields: (process.fields || []).map((field: any) => ({
             id: field.id.toString(),
