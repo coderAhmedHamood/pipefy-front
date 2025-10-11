@@ -281,7 +281,21 @@ router.get('/unread-count', authenticateToken, NotificationController.getUnreadC
  *     summary: جلب إشعار بالمعرف
  *     tags: [Notifications]
  *     security:
-{{ ... }}
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف الإشعار
+ *     responses:
+ *       200:
+ *         description: تم جلب الإشعار بنجاح
+ *       404:
+ *         description: الإشعار غير موجود
+ */
 router.get('/:id', authenticateToken, NotificationController.getNotificationById);
 
 /**

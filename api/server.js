@@ -94,11 +94,25 @@ const startServer = async () => {
     console.log('🔄 Testing database connection...');
     await testConnection();
     
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, '127.0.0.1', () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📍 Server URL: http://localhost:${PORT}`);
+      console.log(`📚 Swagger UI: http://localhost:${PORT}/api-docs`);
       console.log(`🔗 Test database: http://localhost:${PORT}/test-db`);
     });
+    
+    server.on('error', (error) => {
+      console.error('❌ Server error:', error.message);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use!`);
+        console.error('💡 Try: Stop-Process -Name node -Force');
+      } else if (error.code === 'EACCES') {
+        console.error(`❌ Permission denied for port ${PORT}`);
+        console.error('💡 Try running with administrator privileges or use a different port');
+      }
+      process.exit(1);
+    });
+    
   } catch (error) {
     console.error('❌ Failed to start server:', error.message);
     process.exit(1);
