@@ -10,6 +10,7 @@ import ticketAssignmentService, { TicketAssignment } from '../../services/ticket
 import ticketReviewerService, { TicketReviewer } from '../../services/ticketReviewerService';
 import ticketService from '../../services/ticketService';
 import userService from '../../services/userService';
+import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { 
   X, 
   Save, 
@@ -844,7 +845,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                         <Calendar className="w-4 h-4" />
                         <span className="text-sm">موعد الإنتهاء:</span>
                         <span className="text-sm font-medium">
-                          {new Date(ticket.due_date).toLocaleDateString('ar-SA')}
+                          {formatDate(ticket.due_date)}
                         </span>
                         {isOverdue && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">(متأخر)</span>}
                         {isDueSoon && <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">(قريب)</span>}
@@ -855,7 +856,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       <Clock className="w-4 h-4" />
                       <span className="text-sm">تم الإنشاء:</span>
                       <span className="text-sm font-medium">
-                        {new Date(ticket.created_at).toLocaleDateString('ar-SA')}
+                        {formatDate(ticket.created_at)}
                       </span>
                     </div>
                   </div>
@@ -1225,7 +1226,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       <div className="flex items-center space-x-3 space-x-reverse mt-1 text-xs text-gray-500">
                         <span>{activity.user_name}</span>
                         <span>•</span>
-                        <span>{new Date(activity.created_at).toLocaleString('ar-SA')}</span>
+                        <span>{formatDateTime(activity.created_at)}</span>
                       </div>
                     </div>
                   </div>

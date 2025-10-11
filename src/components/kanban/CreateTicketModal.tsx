@@ -3,6 +3,7 @@ import { X, Save, Plus, Trash2, Upload, Calendar, User, Flag, Tag, FileText, Ale
 import { Process, ProcessField, Priority, Ticket } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { getPriorityLabel } from '../../utils/priorityUtils';
+import { formatDate } from '../../utils/dateUtils';
 import { ticketService, CreateTicketData } from '../../services';
 
 interface CreateTicketModalProps {
@@ -542,7 +543,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                     <div className="flex justify-between">
                       <span className="text-gray-600">موعد الإنتهاء:</span>
                       <span className="font-medium text-gray-900">
-                        {new Date(formData.due_date).toLocaleDateString('ar-SA')}
+                        {formatDate(formData.due_date)}
                       </span>
                     </div>
                   )}

@@ -7,6 +7,7 @@ import { useWorkflow } from '../../contexts/WorkflowContext';
 import { Ticket, Process } from '../../types/workflow';
 import { Plus, Search, LayoutGrid, List, RefreshCw, AlertCircle, Settings, HelpCircle, Filter } from 'lucide-react';
 import { getPriorityColor, getPriorityLabel } from '../../utils/priorityUtils';
+import { formatDate } from '../../utils/dateUtils';
 import ticketService, { TicketsByStagesResponse, TicketsByStagesApiResponse } from '../../services/ticketService';
 import { useToast } from '../ui/Toast';
 
@@ -567,10 +568,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(ticket.created_at).toLocaleDateString('ar-SA')}
+                        {formatDate(ticket.created_at)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {ticket.due_date ? new Date(ticket.due_date).toLocaleDateString('ar-SA') : '-'}
+                        {ticket.due_date ? formatDate(ticket.due_date) : '-'}
                       </td>
                     </tr>
                   );

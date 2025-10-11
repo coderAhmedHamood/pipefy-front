@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Ticket } from '../../types/workflow';
 import { Clock, Paperclip, MessageSquare, User, AlertTriangle, Calendar } from 'lucide-react';
 import { getPriorityColor, getPriorityLabel, getPriorityIcon } from '../../utils/priorityUtils';
+import { formatDateShort } from '../../utils/dateUtils';
 
 interface KanbanCardProps {
   ticket: Ticket;
@@ -134,10 +135,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
           `}>
             <Calendar className="w-3 h-3" />
             <span>
-              {new Date(ticket.due_date).toLocaleDateString('ar-SA', {
-                month: 'short',
-                day: 'numeric'
-              })}
+              {formatDateShort(ticket.due_date)}
             </span>
             {isOverdue && <span className="font-medium">(متأخر)</span>}
             {isDueSoon && <span className="font-medium">(قريب)</span>}
@@ -164,10 +162,7 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
             <div className="flex items-center space-x-1 space-x-reverse">
               <Clock className="w-3 h-3" />
               <span className="text-xs">
-                {new Date(ticket.created_at).toLocaleDateString('ar-SA', {
-                  month: 'short',
-                  day: 'numeric'
-                })}
+                {formatDateShort(ticket.created_at)}
               </span>
             </div>
           </div>
