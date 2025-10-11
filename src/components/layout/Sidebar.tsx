@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import notificationService from '../../services/notificationService';
+
 import {
   Home,
   Settings,
@@ -50,6 +52,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { user, logout } = useAuth();
   const location = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // جلب عدد الإشعارات غير المقروءة
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await notificationService.getUnreadCount();
+        console.log('📊 Sidebar - استجابة عدد الإشعارات:', response);
+        if (response.success && response.data) {
+          const count = response.data.unread_count || response.data.count || 0;
+          console.log('✅ Sidebar - عدد الإشعارات غير المقروءة:', count);
+          setUnreadCount(count);
+        }
+      } catch (error) {
+        console.error('❌ Sidebar - خطأ في جلب عدد الإشعارات:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // استخراج المسار الحالي
   const currentPath = location.pathname.slice(1) || 'kanban';
@@ -119,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
                   className={`
-                    w-full flex items-center p-3 rounded-lg transition-all duration-200
+                    w-full flex items-center p-3 rounded-lg transition-all duration-200 relative
                     ${isActive
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -127,9 +151,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     ${isCollapsed ? 'justify-center' : 'space-x-3 space-x-reverse'}
                   `}
                 >
-                  <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                  <div className="relative">
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                    {item.id === 'notifications' && unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full border-2 border-white shadow-lg">
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </div>
                   {!isCollapsed && (
-                    <span className="font-medium text-sm">{item.label}</span>
+                    <span className="font-medium text-sm flex-1">{item.label}</span>
+                  )}
+                  {!isCollapsed && item.id === 'notifications' && unreadCount > 0 && (
+                    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full shadow-lg">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
                   )}
                 </Link>
 

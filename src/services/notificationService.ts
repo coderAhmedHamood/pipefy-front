@@ -69,7 +69,7 @@ class NotificationService {
   /**
    * جلب عدد الإشعارات غير المقروءة
    */
-  async getUnreadCount(): Promise<ApiResponse<{ count: number }>> {
+  async getUnreadCount(): Promise<ApiResponse<{ unread_count: number; count?: number }>> {
     try {
       const response = await apiClient.get(`${this.endpoint}/unread-count`);
       return response;

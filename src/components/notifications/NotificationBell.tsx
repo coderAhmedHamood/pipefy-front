@@ -34,11 +34,14 @@ export const NotificationBell: React.FC = () => {
   const fetchUnreadCount = async () => {
     try {
       const response = await notificationService.getUnreadCount();
+      console.log('📊 استجابة عدد الإشعارات:', response);
       if (response.success && response.data) {
-        setUnreadCount(response.data.count);
+        const count = response.data.unread_count || response.data.count || 0;
+        console.log('✅ عدد الإشعارات غير المقروءة:', count);
+        setUnreadCount(count);
       }
     } catch (error) {
-      console.error('خطأ في جلب عدد الإشعارات:', error);
+      console.error('❌ خطأ في جلب عدد الإشعارات:', error);
     }
   };
 
@@ -159,19 +162,7 @@ export const NotificationBell: React.FC = () => {
     }
   };
 
-  // الحصول على لون حسب نوع الإشعار
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-50 border-green-200';
-      case 'warning':
-        return 'bg-yellow-50 border-yellow-200';
-      case 'error':
-        return 'bg-red-50 border-red-200';
-      default:
-        return 'bg-blue-50 border-blue-200';
-    }
-  };
+  console.log('🔔 NotificationBell - unreadCount:', unreadCount);
 
   return (
     <div className="relative" ref={panelRef}>
@@ -183,7 +174,7 @@ export const NotificationBell: React.FC = () => {
       >
         <Bell className="w-6 h-6" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
+          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full border-2 border-white shadow-lg animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
