@@ -1052,8 +1052,8 @@ router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.
 
     const ticket = ticketResult.rows[0];
 
-    // 2. التحقق من وجود المرحلة المستهدفة
-    const stageQuery = 'SELECT name FROM stages WHERE id = $1';
+    // 2. التحقق من وجود المرحلة المستهدفة والحصول على معلوماتها
+    const stageQuery = 'SELECT name, is_final FROM stages WHERE id = $1';
     const stageResult = await pool.query(stageQuery, [target_stage_id]);
 
     if (stageResult.rows.length === 0) {
@@ -1065,32 +1065,52 @@ router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.
 
     const targetStage = stageResult.rows[0];
 
-    // 3. تحريك التذكرة (تحديث المرحلة)
+    // 3. تحديد تاريخ الإنهاء بناءً على نوع المرحلة
+    let completedAt = null;
+    if (targetStage.is_final) {
+      // إذا كانت المرحلة المستهدفة نهائية، نضع تاريخ الإنهاء
+      completedAt = new Date().toISOString();
+    }
+    // إذا لم تكن نهائية، نتركه null (حتى لو كانت التذكرة منتهية سابقاً)
+
+    // 4. تحريك التذكرة (تحديث المرحلة وتاريخ الإنهاء)
     const updateQuery = `
       UPDATE tickets
-      SET current_stage_id = $1, updated_at = NOW()
-      WHERE id = $2
+      SET current_stage_id = $1, 
+          completed_at = $2,
+          updated_at = NOW()
+      WHERE id = $3
     `;
-    await pool.query(updateQuery, [target_stage_id, ticketId]);
+    await pool.query(updateQuery, [target_stage_id, completedAt, ticketId]);
 
-    // 4. إضافة تعليق تلقائي عن التحريك
+    // 5. إضافة تعليق تلقائي عن التحريك
     const userName = req.user.name || req.user.email || 'مستخدم';
-    const moveComment = `🔄 تم تحريك التذكرة بواسطة: ${userName}\n📍 من مرحلة: "${ticket.current_stage_name || 'غير محدد'}"\n🎯 إلى مرحلة: "${targetStage.name}"`;
+    let moveComment = `🔄 تم تحريك التذكرة بواسطة: ${userName}\n📍 من مرحلة: "${ticket.current_stage_name || 'غير محدد'}"\n🎯 إلى مرحلة: "${targetStage.name}"`;
+    
+    // إضافة معلومة الإنهاء إذا كانت المرحلة نهائية
+    if (targetStage.is_final) {
+      moveComment += `\n✅ تم إنهاء التذكرة في: ${new Date().toLocaleString('ar-EG', { dateStyle: 'full', timeStyle: 'short' })}`;
+    } else if (ticket.completed_at) {
+      // إذا كانت التذكرة منتهية سابقاً وتم إرجاعها
+      moveComment += `\n🔄 تم إعادة فتح التذكرة (كانت منتهية سابقاً)`;
+    }
 
     await pool.query(`
       INSERT INTO ticket_comments (ticket_id, user_id, content, is_internal, created_at)
       VALUES ($1, $2, $3, $4, NOW())
     `, [ticketId, req.user.id, moveComment, false]);
 
-    // 5. إرجاع النتيجة
+    // 6. إرجاع النتيجة
     res.json({
       success: true,
-      message: 'تم تحريك التذكرة بنجاح',
+      message: targetStage.is_final ? 'تم تحريك التذكرة وإنهائها بنجاح' : 'تم تحريك التذكرة بنجاح',
       data: {
         ticket_id: ticketId,
         ticket_number: ticket.ticket_number,
         from_stage: ticket.current_stage_name,
         to_stage: targetStage.name,
+        is_final_stage: targetStage.is_final,
+        completed_at: completedAt,
         moved_at: new Date().toISOString()
       }
     });
