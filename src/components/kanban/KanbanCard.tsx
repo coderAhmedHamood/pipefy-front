@@ -2,7 +2,7 @@ import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Ticket } from '../../types/workflow';
-import { Clock, Paperclip, MessageSquare, User, AlertTriangle, Calendar } from 'lucide-react';
+import { Clock, Paperclip, MessageSquare, Calendar, Flag } from 'lucide-react';
 import { getPriorityColor, getPriorityLabel, getPriorityIcon } from '../../utils/priorityUtils';
 import { formatDateShort } from '../../utils/dateUtils';
 
@@ -42,6 +42,20 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
   const isDueSoon = ticket.due_date && 
     new Date(ticket.due_date) > new Date() && 
     new Date(ticket.due_date) < new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
+  // حساب الفارق بالأيام بين تاريخ الإنشاء وتاريخ الاستحقاق
+  const calculateDaysDifference = () => {
+    if (!ticket.due_date) return null;
+    
+    const createdDate = new Date(ticket.created_at);
+    const dueDate = new Date(ticket.due_date);
+    const diffTime = dueDate.getTime() - createdDate.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+
+  const daysDifference = calculateDaysDifference();
 
   return (
     <div
@@ -127,20 +141,40 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
           </div>
         )}
 
-        {/* Due Date */}
-        {ticket.due_date && (
+        {/* Priority & Due Date - Always Show */}
+        <div className="mb-3 space-y-2 border-t border-gray-100 pt-3">
+          {/* Priority */}
+          <div className="flex items-center space-x-1 space-x-reverse text-xs">
+            <Flag className="w-3 h-3 text-gray-500" />
+            <span className="font-medium text-gray-600">الأولوية:</span>
+            <span className={`font-bold px-2 py-0.5 rounded ${
+              ticket.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+              ticket.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+              ticket.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {getPriorityLabel(ticket.priority)}
+            </span>
+          </div>
+          
+          {/* Due Date */}
           <div className={`
-            flex items-center space-x-1 space-x-reverse mb-3 text-xs
-            ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : 'text-gray-500'}
+            flex items-center space-x-1 space-x-reverse text-xs
+            ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : 'text-gray-600'}
           `}>
             <Calendar className="w-3 h-3" />
-            <span>
-              {formatDateShort(ticket.due_date)}
-            </span>
-            {isOverdue && <span className="font-medium">(متأخر)</span>}
-            {isDueSoon && <span className="font-medium">(قريب)</span>}
+            <span className="font-medium">موعد الإنتهاء:</span>
+            {ticket.due_date ? (
+              <>
+                <span className="font-medium">{formatDateShort(ticket.due_date)}</span>
+                {isOverdue && <span className="font-bold bg-red-100 text-red-800 px-2 py-0.5 rounded">(متأخر)</span>}
+                {isDueSoon && <span className="font-bold bg-orange-100 text-orange-800 px-2 py-0.5 rounded">(قريب)</span>}
+              </>
+            ) : (
+              <span className="text-gray-400 italic">غير محدد</span>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between">
@@ -159,25 +193,35 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
               </div>
             )}
 
+            {/* Created Date */}
             <div className="flex items-center space-x-1 space-x-reverse">
               <Clock className="w-3 h-3" />
-              <span className="text-xs">
+              <span className="text-xs" title="تاريخ الإنشاء">
                 {formatDateShort(ticket.created_at)}
               </span>
             </div>
-          </div>
 
-          {/* Priority Badge */}
-          {ticket.priority !== 'medium' && (
-            <span className={`
-              text-xs px-2 py-1 rounded-full font-medium
-              ${ticket.priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                ticket.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                'bg-green-100 text-green-800'}
-            `}>
-              {getPriorityLabel(ticket.priority)}
-            </span>
-          )}
+            {/* Due Date with Days Difference */}
+            {ticket.due_date && (
+              <div className="flex items-center space-x-1 space-x-reverse">
+                <Calendar className="w-3 h-3" />
+                <span className={`text-xs font-medium ${
+                  isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : 'text-gray-600'
+                }`} title="تاريخ الاستحقاق">
+                  {formatDateShort(ticket.due_date)}
+                </span>
+                {daysDifference !== null && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${
+                    daysDifference < 0 ? 'bg-red-100 text-red-700' :
+                    daysDifference <= 2 ? 'bg-orange-100 text-orange-700' :
+                    'bg-blue-100 text-blue-700'
+                  }`}>
+                    {daysDifference < 0 ? `${Math.abs(daysDifference)} يوم متأخر` : `${daysDifference} يوم`}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
