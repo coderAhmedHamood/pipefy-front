@@ -1,421 +1,500 @@
-import React, { useState, useMemo } from 'react';
-import { useWorkflow } from '../../contexts/WorkflowContext';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, 
-  PieChart, 
-  TrendingUp, 
   Users, 
-  Clock, 
+  Settings,
+  Activity,
   CheckCircle,
+  Clock,
   AlertTriangle,
-  Calendar,
-  Download,
-  Filter,
-  RefreshCw
+  ArrowRight,
+  Target,
+  Award,
+  Zap,
+  RefreshCw,
+  Loader
 } from 'lucide-react';
 
+interface Process {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  icon: string;
+  is_active: boolean;
+  created_at: string;
+  stages?: any[];
+}
+
+interface ProcessReport {
+  process: Process;
+  period: { from: string; to: string };
+  basic_stats: {
+    total_tickets: number;
+    open_tickets: number;
+    completed_tickets: number;
+    overdue_tickets: number;
+    avg_completion_hours: number;
+  };
+  stage_distribution: Array<{
+    stage_name: string;
+    ticket_count: number;
+    percentage: number;
+  }>;
+  priority_distribution: Array<{
+    priority: string;
+    count: number;
+    percentage: number;
+  }>;
+  completion_rate: {
+    total: number;
+    completed: number;
+    rate: number;
+  };
+  top_performers: Array<{
+    user_name: string;
+    completed_tickets: number;
+  }>;
+}
+
+type TabType = 'users' | 'processes' | 'development';
+
 export const ReportsManager: React.FC = () => {
-  const { processes, tickets } = useWorkflow();
-  const [selectedProcess, setSelectedProcess] = useState<string>('all');
-  const [dateRange, setDateRange] = useState({
-    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
-  });
+  const [activeTab, setActiveTab] = useState<TabType>('processes');
+  const [processes, setProcesses] = useState<Process[]>([]);
+  const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
+  const [processReport, setProcessReport] = useState<ProcessReport | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
 
-  // تصفية التذاكر حسب الفترة والعملية
-  const filteredTickets = useMemo(() => {
-    return tickets.filter(ticket => {
-      const ticketDate = new Date(ticket.created_at);
-      const startDate = new Date(dateRange.start);
-      const endDate = new Date(dateRange.end);
-      
-      const inDateRange = ticketDate >= startDate && ticketDate <= endDate;
-      const inProcess = selectedProcess === 'all' || ticket.process_id === selectedProcess;
-      
-      return inDateRange && inProcess;
-    });
-  }, [tickets, dateRange, selectedProcess]);
+  // جلب جميع العمليات
+  useEffect(() => {
+    fetchProcesses();
+  }, []);
 
-  // إحصائيات عامة
-  const stats = useMemo(() => {
-    const total = filteredTickets.length;
-    const completed = filteredTickets.filter(t => {
-      const process = processes.find(p => p.id === t.process_id);
-      const lastStage = process?.stages[process.stages.length - 1];
-      return t.current_stage_id === lastStage?.id;
-    }).length;
-    
-    const overdue = filteredTickets.filter(t => 
-      t.due_date && new Date(t.due_date) < new Date()
-    ).length;
-    
-    const highPriority = filteredTickets.filter(t => 
-      t.priority === 'urgent' || t.priority === 'high'
-    ).length;
+  const fetchProcesses = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('http://localhost:3000/api/processes', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    return { total, completed, overdue, highPriority };
-  }, [filteredTickets, processes]);
-
-  // إحصائيات حسب المرحلة
-  const stageStats = useMemo(() => {
-    const stageMap = new Map();
-    
-    filteredTickets.forEach(ticket => {
-      const process = processes.find(p => p.id === ticket.process_id);
-      const stage = process?.stages.find(s => s.id === ticket.current_stage_id);
-      
-      if (stage) {
-        const key = stage.name;
-        stageMap.set(key, (stageMap.get(key) || 0) + 1);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setProcesses(result.data);
+        }
       }
-    });
-    
-    return Array.from(stageMap.entries()).map(([name, count]) => ({
-      name,
-      count,
-      percentage: ((count / filteredTickets.length) * 100).toFixed(1)
-    }));
-  }, [filteredTickets, processes]);
+    } catch (error) {
+      console.error('خطأ في جلب العمليات:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // إحصائيات حسب الأولوية
-  const priorityStats = useMemo(() => {
-    const priorities = ['urgent', 'high', 'medium', 'low'];
-    const priorityLabels = {
-      urgent: 'عاجل جداً',
-      high: 'عاجل',
-      medium: 'متوسط',
-      low: 'منخفض'
-    };
-    
-    return priorities.map(priority => ({
-      name: priorityLabels[priority],
-      count: filteredTickets.filter(t => t.priority === priority).length,
-      color: priority === 'urgent' ? 'bg-red-500' :
-             priority === 'high' ? 'bg-orange-500' :
-             priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-    }));
-  }, [filteredTickets]);
-
-  // إحصائيات حسب العملية
-  const processStats = useMemo(() => {
-    return processes.map(process => {
-      const processTickets = filteredTickets.filter(t => t.process_id === process.id);
-      const completed = processTickets.filter(t => {
-        const lastStage = process.stages[process.stages.length - 1];
-        return t.current_stage_id === lastStage?.id;
-      }).length;
+  // جلب تقرير عملية معينة
+  const fetchProcessReport = async (processId: string) => {
+    setIsLoadingReport(true);
+    setProcessReport(null); // إعادة تعيين التقرير السابق
+    try {
+      const token = localStorage.getItem('auth_token');
+      console.log('🔍 جلب تقرير العملية:', processId);
       
-      return {
-        name: process.name,
-        total: processTickets.length,
-        completed,
-        completionRate: processTickets.length > 0 ? ((completed / processTickets.length) * 100).toFixed(1) : '0',
-        color: process.color
-      };
-    });
-  }, [processes, filteredTickets]);
+      const response = await fetch(`http://localhost:3000/api/reports/process/${processId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-  // متوسط وقت الإنجاز
-  const averageCompletionTime = useMemo(() => {
-    const completedTickets = filteredTickets.filter(ticket => {
-      const process = processes.find(p => p.id === ticket.process_id);
-      const lastStage = process?.stages[process.stages.length - 1];
-      return ticket.current_stage_id === lastStage?.id;
-    });
-    
-    if (completedTickets.length === 0) return 0;
-    
-    const totalTime = completedTickets.reduce((sum, ticket) => {
-      const created = new Date(ticket.created_at);
-      const updated = new Date(ticket.updated_at);
-      return sum + (updated.getTime() - created.getTime());
-    }, 0);
-    
-    return Math.round(totalTime / completedTickets.length / (1000 * 60 * 60 * 24)); // أيام
-  }, [filteredTickets, processes]);
+      console.log('📡 استجابة API:', response.status);
 
-  const exportReport = () => {
-    const reportData = {
-      period: `${dateRange.start} إلى ${dateRange.end}`,
-      process: selectedProcess === 'all' ? 'جميع العمليات' : processes.find(p => p.id === selectedProcess)?.name,
-      stats,
-      stageStats,
-      priorityStats,
-      processStats,
-      averageCompletionTime
-    };
-    
-    const dataStr = JSON.stringify(reportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `تقرير-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ نتيجة التقرير:', result);
+        
+        if (result.success && result.data) {
+          setProcessReport(result.data);
+        } else {
+          console.error('❌ البيانات غير صحيحة:', result);
+          alert('فشل في جلب التقرير: البيانات غير صحيحة');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ خطأ في الاستجابة:', errorData);
+        alert(`فشل في جلب التقرير: ${errorData.message || 'خطأ غير معروف'}`);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في جلب تقرير العملية:', error);
+      alert('حدث خطأ أثناء جلب التقرير. تحقق من اتصال الإنترنت.');
+    } finally {
+      setIsLoadingReport(false);
+    }
+  };
+
+  const handleProcessClick = (process: Process) => {
+    console.log('🖱️ تم الضغط على العملية:', process.name, process.id);
+    setSelectedProcess(process);
+    fetchProcessReport(process.id);
+  };
+
+  const handleBackToList = () => {
+    setSelectedProcess(null);
+    setProcessReport(null);
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'urgent': return 'bg-red-500';
+      case 'high': return 'bg-orange-500';
+      case 'medium': return 'bg-yellow-500';
+      case 'low': return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'urgent': return 'عاجل جداً';
+      case 'high': return 'عاجل';
+      case 'medium': return 'متوسط';
+      case 'low': return 'منخفض';
+      default: return priority;
+    }
   };
 
   return (
-    <div className="h-full bg-gray-50">
+    <div className="h-full bg-gray-50" dir="rtl">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">التقارير والإحصائيات</h1>
-            <p className="text-gray-600">متابعة الأداء والإنتاجية</p>
+            <p className="text-gray-600">تحليل شامل للأداء واتخاذ القرارات</p>
           </div>
           
-          <div className="flex items-center space-x-3 space-x-reverse">
-            <button
-              onClick={exportReport}
-              className="flex items-center space-x-2 space-x-reverse px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <Download className="w-4 h-4" />
-              <span>تصدير</span>
-            </button>
-            
-            <button className="flex items-center space-x-2 space-x-reverse px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-              <RefreshCw className="w-4 h-4" />
-              <span>تحديث</span>
-            </button>
-          </div>
+          <button
+            onClick={fetchProcesses}
+            className="flex items-center space-x-2 space-x-reverse px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>تحديث</span>
+          </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center space-x-4 space-x-reverse">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">العملية</label>
-            <select
-              value={selectedProcess}
-              onChange={(e) => setSelectedProcess(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">جميع العمليات</option>
-              {processes.map(process => (
-                <option key={process.id} value={process.id}>{process.name}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">من تاريخ</label>
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">إلى تاريخ</label>
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+        {/* Tabs */}
+        <div className="flex items-center space-x-4 space-x-reverse mt-6 border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('processes')}
+            className={`pb-3 px-4 font-medium transition-colors relative ${
+              activeTab === 'processes'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <BarChart3 className="w-4 h-4" />
+              <span>تقارير العمليات</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`pb-3 px-4 font-medium transition-colors relative ${
+              activeTab === 'users'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <Users className="w-4 h-4" />
+              <span>تقارير المستخدمين</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('development')}
+            className={`pb-3 px-4 font-medium transition-colors relative ${
+              activeTab === 'development'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <Settings className="w-4 h-4" />
+              <span>قيد التطوير</span>
+            </div>
+          </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-140px)]">
-        {/* Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
+      <div className="p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+        {/* تبويبة العمليات */}
+        {activeTab === 'processes' && (
+          <>
+            {!selectedProcess ? (
+              /* قائمة العمليات */
               <div>
-                <p className="text-sm font-medium text-gray-600">إجمالي التذاكر</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">مكتملة</p>
-                <p className="text-3xl font-bold text-green-600">{stats.completed}</p>
-                <p className="text-xs text-gray-500">
-                  {stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(1) : 0}% من الإجمالي
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">متأخرة</p>
-                <p className="text-3xl font-bold text-red-600">{stats.overdue}</p>
-                <p className="text-xs text-gray-500">
-                  {stats.total > 0 ? ((stats.overdue / stats.total) * 100).toFixed(1) : 0}% من الإجمالي
-                </p>
-              </div>
-              <div className="p-3 bg-red-100 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">متوسط الإنجاز</p>
-                <p className="text-3xl font-bold text-purple-600">{averageCompletionTime}</p>
-                <p className="text-xs text-gray-500">يوم</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Clock className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Stage Distribution */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-              <PieChart className="w-5 h-5" />
-              <span>توزيع التذاكر حسب المرحلة</span>
-            </h3>
-            
-            {stageStats.length > 0 ? (
-            <div className="space-y-3">
-              {stageStats.map((stage, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className="w-4 h-4 bg-blue-500 rounded" style={{
-                      backgroundColor: `hsl(${(index * 360) / stageStats.length}, 70%, 50%)`
-                    }}></div>
-                    <span className="text-sm font-medium text-gray-900">{stage.name}</span>
-                  </div>
-                  <div className="text-left">
-                    <span className="text-sm font-bold text-gray-900">{stage.count}</span>
-                    <span className="text-xs text-gray-500 mr-1">({stage.percentage}%)</span>
-                  </div>
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">اختر عملية لعرض التقرير</h2>
+                  <p className="text-gray-600">اضغط على أي عملية للحصول على تقرير شامل ومفصل</p>
                 </div>
-              ))}
-            </div>
+
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader className="w-8 h-8 text-blue-500 animate-spin" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {processes.map((process) => (
+                      <button
+                        key={process.id}
+                        onClick={() => handleProcessClick(process)}
+                        className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all duration-200 text-right border-2 border-transparent hover:border-blue-500"
+                      >
+                        <div className="flex items-center space-x-4 space-x-reverse mb-4">
+                          <div className={`w-12 h-12 ${process.color} rounded-lg flex items-center justify-center`}>
+                            <span className="text-white font-bold text-xl">{process.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-gray-900 text-lg">{process.name}</h3>
+                            <p className="text-sm text-gray-500 mt-1">{process.description}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            process.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {process.is_active ? 'نشط' : 'غير نشط'}
+                          </span>
+                          <ArrowRight className="w-5 h-5 text-blue-500" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ) : (
-              <div className="text-center py-8 text-gray-400">
-                <PieChart className="w-12 h-12 mx-auto mb-2" />
-                <p className="text-sm">لا توجد بيانات للعرض</p>
+              /* عرض تقرير العملية */
+              <div>
+                <button
+                  onClick={handleBackToList}
+                  className="flex items-center space-x-2 space-x-reverse text-blue-600 hover:text-blue-700 mb-6"
+                >
+                  <ArrowRight className="w-4 h-4 transform rotate-180" />
+                  <span>العودة إلى القائمة</span>
+                </button>
+
+                {isLoadingReport ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader className="w-8 h-8 text-blue-500 animate-spin" />
+                  </div>
+                ) : processReport && selectedProcess ? (
+                  <div className="space-y-6">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white">
+                      <div className="flex items-center space-x-4 space-x-reverse">
+                        <div className={`w-16 h-16 ${selectedProcess.color} rounded-lg flex items-center justify-center`}>
+                          <span className="text-white font-bold text-2xl">{selectedProcess.name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold">{selectedProcess.name}</h2>
+                          <p className="text-blue-100">{selectedProcess.description}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* الإحصائيات الأساسية */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">إجمالي التذاكر</p>
+                            <p className="text-3xl font-bold text-gray-900">{processReport.basic_stats.total_tickets}</p>
+                          </div>
+                          <div className="p-3 bg-blue-100 rounded-lg">
+                            <BarChart3 className="w-6 h-6 text-blue-600" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">مكتملة</p>
+                            <p className="text-3xl font-bold text-green-600">{processReport.basic_stats.completed_tickets}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {Number(parseFloat(processReport.completion_rate?.rate) || 0).toFixed(1)}% معدل الإنجاز
+                            </p>
+                          </div>
+                          <div className="p-3 bg-green-100 rounded-lg">
+                            <CheckCircle className="w-6 h-6 text-green-600" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">متأخرة</p>
+                            <p className="text-3xl font-bold text-red-600">{processReport.basic_stats.overdue_tickets}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {processReport.basic_stats.total_tickets > 0 
+                                ? ((processReport.basic_stats.overdue_tickets / processReport.basic_stats.total_tickets) * 100).toFixed(1) 
+                                : 0}% من الإجمالي
+                            </p>
+                          </div>
+                          <div className="p-3 bg-red-100 rounded-lg">
+                            <AlertTriangle className="w-6 h-6 text-red-600" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">متوسط الإنجاز</p>
+                            <p className="text-3xl font-bold text-purple-600">
+                              {Number(parseFloat(processReport.basic_stats.avg_completion_hours) || 0).toFixed(0)}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">ساعة</p>
+                          </div>
+                          <div className="p-3 bg-purple-100 rounded-lg">
+                            <Clock className="w-6 h-6 text-purple-600" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* توزيع التذاكر حسب المرحلة */}
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                        <Target className="w-5 h-5 text-blue-500" />
+                        <span>توزيع التذاكر حسب المرحلة</span>
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        {processReport.stage_distribution.map((stage, index) => (
+                          <div key={index} className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 space-x-reverse flex-1">
+                              <div 
+                                className="w-4 h-4 rounded"
+                                style={{
+                                  backgroundColor: `hsl(${(index * 360) / processReport.stage_distribution.length}, 70%, 50%)`
+                                }}
+                              ></div>
+                              <span className="text-sm font-medium text-gray-900">{stage.stage_name}</span>
+                            </div>
+                            <div className="flex items-center space-x-4 space-x-reverse">
+                              <span className="text-sm font-bold text-gray-900">{stage.ticket_count}</span>
+                              <span className="text-xs text-gray-500">({Number(parseFloat(stage.percentage) || 0).toFixed(1)}%)</span>
+                              <div className="w-32 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${Number(parseFloat(stage.percentage) || 0)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* توزيع حسب الأولوية */}
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                        <AlertTriangle className="w-5 h-5 text-orange-500" />
+                        <span>توزيع التذاكر حسب الأولوية</span>
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {processReport.priority_distribution.map((priority, index) => (
+                          <div key={index} className="flex items-center space-x-3 space-x-reverse p-4 bg-gray-50 rounded-lg">
+                            <div className={`w-3 h-3 ${getPriorityColor(priority.priority)} rounded-full`}></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">{getPriorityLabel(priority.priority)}</p>
+                              <p className="text-xs text-gray-500">{priority.count} تذكرة ({Number(parseFloat(priority.percentage) || 0).toFixed(1)}%)</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* أفضل الموظفين أداءً */}
+                    {processReport.top_performers && processReport.top_performers.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                          <Award className="w-5 h-5 text-yellow-500" />
+                          <span>أفضل الموظفين أداءً</span>
+                        </h3>
+                        
+                        <div className="space-y-3">
+                          {processReport.top_performers.map((performer, index) => (
+                            <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg">
+                              <div className="flex items-center space-x-3 space-x-reverse">
+                                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center">
+                                  <span className="text-white font-bold">{index + 1}</span>
+                                </div>
+                                <span className="font-medium text-gray-900">{performer.user_name}</span>
+                              </div>
+                              <div className="flex items-center space-x-2 space-x-reverse">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                <span className="text-sm font-bold text-gray-900">{performer.completed_tickets} تذكرة مكتملة</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : selectedProcess ? (
+                  <div className="text-center py-12">
+                    <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
+                      <Activity className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد بيانات متاحة</h3>
+                      <p className="text-gray-600 mb-4">لم يتم العثور على تقرير لهذه العملية</p>
+                      <button
+                        onClick={() => fetchProcessReport(selectedProcess.id)}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      >
+                        إعادة المحاولة
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <Activity className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p>حدث خطأ غير متوقع</p>
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
+        )}
 
-          {/* Priority Distribution */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-              <AlertTriangle className="w-5 h-5" />
-              <span>توزيع التذاكر حسب الأولوية</span>
-            </h3>
-            
-            <div className="space-y-3">
-              {priorityStats.map((priority, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className={`w-4 h-4 ${priority.color} rounded`}></div>
-                    <span className="text-sm font-medium text-gray-900">{priority.name}</span>
-                  </div>
-                  <div className="text-left">
-                    <span className="text-sm font-bold text-gray-900">{priority.count}</span>
-                    <span className="text-xs text-gray-500 mr-1">
-                      ({filteredTickets.length > 0 ? ((priority.count / filteredTickets.length) * 100).toFixed(1) : 0}%)
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* تبويبة المستخدمين */}
+        {activeTab === 'users' && (
+          <div className="text-center py-12">
+            <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">تقارير المستخدمين</h3>
+            <p className="text-gray-600">قريباً... سيتم إضافة تقارير شاملة للمستخدمين</p>
           </div>
-        </div>
+        )}
 
-        {/* Process Performance */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-            <TrendingUp className="w-5 h-5" />
-            <span>أداء العمليات</span>
-          </h3>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">العملية</th>
-                  <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">إجمالي التذاكر</th>
-                  <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">مكتملة</th>
-                  <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">معدل الإنجاز</th>
-                  <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">التقدم</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {processStats.map((process) => (
-                  <tr key={process.name} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3 space-x-reverse">
-                        <div className={`w-4 h-4 ${process.color} rounded`}></div>
-                        <span className="font-medium text-gray-900">{process.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{process.total}</td>
-                    <td className="px-6 py-4 text-sm text-green-600 font-medium">{process.completed}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{process.completionRate}%</td>
-                    <td className="px-6 py-4">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${process.completionRate}%` }}
-                        ></div>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* تبويبة قيد التطوير */}
+        {activeTab === 'development' && (
+          <div className="text-center py-12">
+            <Zap className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">ميزات قيد التطوير</h3>
+            <p className="text-gray-600">المزيد من التقارير والإحصائيات قادمة قريباً</p>
           </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-            <Calendar className="w-5 h-5" />
-            <span>النشاط الأخير</span>
-          </h3>
-          
-          <div className="space-y-4">
-            {filteredTickets.slice(0, 5).map((ticket) => {
-              const process = processes.find(p => p.id === ticket.process_id);
-              const stage = process?.stages.find(s => s.id === ticket.current_stage_id);
-              
-              return (
-                <div key={ticket.id} className="flex items-center space-x-4 space-x-reverse p-3 bg-gray-50 rounded-lg">
-                  <div className={`w-8 h-8 ${process?.color} rounded-lg flex items-center justify-center`}>
-                    <span className="text-white font-bold text-xs">{process?.name.charAt(0)}</span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{ticket.title}</h4>
-                    <p className="text-sm text-gray-500">
-                      {process?.name} - {stage?.name}
-                    </p>
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm text-gray-600">
-                      {new Date(ticket.updated_at).toLocaleDateString('ar-SA')}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
