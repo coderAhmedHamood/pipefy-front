@@ -630,6 +630,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       case 'priority_changed': return <Flag className="w-4 h-4 text-red-500" />;
       case 'due_date_changed': return <Calendar className="w-4 h-4 text-blue-500" />;
       case 'reviewer_assigned': return <User className="w-4 h-4 text-indigo-500" />;
+      case 'completed': return <CheckCircle className="w-4 h-4 text-green-600" />;
       default: return <ActivityIcon className="w-4 h-4 text-gray-500" />;
     }
   };
@@ -860,6 +861,30 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       </span>
                     </div>
                   </div>
+                  
+                  {/* عرض تاريخ الإكمال فقط إذا كانت التذكرة في مرحلة نهائية */}
+                  {currentStage?.is_final && ticket.completed_at && (
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className="flex-shrink-0">
+                          <CheckCircle className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <span className="text-sm font-semibold text-green-900">تم إكمال التذكرة</span>
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">مكتملة</span>
+                          </div>
+                          <div className="flex items-center space-x-2 space-x-reverse mt-1 text-sm text-green-700">
+                            <Clock className="w-4 h-4" />
+                            <span>تاريخ الإكمال:</span>
+                            <span className="font-medium">
+                              {formatDateTime(ticket.completed_at)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

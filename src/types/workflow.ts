@@ -125,14 +125,16 @@ export interface AutomationRule {
 }
 
 export interface AutomationTrigger {
-  event: 'stage_changed' | 'field_updated' | 'due_date_approaching' | 'overdue' | 'created';
+  event: 'stage_changed' | 'field_updated' | 'due_date_approaching' | 'overdue' | 'created' | 'assigned' | 'completed';
   stage_id?: string;
   field_id?: string;
+  conditions?: Condition[];
 }
 
 export interface AutomationAction {
-  type: 'send_notification' | 'update_field' | 'move_to_stage' | 'create_ticket' | 'send_email';
+  type: 'send_notification' | 'update_field' | 'move_to_stage' | 'create_ticket' | 'send_email' | 'assign_user' | 'add_comment';
   parameters: Record<string, any>;
+  delay_minutes?: number;
 }
 
 export interface Ticket {
@@ -146,6 +148,8 @@ export interface Ticket {
   created_at: string;
   updated_at: string;
   due_date?: string;
+  completed_at?: string;
+  status?: string;
   priority: Priority;
   data: Record<string, any>;
   attachments: Attachment[];
@@ -195,7 +199,8 @@ export type ActivityType =
   | 'reviewer_assigned'
   | 'reviewer_changed'
   | 'title_changed'
-  | 'description_changed';
+  | 'description_changed'
+  | 'completed';
 
 export interface Tag {
   id: string;
@@ -328,19 +333,6 @@ export interface TicketConnection {
   connection_type: 'blocks' | 'depends_on' | 'relates_to' | 'duplicates';
   created_at: string;
   created_by: string;
-}
-
-export interface AutomationTrigger {
-  event: 'stage_changed' | 'field_updated' | 'due_date_approaching' | 'overdue' | 'created' | 'assigned' | 'completed';
-  stage_id?: string;
-  field_id?: string;
-  conditions?: Condition[];
-}
-
-export interface AutomationAction {
-  type: 'send_notification' | 'update_field' | 'move_to_stage' | 'create_ticket' | 'send_email' | 'assign_user' | 'add_comment';
-  parameters: Record<string, any>;
-  delay_minutes?: number;
 }
 
 export interface SystemSettings {
