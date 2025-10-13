@@ -982,15 +982,43 @@ class Ticket {
         }
       }
 
-      // تحديث التذكرة
+      // ✅ التحقق من أن المرحلة المستهدفة هي مرحلة نهائية
+      const isFinalStage = targetStage.is_final === true;
+      
+      console.log('🔍 فحص المرحلة المستهدفة:', {
+        stage_id: targetStageId,
+        stage_name: targetStage.name,
+        is_final: targetStage.is_final,
+        will_complete: isFinalStage
+      });
+
+      // تحديث التذكرة - إذا كانت المرحلة نهائية، نضع completed_at
       const updateQuery = `
         UPDATE tickets
-        SET current_stage_id = $1, updated_at = NOW()
+        SET 
+          current_stage_id = $1, 
+          updated_at = NOW(),
+          completed_at = CASE 
+            WHEN $3 = true THEN NOW() 
+            ELSE completed_at 
+          END,
+          status = CASE 
+            WHEN $3 = true THEN 'completed' 
+            ELSE status 
+          END
         WHERE id = $2
         RETURNING *
       `;
-      const updateResult = await client.query(updateQuery, [targetStageId, ticketId]);
+      const updateResult = await client.query(updateQuery, [targetStageId, ticketId, isFinalStage]);
       const updatedTicket = updateResult.rows[0];
+
+      console.log('✅ تم تحديث التذكرة:', {
+        ticket_id: ticketId,
+        new_stage: targetStage.name,
+        is_final: isFinalStage,
+        completed_at: updatedTicket.completed_at,
+        status: updatedTicket.status
+      });
 
       // إضافة نشاط تغيير المرحلة
       await this.addActivity(client, {
@@ -1007,6 +1035,22 @@ class Ticket {
           stage_name: targetStage.name
         }
       });
+
+      // ✅ إضافة نشاط إكمال التذكرة إذا كانت المرحلة نهائية
+      if (isFinalStage) {
+        await this.addActivity(client, {
+          ticket_id: ticketId,
+          user_id: userId,
+          activity_type: 'completed',
+          description: `تم إكمال التذكرة في المرحلة النهائية "${targetStage.name}"`,
+          new_values: {
+            completed_at: updatedTicket.completed_at,
+            status: 'completed'
+          }
+        });
+        
+        console.log('✅ تم إضافة نشاط إكمال التذكرة');
+      }
 
       // إضافة تعليق إذا تم تقديمه
       if (comment) {
