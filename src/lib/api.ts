@@ -1,11 +1,10 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import { API_BASE_URL } from '../config/config';
 
 // إعداد الـ API
-const API_BASE_URL = 'http://localhost:3000/api';
-
 // إنشاء instance من axios
 const apiClient: AxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api`,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

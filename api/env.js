@@ -6,7 +6,7 @@ DB_USERNAME=postgres
 DB_PASSWORD=123456
 
 # Server Configuration
-PORT=3000
+PORT=4000
 NODE_ENV=development
 
 # JWT Configuration

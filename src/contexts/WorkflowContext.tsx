@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Process, Ticket, Stage, ProcessField } from '../types/workflow';
 import { useAuth } from './AuthContext';
+import { API_ENDPOINTS } from '../config/config';
 
 interface WorkflowContextType {
   processes: Process[];
@@ -241,7 +242,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const token = localStorage.getItem('auth_token');
       console.log("token==="+token);
       // جلب العمليات من API
-      const response = await fetch('http://localhost:3000/api/processes/frontend', {
+      const response = await fetch(`${API_ENDPOINTS.PROCESSES}/frontend`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
