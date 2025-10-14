@@ -2,8 +2,13 @@
  * إعدادات API للتطبيق
  */
 
+// إعدادات الخادم الأساسية
+const SERVER_HOST = 'localhost';
+const SERVER_PORT = 3003;
+const SERVER_PROTOCOL = 'http';
+
 // عنوان الخادم الأساسي
-export const API_BASE_URL = 'http://localhost:3000';
+export const API_BASE_URL = `${SERVER_PROTOCOL}://${SERVER_HOST}:${SERVER_PORT}`;
 
 // نقاط النهاية الرئيسية
 export const API_ENDPOINTS = {

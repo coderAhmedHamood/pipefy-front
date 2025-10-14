@@ -1,4 +1,5 @@
 const http = require('http');
+const { SERVER_CONFIG } = require('./config/api-config');
 
 // قائمة شاملة بجميع الـ endpoints للفحص
 const endpoints = [
@@ -79,8 +80,8 @@ function makeRequest(method, path, body = null, headers = {}) {
     const postData = body ? JSON.stringify(body) : null;
     
     const options = {
-      hostname: 'localhost',
-      port: 3000,
+      hostname: SERVER_CONFIG.HOST,
+      port: SERVER_CONFIG.PORT,
       path: path,
       method: method,
       headers: {
@@ -188,7 +189,7 @@ async function checkAllRoutes() {
   
   if (brokenEndpoints === 0) {
     console.log('\n🎉 جميع الـ endpoints تعمل بشكل صحيح!');
-    console.log('🌐 Swagger UI: http://localhost:3000/api-docs');
+    console.log(`🌐 Swagger UI: ${SERVER_CONFIG.PROTOCOL}://${SERVER_CONFIG.HOST}:${SERVER_CONFIG.PORT}/api-docs`);
     console.log('📧 بيانات الدخول: admin@example.com / admin123');
   } else {
     console.log(`\n⚠️  يوجد ${brokenEndpoints} endpoints معطلة. راجع السجلات أعلاه.`);

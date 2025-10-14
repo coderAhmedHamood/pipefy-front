@@ -1,3 +1,5 @@
+const axios = require('axios');
+const { TEST_CONFIG } = require('./test-config');
 const http = require('http');
 
 async function testLogin() {
@@ -53,7 +55,7 @@ async function testLogin() {
       if (response.data.token) {
         console.log('🔑 Token received:', response.data.token.substring(0, 50) + '...');
         console.log('\n🎉 All APIs are working! You can now test in Swagger:');
-        console.log('📍 Swagger UI: http://localhost:3000/api-docs');
+        console.log(`📍 Swagger UI: ${TEST_CONFIG.URLS.SWAGGER}`);
         console.log('\n🎯 New API Endpoints Available:');
         console.log('   🤖 Automation: /api/automation/rules');
         console.log('   🔄 Recurring: /api/recurring/rules');

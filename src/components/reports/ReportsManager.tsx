@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/config';
 import { 
   BarChart3, 
   Users, 
@@ -76,7 +77,7 @@ export const ReportsManager: React.FC = () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('http://localhost:3000/api/processes', {
+      const response = await fetch(`${API_BASE_URL}/api/processes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -104,7 +105,7 @@ export const ReportsManager: React.FC = () => {
       const token = localStorage.getItem('auth_token');
       console.log('🔍 جلب تقرير العملية:', processId);
       
-      const response = await fetch(`http://localhost:3000/api/reports/process/${processId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/reports/process/${processId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

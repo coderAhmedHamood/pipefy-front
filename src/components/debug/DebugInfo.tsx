@@ -1,4 +1,5 @@
 import React from 'react';
+import { API_BASE_URL } from '../../config/config';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProcesses } from '../../hooks/useProcesses';
 
@@ -68,7 +69,7 @@ export const DebugInfo: React.FC = () => {
         <div className="space-y-2 text-sm">
           <div>
             <span className="font-medium">عنوان API:</span> 
-            <span className="ml-2 font-mono">http://localhost:3000/api</span>
+            <span className="ml-2 font-mono">{API_BASE_URL}/api</span>
           </div>
           <div>
             <span className="font-medium">التوكن:</span> 

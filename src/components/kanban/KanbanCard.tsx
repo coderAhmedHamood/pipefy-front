@@ -38,20 +38,32 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
     }
   };
 
-  const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
+  // تحديد التاريخ المرجعي (تاريخ الإكمال إن وجد، وإلا التاريخ الحالي)
+  const referenceDate = ticket.completed_at ? new Date(ticket.completed_at) : new Date();
+  
+  const isOverdue = ticket.due_date && new Date(ticket.due_date) < referenceDate;
   const isDueSoon = ticket.due_date && 
-    new Date(ticket.due_date) > new Date() && 
-    new Date(ticket.due_date) < new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    new Date(ticket.due_date) > referenceDate && 
+    new Date(ticket.due_date) < new Date(referenceDate.getTime() + 2 * 24 * 60 * 60 * 1000);
 
-  // حساب الفارق بالأيام بين تاريخ الإنشاء وتاريخ الاستحقاق
+  // حساب الفارق بالأيام
   const calculateDaysDifference = () => {
     if (!ticket.due_date) return null;
     
-    const createdDate = new Date(ticket.created_at);
     const dueDate = new Date(ticket.due_date);
-    const diffTime = dueDate.getTime() - createdDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
+    // إذا كانت التذكرة مكتملة، نحسب الفرق بين موعد الإكمال وموعد الاستحقاق
+    if (ticket.completed_at) {
+      const completedDate = new Date(ticket.completed_at);
+      const diffTime = dueDate.getTime() - completedDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays; // موجب = تم الإكمال قبل الموعد، سالب = متأخر
+    }
+    
+    // إذا لم تكن مكتملة، نحسب الفرق بين التاريخ الحالي وموعد الاستحقاق
+    const now = new Date();
+    const diffTime = dueDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
 
@@ -213,10 +225,21 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
                 {daysDifference !== null && (
                   <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${
                     daysDifference < 0 ? 'bg-red-100 text-red-700' :
+                    daysDifference === 0 ? 'bg-yellow-100 text-yellow-700' :
                     daysDifference <= 2 ? 'bg-orange-100 text-orange-700' :
-                    'bg-blue-100 text-blue-700'
+                    'bg-green-100 text-green-700'
                   }`}>
-                    {daysDifference < 0 ? `${Math.abs(daysDifference)} يوم متأخر` : `${daysDifference} يوم`}
+                    {ticket.completed_at ? (
+                      // إذا كانت مكتملة
+                      daysDifference < 0 ? `متأخر ${Math.abs(daysDifference)} يوم` : 
+                      daysDifference === 0 ? 'تم في الموعد' :
+                      `متبقي ${daysDifference} يوم`
+                    ) : (
+                      // إذا لم تكن مكتملة
+                      daysDifference < 0 ? `متأخر ${Math.abs(daysDifference)} يوم` : 
+                      daysDifference === 0 ? 'ينتهي اليوم' :
+                      `${daysDifference} يوم متبقي`
+                    )}
                   </span>
                 )}
               </div>

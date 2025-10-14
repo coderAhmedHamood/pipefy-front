@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/config';
 import { User, UserRole, Permission } from '../../types/workflow';
 import { userService, roleService, permissionService } from '../../services';
 import { processService } from '../../services/processService';
@@ -1449,7 +1450,7 @@ export const UserManagerNew: React.FC = () => {
                         });
                         
                         // اختبار سريع للخادم
-                        fetch('http://localhost:3000/api')
+                        fetch(`${API_BASE_URL}/api`)
                           .then(response => {
                             console.log('🏠 اختبار الصفحة الرئيسية:', response.status);
                             return response.json();

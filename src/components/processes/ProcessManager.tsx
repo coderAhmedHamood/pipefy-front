@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../config/config';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { Process, Stage, ProcessField, FieldType } from '../../types/workflow';
 import { useToast, ToastContainer } from '../ui/Toast';
@@ -212,7 +213,7 @@ export const ProcessManager: React.FC = () => {
       }
 
       // إرسال طلب POST إلى API
-      const response = await fetch('http://localhost:3000/api/processes', {
+      const response = await fetch(`${API_BASE_URL}/api/processes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -422,7 +423,7 @@ export const ProcessManager: React.FC = () => {
       console.log('📝 إرسال بيانات المرحلة إلى API:', stageData);
 
       // إرسال طلب POST إلى API
-      const response = await fetch('http://localhost:3000/api/stages', {
+      const response = await fetch(`${API_BASE_URL}/api/stages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -547,7 +548,7 @@ export const ProcessManager: React.FC = () => {
       }
 
       // إرسال طلب التحديث إلى API
-      const response = await fetch(`http://localhost:3000/api/stages/${editingStage.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/stages/${editingStage.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -686,8 +687,8 @@ export const ProcessManager: React.FC = () => {
 
       // تحديد URL والطريقة بناءً على نوع العملية
       const url = isUpdating
-        ? `http://localhost:3000/api/fields/${editingField.id}`
-        : 'http://localhost:3000/api/fields';
+        ? `${API_BASE_URL}/api/fields/${editingField.id}`
+        : `${API_BASE_URL}/api/fields`;
       const method = isUpdating ? 'PUT' : 'POST';
 
       // إرسال طلب إلى API
@@ -792,7 +793,7 @@ export const ProcessManager: React.FC = () => {
       console.log('🗑️ حذف الحقل:', fieldId);
 
       // إرسال طلب DELETE إلى API
-      const response = await fetch(`http://localhost:3000/api/fields/${fieldId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/fields/${fieldId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -877,7 +878,7 @@ export const ProcessManager: React.FC = () => {
       console.log('🗑️ حذف المرحلة:', stageId);
 
       // إرسال طلب DELETE إلى API
-      const response = await fetch(`http://localhost:3000/api/stages/${stageId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/stages/${stageId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

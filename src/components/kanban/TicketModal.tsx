@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { API_BASE_URL } from '../../config/config';
 import { Ticket, Process, Stage, Activity, Priority } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { useSimpleMove } from '../../hooks/useSimpleMove';
@@ -418,7 +419,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
       console.log(`🗑️ محاولة حذف المرفق: ${attachmentId}`);
 
-      const response = await fetch(`http://localhost:3000/api/attachments/${attachmentId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/attachments/${attachmentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -502,7 +503,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         }
       }
 
-      const response = await fetch(`http://localhost:3000/api/tickets/${ticket.id}/attachments`, {
+      const response = await fetch(`${API_BASE_URL}/api/tickets/${ticket.id}/attachments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -635,10 +636,36 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     }
   };
 
-  const isOverdue = ticket.due_date && new Date(ticket.due_date) < new Date();
+  // تحديد التاريخ المرجعي (تاريخ الإكمال إن وجد، وإلا التاريخ الحالي)
+  const referenceDate = ticket.completed_at ? new Date(ticket.completed_at) : new Date();
+  
+  const isOverdue = ticket.due_date && new Date(ticket.due_date) < referenceDate;
   const isDueSoon = ticket.due_date && 
-    new Date(ticket.due_date) > new Date() && 
-    new Date(ticket.due_date) < new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+    new Date(ticket.due_date) > referenceDate && 
+    new Date(ticket.due_date) < new Date(referenceDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+  // حساب الفارق بالأيام
+  const calculateDaysDifference = () => {
+    if (!ticket.due_date) return null;
+    
+    const dueDate = new Date(ticket.due_date);
+    
+    // إذا كانت التذكرة مكتملة، نحسب الفرق بين موعد الإكمال وموعد الاستحقاق
+    if (ticket.completed_at) {
+      const completedDate = new Date(ticket.completed_at);
+      const diffTime = dueDate.getTime() - completedDate.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays; // موجب = تم الإكمال قبل الموعد، سالب = متأخر
+    }
+    
+    // إذا لم تكن مكتملة، نحسب الفرق بين التاريخ الحالي وموعد الاستحقاق
+    const now = new Date();
+    const diffTime = dueDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const daysDifference = calculateDaysDifference();
 
   return (
     <>
@@ -848,8 +875,26 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                         <span className="text-sm font-medium">
                           {formatDate(ticket.due_date)}
                         </span>
-                        {isOverdue && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">(متأخر)</span>}
-                        {isDueSoon && <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">(قريب)</span>}
+                        {daysDifference !== null && (
+                          <span className={`text-xs px-2 py-1 rounded font-bold ${
+                            daysDifference < 0 ? 'bg-red-100 text-red-800' :
+                            daysDifference === 0 ? 'bg-yellow-100 text-yellow-800' :
+                            daysDifference <= 2 ? 'bg-orange-100 text-orange-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {ticket.completed_at ? (
+                              // إذا كانت مكتملة
+                              daysDifference < 0 ? `متأخر ${Math.abs(daysDifference)} يوم` : 
+                              daysDifference === 0 ? 'تم في الموعد' :
+                              `متبقي ${daysDifference} يوم`
+                            ) : (
+                              // إذا لم تكن مكتملة
+                              daysDifference < 0 ? `متأخر ${Math.abs(daysDifference)} يوم` : 
+                              daysDifference === 0 ? 'ينتهي اليوم' :
+                              `${daysDifference} يوم متبقي`
+                            )}
+                          </span>
+                        )}
                       </div>
                     )}
                     

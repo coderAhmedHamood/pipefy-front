@@ -9,9 +9,15 @@
  * To change API URL, modify API_BASE_URL only
  */
 
+// إعدادات الخادم الأساسية
+// Base Server Configuration
+const SERVER_HOST = 'localhost';
+const SERVER_PORT = 3003;
+const SERVER_PROTOCOL = 'http';
+
 // عنوان API الأساسي
 // Base API URL
-export const API_BASE_URL = 'http://localhost:3003';
+export const API_BASE_URL = `${SERVER_PROTOCOL}://${SERVER_HOST}:${SERVER_PORT}`;
 
 // نقاط النهاية الكاملة
 // Full API Endpoints
