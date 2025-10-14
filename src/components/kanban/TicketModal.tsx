@@ -11,6 +11,7 @@ import ticketAssignmentService, { TicketAssignment } from '../../services/ticket
 import ticketReviewerService, { TicketReviewer } from '../../services/ticketReviewerService';
 import ticketService from '../../services/ticketService';
 import userService from '../../services/userService';
+import commentService from '../../services/commentService';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { 
   X, 
@@ -550,6 +551,66 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     }
   };
 
+  // دالة مساعدة لإنشاء نص التعليق بناءً على التغييرات
+  const generateChangeComment = () => {
+    const changes: string[] = [];
+    
+    // مقارنة العنوان
+    if (ticket.title !== formData.title) {
+      changes.push(`📝 تم تغيير العنوان من: "${ticket.title}" إلى: "${formData.title}"`);
+    }
+    
+    // مقارنة الوصف
+    if (ticket.description !== formData.description) {
+      changes.push(`📄 تم تحديث الوصف`);
+    }
+    
+    // مقارنة الأولوية
+    if (ticket.priority !== formData.priority) {
+      const priorityLabels: Record<string, string> = {
+        low: 'منخفض',
+        medium: 'متوسط',
+        high: 'عالي',
+        urgent: 'عاجل'
+      };
+      changes.push(`🚩 تم تغيير الأولوية من: "${priorityLabels[ticket.priority]}" إلى: "${priorityLabels[formData.priority]}"`);
+    }
+    
+    // مقارنة تاريخ الاستحقاق
+    if (ticket.due_date !== formData.due_date) {
+      const oldDate = ticket.due_date ? new Date(ticket.due_date).toLocaleDateString('ar-SA') : 'غير محدد';
+      const newDate = formData.due_date ? new Date(formData.due_date).toLocaleDateString('ar-SA') : 'غير محدد';
+      changes.push(`📅 تم تغيير تاريخ الاستحقاق من: ${oldDate} إلى: ${newDate}`);
+    }
+    
+    // مقارنة الحقول المخصصة
+    if (ticket.data && formData.data) {
+      Object.keys(formData.data).forEach(key => {
+        if (ticket.data[key] !== formData.data[key]) {
+          changes.push(`🔧 تم تحديث الحقل "${key}"`);
+        }
+      });
+    }
+    
+    if (changes.length === 0) {
+      return null;
+    }
+    
+    // الحصول على اسم المستخدم الحالي
+    const userData = localStorage.getItem('user_data');
+    let userName = 'مستخدم';
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        userName = user.name || user.email || 'مستخدم';
+      } catch (e) {
+        console.error('خطأ في قراءة بيانات المستخدم:', e);
+      }
+    }
+    
+    return `✏️ تم تعديل التذكرة بواسطة: ${userName}\n\n${changes.join('\n')}`;
+  };
+
   const handleUpdate = async () => {
     if (isUpdating) return;
 
@@ -571,6 +632,24 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
     if (success) {
       console.log('✅ نجح تحديث التذكرة من API - بدء تحديث الواجهة...');
+
+      // إنشاء تعليق تلقائي يوضح التغييرات
+      try {
+        const commentContent = generateChangeComment();
+        if (commentContent) {
+          console.log('💬 إنشاء تعليق تلقائي للتغييرات...');
+          await commentService.createComment(ticket.id, {
+            content: commentContent,
+            is_internal: false
+          });
+          console.log('✅ تم إضافة التعليق التلقائي بنجاح');
+        } else {
+          console.log('ℹ️ لا توجد تغييرات لإضافة تعليق عنها');
+        }
+      } catch (error) {
+        console.error('❌ خطأ في إضافة التعليق التلقائي:', error);
+        // نستمر في العملية حتى لو فشل التعليق
+      }
 
       // تحديث البيانات المحلية فوراً
       Object.assign(ticket, formData);
