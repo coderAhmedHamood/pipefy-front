@@ -1,14 +1,20 @@
 const TicketReviewer = require('../models/TicketReviewer');
 const TicketEvaluationSummary = require('../models/TicketEvaluationSummary');
+const { pool } = require('../config/database');
 
 class TicketReviewerController {
   // إضافة مراجع إلى تذكرة
   static async addReviewer(req, res) {
+    const client = await pool.connect();
+    
     try {
+      await client.query('BEGIN');
+      
       const { ticket_id, reviewer_id, review_notes } = req.body;
       const added_by = req.user?.id;
 
       if (!ticket_id || !reviewer_id) {
+        await client.query('ROLLBACK');
         return res.status(400).json({
           success: false,
           message: 'ticket_id و reviewer_id مطلوبان'
@@ -18,6 +24,7 @@ class TicketReviewerController {
       // التحقق من وجود مراجع نشط
       const exists = await TicketReviewer.exists(ticket_id, reviewer_id);
       if (exists) {
+        await client.query('ROLLBACK');
         return res.status(409).json({
           success: false,
           message: 'المراجع مُضاف بالفعل لهذه التذكرة'
@@ -44,8 +51,34 @@ class TicketReviewerController {
         });
       }
 
+      // جلب معلومات المراجع والمستخدم الذي قام بالإضافة
+      const userInfoQuery = await client.query(`
+        SELECT 
+          reviewer.name as reviewer_name,
+          reviewer.email as reviewer_email,
+          adder.name as adder_name,
+          adder.email as adder_email
+        FROM users reviewer
+        LEFT JOIN users adder ON adder.id = $2
+        WHERE reviewer.id = $1
+      `, [reviewer_id, added_by]);
+
+      const reviewerName = userInfoQuery.rows[0]?.reviewer_name || userInfoQuery.rows[0]?.reviewer_email || 'مراجع';
+      const adderName = userInfoQuery.rows[0]?.adder_name || userInfoQuery.rows[0]?.adder_email || 'مستخدم';
+
+      // إنشاء تعليق تلقائي
+      const notesText = review_notes ? `\n📝 ملاحظات: ${review_notes}` : '';
+      const commentContent = `🔍 تم إضافة مراجع: ${reviewerName}\n📌 بواسطة: ${adderName}${notesText}`;
+
+      await client.query(`
+        INSERT INTO ticket_comments (ticket_id, user_id, content, is_internal)
+        VALUES ($1, $2, $3, $4)
+      `, [ticket_id, added_by || reviewer_id, commentContent, false]);
+
       // تحديث ملخص التقييم
       await TicketEvaluationSummary.calculateAndUpdate(ticket_id);
+
+      await client.query('COMMIT');
 
       res.status(201).json({
         success: true,
@@ -53,12 +86,15 @@ class TicketReviewerController {
         data: reviewer
       });
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error in addReviewer:', error);
       res.status(500).json({
         success: false,
         message: 'خطأ في إضافة المراجع',
         error: error.message
       });
+    } finally {
+      client.release();
     }
   }
 

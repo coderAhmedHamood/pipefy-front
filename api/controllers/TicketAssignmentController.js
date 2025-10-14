@@ -1,13 +1,19 @@
 const TicketAssignment = require('../models/TicketAssignment');
+const { pool } = require('../config/database');
 
 class TicketAssignmentController {
   // إضافة مستخدم مُسند إلى تذكرة
   static async assignUser(req, res) {
+    const client = await pool.connect();
+    
     try {
+      await client.query('BEGIN');
+      
       const { ticket_id, user_id, role, notes } = req.body;
       const assigned_by = req.user?.id;
 
       if (!ticket_id || !user_id) {
+        await client.query('ROLLBACK');
         return res.status(400).json({
           success: false,
           message: 'ticket_id و user_id مطلوبان'
@@ -17,6 +23,7 @@ class TicketAssignmentController {
       // التحقق من وجود إسناد نشط
       const exists = await TicketAssignment.exists(ticket_id, user_id);
       if (exists) {
+        await client.query('ROLLBACK');
         return res.status(409).json({
           success: false,
           message: 'المستخدم مُسند بالفعل لهذه التذكرة'
@@ -45,18 +52,47 @@ class TicketAssignmentController {
         });
       }
 
+      // جلب معلومات المستخدم المُسند والمستخدم الذي قام بالإسناد
+      const userInfoQuery = await client.query(`
+        SELECT 
+          assigned_user.name as assigned_user_name,
+          assigned_user.email as assigned_user_email,
+          assigner.name as assigner_name,
+          assigner.email as assigner_email
+        FROM users assigned_user
+        LEFT JOIN users assigner ON assigner.id = $2
+        WHERE assigned_user.id = $1
+      `, [user_id, assigned_by]);
+
+      const assignedUserName = userInfoQuery.rows[0]?.assigned_user_name || userInfoQuery.rows[0]?.assigned_user_email || 'مستخدم';
+      const assignerName = userInfoQuery.rows[0]?.assigner_name || userInfoQuery.rows[0]?.assigner_email || 'مستخدم';
+
+      // إنشاء تعليق تلقائي
+      const roleText = role ? ` (${role})` : '';
+      const commentContent = `👤 تم إسناد المستخدم: ${assignedUserName}${roleText}\n📌 بواسطة: ${assignerName}`;
+
+      await client.query(`
+        INSERT INTO ticket_comments (ticket_id, user_id, content, is_internal)
+        VALUES ($1, $2, $3, $4)
+      `, [ticket_id, assigned_by || user_id, commentContent, false]);
+
+      await client.query('COMMIT');
+
       res.status(201).json({
         success: true,
         message: existingAssignment ? 'تم إعادة إسناد المستخدم بنجاح' : 'تم إسناد المستخدم بنجاح',
         data: assignment
       });
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error in assignUser:', error);
       res.status(500).json({
         success: false,
         message: 'خطأ في إسناد المستخدم',
         error: error.message
       });
+    } finally {
+      client.release();
     }
   }
 
