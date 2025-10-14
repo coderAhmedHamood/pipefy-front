@@ -67,8 +67,7 @@ class TicketReviewerController {
       const adderName = userInfoQuery.rows[0]?.adder_name || userInfoQuery.rows[0]?.adder_email || 'مستخدم';
 
       // إنشاء تعليق تلقائي
-      const notesText = review_notes ? `\n📝 ملاحظات: ${review_notes}` : '';
-      const commentContent = `🔍 تم إضافة مراجع: ${reviewerName}\n📌 بواسطة: ${adderName}${notesText}`;
+      const commentContent = `🔍 تم إضافة مراجع: ${reviewerName}\n📌 بواسطة: ${adderName}`;
 
       await client.query(`
         INSERT INTO ticket_comments (ticket_id, user_id, content, is_internal)

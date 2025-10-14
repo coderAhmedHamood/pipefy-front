@@ -151,8 +151,7 @@ async function runTests() {
     const assignmentResponse = await makeRequest('POST', '/api/ticket-assignments', {
       ticket_id: ticketId,
       user_id: userId,
-      role: 'مطور رئيسي',
-      notes: 'مسؤول عن تطوير الميزة'
+      role: 'مطور رئيسي'
     }, token);
 
     if (assignmentResponse.status === 201 && assignmentResponse.data.success) {
@@ -186,13 +185,11 @@ async function runTests() {
         // التحقق من محتوى التعليق
         const hasUserIcon = assignmentComment.content.includes('👤');
         const hasAssignedUser = assignmentComment.content.includes('المستخدم');
-        const hasRole = assignmentComment.content.includes('مطور رئيسي');
         const hasAssigner = assignmentComment.content.includes('بواسطة');
         
         log(`\n   التحقق من المحتوى:`, 'yellow');
         log(`   ${hasUserIcon ? '✅' : '❌'} يحتوي على رمز المستخدم (👤)`, hasUserIcon ? 'green' : 'red');
         log(`   ${hasAssignedUser ? '✅' : '❌'} يحتوي على اسم المستخدم المُسند`, hasAssignedUser ? 'green' : 'red');
-        log(`   ${hasRole ? '✅' : '❌'} يحتوي على الدور (مطور رئيسي)`, hasRole ? 'green' : 'red');
         log(`   ${hasAssigner ? '✅' : '❌'} يحتوي على اسم المستخدم الذي قام بالإسناد`, hasAssigner ? 'green' : 'red');
       } else {
         log('❌ لم يتم العثور على التعليق التلقائي للإسناد', 'red');
@@ -207,8 +204,7 @@ async function runTests() {
     log('\n📝 الخطوة 6: إضافة مراجع للتذكرة...', 'blue');
     const reviewerResponse = await makeRequest('POST', '/api/ticket-reviewers', {
       ticket_id: ticketId,
-      reviewer_id: reviewerId,
-      review_notes: 'مراجعة الجودة النهائية قبل النشر'
+      reviewer_id: reviewerId
     }, token);
 
     if (reviewerResponse.status === 201 && reviewerResponse.data.success) {
@@ -242,13 +238,11 @@ async function runTests() {
         // التحقق من محتوى التعليق
         const hasReviewIcon = reviewerComment.content.includes('🔍');
         const hasReviewer = reviewerComment.content.includes('مراجع');
-        const hasNotes = reviewerComment.content.includes('مراجعة الجودة النهائية');
         const hasAdder = reviewerComment.content.includes('بواسطة');
         
         log(`\n   التحقق من المحتوى:`, 'yellow');
         log(`   ${hasReviewIcon ? '✅' : '❌'} يحتوي على رمز المراجعة (🔍)`, hasReviewIcon ? 'green' : 'red');
         log(`   ${hasReviewer ? '✅' : '❌'} يحتوي على اسم المراجع`, hasReviewer ? 'green' : 'red');
-        log(`   ${hasNotes ? '✅' : '❌'} يحتوي على الملاحظات`, hasNotes ? 'green' : 'red');
         log(`   ${hasAdder ? '✅' : '❌'} يحتوي على اسم المستخدم الذي قام بالإضافة`, hasAdder ? 'green' : 'red');
       } else {
         log('❌ لم يتم العثور على التعليق التلقائي للمراجع', 'red');

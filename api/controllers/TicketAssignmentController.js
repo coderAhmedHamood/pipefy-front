@@ -68,8 +68,7 @@ class TicketAssignmentController {
       const assignerName = userInfoQuery.rows[0]?.assigner_name || userInfoQuery.rows[0]?.assigner_email || 'مستخدم';
 
       // إنشاء تعليق تلقائي
-      const roleText = role ? ` (${role})` : '';
-      const commentContent = `👤 تم إسناد المستخدم: ${assignedUserName}${roleText}\n📌 بواسطة: ${assignerName}`;
+      const commentContent = `👤 تم إسناد المستخدم: ${assignedUserName}\n📌 بواسطة: ${assignerName}`;
 
       await client.query(`
         INSERT INTO ticket_comments (ticket_id, user_id, content, is_internal)
