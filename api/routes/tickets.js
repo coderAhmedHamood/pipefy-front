@@ -1100,6 +1100,66 @@ router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.
       VALUES ($1, $2, $3, $4, NOW())
     `, [ticketId, req.user.id, moveComment, false]);
 
+    // 5.5. إرسال إشعارات للمسندين والمراجعين
+    try {
+      // جمع معرفات المستخدمين (المسند إليه + المسندين + المراجعين)
+      const userIds = [];
+      
+      // إضافة المسند إليه الأساسي
+      if (ticket.assigned_to) {
+        userIds.push(ticket.assigned_to);
+      }
+      
+      // إضافة جميع المسندين من جدول ticket_assignments
+      const assignmentsResult = await pool.query(
+        'SELECT user_id FROM ticket_assignments WHERE ticket_id = $1',
+        [ticketId]
+      );
+      assignmentsResult.rows.forEach(row => {
+        if (row.user_id) userIds.push(row.user_id);
+      });
+      
+      // إضافة جميع المراجعين من جدول ticket_reviewers
+      const reviewersResult = await pool.query(
+        'SELECT reviewer_id FROM ticket_reviewers WHERE ticket_id = $1',
+        [ticketId]
+      );
+      reviewersResult.rows.forEach(row => {
+        if (row.reviewer_id) userIds.push(row.reviewer_id);
+      });
+      
+      // إزالة التكرارات
+      const uniqueUserIds = [...new Set(userIds)];
+      
+      // إرسال إشعارات فقط إذا كان هناك مستخدمين
+      if (uniqueUserIds.length > 0) {
+        console.log(`📧 إرسال إشعارات لـ ${uniqueUserIds.length} مستخدم`);
+        
+        // إنشاء إشعارات لجميع المستخدمين
+        for (const userId of uniqueUserIds) {
+          await pool.query(`
+            INSERT INTO notifications (
+              user_id, title, message, notification_type, 
+              action_url, created_at
+            ) VALUES ($1, $2, $3, $4, $5, NOW())
+          `, [
+            userId,
+            `تم تحريك التذكرة: ${ticket.title}`,
+            `قام ${userName} بنقل التذكرة من "${ticket.current_stage_name}" إلى "${targetStage.name}"`,
+            'ticket_moved',
+            `/tickets/${ticketId}`
+          ]);
+        }
+        
+        console.log('✅ تم إرسال الإشعارات بنجاح');
+      } else {
+        console.log('ℹ️ لا يوجد مستخدمين لإرسال إشعارات إليهم');
+      }
+    } catch (notificationError) {
+      console.error('❌ خطأ في إرسال الإشعارات:', notificationError);
+      // نستمر في العملية حتى لو فشلت الإشعارات
+    }
+
     // 6. إرجاع النتيجة
     res.json({
       success: true,
