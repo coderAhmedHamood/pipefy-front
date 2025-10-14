@@ -13,7 +13,7 @@
 ### 2️⃣ افتح صفحة الإشعارات
 
 ```
-http://localhost:3000/notifications
+http://localhost:3003/notifications
 ```
 
 ### 3️⃣ اضغط على "التقارير" ثم "الإشعارات"
@@ -71,7 +71,7 @@ http://localhost:3000/notifications
    cd api
    npm start
    ```
-2. تأكد من أن الخادم يعمل على `http://localhost:3000`
+2. تأكد من أن الخادم يعمل على `http://localhost:3003`
 
 ---
 
@@ -126,14 +126,14 @@ http://localhost:3000/notifications
 
 ```bash
 # 1. تسجيل الدخول
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://localhost:3003/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@pipefy.com","password":"admin123"}'
 
 # احفظ الـ token من الاستجابة
 
 # 2. جلب الإشعارات
-curl -X GET "http://localhost:3000/api/notifications/with-users?limit=20&offset=0" \
+curl -X GET "http://localhost:3003/api/notifications/with-users?limit=20&offset=0" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 

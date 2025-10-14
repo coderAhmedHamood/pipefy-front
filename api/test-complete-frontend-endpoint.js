@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // إعدادات الاختبار
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'http://localhost:3003/api';
 const TEST_CONFIG = {
   email: 'admin@example.com',
   password: 'admin123'
@@ -210,7 +210,7 @@ async function testPerformance() {
     
     if (responseTime < 1000) {
       console.log('✅ الأداء ممتاز (أقل من ثانية واحدة)');
-    } else if (responseTime < 3000) {
+    } else if (responseTime < 3003) {
       console.log('⚠️ الأداء مقبول (1-3 ثواني)');
     } else {
       console.log('❌ الأداء بطيء (أكثر من 3 ثواني)');

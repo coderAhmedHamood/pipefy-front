@@ -614,7 +614,7 @@ export const ProcessManager: React.FC = () => {
         if (error.message.includes('Failed to fetch')) {
           errorMessage = 'فشل في الاتصال بالخادم. تأكد من:\n' +
                         '• تشغيل الخادم الخلفي (node server.js)\n' +
-                        '• الخادم يعمل على المنفذ 3000\n' +
+                        '• الخادم يعمل على المنفذ 3003\n' +
                         '• لا توجد مشاكل في الشبكة';
         } else if (error.message.includes('401')) {
           errorMessage = 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى';

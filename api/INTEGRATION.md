@@ -9,7 +9,7 @@
 ```javascript
 // للسماح من مصدر محدد فقط
 app.use(cors({
-  origin: 'http://localhost:3000', // عنوان المشروع الأمامي
+  origin: 'http://localhost:3003', // عنوان المشروع الأمامي
   credentials: true
 }));
 ```
@@ -32,7 +32,7 @@ const headers = {
 ```javascript
 const login = async (email, password) => {
   try {
-    const response = await fetch('http://localhost:3000/api/auth/login', {
+    const response = await fetch('http://localhost:3003/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -63,7 +63,7 @@ const login = async (email, password) => {
 const getUsers = async (page = 1, perPage = 20) => {
   try {
     const token = localStorage.getItem('token');
-    const response = await fetch(`http://localhost:3000/api/users?page=${page}&per_page=${perPage}`, {
+    const response = await fetch(`http://localhost:3003/api/users?page=${page}&per_page=${perPage}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -91,7 +91,7 @@ const getUsers = async (page = 1, perPage = 20) => {
 const createUser = async (userData) => {
   try {
     const token = localStorage.getItem('token');
-    const response = await fetch('http://localhost:3000/api/users', {
+    const response = await fetch('http://localhost:3003/api/users', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -120,7 +120,7 @@ const createUser = async (userData) => {
 const getRoles = async () => {
   try {
     const token = localStorage.getItem('token');
-    const response = await fetch('http://localhost:3000/api/roles', {
+    const response = await fetch('http://localhost:3003/api/roles', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -148,7 +148,7 @@ const getRoles = async () => {
 const getPermissions = async () => {
   try {
     const token = localStorage.getItem('token');
-    const response = await fetch('http://localhost:3000/api/permissions', {
+    const response = await fetch('http://localhost:3003/api/permissions', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -197,7 +197,7 @@ const handleApiError = (error) => {
 import axios from 'axios';
 
 // إعداد الـ base URL
-axios.defaults.baseURL = 'http://localhost:3000/api';
+axios.defaults.baseURL = 'http://localhost:3003/api';
 
 // إضافة التوكن تلقائياً
 axios.interceptors.request.use(
@@ -232,7 +232,7 @@ axios.interceptors.response.use(
 ## متغيرات البيئة للمشروع الأمامي
 
 ```env
-REACT_APP_API_URL=http://localhost:3000/api
+REACT_APP_API_URL=http://localhost:3003/api
 REACT_APP_API_TIMEOUT=10000
 ```
 

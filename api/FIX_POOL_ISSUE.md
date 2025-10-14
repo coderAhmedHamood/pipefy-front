@@ -99,7 +99,7 @@ node test-fix-verification.js
 
 #### اختبار GET /api/notifications/all:
 ```bash
-curl -X GET "http://localhost:3000/api/notifications/all?limit=5" \
+curl -X GET "http://localhost:3003/api/notifications/all?limit=5" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

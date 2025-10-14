@@ -6,7 +6,7 @@
 
 ```bash
 # تسجيل الدخول
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://localhost:3003/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@example.com",
@@ -39,7 +39,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 ### 1. إنشاء عملية دعم فني من القالب
 
 ```bash
-curl -X POST http://localhost:3000/api/processes/from-template \
+curl -X POST http://localhost:3003/api/processes/from-template \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -95,7 +95,7 @@ curl -X POST http://localhost:3000/api/processes/from-template \
 ### 2. إنشاء تذكرة دعم جديدة
 
 ```bash
-curl -X POST http://localhost:3000/api/tickets \
+curl -X POST http://localhost:3003/api/tickets \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -134,7 +134,7 @@ curl -X POST http://localhost:3000/api/tickets \
 ### 3. تحديث حالة التذكرة إلى "قيد المعالجة"
 
 ```bash
-curl -X POST http://localhost:3000/api/tickets/ticket-id-123/change-stage \
+curl -X POST http://localhost:3003/api/tickets/ticket-id-123/change-stage \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -146,7 +146,7 @@ curl -X POST http://localhost:3000/api/tickets/ticket-id-123/change-stage \
 ### 4. إضافة تعليق على التذكرة
 
 ```bash
-curl -X POST http://localhost:3000/api/tickets/ticket-id-123/comments \
+curl -X POST http://localhost:3003/api/tickets/ticket-id-123/comments \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -162,7 +162,7 @@ curl -X POST http://localhost:3000/api/tickets/ticket-id-123/comments \
 ### 1. إنشاء عملية الموارد البشرية
 
 ```bash
-curl -X POST http://localhost:3000/api/processes/from-template \
+curl -X POST http://localhost:3003/api/processes/from-template \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -177,7 +177,7 @@ curl -X POST http://localhost:3000/api/processes/from-template \
 ### 2. إنشاء طلب إجازة
 
 ```bash
-curl -X POST http://localhost:3000/api/tickets \
+curl -X POST http://localhost:3003/api/tickets \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -198,7 +198,7 @@ curl -X POST http://localhost:3000/api/tickets \
 ### 3. موافقة المدير على الطلب
 
 ```bash
-curl -X POST http://localhost:3000/api/tickets/hr-ticket-id/change-stage \
+curl -X POST http://localhost:3003/api/tickets/hr-ticket-id/change-stage \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -214,7 +214,7 @@ curl -X POST http://localhost:3000/api/tickets/hr-ticket-id/change-stage \
 ### 1. إنشاء عملية طلبات الشراء
 
 ```bash
-curl -X POST http://localhost:3000/api/processes/from-template \
+curl -X POST http://localhost:3003/api/processes/from-template \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -225,7 +225,7 @@ curl -X POST http://localhost:3000/api/processes/from-template \
 ### 2. إنشاء طلب شراء معدات
 
 ```bash
-curl -X POST http://localhost:3000/api/tickets \
+curl -X POST http://localhost:3003/api/tickets \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -252,7 +252,7 @@ curl -X POST http://localhost:3000/api/tickets \
 ### 1. جلب إحصائيات عملية معينة
 
 ```bash
-curl -X GET http://localhost:3000/api/processes/process-id/stats \
+curl -X GET http://localhost:3003/api/processes/process-id/stats \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -275,7 +275,7 @@ curl -X GET http://localhost:3000/api/processes/process-id/stats \
 ### 2. تحليل أداء العملية خلال فترة معينة
 
 ```bash
-curl -X GET "http://localhost:3000/api/processes/process-id/performance?date_from=2024-01-01&date_to=2024-12-31" \
+curl -X GET "http://localhost:3003/api/processes/process-id/performance?date_from=2024-01-01&date_to=2024-12-31" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -340,7 +340,7 @@ curl -X GET "http://localhost:3000/api/processes/process-id/performance?date_fro
 ### 1. تحديث ترتيب المراحل
 
 ```bash
-curl -X PUT http://localhost:3000/api/processes/process-id/stage-order \
+curl -X PUT http://localhost:3003/api/processes/process-id/stage-order \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -367,14 +367,14 @@ curl -X PUT http://localhost:3000/api/processes/process-id/stage-order \
 ### 2. إنشاء انتقالات ذكية
 
 ```bash
-curl -X POST http://localhost:3000/api/processes/process-id/smart-transitions \
+curl -X POST http://localhost:3003/api/processes/process-id/smart-transitions \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### 3. نسخ عملية موجودة
 
 ```bash
-curl -X POST http://localhost:3000/api/processes/process-id/duplicate \
+curl -X POST http://localhost:3003/api/processes/process-id/duplicate \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -387,15 +387,15 @@ curl -X POST http://localhost:3000/api/processes/process-id/duplicate \
 
 ```bash
 # البحث في التذاكر
-curl -X GET "http://localhost:3000/api/tickets?search=مشكلة&priority=high&status=active&limit=20" \
+curl -X GET "http://localhost:3003/api/tickets?search=مشكلة&priority=high&status=active&limit=20" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # تصفية حسب العملية والمرحلة
-curl -X GET "http://localhost:3000/api/tickets?process_id=process-id&current_stage_id=stage-id" \
+curl -X GET "http://localhost:3003/api/tickets?process_id=process-id&current_stage_id=stage-id" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # تصفية حسب التاريخ
-curl -X GET "http://localhost:3000/api/tickets?due_date_from=2024-12-01&due_date_to=2024-12-31" \
+curl -X GET "http://localhost:3003/api/tickets?due_date_from=2024-12-01&due_date_to=2024-12-31" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -443,7 +443,7 @@ curl -X GET "http://localhost:3000/api/tickets?due_date_from=2024-12-01&due_date
 
 ## 🚀 الخطوات التالية
 
-1. **اختبر النظام** باستخدام Swagger UI: http://localhost:3000/api-docs
+1. **اختبر النظام** باستخدام Swagger UI: http://localhost:3003/api-docs
 2. **أنشئ عمليات مخصصة** حسب احتياجات شركتك
 3. **استخدم التحليلات** لتحسين الأداء
 4. **ادمج النظام** مع واجهتك الأمامية

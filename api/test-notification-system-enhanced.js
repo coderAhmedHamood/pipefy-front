@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://localhost:3003/api';
 let authToken = '';
 
 // ألوان للطباعة
@@ -329,7 +329,7 @@ async function runAllTests() {
   log('='.repeat(60), 'cyan');
   log('✅ جميع الاختبارات اكتملت بنجاح!', 'green');
   log('\n💡 النصائح:', 'yellow');
-  log('   1. تحقق من الواجهة على http://localhost:3000/notifications', 'yellow');
+  log('   1. تحقق من الواجهة على http://localhost:3003/notifications', 'yellow');
   log('   2. جرب التبديل بين وضع الإرسال والتقارير', 'yellow');
   log('   3. اختبر Infinite Scroll بالتمرير للأسفل', 'yellow');
   log('   4. اضغط على المستخدمين والإشعارات لعرض التفاصيل', 'yellow');

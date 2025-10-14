@@ -697,7 +697,7 @@ npm start
 
 ### 3. الوصول إلى التوثيق:
 ```
-http://localhost:3000/api-docs
+http://localhost:3003/api-docs
 ```
 
 ### 4. اختبار النظام:

@@ -6,18 +6,18 @@ The Arabic error message you encountered:
 ```
 فشل في الاتصال بالخادم. تأكد من:
 • تشغيل الخادم الخلفي (node server.js)
-• الخادم يعمل على المنفذ 3000
+• الخادم يعمل على المنفذ 3003
 • لا توجد مشاكل في الشبكة
 ```
 
-**Translation**: "Failed to connect to server. Make sure: • Backend server is running (node server.js) • Server is running on port 3000 • No network issues"
+**Translation**: "Failed to connect to server. Make sure: • Backend server is running (node server.js) • Server is running on port 3003 • No network issues"
 
 ## 🛠️ **Fixes Applied**
 
 ### 1. **Port Configuration Fixed**
-- ✅ Updated frontend to use correct port **3000** (was incorrectly using 3001)
-- ✅ Backend server configured to run on port **3000**
-- ✅ All API calls now use `http://localhost:3000`
+- ✅ Updated frontend to use correct port **3003** (was incorrectly using 3001)
+- ✅ Backend server configured to run on port **3003**
+- ✅ All API calls now use `http://localhost:3003`
 
 ### 2. **Health Endpoint Added**
 - ✅ Added `/api/health` endpoint for connection testing
@@ -68,7 +68,7 @@ This will test:
    ```
    
 2. **Verify Server is Running**
-   - Open: `http://localhost:3000/api/health`
+   - Open: `http://localhost:3003/api/health`
    - Should see: `{"status": "healthy", "message": "Pipefy API Server is running"}`
 
 3. **Test Frontend Integration**
@@ -107,9 +107,9 @@ This will test:
 ## 🔍 **Troubleshooting**
 
 ### **If Server Won't Start**
-1. Check if port 3000 is already in use:
+1. Check if port 3003 is already in use:
    ```bash
-   netstat -ano | findstr :3000
+   netstat -ano | findstr :3003
    ```
 
 2. Check database connection in `.env` file:
@@ -142,9 +142,9 @@ When everything is working correctly, you should see:
 
 1. **Server Console**:
    ```
-   🚀 Server is running on port 3000
-   📍 Server URL: http://localhost:3000
-   🔗 Test database: http://localhost:3000/test-db
+   🚀 Server is running on port 3003
+   📍 Server URL: http://localhost:3003
+   🔗 Test database: http://localhost:3003/test-db
    ```
 
 2. **Browser Console** (when updating a stage):

@@ -50,20 +50,20 @@ async function testSwaggerServerURL() {
   }
 
   console.log('🎯 النتيجة:');
-  console.log('   ✅ Server URL في Swagger: http://localhost:3000/api');
+  console.log('   ✅ Server URL في Swagger: http://localhost:3003/api');
   console.log('   ✅ جميع الروابط في Swagger ستبدأ بـ /api تلقائياً');
   console.log('   ✅ مثال: عندما تضغط على /auth/login في Swagger');
-  console.log('   ✅ سيصبح الرابط الكامل: http://localhost:3000/api/auth/login');
+  console.log('   ✅ سيصبح الرابط الكامل: http://localhost:3003/api/auth/login');
   console.log('');
-  console.log('🌐 افتح Swagger UI الآن: http://localhost:3000/api-docs');
-  console.log('📋 ستجد أن Server URL أصبح: http://localhost:3000/api');
+  console.log('🌐 افتح Swagger UI الآن: http://localhost:3003/api-docs');
+  console.log('📋 ستجد أن Server URL أصبح: http://localhost:3003/api');
 }
 
 function makeRequest(method, path, body = null, token = null) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'localhost',
-      port: 3000,
+      port: 3003,
       path: path,
       method: method,
       headers: {

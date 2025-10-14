@@ -17,7 +17,7 @@ A centralized configuration system has been created to manage all general applic
 
 #### 1. عنوان API الأساسي | Base API URL
 ```typescript
-export const API_BASE_URL = 'http://localhost:3000';
+export const API_BASE_URL = 'http://localhost:3003';
 ```
 
 **لتغيير عنوان السيرفر:**
@@ -137,7 +137,7 @@ const response = await fetch(`${API_ENDPOINTS.PROCESSES}/frontend`, {
 - `src/components/kanban/TicketModal.tsx`
 - `src/components/processes/ProcessManager.tsx`
 - `src/components/reports/ReportsManager.tsx`
-- أي ملف آخر يستخدم `localhost:3000`
+- أي ملف آخر يستخدم `localhost:3003`
 
 ---
 
@@ -148,7 +148,7 @@ const response = await fetch(`${API_ENDPOINTS.PROCESSES}/frontend`, {
 1. افتح ملف `src/config/config.ts`
 2. غير السطر:
    ```typescript
-   export const API_BASE_URL = 'http://localhost:3000';
+   export const API_BASE_URL = 'http://localhost:3003';
    ```
    إلى:
    ```typescript

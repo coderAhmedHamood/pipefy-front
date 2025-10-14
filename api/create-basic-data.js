@@ -111,7 +111,7 @@ async function createBasicData() {
     console.log('\n🎉 Basic system data created successfully!');
     console.log('📧 Admin Email: admin@example.com');
     console.log('🔑 Admin Password: admin123');
-    console.log('🌐 You can now login at: http://localhost:3000/api/auth/login');
+    console.log('🌐 You can now login at: http://localhost:3003/api/auth/login');
     
     process.exit(0);
   } catch (error) {

@@ -31,7 +31,7 @@
 
 **مثال على الطلب:**
 ```bash
-curl -X GET "http://localhost:3000/api/notifications/all?limit=10&is_read=false" \
+curl -X GET "http://localhost:3003/api/notifications/all?limit=10&is_read=false" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -90,7 +90,7 @@ curl -X GET "http://localhost:3000/api/notifications/all?limit=10&is_read=false"
 
 **مثال على الطلب:**
 ```bash
-curl -X GET "http://localhost:3000/api/notifications/with-users?limit=5" \
+curl -X GET "http://localhost:3003/api/notifications/with-users?limit=5" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -151,7 +151,7 @@ curl -X GET "http://localhost:3000/api/notifications/with-users?limit=5" \
 
 **مثال على الطلب:**
 ```bash
-curl -X GET "http://localhost:3000/api/notifications/user/789e0123-e45f-67g8-h901-234567890123?limit=10" \
+curl -X GET "http://localhost:3003/api/notifications/user/789e0123-e45f-67g8-h901-234567890123?limit=10" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -213,7 +213,7 @@ curl -X GET "http://localhost:3000/api/notifications/user/789e0123-e45f-67g8-h90
 
 **مثال على الطلب:**
 ```bash
-curl -X GET "http://localhost:3000/api/notifications/123e4567-e89b-12d3-a456-426614174000" \
+curl -X GET "http://localhost:3003/api/notifications/123e4567-e89b-12d3-a456-426614174000" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -279,7 +279,7 @@ Authorization: Bearer YOUR_JWT_TOKEN
 للحصول على التوكن، استخدم endpoint تسجيل الدخول:
 
 ```bash
-curl -X POST "http://localhost:3000/api/auth/login" \
+curl -X POST "http://localhost:3003/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@example.com",
@@ -387,5 +387,5 @@ const response = await fetch('/api/notifications/with-users?limit=10', {
 ## 📞 الدعم
 
 للمزيد من المعلومات، راجع:
-- Swagger UI: `http://localhost:3000/api-docs`
-- API Documentation: `http://localhost:3000/api/docs`
+- Swagger UI: `http://localhost:3003/api-docs`
+- API Documentation: `http://localhost:3003/api/docs`

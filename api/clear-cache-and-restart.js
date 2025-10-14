@@ -40,5 +40,5 @@ try {
 console.log('\n📋 الخطوات التالية:');
 console.log('1. أوقف الخادم الحالي');
 console.log('2. شغل: node server.js');
-console.log('3. افتح: http://localhost:3000/api-docs');
+console.log('3. افتح: http://localhost:3003/api-docs');
 console.log('4. تحقق من أن الروابط تبدأ بـ /api/');

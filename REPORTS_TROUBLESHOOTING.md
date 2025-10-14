@@ -23,7 +23,7 @@ const fetchProcessReport = async (processId: string) => {
   
   try {
     console.log('🔍 جلب تقرير العملية:', processId);
-    const response = await fetch(`http://localhost:3000/api/reports/process/${processId}`, {
+    const response = await fetch(`http://localhost:3003/api/reports/process/${processId}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -130,7 +130,7 @@ const handleProcessClick = (process: Process) => {
 ```
 ❌ خطأ في جلب تقرير العملية: TypeError: Failed to fetch
 ```
-تحقق من أن الـ API Server يعمل على `http://localhost:3000`
+تحقق من أن الـ API Server يعمل على `http://localhost:3003`
 
 ## 🔧 خطوات التشخيص
 
@@ -144,7 +144,7 @@ node server.js
 
 يجب أن ترى:
 ```
-✅ Server running on http://localhost:3000
+✅ Server running on http://localhost:3003
 ✅ Database connected
 ```
 
@@ -168,11 +168,11 @@ $headers = @{
 }
 
 # جلب العمليات
-Invoke-RestMethod -Uri "http://localhost:3000/api/processes" -Headers $headers -Method Get
+Invoke-RestMethod -Uri "http://localhost:3003/api/processes" -Headers $headers -Method Get
 
 # جلب تقرير عملية
 $processId = "process-id-here"
-Invoke-RestMethod -Uri "http://localhost:3000/api/reports/process/$processId" -Headers $headers -Method Get
+Invoke-RestMethod -Uri "http://localhost:3003/api/reports/process/$processId" -Headers $headers -Method Get
 ```
 
 ### 4. تحقق من البيانات في قاعدة البيانات

@@ -23,7 +23,7 @@ function makeRequest(method, path, body = null, headers = {}) {
     
     const options = {
       hostname: 'localhost',
-      port: 3000,
+      port: 3003,
       path: path,
       method: method,
       headers: {
@@ -110,7 +110,7 @@ async function testEndpoints() {
   
   if (failCount === 0) {
     console.log('\n🎉 All endpoints are working correctly!');
-    console.log('🌐 Swagger UI: http://localhost:3000/api-docs');
+    console.log('🌐 Swagger UI: http://localhost:3003/api-docs');
     console.log('📧 Login: admin@example.com / admin123');
   } else {
     console.log('\n⚠️  Some endpoints have issues. Check the logs above.');

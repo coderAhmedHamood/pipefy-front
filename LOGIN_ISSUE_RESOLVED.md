@@ -8,7 +8,7 @@
 
 ### **1. فحص الخوادم:**
 - ✅ **Frontend Server**: يعمل على `http://localhost:3002`
-- ❌ **API Server**: كان متوقفاً على `http://localhost:3000`
+- ❌ **API Server**: كان متوقفاً على `http://localhost:3003`
 
 ### **2. المشاكل المكتشفة:**
 
@@ -58,15 +58,15 @@ npm start
 🔄 Testing database connection...
 ✅ Database connected successfully!
 Connected to: pipefy-main on 127.0.0.1:5432
-🚀 Server is running on port 3000
-📍 Server URL: http://localhost:3000
-🔗 Test database: http://localhost:3000/test-db
+🚀 Server is running on port 3003
+📍 Server URL: http://localhost:3003
+🔗 Test database: http://localhost:3003/test-db
 ```
 
 ### **3. اختبار تسجيل الدخول:**
 
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:3000/api/auth/login" -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"email":"admin@pipefy.com","password":"admin123"}'
+Invoke-WebRequest -Uri "http://localhost:3003/api/auth/login" -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"email":"admin@pipefy.com","password":"admin123"}'
 ```
 
 **النتيجة**:
@@ -81,7 +81,7 @@ Content           : {"success":true,"data":{"user":{"id":"588be31f-7130-40f2-92c
 ### **🎉 تم حل المشكلة بالكامل!**
 
 **الخوادم تعمل الآن:**
-- ✅ **API Server**: `http://localhost:3000` - يعمل بشكل مثالي
+- ✅ **API Server**: `http://localhost:3003` - يعمل بشكل مثالي
 - ✅ **Frontend Server**: `http://localhost:3002` - يعمل بشكل مثالي
 - ✅ **Database**: PostgreSQL متصل ويعمل
 - ✅ **Authentication**: تسجيل الدخول يعمل بنجاح
@@ -132,7 +132,7 @@ Content           : {"success":true,"data":{"user":{"id":"588be31f-7130-40f2-92c
 
 ### **✅ جميع الخدمات تعمل:**
 
-1. **API Server** (Port 3000):
+1. **API Server** (Port 3003):
    - ✅ Authentication endpoints
    - ✅ Tickets endpoints  
    - ✅ Comments endpoints

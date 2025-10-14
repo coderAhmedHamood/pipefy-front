@@ -485,7 +485,7 @@ async function createComprehensiveDemo() {
     console.log('- انتقالات ذكية بين المراحل');
     console.log('- حقول ديناميكية متقدمة');
     console.log('\n🔗 يمكنك الآن اختبار النظام من خلال:');
-    console.log('- Swagger UI: http://localhost:3000/api-docs');
+    console.log('- Swagger UI: http://localhost:3003/api-docs');
     console.log('- API Endpoints: /api/processes, /api/stages, /api/fields, /api/tickets');
 
   } catch (error) {

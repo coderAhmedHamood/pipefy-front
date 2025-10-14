@@ -44,7 +44,7 @@ POST /api/tickets/{ticket_id}/move-to-process
 ### JavaScript/Axios
 ```javascript
 const response = await axios.post(
-  `http://localhost:3000/api/tickets/${ticketId}/move-to-process`,
+  `http://localhost:3003/api/tickets/${ticketId}/move-to-process`,
   { target_process_id: targetProcessId },
   { headers: { Authorization: `Bearer ${token}` } }
 );
@@ -52,7 +52,7 @@ const response = await axios.post(
 
 ### cURL
 ```bash
-curl -X POST http://localhost:3000/api/tickets/{ticket_id}/move-to-process \
+curl -X POST http://localhost:3003/api/tickets/{ticket_id}/move-to-process \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{"target_process_id":"{process_id}"}'

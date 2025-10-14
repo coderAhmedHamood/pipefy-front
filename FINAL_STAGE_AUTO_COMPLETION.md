@@ -187,7 +187,7 @@ WHERE process_id = 'YOUR_PROCESS_ID'
 #### 2. نقل تذكرة إلى المرحلة النهائية
 
 ```bash
-curl -X POST http://localhost:3000/api/tickets/{ticket_id}/move \
+curl -X POST http://localhost:3003/api/tickets/{ticket_id}/move \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -200,7 +200,7 @@ curl -X POST http://localhost:3000/api/tickets/{ticket_id}/move \
 #### 3. التحقق من النتيجة
 
 ```bash
-curl -X GET http://localhost:3000/api/tickets/{ticket_id} \
+curl -X GET http://localhost:3003/api/tickets/{ticket_id} \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

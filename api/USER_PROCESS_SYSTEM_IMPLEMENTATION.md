@@ -171,7 +171,7 @@ node test-user-processes.js
 ## 📖 توثيق Swagger
 
 جميع نقاط النهاية موثقة بالكامل في Swagger UI:
-- الوصول: `http://localhost:3000/api-docs`
+- الوصول: `http://localhost:3003/api-docs`
 - البحث عن تاج: `UserProcesses`
 
 ## 🔄 الميزات المتقدمة

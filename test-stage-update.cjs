@@ -1,7 +1,7 @@
 const http = require('http');
 
 // Test configuration
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'http://localhost:3003';
 const TEST_CREDENTIALS = {
   email: 'admin@pipefy.com',
   password: 'admin123'
@@ -15,7 +15,7 @@ function makeRequest(method, path, data = null, headers = {}) {
     
     const options = {
       hostname: url.hostname,
-      port: url.port || 3000,
+      port: url.port || 3003,
       path: url.pathname + url.search,
       method: method,
       headers: {

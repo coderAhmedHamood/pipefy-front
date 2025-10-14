@@ -168,14 +168,14 @@ async function comprehensiveEndpointTest() {
     console.log(`\n⚠️  يوجد ${failedTests} endpoints تحتاج إلى إصلاح.`);
   }
   
-  console.log('\n🌐 Swagger UI: http://localhost:3000/api-docs');
+  console.log('\n🌐 Swagger UI: http://localhost:3003/api-docs');
 }
 
 function makeRequest(method, path, body = null, token = null) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'localhost',
-      port: 3000,
+      port: 3003,
       path: path,
       method: method,
       headers: {

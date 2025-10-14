@@ -4,8 +4,8 @@
 
 ### ❌ الخطأ:
 ```
-POST http://localhost:3000/api/notifications 500 (Internal Server Error)
-POST http://localhost:3000/api/notifications/bulk 500 (Internal Server Error)
+POST http://localhost:3003/api/notifications 500 (Internal Server Error)
+POST http://localhost:3003/api/notifications/bulk 500 (Internal Server Error)
 ```
 
 ### 🔍 السبب:

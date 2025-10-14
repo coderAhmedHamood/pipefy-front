@@ -7,7 +7,7 @@ const swaggerSpecs = require('./config/swagger');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3003;
 
 // Middleware
 app.use(cors());
@@ -56,7 +56,7 @@ app.get('/', (req, res) => {
       documentation: '/api-docs',
       database_test: '/test-db'
     },
-    swagger_ui: 'http://localhost:3000/api-docs'
+    swagger_ui: 'http://localhost:3003/api-docs'
   });
 });
 

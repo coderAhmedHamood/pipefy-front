@@ -11,7 +11,7 @@ const oldFunction = `  const loadAllUsers = async () => {
     setIsLoadingUsers(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/users', {
+      const response = await fetch('http://localhost:3003/api/users', {
         headers: {
           'Authorization': \`Bearer \${token}\`
         }
@@ -34,7 +34,7 @@ const newFunction = `  const loadAllUsers = async () => {
       const token = localStorage.getItem('token');
       console.log('🔍 جاري جلب المستخدمين من API...');
       
-      const response = await fetch('http://localhost:3000/api/users', {
+      const response = await fetch('http://localhost:3003/api/users', {
         headers: {
           'Authorization': \`Bearer \${token}\`,
           'Content-Type': 'application/json'

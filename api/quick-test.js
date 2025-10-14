@@ -9,7 +9,7 @@ const postData = JSON.stringify({
 
 const options = {
   hostname: 'localhost',
-  port: 3000,
+  port: 3003,
   path: '/api/auth/login',  // الرابط الصحيح
   method: 'POST',
   headers: {
@@ -31,9 +31,9 @@ const req = http.request(options, (res) => {
       console.log('👤 Name:', response.data.user.name);
       console.log('🔑 Token received:', response.data.token.substring(0, 50) + '...');
       console.log('\n🎯 Use this URL in Swagger:');
-      console.log('   http://localhost:3000/api/auth/login');
+      console.log('   http://localhost:3003/api/auth/login');
       console.log('\n📍 Swagger UI:');
-      console.log('   http://localhost:3000/api-docs');
+      console.log('   http://localhost:3003/api-docs');
     } else {
       console.log('❌ Login failed!');
       console.log('Status:', res.statusCode);

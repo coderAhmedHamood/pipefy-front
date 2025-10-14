@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { UserProcess } = require('./models');
 
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'http://localhost:3003/api';
 
 async function testUserProcesses() {
   console.log('🧪 اختبار نظام ربط المستخدمين بالعمليات...\n');

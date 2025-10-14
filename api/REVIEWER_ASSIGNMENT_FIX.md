@@ -132,7 +132,7 @@ node test-reviewer-assignment-fix.js
 ### إضافة مراجع (مع الحماية التلقائية)
 
 ```bash
-curl -X POST http://localhost:3000/api/ticket-reviewers \
+curl -X POST http://localhost:3003/api/ticket-reviewers \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -150,7 +150,7 @@ curl -X POST http://localhost:3000/api/ticket-reviewers \
 ### إضافة إسناد (مع الحماية التلقائية)
 
 ```bash
-curl -X POST http://localhost:3000/api/ticket-assignments \
+curl -X POST http://localhost:3003/api/ticket-assignments \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

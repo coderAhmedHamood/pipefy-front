@@ -5,7 +5,7 @@
 كان endpoint `/api/notifications/unread-count` يُرجع خطأ 500:
 
 ```
-GET http://localhost:3000/api/notifications/unread-count 500 (Internal Server Error)
+GET http://localhost:3003/api/notifications/unread-count 500 (Internal Server Error)
 ```
 
 ## 🎯 السبب الجذري
@@ -114,7 +114,7 @@ npm start
 ### 2. من Swagger
 
 ```
-http://localhost:3000/api-docs
+http://localhost:3003/api-docs
 ```
 
 جرب endpoint:
@@ -128,12 +128,12 @@ GET /api/notifications/unread-count
 
 ```bash
 # احصل على token أولاً
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://localhost:3003/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@pipefy.com","password":"admin123"}'
 
 # ثم اختبر unread-count
-curl -X GET http://localhost:3000/api/notifications/unread-count \
+curl -X GET http://localhost:3003/api/notifications/unread-count \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 

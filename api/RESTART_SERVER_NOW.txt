@@ -21,7 +21,7 @@
 
 4. انتظر حتى ترى:
    ✅ Database connected successfully!
-   Server running on port 3000
+   Server running on port 3003
 
 5. الآن جرّب الـ endpoints مرة أخرى
 
@@ -30,7 +30,7 @@
 ═══════════════════════════════════════════════════════════════════
 
 جرّب هذا الـ endpoint:
-GET http://localhost:3000/api/notifications/all?limit=5
+GET http://localhost:3003/api/notifications/all?limit=5
 
 النتيجة المتوقعة:
 {

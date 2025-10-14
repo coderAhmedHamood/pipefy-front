@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // إعدادات الاختبار
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'http://localhost:3003/api';
 const TEST_CONFIG = {
   email: 'admin@example.com',
   password: 'admin123',
@@ -285,7 +285,7 @@ async function runTests() {
 
     console.log('\n🎉 انتهى الاختبار بنجاح!');
     console.log('\n📖 يمكنك الآن تجربة الـ endpoints في Swagger:');
-    console.log('   🔗 http://localhost:3000/api-docs/#/Tickets');
+    console.log('   🔗 http://localhost:3003/api-docs/#/Tickets');
 
   } catch (error) {
     console.error('❌ خطأ عام في الاختبار:', error.message);

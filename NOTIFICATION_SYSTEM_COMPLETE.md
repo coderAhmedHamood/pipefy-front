@@ -420,10 +420,10 @@ Ctrl+Shift+R
 
 ```bash
 # جلب الإشعارات
-GET http://localhost:3000/api/notifications
+GET http://localhost:3003/api/notifications
 
 # إنشاء إشعار تجريبي
-POST http://localhost:3000/api/notifications
+POST http://localhost:3003/api/notifications
 {
   "user_id": "your-user-id",
   "title": "إشعار تجريبي",
@@ -432,7 +432,7 @@ POST http://localhost:3000/api/notifications
 }
 
 # عدد غير المقروءة
-GET http://localhost:3000/api/notifications/unread-count
+GET http://localhost:3003/api/notifications/unread-count
 ```
 
 ---

@@ -219,7 +219,7 @@ GET /api/notifications/with-users
 
 ### 1. افتح صفحة الإشعارات
 ```
-http://localhost:3000/notifications
+http://localhost:3003/notifications
 ```
 
 ### 2. اضغط على تبويبة "المستخدمين"

@@ -5,11 +5,11 @@ Write-Host "⚠️  إعادة تشغيل السيرفر بالقوة" -Foregrou
 Write-Host "═══════════════════════════════════════════════════════════════════" -ForegroundColor Red
 Write-Host ""
 
-# الخطوة 1: إيقاف جميع عمليات Node.js على المنفذ 3000
+# الخطوة 1: إيقاف جميع عمليات Node.js على المنفذ 3003
 Write-Host "1️⃣ إيقاف السيرفر القديم..." -ForegroundColor Yellow
 
 try {
-    $connections = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue
+    $connections = Get-NetTCPConnection -LocalPort 3003 -ErrorAction SilentlyContinue
     if ($connections) {
         $processes = $connections | Select-Object -ExpandProperty OwningProcess -Unique
         foreach ($proc in $processes) {
@@ -19,7 +19,7 @@ try {
         }
         Start-Sleep -Seconds 2
     } else {
-        Write-Host "   ℹ️  لا توجد عملية تعمل على المنفذ 3000" -ForegroundColor Gray
+        Write-Host "   ℹ️  لا توجد عملية تعمل على المنفذ 3003" -ForegroundColor Gray
     }
 } catch {
     Write-Host "   ⚠️  لم نتمكن من إيقاف العمليات تلقائياً" -ForegroundColor Yellow

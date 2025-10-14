@@ -5,9 +5,9 @@ Write-Host "🔄 إعادة تشغيل السيرفر واختبار Notificatio
 Write-Host "═══════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
 
-# الخطوة 1: إيقاف أي عملية Node.js تعمل على المنفذ 3000
+# الخطوة 1: إيقاف أي عملية Node.js تعمل على المنفذ 3003
 Write-Host "1️⃣ إيقاف السيرفر القديم..." -ForegroundColor Yellow
-$processes = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+$processes = Get-NetTCPConnection -LocalPort 3003 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
 if ($processes) {
     foreach ($proc in $processes) {
         Stop-Process -Id $proc -Force -ErrorAction SilentlyContinue
@@ -15,7 +15,7 @@ if ($processes) {
     }
     Start-Sleep -Seconds 2
 } else {
-    Write-Host "   ℹ️  لا توجد عملية تعمل على المنفذ 3000" -ForegroundColor Gray
+    Write-Host "   ℹ️  لا توجد عملية تعمل على المنفذ 3003" -ForegroundColor Gray
 }
 
 Write-Host ""
@@ -34,7 +34,7 @@ Start-Sleep -Seconds 5
 Write-Host ""
 Write-Host "3️⃣ التحقق من السيرفر..." -ForegroundColor Yellow
 try {
-    $response = Invoke-WebRequest -Uri "http://localhost:3000/api" -UseBasicParsing -TimeoutSec 5
+    $response = Invoke-WebRequest -Uri "http://localhost:3003/api" -UseBasicParsing -TimeoutSec 5
     Write-Host "   ✅ السيرفر يعمل بنجاح!" -ForegroundColor Green
 } catch {
     Write-Host "   ❌ السيرفر لم يبدأ بعد، انتظر قليلاً..." -ForegroundColor Red
@@ -50,7 +50,7 @@ Write-Host "📋 للاختبار، شغّل:" -ForegroundColor Yellow
 Write-Host "   node test-fix-verification.js" -ForegroundColor White
 Write-Host ""
 Write-Host "🌐 أو افتح Swagger UI:" -ForegroundColor Yellow
-Write-Host "   http://localhost:3000/api-docs" -ForegroundColor White
+Write-Host "   http://localhost:3003/api-docs" -ForegroundColor White
 Write-Host ""
 Write-Host "⚠️  ملاحظة: السيرفر يعمل الآن في الخلفية" -ForegroundColor Yellow
 Write-Host "   لإيقافه، استخدم: Stop-Job -Id $($job.Id); Remove-Job -Id $($job.Id)" -ForegroundColor Gray

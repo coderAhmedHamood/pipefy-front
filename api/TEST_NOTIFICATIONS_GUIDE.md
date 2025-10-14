@@ -22,7 +22,7 @@ npm run dev
 ```
 
 **تأكد من:**
-- ✅ السيرفر يعمل على `http://localhost:3000`
+- ✅ السيرفر يعمل على `http://localhost:3003`
 - ✅ لا توجد أخطاء في console
 - ✅ قاعدة البيانات متصلة
 
@@ -156,7 +156,7 @@ node test-all-notification-endpoints.js
 
 1. **مراجعة Swagger UI:**
    ```
-   http://localhost:3000/api-docs
+   http://localhost:3003/api-docs
    ```
 
 2. **اختبار يدوي:**

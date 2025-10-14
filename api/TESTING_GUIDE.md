@@ -5,7 +5,7 @@
 
 ## 📋 المتطلبات
 
-1. ✅ السيرفر يعمل على `http://localhost:3000`
+1. ✅ السيرفر يعمل على `http://localhost:3003`
 2. ✅ لديك JWT token صالح
 3. ✅ لديك ticket_id و user_id للاختبار
 
@@ -13,7 +13,7 @@
 
 ```bash
 # تسجيل الدخول للحصول على Token
-curl -X POST http://localhost:3000/api/auth/login \
+curl -X POST http://localhost:3003/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "admin@example.com",
@@ -37,7 +37,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 ### الخطوة 1: إضافة مراجع جديد ✅
 
 ```bash
-curl -X POST http://localhost:3000/api/ticket-reviewers \
+curl -X POST http://localhost:3003/api/ticket-reviewers \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -70,7 +70,7 @@ curl -X POST http://localhost:3000/api/ticket-reviewers \
 ### الخطوة 2: محاولة إضافة نفس المراجع (يجب أن يفشل) ⚠️
 
 ```bash
-curl -X POST http://localhost:3000/api/ticket-reviewers \
+curl -X POST http://localhost:3003/api/ticket-reviewers \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -95,7 +95,7 @@ curl -X POST http://localhost:3000/api/ticket-reviewers \
 ### الخطوة 3: حذف المراجع (Soft Delete) 🗑️
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/ticket-reviewers/REVIEWER_ID_HERE" \
+curl -X DELETE "http://localhost:3003/api/ticket-reviewers/REVIEWER_ID_HERE" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
@@ -117,7 +117,7 @@ curl -X DELETE "http://localhost:3000/api/ticket-reviewers/REVIEWER_ID_HERE" \
 ### الخطوة 4: إعادة إضافة المراجع (يجب أن ينجح!) ✅
 
 ```bash
-curl -X POST http://localhost:3000/api/ticket-reviewers \
+curl -X POST http://localhost:3003/api/ticket-reviewers \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -147,7 +147,7 @@ curl -X POST http://localhost:3000/api/ticket-reviewers \
 ### الخطوة 5: التحقق من البيانات 📊
 
 ```bash
-curl -X GET "http://localhost:3000/api/tickets/7a6981d3-5683-46cf-9ca1-d1f06bf8a154/reviewers" \
+curl -X GET "http://localhost:3003/api/tickets/7a6981d3-5683-46cf-9ca1-d1f06bf8a154/reviewers" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
@@ -177,7 +177,7 @@ curl -X GET "http://localhost:3000/api/tickets/7a6981d3-5683-46cf-9ca1-d1f06bf8a
 ### الخطوة 1: إسناد مستخدم جديد ✅
 
 ```bash
-curl -X POST http://localhost:3000/api/ticket-assignments \
+curl -X POST http://localhost:3003/api/ticket-assignments \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -209,7 +209,7 @@ curl -X POST http://localhost:3000/api/ticket-assignments \
 ### الخطوة 2: محاولة إسناد نفس المستخدم (يجب أن يفشل) ⚠️
 
 ```bash
-curl -X POST http://localhost:3000/api/ticket-assignments \
+curl -X POST http://localhost:3003/api/ticket-assignments \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -235,7 +235,7 @@ curl -X POST http://localhost:3000/api/ticket-assignments \
 ### الخطوة 3: حذف الإسناد (Soft Delete) 🗑️
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/ticket-assignments/ASSIGNMENT_ID_HERE" \
+curl -X DELETE "http://localhost:3003/api/ticket-assignments/ASSIGNMENT_ID_HERE" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
@@ -257,7 +257,7 @@ curl -X DELETE "http://localhost:3000/api/ticket-assignments/ASSIGNMENT_ID_HERE"
 ### الخطوة 4: إعادة إسناد المستخدم (يجب أن ينجح!) ✅
 
 ```bash
-curl -X POST http://localhost:3000/api/ticket-assignments \
+curl -X POST http://localhost:3003/api/ticket-assignments \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{
@@ -291,14 +291,14 @@ curl -X POST http://localhost:3000/api/ticket-assignments \
 ### حذف المراجع نهائياً (Hard Delete)
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/ticket-reviewers/REVIEWER_ID_HERE?hard=true" \
+curl -X DELETE "http://localhost:3003/api/ticket-reviewers/REVIEWER_ID_HERE?hard=true" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 ### حذف الإسناد نهائياً (Hard Delete)
 
 ```bash
-curl -X DELETE "http://localhost:3000/api/ticket-assignments/ASSIGNMENT_ID_HERE?hard=true" \
+curl -X DELETE "http://localhost:3003/api/ticket-assignments/ASSIGNMENT_ID_HERE?hard=true" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 

@@ -232,7 +232,7 @@ export const ReportsManager: React.FC = () => {
 // جلب العمليات
 const fetchProcesses = async () => {
   const token = localStorage.getItem('auth_token');
-  const response = await fetch('http://localhost:3000/api/processes', {
+  const response = await fetch('http://localhost:3003/api/processes', {
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -249,7 +249,7 @@ const fetchProcesses = async () => {
 const fetchProcessReport = async (processId: string) => {
   const token = localStorage.getItem('auth_token');
   const response = await fetch(
-    `http://localhost:3000/api/reports/process/${processId}`,
+    `http://localhost:3003/api/reports/process/${processId}`,
     {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -356,7 +356,7 @@ const [dateRange, setDateRange] = useState({
 });
 
 // ثم تمريرها كـ query parameters
-const url = `http://localhost:3000/api/reports/process/${processId}?date_from=${dateRange.from}&date_to=${dateRange.to}`;
+const url = `http://localhost:3003/api/reports/process/${processId}?date_from=${dateRange.from}&date_to=${dateRange.to}`;
 ```
 
 ## 🎯 نصائح للمدير

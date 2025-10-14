@@ -2,7 +2,7 @@
  * اختبار سريع لحالة الخادم والـ endpoints
  */
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://localhost:3003';
 
 // دالة للتحقق من حالة الخادم
 async function checkServerStatus() {
@@ -90,7 +90,7 @@ async function checkServerStatus() {
     
     if (error.message.includes('ECONNREFUSED')) {
       console.log('💡 الخادم غير متاح. تأكد من:');
-      console.log('   • تشغيل الخادم على المنفذ 3000');
+      console.log('   • تشغيل الخادم على المنفذ 3003');
       console.log('   • عدم وجود firewall يمنع الاتصال');
     } else if (error.message.includes('fetch')) {
       console.log('💡 مشكلة في الشبكة أو الاتصال');

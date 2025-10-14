@@ -76,7 +76,7 @@ npm run dev
 
 افتح المتصفح وانتقل إلى:
 ```
-http://localhost:3000/notifications
+http://localhost:3003/notifications
 ```
 
 ### 3️⃣ استخدام الواجهة
@@ -216,7 +216,7 @@ node api/test-notification-system-enhanced.js
 ### المشكلة: لا تظهر البيانات
 
 **الحل**:
-1. تأكد من تشغيل الخادم على `http://localhost:3000`
+1. تأكد من تشغيل الخادم على `http://localhost:3003`
 2. تحقق من وجود بيانات في قاعدة البيانات
 3. افتح Console في المتصفح وتحقق من الأخطاء
 

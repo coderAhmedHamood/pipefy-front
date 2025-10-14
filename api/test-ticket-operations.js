@@ -2,7 +2,7 @@ const axios = require('axios');
 const fs = require('fs');
 
 // إعدادات الاختبار
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'http://localhost:3003/api';
 const TEST_RESULTS_FILE = 'ticket-operations-test-results.json';
 
 // بيانات اختبار

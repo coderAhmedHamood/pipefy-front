@@ -39,7 +39,7 @@ node test-fix-verification.js
 
 ### أو من المتصفح:
 ```
-http://localhost:3000/api-docs
+http://localhost:3003/api-docs
 ```
 ثم اختبر `GET /api/notifications/all`
 

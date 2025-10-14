@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const PORT = 3000;
+const PORT = 3003;
 
 app.get('/', (req, res) => {
   res.json({ message: 'Simple server works!' });

@@ -65,7 +65,7 @@ GET /api/tickets/{ticket_id}/comments
 
 ### 1. إنشاء تذكرة جديدة
 ```bash
-curl -X POST http://localhost:3000/api/tickets \
+curl -X POST http://localhost:3003/api/tickets \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -82,13 +82,13 @@ curl -X POST http://localhost:3000/api/tickets \
 
 ### 2. جلب تعليقات التذكرة
 ```bash
-curl -X GET http://localhost:3000/api/tickets/{ticket_id}/comments \
+curl -X GET http://localhost:3003/api/tickets/{ticket_id}/comments \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### 3. إضافة تعليق جديد
 ```bash
-curl -X POST http://localhost:3000/api/tickets/{ticket_id}/comments \
+curl -X POST http://localhost:3003/api/tickets/{ticket_id}/comments \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

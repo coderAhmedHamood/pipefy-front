@@ -10,7 +10,7 @@
 ```javascript
 servers: [
   {
-    url: 'http://localhost:3000',
+    url: 'http://localhost:3003',
     description: 'Development server'
   }
 ]
@@ -112,12 +112,12 @@ const SWAGGER_URL = TEST_CONFIG.URLS.SWAGGER;  // http://localhost:3003/api-docs
 
 ### ❌ قبل (مشكلة)
 ```
-Swagger UI: http://localhost:3000/api-docs
-Server URL: http://localhost:3000
+Swagger UI: http://localhost:3003/api-docs
+Server URL: http://localhost:3003
 Frontend: http://localhost:3003
 
 ❌ عدم تطابق البورت!
-❌ Swagger يشير إلى 3000
+❌ Swagger يشير إلى 3003
 ❌ Frontend يتصل بـ 3003
 ```
 
@@ -142,7 +142,7 @@ Frontend: http://localhost:3003
 
 ```javascript
 // قديم
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = 'http://localhost:3003/api';
 
 // جديد
 const { TEST_CONFIG } = require('./test-config');
@@ -210,7 +210,7 @@ Swagger UI available at http://localhost:3003/api-docs
    ```
    Request URL: http://localhost:3003/api/auth/login
    ```
-   ✅ ليس `http://localhost:3000/api/auth/login`
+   ✅ ليس `http://localhost:3003/api/auth/login`
 
 ---
 
@@ -218,8 +218,8 @@ Swagger UI available at http://localhost:3003/api-docs
 
 | العنصر | قبل | بعد |
 |--------|-----|-----|
-| Swagger Server URL | `http://localhost:3000` | `http://localhost:3003` |
-| Swagger UI URL | `http://localhost:3000/api-docs` | `http://localhost:3003/api-docs` |
+| Swagger Server URL | `http://localhost:3003` | `http://localhost:3003` |
+| Swagger UI URL | `http://localhost:3003/api-docs` | `http://localhost:3003/api-docs` |
 | API Base URL | مكرر في كل ملف | مركزي في `api-config.js` |
 | Test Files | روابط ثابتة | يستخدم `test-config.js` |
 | Frontend | مكرر في كل ملف | مركزي في `config.ts` |

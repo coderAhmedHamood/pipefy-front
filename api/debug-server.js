@@ -23,7 +23,7 @@ try {
   console.log('✅ Dotenv loaded');
   
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 3003;
   
   console.log('🔧 Setting up middleware...');
   
@@ -70,7 +70,7 @@ try {
         documentation: '/api-docs',
         database_test: '/test-db'
       },
-      swagger_ui: 'http://localhost:3000/api-docs'
+      swagger_ui: 'http://localhost:3003/api-docs'
     });
   });
   console.log('✅ Root route added');
