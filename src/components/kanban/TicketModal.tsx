@@ -1349,6 +1349,12 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             {/* Comments Section */}
             <CommentsSection
               ticketId={ticket.id}
+              ticketTitle={ticket.title}
+              assignedUserIds={[
+                ...(ticket.assigned_to ? [ticket.assigned_to] : []),
+                ...assignments.map(a => a.user_id).filter(Boolean)
+              ]}
+              reviewerUserIds={reviewers.map(r => r.reviewer_id).filter(Boolean)}
               onCommentAdded={(comment) => {
                 console.log('تم إضافة تعليق جديد:', comment);
                 // يمكن إضافة منطق إضافي هنا إذا لزم الأمر

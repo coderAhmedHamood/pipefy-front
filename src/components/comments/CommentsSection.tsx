@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
-import { MessageSquare, Plus, Clock, User, Loader2, Edit2, Trash2, Save, X } from 'lucide-react';
+import { MessageSquare, Plus, Clock, Loader2, Edit2, Trash2, Save } from 'lucide-react';
 import { useComments } from '../../hooks/useComments';
 import { Comment } from '../../services/commentService';
+import notificationService from '../../services/notificationService';
 
 interface CommentsSectionProps {
   ticketId: string;
+  ticketTitle?: string;
+  assignedUserIds?: string[];
+  reviewerUserIds?: string[];
   onCommentAdded?: (comment: Comment) => void;
 }
 
 export const CommentsSection: React.FC<CommentsSectionProps> = ({ 
-  ticketId, 
+  ticketId,
+  ticketTitle = 'التذكرة',
+  assignedUserIds = [],
+  reviewerUserIds = [],
   onCommentAdded 
 }) => {
   const {
@@ -42,11 +49,61 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         setNewComment('');
         setIsAddingComment(false);
         onCommentAdded?.(comment);
+        
+        // إرسال إشعارات للمسندين والمراجعين
+        await sendNotificationsForComment();
       }
     } catch (error) {
       console.error('خطأ في إضافة التعليق:', error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const sendNotificationsForComment = async () => {
+    try {
+      // الحصول على اسم المستخدم الحالي
+      const userData = localStorage.getItem('user_data');
+      let currentUserName = 'مستخدم';
+      let currentUserId = '';
+      
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          currentUserName = user.name || user.email || 'مستخدم';
+          currentUserId = user.id || '';
+        } catch (e) {
+          console.error('خطأ في قراءة بيانات المستخدم:', e);
+        }
+      }
+      
+      // جمع جميع معرفات المستخدمين (المسندين + المراجعين)
+      const allUserIds = [...assignedUserIds, ...reviewerUserIds]
+        .filter(id => id && id !== currentUserId); // استبعاد المستخدم الحالي
+      
+      // إزالة التكرارات
+      const uniqueUserIds = Array.from(new Set(allUserIds));
+      
+      if (uniqueUserIds.length === 0) {
+        console.log('ℹ️ لا يوجد مستخدمين لإرسال إشعارات إليهم');
+        return;
+      }
+      
+      console.log(`📧 إرسال إشعارات لـ ${uniqueUserIds.length} مستخدم`);
+      
+      // إرسال إشعار جماعي
+      await notificationService.sendBulkNotification({
+        user_ids: uniqueUserIds,
+        title: `تعليق جديد على: ${ticketTitle}`,
+        message: `قام ${currentUserName} بإضافة تعليق جديد على التذكرة`,
+        notification_type: 'comment_added',
+        action_url: `/tickets/${ticketId}`
+      });
+      
+      console.log('✅ تم إرسال الإشعارات بنجاح');
+    } catch (error) {
+      console.error('❌ خطأ في إرسال الإشعارات:', error);
+      // لا نوقف العملية إذا فشل الإشعار
     }
   };
 
