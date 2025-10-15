@@ -12,7 +12,8 @@ import {
   Award,
   Zap,
   RefreshCw,
-  Loader
+  Loader,
+  Calendar
 } from 'lucide-react';
 
 interface Process {
@@ -66,6 +67,21 @@ export const ReportsManager: React.FC = () => {
   const [processReport, setProcessReport] = useState<ProcessReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
+  
+  // حقول التاريخ - افتراضياً آخر 30 يوم
+  const getDefaultDates = () => {
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    return {
+      dateFrom: thirtyDaysAgo.toISOString().split('T')[0],
+      dateTo: today.toISOString().split('T')[0]
+    };
+  };
+  
+  const [dateFrom, setDateFrom] = useState(getDefaultDates().dateFrom);
+  const [dateTo, setDateTo] = useState(getDefaultDates().dateTo);
 
   // جلب جميع العمليات
   useEffect(() => {
@@ -97,14 +113,18 @@ export const ReportsManager: React.FC = () => {
   };
 
   // جلب تقرير عملية معينة
-  const fetchProcessReport = async (processId: string) => {
+  const fetchProcessReport = async (processId: string, customDateFrom?: string, customDateTo?: string) => {
     setIsLoadingReport(true);
     setProcessReport(null); // إعادة تعيين التقرير السابق
     try {
       const token = localStorage.getItem('auth_token');
-      console.log('🔍 جلب تقرير العملية:', processId);
+      const from = customDateFrom || dateFrom;
+      const to = customDateTo || dateTo;
       
-      const response = await fetch(`${API_BASE_URL}/api/reports/process/${processId}`, {
+      console.log('🔍 جلب تقرير العملية:', processId, 'من:', from, 'إلى:', to);
+      
+      const url = `${API_BASE_URL}/api/reports/process/${processId}?date_from=${from}&date_to=${to}`;
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -140,6 +160,12 @@ export const ReportsManager: React.FC = () => {
     console.log('🖱️ تم الضغط على العملية:', process.name, process.id);
     setSelectedProcess(process);
     fetchProcessReport(process.id);
+  };
+  
+  const handleDateChange = () => {
+    if (selectedProcess) {
+      fetchProcessReport(selectedProcess.id, dateFrom, dateTo);
+    }
   };
 
 
@@ -295,15 +321,74 @@ export const ReportsManager: React.FC = () => {
                 </div>
               ) : processReport && selectedProcess ? (
                   <div className="space-y-6">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white">
-                      <div className="flex items-center space-x-4 space-x-reverse">
-                        <div className={`w-16 h-16 ${selectedProcess.color} rounded-lg flex items-center justify-center`}>
-                          <span className="text-white font-bold text-2xl">{selectedProcess.name.charAt(0)}</span>
+                    {/* Header - Date Range with Filters */}
+                    <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl p-6 text-white shadow-lg">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center space-x-4 space-x-reverse">
+                          <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                            <Calendar className="w-7 h-7 text-white" />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl font-bold mb-1">تقرير الفترة</h2>
+                            <div className="flex items-center space-x-3 space-x-reverse text-purple-100">
+                              <div className="flex items-center space-x-2 space-x-reverse bg-white bg-opacity-20 px-3 py-1 rounded-lg backdrop-blur-sm">
+                                <Clock className="w-4 h-4" />
+                                <span className="font-medium">{new Date(dateFrom).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                              </div>
+                              <span className="font-bold">←</span>
+                              <div className="flex items-center space-x-2 space-x-reverse bg-white bg-opacity-20 px-3 py-1 rounded-lg backdrop-blur-sm">
+                                <Clock className="w-4 h-4" />
+                                <span className="font-medium">{new Date(dateTo).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
+                        
+                        {/* Process Badge */}
+                        <div className="flex items-center space-x-2 space-x-reverse bg-white bg-opacity-20 px-4 py-2 rounded-lg backdrop-blur-sm">
+                          <div className={`w-8 h-8 ${selectedProcess.color} rounded-lg flex items-center justify-center`}>
+                            <span className="text-white font-bold text-sm">{selectedProcess.name.charAt(0)}</span>
+                          </div>
+                          <span className="text-sm font-semibold">{selectedProcess.name}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Date Filters */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white bg-opacity-10 rounded-lg p-4 backdrop-blur-sm">
                         <div>
-                          <h2 className="text-2xl font-bold">{selectedProcess.name}</h2>
-                          <p className="text-blue-100">{selectedProcess.description}</p>
+                          <label className="block text-xs font-semibold text-white mb-2 flex items-center space-x-1 space-x-reverse">
+                            <Clock className="w-3 h-3" />
+                            <span>من تاريخ</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={dateFrom}
+                            onChange={(e) => setDateFrom(e.target.value)}
+                            className="w-full px-3 py-2 border-2 border-white border-opacity-30 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-white focus:border-white transition-all bg-white bg-opacity-90"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-semibold text-white mb-2 flex items-center space-x-1 space-x-reverse">
+                            <Clock className="w-3 h-3" />
+                            <span>إلى تاريخ</span>
+                          </label>
+                          <input
+                            type="date"
+                            value={dateTo}
+                            onChange={(e) => setDateTo(e.target.value)}
+                            className="w-full px-3 py-2 border-2 border-white border-opacity-30 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-white focus:border-white transition-all bg-white bg-opacity-90"
+                          />
+                        </div>
+                        
+                        <div className="flex items-end">
+                          <button
+                            onClick={handleDateChange}
+                            className="w-full bg-white text-purple-600 py-2 px-4 rounded-lg hover:bg-opacity-90 transition-all duration-200 text-sm font-bold flex items-center justify-center space-x-2 space-x-reverse shadow-md"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                            <span>تحديث</span>
+                          </button>
                         </div>
                       </div>
                     </div>
