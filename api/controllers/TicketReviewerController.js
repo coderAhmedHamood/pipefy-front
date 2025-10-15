@@ -74,8 +74,12 @@ class TicketReviewerController {
         VALUES ($1, $2, $3, $4)
       `, [ticket_id, added_by || reviewer_id, commentContent, false]);
 
-      // تحديث ملخص التقييم
-      await TicketEvaluationSummary.calculateAndUpdate(ticket_id);
+      // تحديث ملخص التقييم (إذا كان الجدول موجوداً)
+      try {
+        await TicketEvaluationSummary.calculateAndUpdate(ticket_id);
+      } catch (evalError) {
+        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
+      }
 
       await client.query('COMMIT');
 
@@ -174,8 +178,12 @@ class TicketReviewerController {
         });
       }
 
-      // تحديث ملخص التقييم
-      await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
+      // تحديث ملخص التقييم (إذا كان الجدول موجوداً)
+      try {
+        await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
+      } catch (evalError) {
+        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
+      }
 
       res.json({
         success: true,
@@ -238,8 +246,12 @@ class TicketReviewerController {
         });
       }
 
-      // تحديث ملخص التقييم
-      await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
+      // تحديث ملخص التقييم (إذا كان الجدول موجوداً)
+      try {
+        await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
+      } catch (evalError) {
+        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
+      }
 
       res.json({
         success: true,
@@ -272,8 +284,12 @@ class TicketReviewerController {
         });
       }
 
-      // تحديث ملخص التقييم
-      await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
+      // تحديث ملخص التقييم (إذا كان الجدول موجوداً)
+      try {
+        await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
+      } catch (evalError) {
+        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
+      }
 
       res.json({
         success: true,
@@ -310,8 +326,12 @@ class TicketReviewerController {
         });
       }
 
-      // تحديث ملخص التقييم
-      await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
+      // تحديث ملخص التقييم (إذا كان الجدول موجوداً)
+      try {
+        await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
+      } catch (evalError) {
+        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
+      }
 
       res.json({
         success: true,

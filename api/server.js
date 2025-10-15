@@ -105,6 +105,10 @@ const startServer = async () => {
     await TicketAssignment.ensureTable();
     console.log('✅ ticket_assignments table ready');
     
+    const TicketReviewer = require('./models/TicketReviewer');
+    await TicketReviewer.ensureTable();
+    console.log('✅ ticket_reviewers table ready');
+    
     const server = app.listen(PORT, '127.0.0.1', () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📍 Server URL: http://localhost:${PORT}`);

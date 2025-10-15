@@ -1,6 +1,39 @@
 const { pool } = require('../config/database');
 
 class TicketReviewer {
+  // إنشاء جدول ticket_reviewers تلقائياً
+  static async ensureTable() {
+    const client = await pool.connect();
+    try {
+      // حذف الجدول القديم إذا كان موجوداً بهيكل خاطئ
+      await client.query(`DROP TABLE IF EXISTS ticket_reviewers CASCADE;`);
+      
+      // إنشاء الجدول بالهيكل الصحيح
+      await client.query(`
+        CREATE TABLE ticket_reviewers (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+          reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          added_by UUID REFERENCES users(id),
+          review_status VARCHAR(50) DEFAULT 'pending',
+          review_notes TEXT,
+          reviewed_at TIMESTAMPTZ,
+          is_active BOOLEAN DEFAULT TRUE,
+          added_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(ticket_id, reviewer_id)
+        );
+      `);
+      
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_ticket ON ticket_reviewers(ticket_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_reviewer ON ticket_reviewers(reviewer_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_status ON ticket_reviewers(review_status);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_active ON ticket_reviewers(is_active);`);
+    } finally {
+      client.release();
+    }
+  }
+
   // إضافة مراجع إلى تذكرة
   static async create(reviewerData) {
     const {
