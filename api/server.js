@@ -94,6 +94,12 @@ const startServer = async () => {
     console.log('🔄 Testing database connection...');
     await testConnection();
     
+    // إنشاء جدول user_processes تلقائياً
+    console.log('🔄 Ensuring user_processes table exists...');
+    const UserProcess = require('./models/UserProcess');
+    await UserProcess.ensureTable();
+    console.log('✅ user_processes table ready');
+    
     const server = app.listen(PORT, '127.0.0.1', () => {
       console.log(`🚀 Server is running on port ${PORT}`);
       console.log(`📍 Server URL: http://localhost:${PORT}`);
