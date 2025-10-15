@@ -58,6 +58,50 @@ interface ProcessReport {
   }>;
 }
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+  role?: {
+    name: string;
+  };
+  is_active: boolean;
+  created_at: string;
+}
+
+interface UserReport {
+  user: User;
+  period: { from: string; to: string };
+  basic_stats: {
+    total_tickets: number;
+    open_tickets: number;
+    completed_tickets: number;
+    overdue_tickets: number;
+    avg_completion_hours: number;
+  };
+  process_distribution: Array<{
+    process_name: string;
+    ticket_count: number;
+    percentage: number;
+  }>;
+  priority_distribution: Array<{
+    priority: string;
+    count: number;
+    percentage: number;
+  }>;
+  completion_rate: {
+    total: number;
+    completed: number;
+    rate: number;
+  };
+  recent_activity: Array<{
+    ticket_title: string;
+    action: string;
+    timestamp: string;
+  }>;
+}
+
 type TabType = 'users' | 'processes' | 'development';
 
 export const ReportsManager: React.FC = () => {
@@ -67,6 +111,13 @@ export const ReportsManager: React.FC = () => {
   const [processReport, setProcessReport] = useState<ProcessReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingReport, setIsLoadingReport] = useState(false);
+  
+  // حالات المستخدمين
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userReport, setUserReport] = useState<UserReport | null>(null);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isLoadingUserReport, setIsLoadingUserReport] = useState(false);
   
   // حقول التاريخ - افتراضياً آخر 30 يوم
   const getDefaultDates = () => {
@@ -83,10 +134,14 @@ export const ReportsManager: React.FC = () => {
   const [dateFrom, setDateFrom] = useState(getDefaultDates().dateFrom);
   const [dateTo, setDateTo] = useState(getDefaultDates().dateTo);
 
-  // جلب جميع العمليات
+  // جلب البيانات حسب التبويبة النشطة
   useEffect(() => {
-    fetchProcesses();
-  }, []);
+    if (activeTab === 'processes') {
+      fetchProcesses();
+    } else if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab]);
 
   const fetchProcesses = async () => {
     setIsLoading(true);
@@ -165,7 +220,86 @@ export const ReportsManager: React.FC = () => {
   const handleDateChange = () => {
     if (selectedProcess) {
       fetchProcessReport(selectedProcess.id, dateFrom, dateTo);
+    } else if (selectedUser) {
+      fetchUserReport(selectedUser.id, dateFrom, dateTo);
     }
+  };
+
+  // جلب جميع المستخدمين
+  const fetchUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setUsers(result.data);
+        } else if (Array.isArray(result)) {
+          setUsers(result);
+        }
+      }
+    } catch (error) {
+      console.error('خطأ في جلب المستخدمين:', error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  // جلب تقرير مستخدم معين
+  const fetchUserReport = async (userId: string, customDateFrom?: string, customDateTo?: string) => {
+    setIsLoadingUserReport(true);
+    setUserReport(null);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const from = customDateFrom || dateFrom;
+      const to = customDateTo || dateTo;
+      
+      console.log('🔍 جلب تقرير المستخدم:', userId, 'من:', from, 'إلى:', to);
+      
+      const url = `${API_BASE_URL}/api/reports/user/${userId}?date_from=${from}&date_to=${to}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('📡 استجابة API:', response.status);
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ نتيجة التقرير:', result);
+        
+        if (result.success && result.data) {
+          setUserReport(result.data);
+        } else {
+          console.error('❌ البيانات غير صحيحة:', result);
+          alert('فشل في جلب التقرير: البيانات غير صحيحة');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ خطأ في الاستجابة:', errorData);
+        alert(`فشل في جلب التقرير: ${errorData.message || 'خطأ غير معروف'}`);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في جلب تقرير المستخدم:', error);
+      alert('حدث خطأ أثناء جلب التقرير. تحقق من اتصال الإنترنت.');
+    } finally {
+      setIsLoadingUserReport(false);
+    }
+  };
+
+  const handleUserClick = (user: User) => {
+    console.log('🖱️ تم الضغط على المستخدم:', user.name, user.id);
+    setSelectedUser(user);
+    fetchUserReport(user.id);
   };
 
 
@@ -523,13 +657,265 @@ export const ReportsManager: React.FC = () => {
 
         {/* تبويبة المستخدمين */}
         {activeTab === 'users' && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center py-12">
-              <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">تقارير المستخدمين</h3>
-              <p className="text-gray-600">قريباً... سيتم إضافة تقارير شاملة للمستخدمين</p>
+          <>
+            {/* Right Panel - قائمة المستخدمين */}
+            <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
+              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600">
+                <h3 className="font-bold text-white text-lg">المستخدمين</h3>
+                <p className="text-green-100 text-sm mt-1">اختر مستخدم لعرض التقرير</p>
+              </div>
+
+              {isLoadingUsers ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader className="w-6 h-6 text-green-500 animate-spin" />
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {users.map((user) => (
+                    <button
+                      key={user.id}
+                      onClick={() => handleUserClick(user)}
+                      className={`w-full p-4 text-right hover:bg-green-50 transition-colors ${
+                        selectedUser?.id === user.id ? 'bg-green-50 border-r-4 border-green-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 text-sm truncate">{user.name}</h4>
+                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                          <div className="flex items-center space-x-2 space-x-reverse mt-1">
+                            {user.role && (
+                              <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                                {user.role.name}
+                              </span>
+                            )}
+                            <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${
+                              user.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {user.is_active ? 'نشط' : 'غير نشط'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+
+            {/* Left Panel - التقارير */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+              {!selectedUser ? (
+                /* رسالة اختيار مستخدم */
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Users className="w-24 h-24 mx-auto mb-6 text-gray-300" />
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">اختر مستخدم من القائمة</h3>
+                    <p className="text-gray-600">اضغط على أي مستخدم من القائمة اليمنى لعرض التقرير التفصيلي</p>
+                  </div>
+                </div>
+              ) : isLoadingUserReport ? (
+                /* تحميل التقرير */
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader className="w-12 h-12 text-green-500 animate-spin mx-auto mb-4" />
+                    <p className="text-gray-600">جاري تحميل التقرير...</p>
+                  </div>
+                </div>
+              ) : userReport && selectedUser ? (
+                  <div className="space-y-6">
+                    {/* Header - Date Range with Filters */}
+                    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                      {/* Date Filters Section */}
+                      <div className="bg-gray-50 p-6 border-t border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1 space-x-reverse">
+                              <Clock className="w-3.5 h-3.5 text-green-600" />
+                              <span>من تاريخ</span>
+                            </label>
+                            <input
+                              type="date"
+                              value={dateFrom}
+                              onChange={(e) => setDateFrom(e.target.value)}
+                              className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white hover:border-gray-400"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1 space-x-reverse">
+                              <Clock className="w-3.5 h-3.5 text-red-600" />
+                              <span>إلى تاريخ</span>
+                            </label>
+                            <input
+                              type="date"
+                              value={dateTo}
+                              onChange={(e) => setDateTo(e.target.value)}
+                              className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white hover:border-gray-400"
+                            />
+                          </div>
+                          
+                          <div className="flex items-end">
+                            <button
+                              onClick={handleDateChange}
+                              className="w-full bg-green-600 text-white py-2.5 px-4 rounded-lg hover:bg-green-700 transition-all duration-200 text-sm font-semibold flex items-center justify-center space-x-2 space-x-reverse shadow-sm hover:shadow-md"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              <span>تحديث التقرير</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* الإحصائيات الأساسية */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">إجمالي التذاكر</p>
+                            <p className="text-3xl font-bold text-gray-900">{userReport.basic_stats.total_tickets.toString()}</p>
+                          </div>
+                          <div className="p-3 bg-blue-100 rounded-lg">
+                            <BarChart3 className="w-6 h-6 text-blue-600" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">مكتملة</p>
+                            <p className="text-3xl font-bold text-green-600">{userReport.basic_stats.completed_tickets.toString()}</p>
+                          </div>
+                          <div className="p-3 bg-green-100 rounded-lg">
+                            <CheckCircle className="w-6 h-6 text-green-600" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">قيد العمل</p>
+                            <p className="text-3xl font-bold text-blue-600">{userReport.basic_stats.open_tickets.toString()}</p>
+                          </div>
+                          <div className="p-3 bg-blue-100 rounded-lg">
+                            <Clock className="w-6 h-6 text-blue-600" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-600">متأخرة</p>
+                            <p className="text-3xl font-bold text-red-600">{userReport.basic_stats.overdue_tickets.toString()}</p>
+                          </div>
+                          <div className="p-3 bg-red-100 rounded-lg">
+                            <AlertTriangle className="w-6 h-6 text-red-600" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* معدل الإنجاز */}
+                    <div className="bg-white rounded-lg shadow-sm p-6">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                        <Target className="w-5 h-5 text-blue-600" />
+                        <span>معدل الإنجاز</span>
+                      </h3>
+                      <div className="flex items-center space-x-4 space-x-reverse">
+                        <div className="flex-1">
+                          <div className="flex justify-between mb-2">
+                            <span className="text-sm text-gray-600">معدل الإكمال</span>
+                            <span className="text-sm font-bold text-gray-900">{userReport.completion_rate.rate.toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div 
+                              className="bg-gradient-to-r from-green-500 to-teal-600 h-3 rounded-full transition-all duration-500"
+                              style={{ width: `${userReport.completion_rate.rate}%` }}
+                            ></div>
+                          </div>
+                          <div className="flex justify-between mt-2 text-xs text-gray-500">
+                            <span>{userReport.completion_rate.completed} مكتملة</span>
+                            <span>{userReport.completion_rate.total} إجمالي</span>
+                          </div>
+                        </div>
+                        <div className="p-4 bg-green-50 rounded-lg">
+                          <Award className="w-8 h-8 text-green-600" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* توزيع التذاكر حسب العمليات */}
+                    {userReport.process_distribution && userReport.process_distribution.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">توزيع التذاكر حسب العمليات</h3>
+                        <div className="space-y-3">
+                          {userReport.process_distribution.map((item, index) => (
+                            <div key={index} className="flex items-center space-x-3 space-x-reverse">
+                              <div className="flex-1">
+                                <div className="flex justify-between mb-1">
+                                  <span className="text-sm font-medium text-gray-700">{item.process_name}</span>
+                                  <span className="text-sm text-gray-600">{item.ticket_count} ({item.percentage.toFixed(1)}%)</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-gradient-to-r from-green-500 to-teal-600 h-2 rounded-full"
+                                    style={{ width: `${item.percentage}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* توزيع الأولويات */}
+                    {userReport.priority_distribution && userReport.priority_distribution.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">توزيع التذاكر حسب الأولوية</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {userReport.priority_distribution.map((item, index) => (
+                            <div key={index} className="text-center p-4 bg-gray-50 rounded-lg">
+                              <div className={`w-12 h-12 ${getPriorityColor(item.priority)} rounded-full flex items-center justify-center mx-auto mb-2`}>
+                                <span className="text-white font-bold">{item.count}</span>
+                              </div>
+                              <p className="text-sm font-medium text-gray-900">{getPriorityLabel(item.priority)}</p>
+                              <p className="text-xs text-gray-500">{item.percentage.toFixed(1)}%</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : selectedUser ? (
+                  <div className="text-center py-12">
+                    <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
+                      <Activity className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد بيانات متاحة</h3>
+                      <p className="text-gray-600 mb-4">لم يتم العثور على تقرير لهذا المستخدم</p>
+                      <button
+                        onClick={() => fetchUserReport(selectedUser.id)}
+                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                      >
+                        إعادة المحاولة
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <Activity className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p>حدث خطأ غير متوقع</p>
+                  </div>
+                )}
+            </div>
+          </>
         )}
 
         {/* تبويبة قيد التطوير */}
