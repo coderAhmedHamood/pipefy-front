@@ -193,20 +193,7 @@ export const ReportsManager: React.FC = () => {
     <div className="h-full bg-gray-50" dir="rtl">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">التقارير والإحصائيات</h1>
-            <p className="text-gray-600">تحليل شامل للأداء واتخاذ القرارات</p>
-          </div>
-          
-          <button
-            onClick={fetchProcesses}
-            className="flex items-center space-x-2 space-x-reverse px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>تحديث</span>
-          </button>
-        </div>
+      
 
         {/* Tabs */}
         <div className="flex items-center space-x-4 space-x-reverse mt-6 border-b border-gray-200">

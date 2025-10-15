@@ -215,17 +215,7 @@ export const NotificationManagerEnhanced: React.FC = () => {
     <div className="h-full bg-gray-50 overflow-hidden flex flex-col" dir="rtl">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="px-6 pt-4 pb-0">
-          <div className="flex items-center space-x-3 space-x-reverse mb-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-              <Bell className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">إدارة الإشعارات</h1>
-              <p className="text-sm text-gray-600">إرسال وعرض الإشعارات والمستخدمين</p>
-            </div>
-          </div>
-        </div>
+      
 
         {/* التبويبات الأفقية */}
         <div className="flex space-x-1 space-x-reverse border-b border-gray-200">
