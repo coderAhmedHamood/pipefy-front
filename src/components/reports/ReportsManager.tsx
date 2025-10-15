@@ -75,15 +75,30 @@ interface UserReport {
   period: { from: string; to: string };
   basic_stats: {
     total_tickets: number;
-    open_tickets: number;
+    active_tickets: number;
     completed_tickets: number;
+    cancelled_tickets: number;
+    archived_tickets: number;
     overdue_tickets: number;
-    avg_completion_hours: number;
   };
-  process_distribution: Array<{
+  stage_distribution: Array<{
+    stage_id: string;
+    stage_name: string;
+    stage_color: string;
+    order_index: number;
     process_name: string;
+    process_id: string;
     ticket_count: number;
     percentage: number;
+  }>;
+  overdue_by_stage: Array<{
+    stage_id: string;
+    stage_name: string;
+    stage_color: string;
+    process_name: string;
+    overdue_count: number;
+    overdue_percentage: number;
+    avg_days_overdue: number;
   }>;
   priority_distribution: Array<{
     priority: string;
@@ -91,14 +106,25 @@ interface UserReport {
     percentage: number;
   }>;
   completion_rate: {
-    total: number;
-    completed: number;
-    rate: number;
+    completed_count: number;
+    on_time_count: number;
+    late_count: number;
+    avg_completion_days: number;
+    on_time_percentage: number;
   };
-  recent_activity: Array<{
-    ticket_title: string;
-    action: string;
-    timestamp: string;
+  recent_tickets: Array<{
+    id: string;
+    ticket_number: string;
+    title: string;
+    priority: string;
+    status: string;
+    created_at: string;
+    due_date: string;
+    completed_at: string;
+    stage_name: string;
+    stage_color: string;
+    process_name: string;
+    is_overdue: boolean;
   }>;
 }
 
@@ -801,7 +827,7 @@ export const ReportsManager: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-600">قيد العمل</p>
-                            <p className="text-3xl font-bold text-blue-600">{userReport.basic_stats.open_tickets.toString()}</p>
+                            <p className="text-3xl font-bold text-blue-600">{userReport.basic_stats.active_tickets.toString()}</p>
                           </div>
                           <div className="p-3 bg-blue-100 rounded-lg">
                             <Clock className="w-6 h-6 text-blue-600" />
@@ -831,18 +857,18 @@ export const ReportsManager: React.FC = () => {
                       <div className="flex items-center space-x-4 space-x-reverse">
                         <div className="flex-1">
                           <div className="flex justify-between mb-2">
-                            <span className="text-sm text-gray-600">معدل الإكمال</span>
-                            <span className="text-sm font-bold text-gray-900">{userReport.completion_rate.rate.toFixed(1)}%</span>
+                            <span className="text-sm text-gray-600">معدل الإكمال في الوقت المحدد</span>
+                            <span className="text-sm font-bold text-gray-900">{userReport.completion_rate.on_time_percentage?.toFixed(1) || 0}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-3">
                             <div 
                               className="bg-gradient-to-r from-green-500 to-teal-600 h-3 rounded-full transition-all duration-500"
-                              style={{ width: `${userReport.completion_rate.rate}%` }}
+                              style={{ width: `${userReport.completion_rate.on_time_percentage || 0}%` }}
                             ></div>
                           </div>
                           <div className="flex justify-between mt-2 text-xs text-gray-500">
-                            <span>{userReport.completion_rate.completed} مكتملة</span>
-                            <span>{userReport.completion_rate.total} إجمالي</span>
+                            <span>{userReport.completion_rate.completed_count} مكتملة</span>
+                            <span>متوسط الإنجاز: {userReport.completion_rate.avg_completion_days?.toFixed(1) || 0} يوم</span>
                           </div>
                         </div>
                         <div className="p-4 bg-green-50 rounded-lg">
@@ -851,22 +877,26 @@ export const ReportsManager: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* توزيع التذاكر حسب العمليات */}
-                    {userReport.process_distribution && userReport.process_distribution.length > 0 && (
+                    {/* توزيع التذاكر حسب المراحل */}
+                    {userReport.stage_distribution && userReport.stage_distribution.length > 0 && (
                       <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">توزيع التذاكر حسب العمليات</h3>
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">توزيع التذاكر حسب المراحل</h3>
                         <div className="space-y-3">
-                          {userReport.process_distribution.map((item, index) => (
+                          {userReport.stage_distribution.map((item, index) => (
                             <div key={index} className="flex items-center space-x-3 space-x-reverse">
                               <div className="flex-1">
                                 <div className="flex justify-between mb-1">
-                                  <span className="text-sm font-medium text-gray-700">{item.process_name}</span>
-                                  <span className="text-sm text-gray-600">{item.ticket_count} ({item.percentage.toFixed(1)}%)</span>
+                                  <div className="flex items-center space-x-2 space-x-reverse">
+                                    <div className={`w-3 h-3 rounded-full ${item.stage_color}`}></div>
+                                    <span className="text-sm font-medium text-gray-700">{item.stage_name}</span>
+                                    <span className="text-xs text-gray-500">({item.process_name})</span>
+                                  </div>
+                                  <span className="text-sm text-gray-600">{item.ticket_count} ({item.percentage?.toFixed(1) || 0}%)</span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                   <div 
                                     className="bg-gradient-to-r from-green-500 to-teal-600 h-2 rounded-full"
-                                    style={{ width: `${item.percentage}%` }}
+                                    style={{ width: `${item.percentage || 0}%` }}
                                   ></div>
                                 </div>
                               </div>

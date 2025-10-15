@@ -412,9 +412,18 @@ class ReportController {
 
       // 1. معلومات المستخدم
       const userInfo = await pool.query(`
-        SELECT id, name, email, role
-        FROM users
-        WHERE id = $1
+        SELECT 
+          u.id, 
+          u.name, 
+          u.email, 
+          u.avatar_url,
+          u.is_active,
+          u.role_id,
+          r.name as role_name,
+          r.description as role_description
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        WHERE u.id = $1 AND u.deleted_at IS NULL
       `, [user_id]);
 
       if (userInfo.rows.length === 0) {
@@ -590,10 +599,25 @@ class ReportController {
         LIMIT 10
       `, [user_id, date_from, date_to]);
 
+      // تنسيق بيانات المستخدم
+      const user = userInfo.rows[0];
+      const formattedUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar_url: user.avatar_url,
+        is_active: user.is_active,
+        role: user.role_name ? {
+          id: user.role_id,
+          name: user.role_name,
+          description: user.role_description
+        } : null
+      };
+
       res.json({
         success: true,
         data: {
-          user: userInfo.rows[0],
+          user: formattedUser,
           period: {
             from: date_from,
             to: date_to
