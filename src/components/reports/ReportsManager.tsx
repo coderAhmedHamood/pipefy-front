@@ -8,7 +8,6 @@ import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  ArrowRight,
   Target,
   Award,
   Zap,
@@ -143,10 +142,6 @@ export const ReportsManager: React.FC = () => {
     fetchProcessReport(process.id);
   };
 
-  const handleBackToList = () => {
-    setSelectedProcess(null);
-    setProcessReport(null);
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
@@ -234,69 +229,30 @@ export const ReportsManager: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="p-6 overflow-y-auto max-h-[calc(100vh-200px)]">
+      <div className="flex h-[calc(100vh-200px)]">
         {/* تبويبة العمليات */}
         {activeTab === 'processes' && (
           <>
-            {!selectedProcess ? (
-              /* قائمة العمليات */
-              <div>
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">اختر عملية لعرض التقرير</h2>
-                  <p className="text-gray-600">اضغط على أي عملية للحصول على تقرير شامل ومفصل</p>
+            {/* Left Panel - التقارير */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+              {!selectedProcess ? (
+                /* رسالة اختيار عملية */
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <BarChart3 className="w-24 h-24 mx-auto mb-6 text-gray-300" />
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">اختر عملية من القائمة</h3>
+                    <p className="text-gray-600">اضغط على أي عملية من القائمة اليمنى لعرض التقرير التفصيلي</p>
+                  </div>
                 </div>
-
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader className="w-8 h-8 text-blue-500 animate-spin" />
+              ) : isLoadingReport ? (
+                /* تحميل التقرير */
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+                    <p className="text-gray-600">جاري تحميل التقرير...</p>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {processes.map((process) => (
-                      <button
-                        key={process.id}
-                        onClick={() => handleProcessClick(process)}
-                        className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all duration-200 text-right border-2 border-transparent hover:border-blue-500"
-                      >
-                        <div className="flex items-center space-x-4 space-x-reverse mb-4">
-                          <div className={`w-12 h-12 ${process.color} rounded-lg flex items-center justify-center`}>
-                            <span className="text-white font-bold text-xl">{process.name.charAt(0)}</span>
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-bold text-gray-900 text-lg">{process.name}</h3>
-                            <p className="text-sm text-gray-500 mt-1">{process.description}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            process.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {process.is_active ? 'نشط' : 'غير نشط'}
-                          </span>
-                          <ArrowRight className="w-5 h-5 text-blue-500" />
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* عرض تقرير العملية */
-              <div>
-                <button
-                  onClick={handleBackToList}
-                  className="flex items-center space-x-2 space-x-reverse text-blue-600 hover:text-blue-700 mb-6"
-                >
-                  <ArrowRight className="w-4 h-4 transform rotate-180" />
-                  <span>العودة إلى القائمة</span>
-                </button>
-
-                {isLoadingReport ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader className="w-8 h-8 text-blue-500 animate-spin" />
-                  </div>
-                ) : processReport && selectedProcess ? (
+                </div>
+              ) : processReport && selectedProcess ? (
                   <div className="space-y-6">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white">
@@ -317,7 +273,7 @@ export const ReportsManager: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-600">إجمالي التذاكر</p>
-                            <p className="text-3xl font-bold text-gray-900">{processReport.basic_stats.total_tickets}</p>
+                            <p className="text-3xl font-bold text-gray-900">{processReport.basic_stats.total_tickets.toString()}</p>
                           </div>
                           <div className="p-3 bg-blue-100 rounded-lg">
                             <BarChart3 className="w-6 h-6 text-blue-600" />
@@ -329,9 +285,9 @@ export const ReportsManager: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-600">مكتملة</p>
-                            <p className="text-3xl font-bold text-green-600">{processReport.basic_stats.completed_tickets}</p>
+                            <p className="text-3xl font-bold text-green-600">{processReport.basic_stats.completed_tickets.toString()}</p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {Number(parseFloat(processReport.completion_rate?.rate) || 0).toFixed(1)}% معدل الإنجاز
+                              {Number(parseFloat(String(processReport.completion_rate?.rate || 0))).toFixed(1)}% معدل الإنجاز
                             </p>
                           </div>
                           <div className="p-3 bg-green-100 rounded-lg">
@@ -344,7 +300,7 @@ export const ReportsManager: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-600">متأخرة</p>
-                            <p className="text-3xl font-bold text-red-600">{processReport.basic_stats.overdue_tickets}</p>
+                            <p className="text-3xl font-bold text-red-600">{processReport.basic_stats.overdue_tickets.toString()}</p>
                             <p className="text-xs text-gray-500 mt-1">
                               {processReport.basic_stats.total_tickets > 0 
                                 ? ((processReport.basic_stats.overdue_tickets / processReport.basic_stats.total_tickets) * 100).toFixed(1) 
@@ -362,7 +318,7 @@ export const ReportsManager: React.FC = () => {
                           <div>
                             <p className="text-sm font-medium text-gray-600">متوسط الإنجاز</p>
                             <p className="text-3xl font-bold text-purple-600">
-                              {Number(parseFloat(processReport.basic_stats.avg_completion_hours) || 0).toFixed(0)}
+                              {Number(parseFloat(String(processReport.basic_stats.avg_completion_hours || 0))).toFixed(0)}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">ساعة</p>
                           </div>
@@ -393,12 +349,12 @@ export const ReportsManager: React.FC = () => {
                               <span className="text-sm font-medium text-gray-900">{stage.stage_name}</span>
                             </div>
                             <div className="flex items-center space-x-4 space-x-reverse">
-                              <span className="text-sm font-bold text-gray-900">{stage.ticket_count}</span>
-                              <span className="text-xs text-gray-500">({Number(parseFloat(stage.percentage) || 0).toFixed(1)}%)</span>
+                              <span className="text-sm font-bold text-gray-900">{stage.ticket_count.toString()}</span>
+                              <span className="text-xs text-gray-500">({Number(parseFloat(String(stage.percentage || 0))).toFixed(1)}%)</span>
                               <div className="w-32 bg-gray-200 rounded-full h-2">
                                 <div 
                                   className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${Number(parseFloat(stage.percentage) || 0)}%` }}
+                                  style={{ width: `${Number(parseFloat(String(stage.percentage || 0)))}%` }}
                                 ></div>
                               </div>
                             </div>
@@ -420,7 +376,7 @@ export const ReportsManager: React.FC = () => {
                             <div className={`w-3 h-3 ${getPriorityColor(priority.priority)} rounded-full`}></div>
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-900">{getPriorityLabel(priority.priority)}</p>
-                              <p className="text-xs text-gray-500">{priority.count} تذكرة ({Number(parseFloat(priority.percentage) || 0).toFixed(1)}%)</p>
+                              <p className="text-xs text-gray-500">{priority.count.toString()} تذكرة ({Number(parseFloat(priority.percentage.toString()) || 0).toFixed(1)}%)</p>
                             </div>
                           </div>
                         ))}
@@ -474,26 +430,70 @@ export const ReportsManager: React.FC = () => {
                     <p>حدث خطأ غير متوقع</p>
                   </div>
                 )}
+            </div>
+
+            {/* Right Panel - قائمة العمليات */}
+            <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
+              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
+                <h3 className="font-bold text-white text-lg">العمليات</h3>
+                <p className="text-blue-100 text-sm mt-1">اختر عملية لعرض التقرير</p>
               </div>
-            )}
+
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader className="w-6 h-6 text-blue-500 animate-spin" />
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {processes.map((process) => (
+                    <button
+                      key={process.id}
+                      onClick={() => handleProcessClick(process)}
+                      className={`w-full p-4 text-right hover:bg-blue-50 transition-colors ${
+                        selectedProcess?.id === process.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className={`w-10 h-10 ${process.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <span className="text-white font-bold">{process.name.charAt(0)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 text-sm truncate">{process.name}</h4>
+                          <p className="text-xs text-gray-500 truncate">{process.description}</p>
+                          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
+                            process.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {process.is_active ? 'نشط' : 'غير نشط'}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </>
         )}
 
         {/* تبويبة المستخدمين */}
         {activeTab === 'users' && (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">تقارير المستخدمين</h3>
-            <p className="text-gray-600">قريباً... سيتم إضافة تقارير شاملة للمستخدمين</p>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center py-12">
+              <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">تقارير المستخدمين</h3>
+              <p className="text-gray-600">قريباً... سيتم إضافة تقارير شاملة للمستخدمين</p>
+            </div>
           </div>
         )}
 
         {/* تبويبة قيد التطوير */}
         {activeTab === 'development' && (
-          <div className="text-center py-12">
-            <Zap className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">ميزات قيد التطوير</h3>
-            <p className="text-gray-600">المزيد من التقارير والإحصائيات قادمة قريباً</p>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center py-12">
+              <Zap className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">ميزات قيد التطوير</h3>
+              <p className="text-gray-600">المزيد من التقارير والإحصائيات قادمة قريباً</p>
+            </div>
           </div>
         )}
       </div>
