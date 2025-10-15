@@ -1,6 +1,32 @@
 const { pool } = require('../config/database');
 
 class TicketAssignment {
+  // إنشاء جدول ticket_assignments تلقائياً
+  static async ensureTable() {
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS ticket_assignments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          assigned_by UUID REFERENCES users(id),
+          role VARCHAR(100),
+          notes TEXT,
+          is_active BOOLEAN DEFAULT TRUE,
+          assigned_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(ticket_id, user_id)
+        );
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_assignments_ticket ON ticket_assignments(ticket_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_assignments_user ON ticket_assignments(user_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_assignments_active ON ticket_assignments(is_active);`);
+    } finally {
+      client.release();
+    }
+  }
+
   // إضافة مستخدم مُسند إلى تذكرة
   static async create(assignmentData) {
     const {
