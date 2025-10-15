@@ -233,6 +233,47 @@ export const ReportsManager: React.FC = () => {
         {/* تبويبة العمليات */}
         {activeTab === 'processes' && (
           <>
+            {/* Right Panel - قائمة العمليات */}
+            <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
+              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
+                <h3 className="font-bold text-white text-lg">العمليات</h3>
+                <p className="text-blue-100 text-sm mt-1">اختر عملية لعرض التقرير</p>
+              </div>
+
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader className="w-6 h-6 text-blue-500 animate-spin" />
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {processes.map((process) => (
+                    <button
+                      key={process.id}
+                      onClick={() => handleProcessClick(process)}
+                      className={`w-full p-4 text-right hover:bg-blue-50 transition-colors ${
+                        selectedProcess?.id === process.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className={`w-10 h-10 ${process.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <span className="text-white font-bold">{process.name.charAt(0)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900 text-sm truncate">{process.name}</h4>
+                          <p className="text-xs text-gray-500 truncate">{process.description}</p>
+                          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
+                            process.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {process.is_active ? 'نشط' : 'غير نشط'}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Left Panel - التقارير */}
             <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
               {!selectedProcess ? (
@@ -430,47 +471,6 @@ export const ReportsManager: React.FC = () => {
                     <p>حدث خطأ غير متوقع</p>
                   </div>
                 )}
-            </div>
-
-            {/* Right Panel - قائمة العمليات */}
-            <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
-              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
-                <h3 className="font-bold text-white text-lg">العمليات</h3>
-                <p className="text-blue-100 text-sm mt-1">اختر عملية لعرض التقرير</p>
-              </div>
-
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader className="w-6 h-6 text-blue-500 animate-spin" />
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {processes.map((process) => (
-                    <button
-                      key={process.id}
-                      onClick={() => handleProcessClick(process)}
-                      className={`w-full p-4 text-right hover:bg-blue-50 transition-colors ${
-                        selectedProcess?.id === process.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3 space-x-reverse">
-                        <div className={`w-10 h-10 ${process.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                          <span className="text-white font-bold">{process.name.charAt(0)}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 text-sm truncate">{process.name}</h4>
-                          <p className="text-xs text-gray-500 truncate">{process.description}</p>
-                          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
-                            process.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {process.is_active ? 'نشط' : 'غير نشط'}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </>
         )}
