@@ -13,7 +13,9 @@ import {
   Zap,
   RefreshCw,
   Loader,
-  Calendar
+  Calendar,
+  TrendingUp,
+  FileText
 } from 'lucide-react';
 
 interface Process {
@@ -55,6 +57,36 @@ interface ProcessReport {
   top_performers: Array<{
     user_name: string;
     completed_tickets: number;
+  }>;
+  performance_metrics?: {
+    total_completed_with_due_date: string;
+    early_completed: string;
+    on_time_completed: string;
+    late_completed: string;
+    early_rate: string;
+    on_time_rate: string;
+    late_rate: string;
+    avg_actual_days: string;
+    avg_planned_days: string;
+    avg_variance_days: string;
+    total_days_saved: string;
+    total_days_delayed: string;
+    net_performance_days: string;
+  };
+  completed_tickets_details?: Array<{
+    id: string;
+    ticket_number: string;
+    title: string;
+    priority: string;
+    created_at: string;
+    due_date: string;
+    completed_at: string;
+    stage_name: string;
+    assigned_to_name: string | null;
+    actual_days: string;
+    planned_days: string;
+    variance_days: string;
+    performance_status: string;
   }>;
 }
 
@@ -576,6 +608,87 @@ export const ReportsManager: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* مقاييس الأداء */}
+                    {processReport.performance_metrics && (
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                          <TrendingUp className="w-5 h-5 text-indigo-500" />
+                          <span>مقاييس الأداء</span>
+                        </h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                          {/* التذاكر المكتملة بموعد */}
+                          <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                            <p className="text-xs font-medium text-blue-600 mb-1">التذاكر المكتملة بموعد</p>
+                            <p className="text-2xl font-bold text-blue-900">{processReport.performance_metrics.total_completed_with_due_date}</p>
+                          </div>
+
+                          {/* مكتمل مبكراً */}
+                          <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+                            <p className="text-xs font-medium text-green-600 mb-1">مكتمل مبكراً</p>
+                            <p className="text-2xl font-bold text-green-900">{processReport.performance_metrics.early_completed}</p>
+                            <p className="text-xs text-green-700 mt-1">{parseFloat(processReport.performance_metrics.early_rate).toFixed(1)}%</p>
+                          </div>
+
+                          {/* في الوقت المحدد */}
+                          <div className="p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
+                            <p className="text-xs font-medium text-yellow-600 mb-1">في الوقت المحدد</p>
+                            <p className="text-2xl font-bold text-yellow-900">{processReport.performance_metrics.on_time_completed}</p>
+                            <p className="text-xs text-yellow-700 mt-1">{parseFloat(processReport.performance_metrics.on_time_rate).toFixed(1)}%</p>
+                          </div>
+
+                          {/* متأخر */}
+                          <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-lg">
+                            <p className="text-xs font-medium text-red-600 mb-1">متأخر</p>
+                            <p className="text-2xl font-bold text-red-900">{processReport.performance_metrics.late_completed}</p>
+                            <p className="text-xs text-red-700 mt-1">{parseFloat(processReport.performance_metrics.late_rate).toFixed(1)}%</p>
+                          </div>
+                        </div>
+
+                        {/* متوسطات الأيام */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <p className="text-xs font-medium text-gray-600 mb-1">متوسط الأيام الفعلية</p>
+                            <p className="text-xl font-bold text-gray-900">{parseFloat(processReport.performance_metrics.avg_actual_days).toFixed(1)} يوم</p>
+                          </div>
+
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <p className="text-xs font-medium text-gray-600 mb-1">متوسط الأيام المخططة</p>
+                            <p className="text-xl font-bold text-gray-900">{parseFloat(processReport.performance_metrics.avg_planned_days).toFixed(1)} يوم</p>
+                          </div>
+
+                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <p className="text-xs font-medium text-gray-600 mb-1">متوسط الفرق</p>
+                            <p className={`text-xl font-bold ${parseFloat(processReport.performance_metrics.avg_variance_days) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {parseFloat(processReport.performance_metrics.avg_variance_days).toFixed(1)} يوم
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* الأداء الإجمالي */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                            <p className="text-xs font-medium text-green-600 mb-1">إجمالي الأيام الموفرة</p>
+                            <p className="text-xl font-bold text-green-700">+{parseFloat(processReport.performance_metrics.total_days_saved).toFixed(1)} يوم</p>
+                          </div>
+
+                          <div className="p-4 bg-red-50 rounded-lg border-2 border-red-200">
+                            <p className="text-xs font-medium text-red-600 mb-1">إجمالي الأيام المتأخرة</p>
+                            <p className="text-xl font-bold text-red-700">{parseFloat(processReport.performance_metrics.total_days_delayed).toFixed(1)} يوم</p>
+                          </div>
+
+                          <div className={`p-4 rounded-lg border-2 ${parseFloat(processReport.performance_metrics.net_performance_days) >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
+                            <p className={`text-xs font-medium mb-1 ${parseFloat(processReport.performance_metrics.net_performance_days) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                              صافي الأداء
+                            </p>
+                            <p className={`text-xl font-bold ${parseFloat(processReport.performance_metrics.net_performance_days) >= 0 ? 'text-green-800' : 'text-red-800'}`}>
+                              {parseFloat(processReport.performance_metrics.net_performance_days).toFixed(1)} يوم
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* توزيع التذاكر حسب المرحلة */}
                     <div className="bg-white rounded-lg shadow-sm p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
@@ -629,6 +742,81 @@ export const ReportsManager: React.FC = () => {
                         ))}
                       </div>
                     </div>
+
+                    {/* تفاصيل التذاكر المكتملة */}
+                    {processReport.completed_tickets_details && processReport.completed_tickets_details.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                          <FileText className="w-5 h-5 text-purple-500" />
+                          <span>تفاصيل التذاكر المكتملة ({processReport.completed_tickets_details.length})</span>
+                        </h3>
+                        
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم التذكرة</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">العنوان</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأولوية</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المسند إليه</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأيام الفعلية</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأيام المخططة</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفرق</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {processReport.completed_tickets_details.map((ticket) => (
+                                <tr key={ticket.id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {ticket.ticket_number}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
+                                    {ticket.title}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      ticket.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                                      ticket.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                                      ticket.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-green-100 text-green-800'
+                                    }`}>
+                                      {ticket.priority === 'urgent' ? 'عاجل جداً' :
+                                       ticket.priority === 'high' ? 'عاجل' :
+                                       ticket.priority === 'medium' ? 'متوسط' : 'منخفض'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    {ticket.assigned_to_name || '-'}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    {parseFloat(ticket.actual_days).toFixed(1)} يوم
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    {parseFloat(ticket.planned_days).toFixed(1)} يوم
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    <span className={`font-medium ${parseFloat(ticket.variance_days) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                      {parseFloat(ticket.variance_days).toFixed(1)} يوم
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                      ticket.performance_status === 'early' ? 'bg-green-100 text-green-800' :
+                                      ticket.performance_status === 'on_time' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
+                                    }`}>
+                                      {ticket.performance_status === 'early' ? 'قريب' :
+                                       ticket.performance_status === 'on_time' ? 'في الوقت' : 'متأخر'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
 
                     {/* أفضل الموظفين أداءً */}
                     {processReport.top_performers && processReport.top_performers.length > 0 && (
