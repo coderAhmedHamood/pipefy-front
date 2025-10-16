@@ -236,7 +236,6 @@ export const ReportsManager: React.FC = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ نتيجة التقرير:', result);
         
         if (result.success && result.data) {
           setProcessReport(result.data);
@@ -581,11 +580,6 @@ export const ReportsManager: React.FC = () => {
                       </div>
 
                       {/* مؤشر الأداء */}
-                      {(() => {
-                        console.log('🔍 Performance Metrics:', processReport.performance_metrics);
-                        console.log('🔍 Net Performance Hours:', processReport.performance_metrics?.net_performance_hours);
-                        return null;
-                      })()}
                       {processReport.performance_metrics && processReport.performance_metrics.net_performance_hours !== null ? (
                         <div className={`rounded-lg shadow-sm p-6 ${
                           parseFloat(processReport.performance_metrics.net_performance_hours) > 0 
@@ -601,7 +595,7 @@ export const ReportsManager: React.FC = () => {
                                 const hours = parseFloat(processReport.performance_metrics.net_performance_hours);
                                 const absHours = Math.abs(hours);
                                 const days = Math.floor(absHours / 24);
-                                const remainingHours = Math.floor(absHours % 24);
+                                const remainingHours = Math.round(absHours % 24);
                                 const isPositive = hours > 0;
                                 const isNegative = hours < 0;
                                 
@@ -609,7 +603,9 @@ export const ReportsManager: React.FC = () => {
                                   <>
                                     {absHours >= 24 ? (
                                       <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
-                                        {isPositive ? '+' : isNegative ? '-' : ''}{days} يوم {remainingHours}س
+                                        {isPositive ? '+' : isNegative ? '-' : ''}
+                                        {days} يوم
+                                        {remainingHours > 0 && ` و ${remainingHours} ساعة`}
                                       </div>
                                     ) : (
                                       <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار عرض صافي الأداء</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8 text-center">اختبار عرض صافي الأداء</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="examples-container"></div>
+    </div>
+
+    <script>
+        // أمثلة مختلفة للاختبار
+        const testCases = [
+            { hours: "-356.29", label: "متأخر جداً" },
+            { hours: "-48.0", label: "متأخر يومين" },
+            { hours: "-25.5", label: "متأخر يوم وساعتين" },
+            { hours: "-15.5", label: "متأخر قليلاً" },
+            { hours: "0", label: "حسب الجدول" },
+            { hours: "8.3", label: "متقدم قليلاً" },
+            { hours: "25.0", label: "متقدم يوم وساعة" },
+            { hours: "48.0", label: "متقدم يومين" },
+            { hours: "120.8", label: "متقدم جداً" },
+        ];
+
+        function formatNetPerformance(hoursStr) {
+            const hours = parseFloat(hoursStr);
+            const absHours = Math.abs(hours);
+            const days = Math.floor(absHours / 24);
+            const remainingHours = Math.round(absHours % 24);
+            const isPositive = hours > 0;
+            const isNegative = hours < 0;
+
+            let display = '';
+            let textColor = '';
+            let bgColor = '';
+            let iconBg = '';
+            let message = '';
+
+            if (isPositive) {
+                textColor = 'text-green-700';
+                bgColor = 'bg-gradient-to-br from-green-50 to-green-100';
+                iconBg = 'bg-green-200';
+                message = '✅ متقدم عن الجدول';
+            } else if (isNegative) {
+                textColor = 'text-red-700';
+                bgColor = 'bg-gradient-to-br from-red-50 to-red-100';
+                iconBg = 'bg-red-200';
+                message = '⚠️ متأخر عن الجدول';
+            } else {
+                textColor = 'text-gray-700';
+                bgColor = 'bg-gradient-to-br from-gray-50 to-gray-100';
+                iconBg = 'bg-gray-200';
+                message = '⏱️ حسب الجدول';
+            }
+
+            if (absHours >= 24) {
+                display = `${isPositive ? '+' : isNegative ? '-' : ''}${days} يوم`;
+                if (remainingHours > 0) {
+                    display += ` و ${remainingHours} ساعة`;
+                }
+            } else {
+                display = `${isPositive ? '+' : ''}${hours.toFixed(1)} ساعة`;
+            }
+
+            return { display, textColor, bgColor, iconBg, message };
+        }
+
+        const container = document.getElementById('examples-container');
+
+        testCases.forEach(testCase => {
+            const { display, textColor, bgColor, iconBg, message } = formatNetPerformance(testCase.hours);
+
+            const card = document.createElement('div');
+            card.className = `${bgColor} rounded-lg shadow-sm p-6`;
+            card.innerHTML = `
+                <div class="mb-4">
+                    <p class="text-xs text-gray-500 mb-1">${testCase.label}</p>
+                    <p class="text-xs text-gray-400">القيمة: ${testCase.hours} ساعة</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-700 mb-1">صافي الأداء</p>
+                        <div class="${textColor} text-3xl font-bold">${display}</div>
+                        <p class="text-xs text-gray-600 mt-1">${message}</p>
+                    </div>
+                    <div class="${iconBg} p-3 rounded-lg">
+                        <svg class="w-6 h-6 ${textColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    </script>
+</body>
+</html>
