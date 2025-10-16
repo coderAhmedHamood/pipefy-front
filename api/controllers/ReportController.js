@@ -846,6 +846,55 @@ class ReportController {
         LIMIT 10
       `, [process_id, date_from, date_to]);
 
+      // 9. مؤشر الأداء (صافي الفارق بالساعات)
+      const performanceMetrics = await pool.query(`
+        SELECT 
+          ROUND(
+            SUM(
+              EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600
+            )::DECIMAL, 
+            2
+          ) as net_performance_hours
+        FROM tickets t
+        JOIN stages s ON t.current_stage_id = s.id
+        WHERE t.process_id = $1
+          AND t.completed_at IS NOT NULL
+          AND t.due_date IS NOT NULL
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+          AND s.is_final = true
+      `, [process_id, date_from, date_to]);
+
+      // 10. تفاصيل التذاكر المكتملة
+      const completedTicketsDetails = await pool.query(`
+        SELECT 
+          t.id,
+          t.ticket_number,
+          t.title,
+          t.priority,
+          t.created_at,
+          t.due_date,
+          t.completed_at,
+          s.name as stage_name,
+          u.name as assigned_to_name,
+          ROUND(EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600, 2) as variance_hours,
+          CASE 
+            WHEN t.completed_at < t.due_date THEN 'early'
+            WHEN t.completed_at = t.due_date THEN 'on_time'
+            ELSE 'late'
+          END as performance_status
+        FROM tickets t
+        JOIN stages s ON t.current_stage_id = s.id
+        LEFT JOIN users u ON t.assigned_to = u.id
+        WHERE t.process_id = $1
+          AND t.completed_at IS NOT NULL
+          AND t.due_date IS NOT NULL
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+          AND s.is_final = true
+        ORDER BY t.completed_at DESC
+      `, [process_id, date_from, date_to]);
+
       res.json({
         success: true,
         data: {
@@ -860,7 +909,9 @@ class ReportController {
           priority_distribution: priorityDistribution.rows,
           completion_rate: completionRate.rows[0],
           top_performers: topPerformers.rows,
-          recent_tickets: recentTickets.rows
+          recent_tickets: recentTickets.rows,
+          performance_metrics: performanceMetrics.rows[0],
+          completed_tickets_details: completedTicketsDetails.rows
         }
       });
     } catch (error) {

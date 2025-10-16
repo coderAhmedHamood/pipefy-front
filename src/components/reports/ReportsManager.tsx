@@ -59,19 +59,7 @@ interface ProcessReport {
     completed_tickets: number;
   }>;
   performance_metrics?: {
-    total_completed_with_due_date: string;
-    early_completed: string;
-    on_time_completed: string;
-    late_completed: string;
-    early_rate: string;
-    on_time_rate: string;
-    late_rate: string;
-    avg_actual_days: string;
-    avg_planned_days: string;
-    avg_variance_days: string;
-    total_days_saved: string;
-    total_days_delayed: string;
-    net_performance_days: string;
+    net_performance_hours: string;
   };
   completed_tickets_details?: Array<{
     id: string;
@@ -592,102 +580,84 @@ export const ReportsManager: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="bg-white rounded-lg shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">متوسط الإنجاز</p>
-                            <p className="text-3xl font-bold text-purple-600">
-                              {Number(parseFloat(String(processReport.basic_stats.avg_completion_hours || 0))).toFixed(0)}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">ساعة</p>
-                          </div>
-                          <div className="p-3 bg-purple-100 rounded-lg">
-                            <Clock className="w-6 h-6 text-purple-600" />
+                      {/* مؤشر الأداء */}
+                      {(() => {
+                        console.log('🔍 Performance Metrics:', processReport.performance_metrics);
+                        console.log('🔍 Net Performance Hours:', processReport.performance_metrics?.net_performance_hours);
+                        return null;
+                      })()}
+                      {processReport.performance_metrics && processReport.performance_metrics.net_performance_hours !== null ? (
+                        <div className={`rounded-lg shadow-sm p-6 ${
+                          parseFloat(processReport.performance_metrics.net_performance_hours) > 0 
+                            ? 'bg-gradient-to-br from-green-50 to-green-100' 
+                            : parseFloat(processReport.performance_metrics.net_performance_hours) < 0
+                            ? 'bg-gradient-to-br from-red-50 to-red-100'
+                            : 'bg-gradient-to-br from-gray-50 to-gray-100'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-700 mb-1">صافي الأداء</p>
+                              {(() => {
+                                const hours = parseFloat(processReport.performance_metrics.net_performance_hours);
+                                const absHours = Math.abs(hours);
+                                const days = Math.floor(absHours / 24);
+                                const remainingHours = Math.floor(absHours % 24);
+                                const isPositive = hours > 0;
+                                const isNegative = hours < 0;
+                                
+                                return (
+                                  <>
+                                    {absHours >= 24 ? (
+                                      <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
+                                        {isPositive ? '+' : isNegative ? '-' : ''}{days} يوم {remainingHours}س
+                                      </div>
+                                    ) : (
+                                      <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
+                                        {isPositive ? '+' : ''}{hours.toFixed(1)} ساعة
+                                      </div>
+                                    )}
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      {isPositive ? '✅ متقدم عن الجدول' : isNegative ? '⚠️ متأخر عن الجدول' : '⏱️ حسب الجدول'}
+                                    </p>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                            <div className={`p-3 rounded-lg ${
+                              parseFloat(processReport.performance_metrics.net_performance_hours) > 0 
+                                ? 'bg-green-200' 
+                                : parseFloat(processReport.performance_metrics.net_performance_hours) < 0
+                                ? 'bg-red-200'
+                                : 'bg-gray-200'
+                            }`}>
+                              <TrendingUp className={`w-6 h-6 ${
+                                parseFloat(processReport.performance_metrics.net_performance_hours) > 0 
+                                  ? 'text-green-700' 
+                                  : parseFloat(processReport.performance_metrics.net_performance_hours) < 0
+                                  ? 'text-red-700'
+                                  : 'text-gray-700'
+                              }`} />
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-600">متوسط الإنجاز</p>
+                              <p className="text-3xl font-bold text-purple-600">
+                                {Number(parseFloat(String(processReport.basic_stats.avg_completion_hours || 0))).toFixed(0)}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">ساعة</p>
+                            </div>
+                            <div className="p-3 bg-purple-100 rounded-lg">
+                              <Clock className="w-6 h-6 text-purple-600" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* مقاييس الأداء */}
-                    {processReport.performance_metrics && (
-                      <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                          <TrendingUp className="w-5 h-5 text-indigo-500" />
-                          <span>مقاييس الأداء</span>
-                        </h3>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                          {/* التذاكر المكتملة بموعد */}
-                          <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                            <p className="text-xs font-medium text-blue-600 mb-1">التذاكر المكتملة بموعد</p>
-                            <p className="text-2xl font-bold text-blue-900">{processReport.performance_metrics.total_completed_with_due_date}</p>
-                          </div>
-
-                          {/* مكتمل مبكراً */}
-                          <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                            <p className="text-xs font-medium text-green-600 mb-1">مكتمل مبكراً</p>
-                            <p className="text-2xl font-bold text-green-900">{processReport.performance_metrics.early_completed}</p>
-                            <p className="text-xs text-green-700 mt-1">{parseFloat(processReport.performance_metrics.early_rate).toFixed(1)}%</p>
-                          </div>
-
-                          {/* في الوقت المحدد */}
-                          <div className="p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg">
-                            <p className="text-xs font-medium text-yellow-600 mb-1">في الوقت المحدد</p>
-                            <p className="text-2xl font-bold text-yellow-900">{processReport.performance_metrics.on_time_completed}</p>
-                            <p className="text-xs text-yellow-700 mt-1">{parseFloat(processReport.performance_metrics.on_time_rate).toFixed(1)}%</p>
-                          </div>
-
-                          {/* متأخر */}
-                          <div className="p-4 bg-gradient-to-br from-red-50 to-red-100 rounded-lg">
-                            <p className="text-xs font-medium text-red-600 mb-1">متأخر</p>
-                            <p className="text-2xl font-bold text-red-900">{processReport.performance_metrics.late_completed}</p>
-                            <p className="text-xs text-red-700 mt-1">{parseFloat(processReport.performance_metrics.late_rate).toFixed(1)}%</p>
-                          </div>
-                        </div>
-
-                        {/* متوسطات الأيام */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <p className="text-xs font-medium text-gray-600 mb-1">متوسط الأيام الفعلية</p>
-                            <p className="text-xl font-bold text-gray-900">{parseFloat(processReport.performance_metrics.avg_actual_days).toFixed(1)} يوم</p>
-                          </div>
-
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <p className="text-xs font-medium text-gray-600 mb-1">متوسط الأيام المخططة</p>
-                            <p className="text-xl font-bold text-gray-900">{parseFloat(processReport.performance_metrics.avg_planned_days).toFixed(1)} يوم</p>
-                          </div>
-
-                          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <p className="text-xs font-medium text-gray-600 mb-1">متوسط الفرق</p>
-                            <p className={`text-xl font-bold ${parseFloat(processReport.performance_metrics.avg_variance_days) < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                              {parseFloat(processReport.performance_metrics.avg_variance_days).toFixed(1)} يوم
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* الأداء الإجمالي */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="p-4 bg-green-50 rounded-lg border-2 border-green-200">
-                            <p className="text-xs font-medium text-green-600 mb-1">إجمالي الأيام الموفرة</p>
-                            <p className="text-xl font-bold text-green-700">+{parseFloat(processReport.performance_metrics.total_days_saved).toFixed(1)} يوم</p>
-                          </div>
-
-                          <div className="p-4 bg-red-50 rounded-lg border-2 border-red-200">
-                            <p className="text-xs font-medium text-red-600 mb-1">إجمالي الأيام المتأخرة</p>
-                            <p className="text-xl font-bold text-red-700">{parseFloat(processReport.performance_metrics.total_days_delayed).toFixed(1)} يوم</p>
-                          </div>
-
-                          <div className={`p-4 rounded-lg border-2 ${parseFloat(processReport.performance_metrics.net_performance_days) >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-                            <p className={`text-xs font-medium mb-1 ${parseFloat(processReport.performance_metrics.net_performance_days) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                              صافي الأداء
-                            </p>
-                            <p className={`text-xl font-bold ${parseFloat(processReport.performance_metrics.net_performance_days) >= 0 ? 'text-green-800' : 'text-red-800'}`}>
-                              {parseFloat(processReport.performance_metrics.net_performance_days).toFixed(1)} يوم
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* توزيع التذاكر حسب المرحلة */}
                     <div className="bg-white rounded-lg shadow-sm p-6">
