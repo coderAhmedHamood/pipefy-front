@@ -1628,25 +1628,11 @@ export const UserManagerNew: React.FC = () => {
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                  <div className="flex flex-wrap gap-1">
-                                    {user.processes && user.processes.length > 0 ? (
-                                      user.processes.map((process: any, idx: number) => (
-                                        <span key={idx} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
-                                          {process.role}
-                                        </span>
-                                      ))
-                                    ) : (
-                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                        لا توجد أدوار
-                                      </span>
-                                    )}
-                                  </div>
-                                </td>
+                              
                                 <td className="px-6 py-4">
                                   {user.processes && user.processes.length > 0 ? (
                                     <div className="flex flex-wrap gap-1 max-w-md">
-                                      {user.processes.slice(0, 3).map((process: any, idx: number) => (
+                                      {user.processes.slice(0, 100).map((process: any, idx: number) => (
                                         <span
                                           key={idx}
                                           className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800"
@@ -1655,11 +1641,7 @@ export const UserManagerNew: React.FC = () => {
                                           {process.name}
                                         </span>
                                       ))}
-                                      {user.processes.length > 3 && (
-                                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                                          +{user.processes.length - 3} أخرى
-                                        </span>
-                                      )}
+                                     
                                     </div>
                                   ) : (
                                     <span className="text-sm text-gray-400 italic">لا توجد صلاحيات</span>
