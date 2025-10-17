@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DndContext, DragEndEvent, DragStartEvent, closestCenter } from '@dnd-kit/core';
 import { KanbanColumn } from './KanbanColumn';
 import { TicketModal } from './TicketModal';
@@ -18,6 +19,7 @@ interface KanbanBoardProps {
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const { } = useWorkflow();
   const { showSuccess, showError } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // State management
   const [ticketsByStages, setTicketsByStages] = useState<TicketsByStagesResponse>({});
@@ -205,6 +207,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   
   const sortedStages = [...process.stages].sort((a, b) => a.priority - b.priority);
 
+  // فتح التذكرة من URL عند التحميل
+  useEffect(() => {
+    const ticketId = searchParams.get('ticket');
+    if (ticketId && allTickets.length > 0 && !selectedTicket) {
+      const ticket = allTickets.find(t => t.id === ticketId);
+      if (ticket) {
+        console.log('🔗 فتح التذكرة من URL:', ticket.title);
+        setSelectedTicket(ticket);
+      }
+    }
+  }, [searchParams, allTickets, selectedTicket]);
+
   const handleDragStart = (event: DragStartEvent) => {
     const ticketId = event.active.id as string;
     const ticket = allTickets.find(t => t.id === ticketId);
@@ -263,7 +277,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
         showSuccess('تم نقل التذكرة', `تم نقل "${ticket.title}" إلى "${targetStage.name}" بنجاح مع إضافة تعليق`);
       })
       .catch((error: any) => {
-        console.error('خطأ في نقل التذكرة:', error);
+        console.log('خطأ في نقل التذكرة:', error);
         showError('خطأ في نقل التذكرة', 'حدث خطأ أثناء نقل التذكرة');
         // إعادة تحميل البيانات في حالة الخطأ
         loadTickets();
@@ -273,6 +287,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const handleTicketClick = (ticket: Ticket) => {
     console.log('Ticket clicked:', ticket.title);
     setSelectedTicket(ticket);
+    // إضافة معرف التذكرة إلى URL
+    setSearchParams({ ticket: ticket.id });
+  };
+
+  const handleCloseTicket = () => {
+    setSelectedTicket(null);
+    // إزالة معرف التذكرة من URL
+    setSearchParams({});
   };
   
   const handleMoveToStage = (stageId: string) => {
@@ -344,7 +366,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
 
       // إغلاق المودال
       console.log('🚪 إغلاق المودال...');
-      setSelectedTicket(null);
+      handleCloseTicket();
 
       // إظهار رسالة نجاح
       console.log('📢 عرض رسالة النجاح...');
@@ -545,7 +567,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                     <tr 
                       key={ticket.id} 
                       className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => setSelectedTicket(ticket)}
+                      onClick={() => handleTicketClick(ticket)}
                     >
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
@@ -731,14 +753,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
         <TicketModal
           ticket={selectedTicket}
           process={process}
-          onClose={() => {
-            setSelectedTicket(null);
-          }}
+          onClose={handleCloseTicket}
           onSave={(updatedTicket) => {
             if (updatedTicket.id) {
               handleTicketUpdated(updatedTicket as Ticket);
             }
-            setSelectedTicket(null);
+            handleCloseTicket();
           }}
           onMoveToStage={handleMoveToStage}
           onDelete={handleDeleteTicket}

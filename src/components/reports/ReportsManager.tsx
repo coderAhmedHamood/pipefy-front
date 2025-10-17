@@ -1085,34 +1085,7 @@ export const ReportsManager: React.FC = () => {
                       )}
                     </div>
 
-                    {/* معدل الإنجاز */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                        <Target className="w-5 h-5 text-blue-600" />
-                        <span>معدل الإنجاز</span>
-                      </h3>
-                      <div className="flex items-center space-x-4 space-x-reverse">
-                        <div className="flex-1">
-                          <div className="flex justify-between mb-2">
-                            <span className="text-sm text-gray-600">معدل الإكمال في الوقت المحدد</span>
-                            <span className="text-sm font-bold text-gray-900">{Number(parseFloat(String(userReport.completion_rate.on_time_percentage || 0))).toFixed(1)}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-3">
-                            <div 
-                              className="bg-gradient-to-r from-green-500 to-teal-600 h-3 rounded-full transition-all duration-500"
-                              style={{ width: `${Number(parseFloat(String(userReport.completion_rate.on_time_percentage || 0)))}%` }}
-                            ></div>
-                          </div>
-                          <div className="flex justify-between mt-2 text-xs text-gray-500">
-                            <span>{userReport.completion_rate.completed_count} مكتملة</span>
-                            <span>متوسط الإنجاز: {Number(parseFloat(String(userReport.completion_rate.avg_completion_days || 0))).toFixed(1)} يوم</span>
-                          </div>
-                        </div>
-                        <div className="p-4 bg-green-50 rounded-lg">
-                          <Award className="w-8 h-8 text-green-600" />
-                        </div>
-                      </div>
-                    </div>
+                   
 
                     {/* توزيع التذاكر حسب المراحل */}
                     {userReport.stage_distribution && userReport.stage_distribution.length > 0 && (
