@@ -1208,43 +1208,10 @@ export const ReportsManager: React.FC = () => {
                     {/* معلومات الموظف */}
                     {userReport.top_performers && userReport.top_performers.length > 0 && (
                       <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                          <Award className="w-5 h-5 text-yellow-500" />
-                          <span>ملخص أداء الموظف</span>
-                        </h3>
+                        
                         
                         <div className="space-y-4">
-                          {userReport.top_performers.map((performer) => (
-                            <div key={performer.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-                              <div className="flex items-center space-x-3 space-x-reverse">
-                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                                  <span className="text-white font-bold text-lg">{performer.name.charAt(0)}</span>
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-gray-900">{performer.name}</p>
-                                  <p className="text-sm text-gray-600">{performer.email}</p>
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                <div>
-                                  <p className="text-xs text-gray-600">إجمالي التذاكر</p>
-                                  <p className="text-lg font-bold text-gray-900">{performer.total_tickets}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-600">مكتملة</p>
-                                  <p className="text-lg font-bold text-green-600">{performer.completed_tickets}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-600">معدل الإنجاز</p>
-                                  <p className="text-lg font-bold text-blue-600">{Number(parseFloat(String(performer.completion_rate || 0))).toFixed(1)}%</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-600">في الوقت</p>
-                                  <p className="text-lg font-bold text-purple-600">{performer.on_time_tickets}</p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                          
                         </div>
                       </div>
                     )}
