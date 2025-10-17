@@ -5,12 +5,9 @@ class TicketReviewer {
   static async ensureTable() {
     const client = await pool.connect();
     try {
-      // حذف الجدول القديم إذا كان موجوداً بهيكل خاطئ
-      await client.query(`DROP TABLE IF EXISTS ticket_reviewers CASCADE;`);
-      
-      // إنشاء الجدول بالهيكل الصحيح
+      // إنشاء الجدول فقط إذا لم يكن موجوداً
       await client.query(`
-        CREATE TABLE ticket_reviewers (
+        CREATE TABLE IF NOT EXISTS ticket_reviewers (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
           reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

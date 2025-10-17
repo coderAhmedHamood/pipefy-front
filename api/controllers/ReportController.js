@@ -924,6 +924,294 @@ class ReportController {
     }
   }
 
+  /**
+   * تقرير شامل لموظف معين (بدلالة assigned_to + ticket_assignments)
+   */
+  static async getUserReport(req, res) {
+    try {
+      const { user_id } = req.params;
+      const {
+        date_from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        date_to = new Date().toISOString()
+      } = req.query;
+
+      // 1. الإحصائيات الأساسية
+      const basicStats = await pool.query(`
+        SELECT 
+          COUNT(DISTINCT t.id) as total_tickets,
+          COUNT(DISTINCT CASE WHEN t.status = 'active' THEN t.id END) as active_tickets,
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END) as completed_tickets,
+          COUNT(DISTINCT CASE WHEN t.status = 'cancelled' THEN t.id END) as cancelled_tickets,
+          COUNT(DISTINCT CASE WHEN t.status = 'archived' THEN t.id END) as archived_tickets,
+          COUNT(DISTINCT CASE WHEN t.due_date < NOW() AND t.status = 'active' THEN t.id END) as overdue_tickets,
+          COUNT(DISTINCT t.assigned_to) as unique_assignees
+        FROM tickets t
+        LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+        WHERE (t.assigned_to = $1 OR ta.user_id = $1)
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+      `, [user_id, date_from, date_to]);
+
+      // 2. توزيع التذاكر على المراحل
+      const stageDistribution = await pool.query(`
+        SELECT 
+          s.id as stage_id,
+          s.name as stage_name,
+          s.color as stage_color,
+          s.order_index,
+          s.is_initial,
+          s.is_final,
+          COUNT(DISTINCT t.id) as ticket_count,
+          ROUND(
+            (COUNT(DISTINCT t.id)::DECIMAL / NULLIF(
+              (SELECT COUNT(DISTINCT t2.id) FROM tickets t2
+               LEFT JOIN ticket_assignments ta2 ON t2.id = ta2.ticket_id AND ta2.is_active = true
+               WHERE (t2.assigned_to = $1 OR ta2.user_id = $1)
+               AND t2.created_at BETWEEN $2 AND $3
+               AND t2.deleted_at IS NULL), 0
+            )) * 100, 2
+          ) as percentage
+        FROM stages s
+        LEFT JOIN tickets t ON t.current_stage_id = s.id 
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+        LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+        WHERE s.id IN (
+          SELECT DISTINCT t3.current_stage_id FROM tickets t3
+          LEFT JOIN ticket_assignments ta3 ON t3.id = ta3.ticket_id AND ta3.is_active = true
+          WHERE (t3.assigned_to = $1 OR ta3.user_id = $1)
+          AND t3.created_at BETWEEN $2 AND $3
+          AND t3.deleted_at IS NULL
+        )
+        AND (t.assigned_to = $1 OR ta.user_id = $1)
+        GROUP BY s.id, s.name, s.color, s.order_index, s.is_initial, s.is_final
+        ORDER BY s.order_index
+      `, [user_id, date_from, date_to]);
+
+      // 3. التذاكر المتأخرة في كل مرحلة
+      const overdueByStage = await pool.query(`
+        SELECT 
+          s.id as stage_id,
+          s.name as stage_name,
+          s.color as stage_color,
+          COUNT(DISTINCT t.id) as overdue_count,
+          ROUND(
+            (COUNT(DISTINCT t.id)::DECIMAL / NULLIF(
+              (SELECT COUNT(DISTINCT t2.id) FROM tickets t2
+               LEFT JOIN ticket_assignments ta2 ON t2.id = ta2.ticket_id AND ta2.is_active = true
+               WHERE (t2.assigned_to = $1 OR ta2.user_id = $1)
+               AND t2.created_at BETWEEN $2 AND $3
+               AND t2.deleted_at IS NULL), 0
+            )) * 100, 2
+          ) as overdue_percentage,
+          ROUND(AVG(EXTRACT(EPOCH FROM (NOW() - t.due_date)) / 86400), 2) as avg_days_overdue
+        FROM stages s
+        LEFT JOIN tickets t ON t.current_stage_id = s.id 
+          AND t.due_date < NOW()
+          AND t.status = 'active'
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+        LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+        WHERE s.id IN (
+          SELECT DISTINCT t3.current_stage_id FROM tickets t3
+          LEFT JOIN ticket_assignments ta3 ON t3.id = ta3.ticket_id AND ta3.is_active = true
+          WHERE (t3.assigned_to = $1 OR ta3.user_id = $1)
+          AND t3.created_at BETWEEN $2 AND $3
+          AND t3.deleted_at IS NULL
+        )
+        AND (t.assigned_to = $1 OR ta.user_id = $1)
+        GROUP BY s.id, s.name, s.color
+        HAVING COUNT(DISTINCT t.id) > 0
+        ORDER BY overdue_count DESC
+      `, [user_id, date_from, date_to]);
+
+      // 4. توزيع حسب الأولوية
+      const priorityDistribution = await pool.query(`
+        SELECT 
+          t.priority,
+          COUNT(DISTINCT t.id) as count,
+          ROUND(
+            (COUNT(DISTINCT t.id)::DECIMAL / NULLIF(
+              (SELECT COUNT(DISTINCT t2.id) FROM tickets t2
+               LEFT JOIN ticket_assignments ta2 ON t2.id = ta2.ticket_id AND ta2.is_active = true
+               WHERE (t2.assigned_to = $1 OR ta2.user_id = $1)
+               AND t2.created_at BETWEEN $2 AND $3
+               AND t2.deleted_at IS NULL), 0
+            )) * 100, 2
+          ) as percentage
+        FROM tickets t
+        LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+        WHERE (t.assigned_to = $1 OR ta.user_id = $1)
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+        GROUP BY t.priority
+        ORDER BY 
+          CASE t.priority
+            WHEN 'urgent' THEN 1
+            WHEN 'high' THEN 2
+            WHEN 'medium' THEN 3
+            WHEN 'low' THEN 4
+          END
+      `, [user_id, date_from, date_to]);
+
+      // 5. معدل الإنجاز
+      const completionRate = await pool.query(`
+        SELECT 
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END) as completed_count,
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.completed_at <= t.due_date THEN t.id END) as on_time_count,
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.completed_at > t.due_date THEN t.id END) as late_count,
+          ROUND(
+            AVG(
+              CASE 
+                WHEN t.status = 'completed' AND t.completed_at IS NOT NULL AND t.created_at IS NOT NULL
+                THEN EXTRACT(EPOCH FROM (t.completed_at - t.created_at)) / 86400
+              END
+            ), 2
+          ) as avg_completion_days,
+          ROUND(
+            (COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.completed_at <= t.due_date THEN t.id END)::DECIMAL / 
+             NULLIF(COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END), 0)) * 100, 2
+          ) as on_time_percentage
+        FROM tickets t
+        LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+        WHERE (t.assigned_to = $1 OR ta.user_id = $1)
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+      `, [user_id, date_from, date_to]);
+
+      // 6. معلومات الموظف
+      const topPerformers = await pool.query(`
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          COUNT(DISTINCT t.id) as total_tickets,
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END) as completed_tickets,
+          ROUND(
+            (COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END)::DECIMAL / 
+             NULLIF(COUNT(DISTINCT t.id), 0)) * 100, 2
+          ) as completion_rate,
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.completed_at <= t.due_date THEN t.id END) as on_time_tickets
+        FROM users u
+        LEFT JOIN tickets t ON t.assigned_to = u.id 
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+        LEFT JOIN ticket_assignments ta ON ta.user_id = u.id AND ta.is_active = true
+        LEFT JOIN tickets t2 ON ta.ticket_id = t2.id
+          AND t2.created_at BETWEEN $2 AND $3
+          AND t2.deleted_at IS NULL
+        WHERE u.id = $1
+        GROUP BY u.id, u.name, u.email
+      `, [user_id, date_from, date_to]);
+
+      // 7. أحدث التذاكر
+      const recentTickets = await pool.query(`
+        SELECT DISTINCT
+          t.id,
+          t.ticket_number,
+          t.title,
+          t.priority,
+          t.status,
+          t.created_at,
+          t.due_date,
+          t.completed_at,
+          s.name as stage_name,
+          s.color as stage_color,
+          u.name as assigned_to_name,
+          CASE 
+            WHEN t.due_date < NOW() AND t.status = 'active' THEN true
+            ELSE false
+          END as is_overdue
+        FROM tickets t
+        JOIN stages s ON t.current_stage_id = s.id
+        LEFT JOIN users u ON t.assigned_to = u.id
+        LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+        WHERE (t.assigned_to = $1 OR ta.user_id = $1)
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+        ORDER BY t.created_at DESC
+        LIMIT 10
+      `, [user_id, date_from, date_to]);
+
+      // 8. مؤشر الأداء (صافي الفارق بالساعات)
+      const performanceMetrics = await pool.query(`
+        SELECT 
+          ROUND(
+            SUM(
+              EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600
+            )::DECIMAL, 
+            2
+          ) as net_performance_hours
+        FROM tickets t
+        JOIN stages s ON t.current_stage_id = s.id
+        LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+        WHERE (t.assigned_to = $1 OR ta.user_id = $1)
+          AND t.completed_at IS NOT NULL
+          AND t.due_date IS NOT NULL
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+          AND s.is_final = true
+      `, [user_id, date_from, date_to]);
+
+      // 9. تفاصيل التذاكر المكتملة
+      const completedTicketsDetails = await pool.query(`
+        SELECT DISTINCT
+          t.id,
+          t.ticket_number,
+          t.title,
+          t.priority,
+          t.created_at,
+          t.due_date,
+          t.completed_at,
+          s.name as stage_name,
+          u.name as assigned_to_name,
+          ROUND(EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600, 2) as variance_hours,
+          CASE 
+            WHEN t.completed_at < t.due_date THEN 'early'
+            WHEN t.completed_at = t.due_date THEN 'on_time'
+            ELSE 'late'
+          END as performance_status
+        FROM tickets t
+        JOIN stages s ON t.current_stage_id = s.id
+        LEFT JOIN users u ON t.assigned_to = u.id
+        LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+        WHERE (t.assigned_to = $1 OR ta.user_id = $1)
+          AND t.completed_at IS NOT NULL
+          AND t.due_date IS NOT NULL
+          AND t.created_at BETWEEN $2 AND $3
+          AND t.deleted_at IS NULL
+          AND s.is_final = true
+        ORDER BY t.completed_at DESC
+      `, [user_id, date_from, date_to]);
+
+      res.json({
+        success: true,
+        data: {
+          period: {
+            from: date_from,
+            to: date_to
+          },
+          basic_stats: basicStats.rows[0],
+          stage_distribution: stageDistribution.rows,
+          overdue_by_stage: overdueByStage.rows,
+          priority_distribution: priorityDistribution.rows,
+          completion_rate: completionRate.rows[0],
+          top_performers: topPerformers.rows,
+          recent_tickets: recentTickets.rows,
+          performance_metrics: performanceMetrics.rows[0],
+          completed_tickets_details: completedTicketsDetails.rows
+        }
+      });
+    } catch (error) {
+      console.error('خطأ في جلب تقرير الموظف:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في جلب تقرير الموظف',
+        error: error.message
+      });
+    }
+  }
+
   // تصدير التقارير
   static async exportReport(req, res) {
     try {

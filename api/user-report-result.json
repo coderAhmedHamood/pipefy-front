@@ -1,0 +1,583 @@
+{
+  "success": true,
+  "data": {
+    "period": {
+      "from": "2025-09-17T14:21:13.709Z",
+      "to": "2025-10-17T14:21:13.709Z"
+    },
+    "basic_stats": {
+      "total_tickets": "468",
+      "active_tickets": "468",
+      "completed_tickets": "0",
+      "cancelled_tickets": "0",
+      "archived_tickets": "0",
+      "overdue_tickets": "14",
+      "unique_assignees": "1"
+    },
+    "stage_distribution": [
+      {
+        "stage_id": "16c60206-af16-46c8-b92a-b3d4060b84ad",
+        "stage_name": "جديدة",
+        "stage_color": "#6B7280",
+        "order_index": 1,
+        "is_initial": true,
+        "is_final": false,
+        "ticket_count": "20",
+        "percentage": "4.27"
+      },
+      {
+        "stage_id": "db634909-72c7-4445-930e-2e345ab49421",
+        "stage_name": "مرحلة جديدة",
+        "stage_color": "#6B7280",
+        "order_index": 1,
+        "is_initial": true,
+        "is_final": false,
+        "ticket_count": "253",
+        "percentage": "54.06"
+      },
+      {
+        "stage_id": "13e931d2-b6ab-403f-97d3-6d202ec36c6e",
+        "stage_name": "مرحلة جديدة",
+        "stage_color": "#6B7280",
+        "order_index": 1,
+        "is_initial": true,
+        "is_final": false,
+        "ticket_count": "1",
+        "percentage": "0.21"
+      },
+      {
+        "stage_id": "2f34dda7-0eb6-4144-bee7-5d58c56c8fe7",
+        "stage_name": "مرحلة جديدة",
+        "stage_color": "#6B7280",
+        "order_index": 1,
+        "is_initial": false,
+        "is_final": false,
+        "ticket_count": "4",
+        "percentage": "0.85"
+      },
+      {
+        "stage_id": "016a86a2-0dc2-4e2a-9f1b-dbd4cfff6524",
+        "stage_name": "مرحلة جديدة",
+        "stage_color": "#6B7280",
+        "order_index": 1,
+        "is_initial": true,
+        "is_final": false,
+        "ticket_count": "7",
+        "percentage": "1.50"
+      },
+      {
+        "stage_id": "6419fe61-abcd-4d3d-be45-612eabc0bfad",
+        "stage_name": "مرحلة جديدة",
+        "stage_color": "#6B7280",
+        "order_index": 1,
+        "is_initial": true,
+        "is_final": false,
+        "ticket_count": "15",
+        "percentage": "3.21"
+      },
+      {
+        "stage_id": "cb5e45f1-8e22-4745-bcdb-f2c4b5e24259",
+        "stage_name": "قيد المراجعة",
+        "stage_color": "#F59E0B",
+        "order_index": 2,
+        "is_initial": false,
+        "is_final": false,
+        "ticket_count": "100",
+        "percentage": "21.37"
+      },
+      {
+        "stage_id": "2556a70a-19a5-4f16-ab6b-a9c20f55cde1",
+        "stage_name": "قيد المراجعة",
+        "stage_color": "#F59E0B",
+        "order_index": 2,
+        "is_initial": false,
+        "is_final": false,
+        "ticket_count": "4",
+        "percentage": "0.85"
+      },
+      {
+        "stage_id": "b7e357a3-9326-435b-847e-7bb8f5b23498",
+        "stage_name": "قيد المراجعة",
+        "stage_color": "#F59E0B",
+        "order_index": 2,
+        "is_initial": false,
+        "is_final": false,
+        "ticket_count": "3",
+        "percentage": "0.64"
+      },
+      {
+        "stage_id": "ce0f34d1-6d8a-48a6-8520-fc43ec7f55f9",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "order_index": 3,
+        "is_initial": false,
+        "is_final": true,
+        "ticket_count": "48",
+        "percentage": "10.26"
+      },
+      {
+        "stage_id": "68b4c331-cfad-49d4-8724-55046b99866c",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "order_index": 3,
+        "is_initial": false,
+        "is_final": true,
+        "ticket_count": "1",
+        "percentage": "0.21"
+      },
+      {
+        "stage_id": "fa4142ae-b6e5-4988-9306-55cde7a7df0d",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "order_index": 3,
+        "is_initial": false,
+        "is_final": true,
+        "ticket_count": "3",
+        "percentage": "0.64"
+      },
+      {
+        "stage_id": "59c1843b-fed3-4436-bf9a-d94b3ae73a53",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "order_index": 3,
+        "is_initial": false,
+        "is_final": true,
+        "ticket_count": "1",
+        "percentage": "0.21"
+      },
+      {
+        "stage_id": "b0e200d7-f40b-4dfb-9bb3-ec4a2f15d44b",
+        "stage_name": "المرحلة تبع علي",
+        "stage_color": "bg-gray-500",
+        "order_index": 4,
+        "is_initial": false,
+        "is_final": false,
+        "ticket_count": "2",
+        "percentage": "0.43"
+      },
+      {
+        "stage_id": "50f4d71e-93d0-4aca-99b4-347539eb2b1b",
+        "stage_name": "المرحلة تبع احمد با محرز",
+        "stage_color": "bg-gray-500",
+        "order_index": 5,
+        "is_initial": false,
+        "is_final": false,
+        "ticket_count": "3",
+        "percentage": "0.64"
+      },
+      {
+        "stage_id": "3eb1d2c0-73c6-4965-817f-865029d05681",
+        "stage_name": "مرحلة الفحص",
+        "stage_color": "bg-red-500",
+        "order_index": 6,
+        "is_initial": false,
+        "is_final": false,
+        "ticket_count": "3",
+        "percentage": "0.64"
+      }
+    ],
+    "overdue_by_stage": [
+      {
+        "stage_id": "ce0f34d1-6d8a-48a6-8520-fc43ec7f55f9",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "overdue_count": "9",
+        "overdue_percentage": "1.92",
+        "avg_days_overdue": "4.41"
+      },
+      {
+        "stage_id": "016a86a2-0dc2-4e2a-9f1b-dbd4cfff6524",
+        "stage_name": "مرحلة جديدة",
+        "stage_color": "#6B7280",
+        "overdue_count": "3",
+        "overdue_percentage": "0.64",
+        "avg_days_overdue": "14.32"
+      },
+      {
+        "stage_id": "2f34dda7-0eb6-4144-bee7-5d58c56c8fe7",
+        "stage_name": "مرحلة جديدة",
+        "stage_color": "#6B7280",
+        "overdue_count": "1",
+        "overdue_percentage": "0.21",
+        "avg_days_overdue": "14.74"
+      },
+      {
+        "stage_id": "50f4d71e-93d0-4aca-99b4-347539eb2b1b",
+        "stage_name": "المرحلة تبع احمد با محرز",
+        "stage_color": "bg-gray-500",
+        "overdue_count": "1",
+        "overdue_percentage": "0.21",
+        "avg_days_overdue": "0.74"
+      }
+    ],
+    "priority_distribution": [
+      {
+        "priority": "urgent",
+        "count": "13",
+        "percentage": "2.78"
+      },
+      {
+        "priority": "high",
+        "count": "24",
+        "percentage": "5.13"
+      },
+      {
+        "priority": "medium",
+        "count": "423",
+        "percentage": "90.38"
+      },
+      {
+        "priority": "low",
+        "count": "8",
+        "percentage": "1.71"
+      }
+    ],
+    "completion_rate": {
+      "completed_count": "0",
+      "on_time_count": "0",
+      "late_count": "0",
+      "avg_completion_days": null,
+      "on_time_percentage": null
+    },
+    "top_performers": [
+      {
+        "id": "a00a2f8e-2843-41da-8080-6eb4cd0a706b",
+        "name": "Admin User",
+        "email": "admin@example.com",
+        "total_tickets": "468",
+        "completed_tickets": "0",
+        "completion_rate": "0.00",
+        "on_time_tickets": "0"
+      }
+    ],
+    "recent_tickets": [
+      {
+        "id": "1539e0bb-afb3-4cd2-9521-a64c53340979",
+        "ticket_number": "جدي-000001-1760656867718-7093",
+        "title": "test",
+        "priority": "high",
+        "status": "active",
+        "created_at": "2025-10-16T23:21:07.710Z",
+        "due_date": "2025-10-17T23:20:00.000Z",
+        "completed_at": "2025-10-16T23:21:12.219Z",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "assigned_to_name": "Admin User",
+        "is_overdue": false
+      },
+      {
+        "id": "be3d2511-40fd-4c99-b72d-329aa2dc45fe",
+        "ticket_number": "عمل-000004-1760651395135-4713",
+        "title": "ooo",
+        "priority": "high",
+        "status": "active",
+        "created_at": "2025-10-16T21:49:55.129Z",
+        "due_date": "2025-10-20T21:49:00.000Z",
+        "completed_at": "2025-10-16T21:50:01.897Z",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "assigned_to_name": "Admin User",
+        "is_overdue": false
+      },
+      {
+        "id": "02327f53-53a2-4b24-ab7a-7a927573c114",
+        "ticket_number": "عمل-000004-1760651213498-2704",
+        "title": "نتمن",
+        "priority": "urgent",
+        "status": "active",
+        "created_at": "2025-10-16T21:46:53.492Z",
+        "due_date": "2025-10-16T21:46:00.000Z",
+        "completed_at": "2025-10-16T21:46:59.798Z",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "assigned_to_name": "Admin User",
+        "is_overdue": true
+      },
+      {
+        "id": "ef3ab08a-fa20-4fdd-b644-1506df5372b1",
+        "ticket_number": "طلب-000001-1760650873594-6877",
+        "title": "نمتمنت",
+        "priority": "urgent",
+        "status": "active",
+        "created_at": "2025-10-16T21:41:13.586Z",
+        "due_date": "2025-10-17T21:41:00.000Z",
+        "completed_at": "2025-10-16T21:41:19.894Z",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "assigned_to_name": "Admin User",
+        "is_overdue": false
+      },
+      {
+        "id": "a49f797d-81d2-492c-8840-943164ac018d",
+        "ticket_number": "عمل-000003-1760650794387-6884",
+        "title": "منتنمت",
+        "priority": "urgent",
+        "status": "active",
+        "created_at": "2025-10-16T21:39:54.369Z",
+        "due_date": "2025-10-17T21:39:00.000Z",
+        "completed_at": "2025-10-16T21:40:00.212Z",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "assigned_to_name": "Admin User",
+        "is_overdue": false
+      },
+      {
+        "id": "a7ae49ec-b080-491d-84a8-5d2db7bc8f82",
+        "ticket_number": "عمل-000004-1760649055098-5763",
+        "title": "تذكرة لتئكد من ساعات الفريق ",
+        "priority": "urgent",
+        "status": "active",
+        "created_at": "2025-10-16T21:10:55.091Z",
+        "due_date": "2025-10-19T21:10:00.000Z",
+        "completed_at": "2025-10-16T21:11:00.083Z",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "assigned_to_name": "Admin User",
+        "is_overdue": false
+      },
+      {
+        "id": "4c58048b-f8d2-4590-9d63-901fc1a8ee0d",
+        "ticket_number": "عمل-000004-1760561062073-2414",
+        "title": ";lk;lk",
+        "priority": "medium",
+        "status": "active",
+        "created_at": "2025-10-15T20:44:22.069Z",
+        "due_date": "2025-10-13T20:44:00.000Z",
+        "completed_at": "2025-10-15T20:44:25.972Z",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "assigned_to_name": "Admin User",
+        "is_overdue": true
+      },
+      {
+        "id": "f6a47926-0915-4cf4-8703-7b8f9437dcd8",
+        "ticket_number": "عمل-000004-1760560965622-8049",
+        "title": "llll",
+        "priority": "urgent",
+        "status": "active",
+        "created_at": "2025-10-15T20:42:45.619Z",
+        "due_date": "2025-10-16T20:42:00.000Z",
+        "completed_at": null,
+        "stage_name": "المرحلة تبع احمد با محرز",
+        "stage_color": "bg-gray-500",
+        "assigned_to_name": "Admin User",
+        "is_overdue": true
+      },
+      {
+        "id": "4082b407-a374-429a-82eb-f624a63e56c4",
+        "ticket_number": "عمل-000004-1760557547233-122",
+        "title": "عاجل",
+        "priority": "urgent",
+        "status": "active",
+        "created_at": "2025-10-15T19:45:47.229Z",
+        "due_date": null,
+        "completed_at": null,
+        "stage_name": "مرحلة الفحص",
+        "stage_color": "bg-red-500",
+        "assigned_to_name": "Admin User",
+        "is_overdue": false
+      },
+      {
+        "id": "9c8cf994-d61e-4ecb-898e-a1efe54f8f3f",
+        "ticket_number": "عمل-000004-1760556876095-5504",
+        "title": "التذكرة الجديدة صاحبة البيانات ",
+        "priority": "high",
+        "status": "active",
+        "created_at": "2025-10-15T19:34:36.088Z",
+        "due_date": "2025-10-16T20:41:00.000Z",
+        "completed_at": "2025-10-16T20:17:28.803Z",
+        "stage_name": "مكتملة",
+        "stage_color": "#10B981",
+        "assigned_to_name": "Admin User",
+        "is_overdue": true
+      }
+    ],
+    "performance_metrics": {
+      "net_performance_hours": "-284.33"
+    },
+    "completed_tickets_details": [
+      {
+        "id": "1539e0bb-afb3-4cd2-9521-a64c53340979",
+        "ticket_number": "جدي-000001-1760656867718-7093",
+        "title": "test",
+        "priority": "high",
+        "created_at": "2025-10-16T23:21:07.710Z",
+        "due_date": "2025-10-17T23:20:00.000Z",
+        "completed_at": "2025-10-16T23:21:12.219Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "23.98",
+        "performance_status": "early"
+      },
+      {
+        "id": "be3d2511-40fd-4c99-b72d-329aa2dc45fe",
+        "ticket_number": "عمل-000004-1760651395135-4713",
+        "title": "ooo",
+        "priority": "high",
+        "created_at": "2025-10-16T21:49:55.129Z",
+        "due_date": "2025-10-20T21:49:00.000Z",
+        "completed_at": "2025-10-16T21:50:01.897Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "95.98",
+        "performance_status": "early"
+      },
+      {
+        "id": "02327f53-53a2-4b24-ab7a-7a927573c114",
+        "ticket_number": "عمل-000004-1760651213498-2704",
+        "title": "نتمن",
+        "priority": "urgent",
+        "created_at": "2025-10-16T21:46:53.492Z",
+        "due_date": "2025-10-16T21:46:00.000Z",
+        "completed_at": "2025-10-16T21:46:59.798Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "-0.02",
+        "performance_status": "late"
+      },
+      {
+        "id": "ef3ab08a-fa20-4fdd-b644-1506df5372b1",
+        "ticket_number": "طلب-000001-1760650873594-6877",
+        "title": "نمتمنت",
+        "priority": "urgent",
+        "created_at": "2025-10-16T21:41:13.586Z",
+        "due_date": "2025-10-17T21:41:00.000Z",
+        "completed_at": "2025-10-16T21:41:19.894Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "23.99",
+        "performance_status": "early"
+      },
+      {
+        "id": "a49f797d-81d2-492c-8840-943164ac018d",
+        "ticket_number": "عمل-000003-1760650794387-6884",
+        "title": "منتنمت",
+        "priority": "urgent",
+        "created_at": "2025-10-16T21:39:54.369Z",
+        "due_date": "2025-10-17T21:39:00.000Z",
+        "completed_at": "2025-10-16T21:40:00.212Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "23.98",
+        "performance_status": "early"
+      },
+      {
+        "id": "a7ae49ec-b080-491d-84a8-5d2db7bc8f82",
+        "ticket_number": "عمل-000004-1760649055098-5763",
+        "title": "تذكرة لتئكد من ساعات الفريق ",
+        "priority": "urgent",
+        "created_at": "2025-10-16T21:10:55.091Z",
+        "due_date": "2025-10-19T21:10:00.000Z",
+        "completed_at": "2025-10-16T21:11:00.083Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "71.98",
+        "performance_status": "early"
+      },
+      {
+        "id": "8164e522-0049-464e-8a3c-fc227ab86ce6",
+        "ticket_number": "عمل-000003-1759868518693-2392",
+        "title": "هذة التذكرة التي تم تغيير تاريخ عنها لتكون متئخرة 33333",
+        "priority": "urgent",
+        "created_at": "2025-10-07T20:21:58.690Z",
+        "due_date": "2025-10-01T18:53:00.000Z",
+        "completed_at": "2025-10-16T20:18:09.990Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "-361.42",
+        "performance_status": "late"
+      },
+      {
+        "id": "9c8cf994-d61e-4ecb-898e-a1efe54f8f3f",
+        "ticket_number": "عمل-000004-1760556876095-5504",
+        "title": "التذكرة الجديدة صاحبة البيانات ",
+        "priority": "high",
+        "created_at": "2025-10-15T19:34:36.088Z",
+        "due_date": "2025-10-16T20:41:00.000Z",
+        "completed_at": "2025-10-16T20:17:28.803Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "0.39",
+        "performance_status": "early"
+      },
+      {
+        "id": "4c58048b-f8d2-4590-9d63-901fc1a8ee0d",
+        "ticket_number": "عمل-000004-1760561062073-2414",
+        "title": ";lk;lk",
+        "priority": "medium",
+        "created_at": "2025-10-15T20:44:22.069Z",
+        "due_date": "2025-10-13T20:44:00.000Z",
+        "completed_at": "2025-10-15T20:44:25.972Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "-48.01",
+        "performance_status": "late"
+      },
+      {
+        "id": "60ba13a1-8ce5-436b-b74f-c93ecd5e6632",
+        "ticket_number": "عمل-000004-1760216330952-5283",
+        "title": "تصميم نظام يحتوي على بيانات للموظفين تشمل الادارات...",
+        "priority": "urgent",
+        "created_at": "2025-10-11T20:58:50.930Z",
+        "due_date": "2025-10-10T20:58:00.000Z",
+        "completed_at": "2025-10-15T19:44:27.521Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "-118.77",
+        "performance_status": "late"
+      },
+      {
+        "id": "1a3443b4-988d-425c-986b-e7e27794ba29",
+        "ticket_number": "عمل-000004-1760216456610-2909",
+        "title": "اريد تغيير التاريخ لان هذة التذكرة قد انتها تعديل لارا التعليق تعديل",
+        "priority": "high",
+        "created_at": "2025-10-11T21:00:56.606Z",
+        "due_date": "2025-10-15T21:21:00.000Z",
+        "completed_at": "2025-10-15T18:59:19.635Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "2.36",
+        "performance_status": "early"
+      },
+      {
+        "id": "9ed46a27-8ac9-4232-a24e-89fdb22ccbd0",
+        "ticket_number": "عمل-000004-1760296788045-5229",
+        "title": "هذة التذكرة التي تم تغيير تاريخ عنها لتكون متئخرة",
+        "priority": "medium",
+        "created_at": "2025-10-12T19:19:48.040Z",
+        "due_date": "2025-10-14T19:19:00.000Z",
+        "completed_at": "2025-10-14T20:42:07.538Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "-1.39",
+        "performance_status": "late"
+      },
+      {
+        "id": "3c18bae0-c51c-43cf-9408-9bf3bf13909d",
+        "ticket_number": "عمل-000004-1760382595359-92",
+        "title": "هذة التذكرة لفحص تاريخ الاستحقاق والاكتمال  - محدث - محدث - محدث - محدث - محدث",
+        "priority": "high",
+        "created_at": "2025-10-13T19:09:55.353Z",
+        "due_date": "2025-10-14T19:09:00.000Z",
+        "completed_at": "2025-10-13T19:10:13.853Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "23.98",
+        "performance_status": "early"
+      },
+      {
+        "id": "6c147982-4bf8-468b-b543-0d55922196db",
+        "ticket_number": "عمل-000004-1760217194015-9890",
+        "title": "معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسيةمعلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسيةمعلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية معلومات أساسية",
+        "priority": "medium",
+        "created_at": "2025-10-11T21:13:14.011Z",
+        "due_date": "2025-10-12T21:15:00.000Z",
+        "completed_at": "2025-10-13T18:37:58.937Z",
+        "stage_name": "مكتملة",
+        "assigned_to_name": "Admin User",
+        "variance_hours": "-21.38",
+        "performance_status": "late"
+      }
+    ]
+  }
+}

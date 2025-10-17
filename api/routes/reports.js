@@ -459,80 +459,6 @@ router.get('/export', authenticateToken, ReportController.exportReport);
 
 /**
  * @swagger
- * /api/reports/user/{user_id}:
- *   get:
- *     summary: تقرير شامل لموظف معين
- *     tags: [Reports]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: user_id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *         description: معرف المستخدم
- *       - in: query
- *         name: date_from
- *         schema:
- *           type: string
- *           format: date-time
- *         description: تاريخ البداية (افتراضياً آخر 30 يوم)
- *       - in: query
- *         name: date_to
- *         schema:
- *           type: string
- *           format: date-time
- *         description: تاريخ النهاية (افتراضياً الآن)
- *     responses:
- *       200:
- *         description: تم جلب تقرير المستخدم بنجاح
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       type: object
- *                       description: معلومات المستخدم
- *                     period:
- *                       type: object
- *                       properties:
- *                         from:
- *                           type: string
- *                         to:
- *                           type: string
- *                     basic_stats:
- *                       type: object
- *                       description: الإحصائيات الأساسية
- *                     stage_distribution:
- *                       type: array
- *                       description: توزيع التذاكر على المراحل (ديناميكي مع نسب مئوية)
- *                     overdue_by_stage:
- *                       type: array
- *                       description: التذاكر المتأخرة في كل مرحلة مع نسب مئوية
- *                     priority_distribution:
- *                       type: array
- *                       description: توزيع حسب الأولوية مع العدد والنسبة
- *                     completion_rate:
- *                       type: object
- *                       description: معدل الإنجاز
- *                     recent_tickets:
- *                       type: array
- *                       description: أحدث التذاكر
- *       404:
- *         description: المستخدم غير موجود
- */
-router.get('/user/:user_id', authenticateToken, ReportController.getUserDetailedReport);
-
-/**
- * @swagger
  * /api/reports/process/{process_id}:
  *   get:
  *     summary: تقرير شامل لعملية معينة
@@ -607,5 +533,42 @@ router.get('/user/:user_id', authenticateToken, ReportController.getUserDetailed
  *         description: العملية غير موجودة
  */
 router.get('/process/:process_id', authenticateToken, ReportController.getProcessDetailedReport);
+
+/**
+ * @swagger
+ * /api/reports/user/{user_id}:
+ *   get:
+ *     summary: تقرير شامل لموظف معين
+ *     description: تقرير شامل لجميع تذاكر موظف معين (بدلالة assigned_to)
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *       - in: query
+ *         name: date_from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: تاريخ البداية (افتراضي آخر 30 يوم)
+ *       - in: query
+ *         name: date_to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: تاريخ النهاية (افتراضي اليوم)
+ *     responses:
+ *       200:
+ *         description: تم جلب تقرير الموظف بنجاح
+ *       404:
+ *         description: الموظف غير موجود
+ */
+router.get('/user/:user_id', authenticateToken, ReportController.getUserReport);
 
 module.exports = router;
