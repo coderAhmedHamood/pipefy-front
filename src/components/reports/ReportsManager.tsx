@@ -13,7 +13,6 @@ import {
   Zap,
   RefreshCw,
   Loader,
-  Calendar,
   TrendingUp,
   FileText
 } from 'lucide-react';
@@ -145,6 +144,31 @@ interface UserReport {
     stage_color: string;
     process_name: string;
     is_overdue: boolean;
+  }>;
+  performance_metrics?: {
+    net_performance_hours: string;
+  };
+  completed_tickets_details?: Array<{
+    id: string;
+    ticket_number: string;
+    title: string;
+    priority: string;
+    created_at: string;
+    due_date: string;
+    completed_at: string;
+    stage_name: string;
+    assigned_to_name: string | null;
+    variance_hours: string;
+    performance_status: string;
+  }>;
+  top_performers?: Array<{
+    id: string;
+    name: string;
+    email: string;
+    total_tickets: string;
+    completed_tickets: string;
+    completion_rate: string;
+    on_time_tickets: string;
   }>;
 }
 
@@ -989,17 +1013,76 @@ export const ReportsManager: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="bg-white rounded-lg shadow-sm p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">متأخرة</p>
-                            <p className="text-3xl font-bold text-red-600">{userReport.basic_stats.overdue_tickets.toString()}</p>
-                          </div>
-                          <div className="p-3 bg-red-100 rounded-lg">
-                            <AlertTriangle className="w-6 h-6 text-red-600" />
+                      {/* مؤشر الأداء */}
+                      {userReport.performance_metrics && userReport.performance_metrics.net_performance_hours !== null ? (
+                        <div className={`rounded-lg shadow-sm p-6 ${
+                          parseFloat(userReport.performance_metrics.net_performance_hours) > 0 
+                            ? 'bg-gradient-to-br from-green-50 to-green-100' 
+                            : parseFloat(userReport.performance_metrics.net_performance_hours) < 0
+                            ? 'bg-gradient-to-br from-red-50 to-red-100'
+                            : 'bg-gradient-to-br from-gray-50 to-gray-100'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-700 mb-1">صافي الأداء</p>
+                              {(() => {
+                                const hours = parseFloat(userReport.performance_metrics.net_performance_hours);
+                                const absHours = Math.abs(hours);
+                                const days = Math.floor(absHours / 24);
+                                const remainingHours = Math.round(absHours % 24);
+                                const isPositive = hours > 0;
+                                const isNegative = hours < 0;
+                                
+                                return (
+                                  <>
+                                    {absHours >= 24 ? (
+                                      <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
+                                        {isPositive ? '+' : isNegative ? '-' : ''}
+                                        {days} يوم
+                                        {remainingHours > 0 && ` و ${remainingHours} ساعة`}
+                                      </div>
+                                    ) : (
+                                      <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
+                                        {isPositive ? '+' : ''}{hours.toFixed(1)} ساعة
+                                      </div>
+                                    )}
+                                    <p className="text-xs text-gray-600 mt-1">
+                                      {isPositive ? '✅ متقدم عن الجدول' : isNegative ? '⚠️ متأخر عن الجدول' : '⏱️ حسب الجدول'}
+                                    </p>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                            <div className={`p-3 rounded-lg ${
+                              parseFloat(userReport.performance_metrics.net_performance_hours) > 0 
+                                ? 'bg-green-200' 
+                                : parseFloat(userReport.performance_metrics.net_performance_hours) < 0
+                                ? 'bg-red-200'
+                                : 'bg-gray-200'
+                            }`}>
+                              <TrendingUp className={`w-6 h-6 ${
+                                parseFloat(userReport.performance_metrics.net_performance_hours) > 0 
+                                  ? 'text-green-700' 
+                                  : parseFloat(userReport.performance_metrics.net_performance_hours) < 0
+                                  ? 'text-red-700'
+                                  : 'text-gray-700'
+                              }`} />
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="bg-white rounded-lg shadow-sm p-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-600">متأخرة</p>
+                              <p className="text-3xl font-bold text-red-600">{userReport.basic_stats.overdue_tickets.toString()}</p>
+                            </div>
+                            <div className="p-3 bg-red-100 rounded-lg">
+                              <AlertTriangle className="w-6 h-6 text-red-600" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* معدل الإنجاز */}
@@ -1012,17 +1095,17 @@ export const ReportsManager: React.FC = () => {
                         <div className="flex-1">
                           <div className="flex justify-between mb-2">
                             <span className="text-sm text-gray-600">معدل الإكمال في الوقت المحدد</span>
-                            <span className="text-sm font-bold text-gray-900">{userReport.completion_rate.on_time_percentage?.toFixed(1) || 0}%</span>
+                            <span className="text-sm font-bold text-gray-900">{Number(parseFloat(String(userReport.completion_rate.on_time_percentage || 0))).toFixed(1)}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-3">
                             <div 
                               className="bg-gradient-to-r from-green-500 to-teal-600 h-3 rounded-full transition-all duration-500"
-                              style={{ width: `${userReport.completion_rate.on_time_percentage || 0}%` }}
+                              style={{ width: `${Number(parseFloat(String(userReport.completion_rate.on_time_percentage || 0)))}%` }}
                             ></div>
                           </div>
                           <div className="flex justify-between mt-2 text-xs text-gray-500">
                             <span>{userReport.completion_rate.completed_count} مكتملة</span>
-                            <span>متوسط الإنجاز: {userReport.completion_rate.avg_completion_days?.toFixed(1) || 0} يوم</span>
+                            <span>متوسط الإنجاز: {Number(parseFloat(String(userReport.completion_rate.avg_completion_days || 0))).toFixed(1)} يوم</span>
                           </div>
                         </div>
                         <div className="p-4 bg-green-50 rounded-lg">
@@ -1045,7 +1128,7 @@ export const ReportsManager: React.FC = () => {
                                     <span className="text-sm font-medium text-gray-700">{item.stage_name}</span>
                                     <span className="text-xs text-gray-500">({item.process_name})</span>
                                   </div>
-                                  <span className="text-sm text-gray-600">{item.ticket_count} ({item.percentage?.toFixed(1) || 0}%)</span>
+                                  <span className="text-sm text-gray-600">{item.ticket_count} ({Number(parseFloat(String(item.percentage || 0))).toFixed(1)}%)</span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-2">
                                   <div 
@@ -1071,7 +1154,122 @@ export const ReportsManager: React.FC = () => {
                                 <span className="text-white font-bold">{item.count}</span>
                               </div>
                               <p className="text-sm font-medium text-gray-900">{getPriorityLabel(item.priority)}</p>
-                              <p className="text-xs text-gray-500">{item.percentage.toFixed(1)}%</p>
+                              <p className="text-xs text-gray-500">{Number(parseFloat(String(item.percentage || 0))).toFixed(1)}%</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* تفاصيل التذاكر المكتملة */}
+                    {userReport.completed_tickets_details && userReport.completed_tickets_details.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                          <FileText className="w-5 h-5 text-purple-500" />
+                          <span>تفاصيل التذاكر المكتملة ({userReport.completed_tickets_details.length})</span>
+                        </h3>
+                        
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم التذكرة</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">العنوان</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأولوية</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المرحلة</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفارق (ساعات)</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">حالة الأداء</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">تاريخ الإكمال</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {userReport.completed_tickets_details.map((ticket) => (
+                                <tr key={ticket.id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {ticket.ticket_number}
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
+                                    {ticket.title}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(ticket.priority)} text-white`}>
+                                      {getPriorityLabel(ticket.priority)}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-sm text-gray-600">
+                                    {ticket.stage_name}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className={`text-sm font-bold ${
+                                      parseFloat(ticket.variance_hours) > 0 
+                                        ? 'text-green-600' 
+                                        : parseFloat(ticket.variance_hours) < 0 
+                                        ? 'text-red-600' 
+                                        : 'text-gray-600'
+                                    }`}>
+                                      {parseFloat(ticket.variance_hours) > 0 ? '+' : ''}{parseFloat(ticket.variance_hours).toFixed(1)}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      ticket.performance_status === 'early' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : ticket.performance_status === 'late' 
+                                        ? 'bg-red-100 text-red-800' 
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {ticket.performance_status === 'early' ? '✅ مبكر' : ticket.performance_status === 'late' ? '⚠️ متأخر' : '⏱️ في الوقت'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                    {new Date(ticket.completed_at).toLocaleDateString('ar-SA')}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* معلومات الموظف */}
+                    {userReport.top_performers && userReport.top_performers.length > 0 && (
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                          <Award className="w-5 h-5 text-yellow-500" />
+                          <span>ملخص أداء الموظف</span>
+                        </h3>
+                        
+                        <div className="space-y-4">
+                          {userReport.top_performers.map((performer) => (
+                            <div key={performer.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                              <div className="flex items-center space-x-3 space-x-reverse">
+                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                  <span className="text-white font-bold text-lg">{performer.name.charAt(0)}</span>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900">{performer.name}</p>
+                                  <p className="text-sm text-gray-600">{performer.email}</p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                <div>
+                                  <p className="text-xs text-gray-600">إجمالي التذاكر</p>
+                                  <p className="text-lg font-bold text-gray-900">{performer.total_tickets}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-600">مكتملة</p>
+                                  <p className="text-lg font-bold text-green-600">{performer.completed_tickets}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-600">معدل الإنجاز</p>
+                                  <p className="text-lg font-bold text-blue-600">{Number(parseFloat(String(performer.completion_rate || 0))).toFixed(1)}%</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-600">في الوقت</p>
+                                  <p className="text-lg font-bold text-purple-600">{performer.on_time_tickets}</p>
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
