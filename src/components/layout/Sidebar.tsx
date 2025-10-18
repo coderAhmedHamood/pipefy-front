@@ -39,7 +39,7 @@ const menuItems = [
   { id: 'notifications', label: 'الإشعارات', icon: Bell },
   { id: 'api', label: 'توثيق API', icon: Code },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
-  { id: 'setup', label: 'دليل الإعداد', icon: Settings },
+  // { id: 'setup', label: 'دليل الإعداد', icon: Settings },
   { id: 'help', label: 'المساعدة', icon: HelpCircle }
 ];
 

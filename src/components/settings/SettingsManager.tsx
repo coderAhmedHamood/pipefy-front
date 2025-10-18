@@ -167,7 +167,7 @@ export const SettingsManager: React.FC = () => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
                   <Palette className="w-5 h-5" />
-                  <span>الهوية البصرية</span>
+                  <span>بيانات النظام</span>
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -222,7 +222,7 @@ export const SettingsManager: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">اللون الأساسي</label>
                     <div className="flex space-x-2 space-x-reverse">
                       {colorOptions.map((color) => (
@@ -252,10 +252,10 @@ export const SettingsManager: React.FC = () => {
                         />
                       ))}
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               </div>
-
+{/* 
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
                   <Globe className="w-5 h-5" />
@@ -301,8 +301,8 @@ export const SettingsManager: React.FC = () => {
                     </select>
                   </div>
                 </div>
-              </div>
-
+              </div> */}
+{/* 
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">ساعات العمل</h3>
                 
@@ -370,7 +370,7 @@ export const SettingsManager: React.FC = () => {
                     ))}
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
 
@@ -452,22 +452,7 @@ export const SettingsManager: React.FC = () => {
                   </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">تكرار الملخص</label>
-                  <select
-                    value={notificationSettings.digestFrequency}
-                    onChange={(e) => setNotificationSettings({
-                      ...notificationSettings,
-                      digestFrequency: e.target.value
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="none">بدون ملخص</option>
-                    <option value="daily">يومي</option>
-                    <option value="weekly">أسبوعي</option>
-                    <option value="monthly">شهري</option>
-                  </select>
-                </div>
+                
               </div>
             </div>
           )}
@@ -481,23 +466,9 @@ export const SettingsManager: React.FC = () => {
               
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-3">سياسة كلمات المرور</h4>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">الحد الأدنى لطول كلمة المرور</label>
-                      <input
-                        type="number"
-                        min="6"
-                        max="20"
-                        value={securitySettings.passwordMinLength}
-                        onChange={(e) => setSecuritySettings({
-                          ...securitySettings,
-                          passwordMinLength: parseInt(e.target.value)
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    
+                   
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">مهلة انتهاء الجلسة (دقيقة)</label>
                       <input
@@ -514,46 +485,7 @@ export const SettingsManager: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="mt-4 space-y-3">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={securitySettings.requireSpecialChars}
-                        onChange={(e) => setSecuritySettings({
-                          ...securitySettings,
-                          requireSpecialChars: e.target.checked
-                        })}
-                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                      />
-                      <span className="mr-3 text-sm text-gray-700">يتطلب رموز خاصة</span>
-                    </label>
-                    
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={securitySettings.requireNumbers}
-                        onChange={(e) => setSecuritySettings({
-                          ...securitySettings,
-                          requireNumbers: e.target.checked
-                        })}
-                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                      />
-                      <span className="mr-3 text-sm text-gray-700">يتطلب أرقام</span>
-                    </label>
-                    
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={securitySettings.twoFactorAuth}
-                        onChange={(e) => setSecuritySettings({
-                          ...securitySettings,
-                          twoFactorAuth: e.target.checked
-                        })}
-                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                      />
-                      <span className="mr-3 text-sm text-gray-700">المصادقة الثنائية</span>
-                    </label>
-                  </div>
+                 
                 </div>
                 
                 <div>
@@ -657,70 +589,7 @@ export const SettingsManager: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                  <Zap className="w-5 h-5" />
-                  <span>التكاملات الخارجية</span>
-                </h3>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">رابط Webhook</label>
-                    <input
-                      type="url"
-                      value={integrationSettings.webhookUrl}
-                      onChange={(e) => setIntegrationSettings({
-                        ...integrationSettings,
-                        webhookUrl: e.target.value
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="https://example.com/webhook"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">مفتاح API</label>
-                    <input
-                      type="text"
-                      value={integrationSettings.apiKey}
-                      onChange={(e) => setIntegrationSettings({
-                        ...integrationSettings,
-                        apiKey: e.target.value
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={integrationSettings.slackIntegration}
-                        onChange={(e) => setIntegrationSettings({
-                          ...integrationSettings,
-                          slackIntegration: e.target.checked
-                        })}
-                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                      />
-                      <span className="mr-3 text-sm text-gray-700">تكامل Slack</span>
-                    </label>
-                    
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={integrationSettings.teamsIntegration}
-                        onChange={(e) => setIntegrationSettings({
-                          ...integrationSettings,
-                          teamsIntegration: e.target.checked
-                        })}
-                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                      />
-                      <span className="mr-3 text-sm text-gray-700">تكامل Microsoft Teams</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
+ 
             </div>
           )}
 
