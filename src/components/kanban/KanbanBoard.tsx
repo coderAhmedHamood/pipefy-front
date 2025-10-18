@@ -621,8 +621,31 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {formatDate(ticket.created_at)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {ticket.due_date ? formatDate(ticket.due_date) : '-'}
+                      <td className="px-6 py-4 text-sm">
+                        {ticket.due_date ? (
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <span className={`font-medium ${
+                              new Date(ticket.due_date) < new Date() ? 'text-red-600' :
+                              new Date(ticket.due_date) < new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) ? 'text-orange-600' :
+                              'text-gray-600'
+                            }`}>
+                              {formatDate(ticket.due_date)}
+                            </span>
+                            {new Date(ticket.due_date) < new Date() && (
+                              <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-bold">
+                                متأخر
+                              </span>
+                            )}
+                            {new Date(ticket.due_date) >= new Date() && 
+                             new Date(ticket.due_date) < new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) && (
+                              <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-bold">
+                                قريب
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 italic">غير محدد</span>
+                        )}
                       </td>
                     </tr>
                   );

@@ -169,21 +169,41 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
             </span>
           </div>
           
-          {/* Due Date */}
+          {/* Due Date with Status */}
           <div className={`
-            flex items-center space-x-1 space-x-reverse text-xs
+            flex items-center justify-between text-xs
             ${isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : 'text-gray-600'}
           `}>
-            <Calendar className="w-3 h-3" />
-            <span className="font-medium">موعد الإنتهاء:</span>
-            {ticket.due_date ? (
-              <>
+            <div className="flex items-center space-x-1 space-x-reverse">
+              <Calendar className="w-3 h-3" />
+              <span className="font-medium">موعد الإنتهاء:</span>
+              {ticket.due_date ? (
                 <span className="font-medium">{formatDateShort(ticket.due_date)}</span>
-                {isOverdue && <span className="font-bold bg-red-100 text-red-800 px-2 py-0.5 rounded">(متأخر)</span>}
-                {isDueSoon && <span className="font-bold bg-orange-100 text-orange-800 px-2 py-0.5 rounded">(قريب)</span>}
-              </>
-            ) : (
-              <span className="text-gray-400 italic">غير محدد</span>
+              ) : (
+                <span className="text-gray-400 italic">غير محدد</span>
+              )}
+            </div>
+            
+            {/* Status Badge */}
+            {ticket.due_date && daysDifference !== null && (
+              <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+                daysDifference < 0 ? 'bg-red-100 text-red-700' :
+                daysDifference === 0 ? 'bg-yellow-100 text-yellow-700' :
+                daysDifference <= 2 ? 'bg-orange-100 text-orange-700' :
+                'bg-green-100 text-green-700'
+              }`}>
+                {ticket.completed_at ? (
+                  // إذا كانت مكتملة
+                  daysDifference < 0 ? `متأخر ${Math.abs(daysDifference)}د` : 
+                  daysDifference === 0 ? 'في الموعد' :
+                  `مبكر ${daysDifference}د`
+                ) : (
+                  // إذا لم تكن مكتملة
+                  daysDifference < 0 ? `متأخر ${Math.abs(daysDifference)}د` : 
+                  daysDifference === 0 ? 'ينتهي اليوم' :
+                  `${daysDifference}د متبقي`
+                )}
+              </span>
             )}
           </div>
         </div>
@@ -213,37 +233,6 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
               </span>
             </div>
 
-            {/* Due Date with Days Difference */}
-            {ticket.due_date && (
-              <div className="flex items-center space-x-1 space-x-reverse">
-                <Calendar className="w-3 h-3" />
-                <span className={`text-xs font-medium ${
-                  isOverdue ? 'text-red-600' : isDueSoon ? 'text-orange-600' : 'text-gray-600'
-                }`} title="تاريخ الاستحقاق">
-                  {formatDateShort(ticket.due_date)}
-                </span>
-                {daysDifference !== null && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-bold ${
-                    daysDifference < 0 ? 'bg-red-100 text-red-700' :
-                    daysDifference === 0 ? 'bg-yellow-100 text-yellow-700' :
-                    daysDifference <= 2 ? 'bg-orange-100 text-orange-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>
-                    {ticket.completed_at ? (
-                      // إذا كانت مكتملة
-                      daysDifference < 0 ? `متأخر ${Math.abs(daysDifference)} يوم` : 
-                      daysDifference === 0 ? 'تم في الموعد' :
-                      `متبقي ${daysDifference} يوم`
-                    ) : (
-                      // إذا لم تكن مكتملة
-                      daysDifference < 0 ? `متأخر ${Math.abs(daysDifference)} يوم` : 
-                      daysDifference === 0 ? 'ينتهي اليوم' :
-                      `${daysDifference} يوم متبقي`
-                    )}
-                  </span>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
