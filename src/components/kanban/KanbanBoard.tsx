@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DndContext, DragEndEvent, DragStartEvent, closestCenter } from '@dnd-kit/core';
 import { KanbanColumn } from './KanbanColumn';
@@ -33,6 +33,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forceUpdate, setForceUpdate] = useState(0);
+  
+  // تتبع آخر تذكرة تم فتحها من URL لتجنب إعادة الفتح
+  const lastOpenedTicketIdRef = useRef<string | null>(null);
   
   // Lazy Loading State
   const [stageOffsets, setStageOffsets] = useState<Record<string, number>>({});
@@ -210,14 +213,37 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   // فتح التذكرة من URL عند التحميل
   useEffect(() => {
     const ticketId = searchParams.get('ticket');
-    if (ticketId && allTickets.length > 0 && !selectedTicket) {
+    console.log('🔍 useEffect - ticketId من URL:', ticketId);
+    console.log('🔍 useEffect - lastOpenedTicketIdRef:', lastOpenedTicketIdRef.current);
+    
+    // إذا لم يكن هناك ticket في URL، نُعيد تعيين الـ ref وإغلاق التذكرة
+    if (!ticketId) {
+      console.log('✅ لا يوجد ticket في URL - إعادة تعيين ref');
+      if (lastOpenedTicketIdRef.current !== null) {
+        lastOpenedTicketIdRef.current = null;
+        setSelectedTicket(null);
+      }
+      return;
+    }
+    
+    // إذا تم فتح هذه التذكرة من قبل، لا نفعل شيء
+    if (ticketId === lastOpenedTicketIdRef.current) {
+      console.log('⏭️ التذكرة تم فتحها من قبل - تخطي');
+      return;
+    }
+    
+    // البحث عن التذكرة وفتحها
+    if (allTickets.length > 0) {
       const ticket = allTickets.find(t => t.id === ticketId);
       if (ticket) {
         console.log('🔗 فتح التذكرة من URL:', ticket.title);
         setSelectedTicket(ticket);
+        lastOpenedTicketIdRef.current = ticketId;
+      } else {
+        console.log('❌ لم يتم العثور على التذكرة:', ticketId);
       }
     }
-  }, [searchParams, allTickets, selectedTicket]);
+  }, [searchParams, allTickets]);
 
   const handleDragStart = (event: DragStartEvent) => {
     const ticketId = event.active.id as string;
@@ -292,9 +318,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   };
 
   const handleCloseTicket = () => {
+    console.log('🚪 إغلاق التذكرة وإزالة معرفها من URL');
     setSelectedTicket(null);
     // إزالة معرف التذكرة من URL
     setSearchParams({});
+    // إعادة تعيين الـ ref لتجنب إعادة الفتح
+    lastOpenedTicketIdRef.current = null;
   };
   
   const handleMoveToStage = (stageId: string) => {
