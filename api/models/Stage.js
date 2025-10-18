@@ -16,7 +16,8 @@ class Stage {
       required_permissions = [],
       automation_rules = [],
       settings = {},
-      parent_stage_id = null
+      parent_stage_id = null,
+      allowed_transitions = []
     } = stageData;
 
     // التحقق من تكرار اسم المرحلة في نفس المستوى الهرمي
@@ -72,7 +73,16 @@ class Stage {
     ];
 
     const result = await pool.query(query, values);
-    return result.rows[0];
+    const newStage = result.rows[0];
+    
+    // حفظ الانتقالات المسموحة إذا تم تمريرها
+    if (allowed_transitions && allowed_transitions.length > 0) {
+      await this.updateAllowedTransitions(newStage.id, allowed_transitions);
+    }
+    
+    // إرجاع المرحلة مع الانتقالات
+    const stageWithTransitions = await this.findById(newStage.id, { include_transitions: true });
+    return stageWithTransitions;
   }
 
   // التحقق من تفرد اسم المرحلة في نفس المستوى الهرمي

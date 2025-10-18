@@ -415,12 +415,14 @@ export const ProcessManager: React.FC = () => {
         is_initial: stageForm.is_initial || false,
         is_final: stageForm.is_final || false,
         sla_hours: stageForm.sla_hours || null,
+        allowed_transitions: stageForm.allowed_transitions || [],
         required_permissions: [],
         automation_rules: [],
         settings: {}
       };
 
       console.log('📝 إرسال بيانات المرحلة إلى API:', stageData);
+      console.log('🔍 المراحل المسموحة المُرسلة:', stageData.allowed_transitions);
 
       // إرسال طلب POST إلى API
       const response = await fetch(`${API_BASE_URL}/api/stages`, {
@@ -440,6 +442,8 @@ export const ProcessManager: React.FC = () => {
 
       const result = await response.json();
       console.log('🚀 محتوى الاستجابة:', result);
+      console.log('🔍 المراحل المسموحة المُستلمة:', result.data?.allowed_transitions);
+      console.log('🔍 transitions المُستلمة:', result.data?.transitions);
 
       if (response.ok && result.success === true) {
         console.log('✅ تم إنشاء المرحلة بنجاح:', result);
@@ -452,7 +456,7 @@ export const ProcessManager: React.FC = () => {
           color: result.data.color,
           order: result.data.order_index,
           priority: result.data.priority,
-          allowed_transitions: [],
+          allowed_transitions: result.data.allowed_transitions || result.data.transitions?.map((t: any) => t.to_stage_id) || [],
           is_initial: result.data.is_initial,
           is_final: result.data.is_final,
           sla_hours: result.data.sla_hours,
@@ -1464,14 +1468,20 @@ export const ProcessManager: React.FC = () => {
                           checked={stageForm.allowed_transitions.includes(stage.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
+                              const newTransitions = [...stageForm.allowed_transitions, stage.id];
+                              console.log('✅ إضافة مرحلة للانتقالات:', stage.name, stage.id);
+                              console.log('📋 الانتقالات الجديدة:', newTransitions);
                               setStageForm({
                                 ...stageForm,
-                                allowed_transitions: [...stageForm.allowed_transitions, stage.id]
+                                allowed_transitions: newTransitions
                               });
                             } else {
+                              const newTransitions = stageForm.allowed_transitions.filter(id => id !== stage.id);
+                              console.log('❌ إزالة مرحلة من الانتقالات:', stage.name, stage.id);
+                              console.log('📋 الانتقالات الجديدة:', newTransitions);
                               setStageForm({
                                 ...stageForm,
-                                allowed_transitions: stageForm.allowed_transitions.filter(id => id !== stage.id)
+                                allowed_transitions: newTransitions
                               });
                             }
                           }}
