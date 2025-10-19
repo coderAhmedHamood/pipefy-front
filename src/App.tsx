@@ -5,6 +5,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndContext } from '@dnd-kit/core';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WorkflowProvider, useWorkflow } from './contexts/WorkflowContext';
+import { NotificationProvider } from './components/ui/NotificationSystem';
 import { Sidebar } from './components/layout/Sidebar';
 import { KanbanBoard } from './components/kanban/KanbanBoard';
 import { ProcessSelector } from './components/dashboard/ProcessSelector';
@@ -13,7 +14,7 @@ import { NotificationBell } from './components/notifications/NotificationBell';
 import { ProcessManager } from './components/processes/ProcessManager';
 import { UserManagerNew as UserManager } from './components/users/UserManagerNew';
 import { ReportsManager } from './components/reports/ReportsManager';
-import { SettingsManager } from './components/settings/SettingsManager';
+import { SettingsManager } from './components/settings/SettingsManagerUltraSimple';
 import { HelpCenter } from './components/help/HelpCenter';
 import { AutomationManager } from './components/automation/AutomationManager';
 import { RecurringManager } from './components/recurring/RecurringManager';
@@ -262,7 +263,9 @@ function App() {
     <Router>
       <AuthProvider>
         <WorkflowProvider>
-          <ProtectedRoutes />
+          <NotificationProvider>
+            <ProtectedRoutes />
+          </NotificationProvider>
         </WorkflowProvider>
       </AuthProvider>
     </Router>
