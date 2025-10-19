@@ -88,22 +88,44 @@ export const settingsService = {
     }
   },
 
-  // رفع شعار الشركة
+  // رفع شعار الشركة عبر POST /api/settings/logo
   async uploadLogo(file: File): Promise<ApiResponse<{ logoUrl: string; settings: ApiSettings }>> {
     try {
-      console.log('🔄 جاري رفع الشعار:', file.name);
+      console.log('🔄 استدعاء POST /api/settings/logo');
+      console.log('📍 URL الكامل:', `${API_BASE_URL}/settings/logo`);
+      console.log('📁 معلومات الملف:', {
+        name: file.name,
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        type: file.type
+      });
+      
       const formData = new FormData();
-      formData.append('company_logo', file); // تأكد من اسم الحقل الصحيح
-
+      formData.append('company_logo', file);
+      
+      console.log('📤 إرسال الملف إلى API...');
+      
       const response = await api.post('/settings/logo', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      console.log('✅ تم رفع الشعار:', response.data);
+      
+      console.log('✅ استجابة POST /api/settings/logo:', response.data);
+      console.log('📊 حالة الاستجابة:', response.status);
+      
+      if (response.data.success && response.data.data) {
+        console.log('🖼️ رابط الشعار الجديد:', response.data.data.logoUrl);
+      }
+      
       return response.data;
     } catch (error: any) {
-      console.error('❌ خطأ في رفع الشعار:', error);
+      console.error('❌ خطأ في POST /api/settings/logo:', error);
+      console.error('📍 تفاصيل الخطأ:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
       throw error;
     }
   },

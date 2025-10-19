@@ -13,6 +13,8 @@ export const SettingsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewLogo, setPreviewLogo] = useState<string | null>(null);
+  const [showLogoModal, setShowLogoModal] = useState(false);
   const notifications = useQuickNotifications();
   
   // حالة الإعدادات - فارغة بدون قيم افتراضية
@@ -147,32 +149,66 @@ export const SettingsManager: React.FC = () => {
   const handleUploadLogo = async (file: File) => {
     try {
       setUploading(true);
+      console.log('💾 بدء رفع الشعار عبر POST /api/settings/logo');
+      
+      // تحقق من نوع وحجم الملف
+      if (!file.type.startsWith('image/')) {
+        notifications.showError('نوع ملف غير صحيح', 'يجب اختيار ملف صورة');
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        notifications.showError('حجم الملف كبير', 'يجب أن يكون حجم الصورة أقل من 5 ميجابايت');
+        return;
+      }
+      
+      // إنشاء معاينة فورية
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewLogo(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+      
       const response = await settingsService.uploadLogo(file);
+      console.log('📦 استجابة رفع الشعار:', response);
+      
       if (response.success && response.data) {
-        updateSetting('company_logo', response.data.logoUrl);
-        notifications.showSuccess('تم رفع الشعار', 'تم رفع شعار النظام بنجاح');
+        const logoUrl = response.data.logoUrl || response.data.data?.logoUrl;
+        console.log('🎆 تم رفع الشعار بنجاح:', logoUrl);
+        updateSetting('company_logo', logoUrl);
+        notifications.showSuccess('تم رفع الشعار', 'تم رفع شعار الشركة بنجاح عبر POST /api/settings/logo');
+      } else {
+        notifications.showError('فشل في الرفع', response.message || 'لم يتم رفع الشعار');
       }
     } catch (error: any) {
-      console.error('خطأ في رفع الشعار:', error);
-      notifications.showError('خطأ في رفع الشعار', error.message || 'فشل في رفع الشعار');
+      console.error('❌ خطأ في POST /api/settings/logo:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'فشل في رفع الشعار';
+      notifications.showError('خطأ في رفع الشعار', errorMessage);
+      setPreviewLogo(null);
     } finally {
       setUploading(false);
     }
   };
 
   const handleDeleteLogo = async () => {
-    const confirmed = await notifications.confirmDelete('شعار النظام');
+    const confirmed = await notifications.confirmDelete('شعار الشركة');
     if (!confirmed) return;
 
     try {
+      console.log('🗑️ بدء حذف الشعار...');
       const response = await settingsService.deleteLogo();
       if (response.success) {
         updateSetting('company_logo', '');
-        notifications.showSuccess('تم حذف الشعار', 'تم حذف شعار النظام بنجاح');
+        setPreviewLogo(null); // إزالة المعاينة أيضاً
+        setShowLogoModal(false); // إغلاق النافذة إذا كانت مفتوحة
+        notifications.showSuccess('تم حذف الشعار', 'تم حذف شعار الشركة بنجاح');
+      } else {
+        notifications.showError('فشل في الحذف', response.message || 'لم يتم حذف الشعار');
       }
     } catch (error: any) {
-      console.error('خطأ في حذف الشعار:', error);
-      notifications.showError('خطأ في حذف الشعار', error.message || 'فشل في حذف الشعار');
+      console.error('❌ خطأ في حذف الشعار:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'فشل في حذف الشعار';
+      notifications.showError('خطأ في حذف الشعار', errorMessage);
     }
   };
 
@@ -233,18 +269,30 @@ export const SettingsManager: React.FC = () => {
                 />
               </div>
               
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">شعار النظام</label>
-                <div className="flex items-center space-x-4 space-x-reverse">
-                  {settings.company_logo && (
-                    <div className="w-16 h-16 border border-gray-300 rounded-lg overflow-hidden">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">شعار الشركة</label>
+                
+                {/* معاينة الشعار الحالي */}
+                {(settings.company_logo || previewLogo) && (
+                  <div className="mb-4">
+                    <div className="relative inline-block">
                       <img 
-                        src={settings.company_logo} 
+                        src={previewLogo || settings.company_logo} 
                         alt="شعار الشركة" 
-                        className="w-full h-full object-cover"
+                        className="w-32 h-32 object-cover border-2 border-gray-300 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setShowLogoModal(true)}
                       />
+                      {previewLogo && (
+                        <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                          جديد
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <p className="text-xs text-gray-500 mt-2">اضغط على الصورة للتكبير</p>
+                  </div>
+                )}
+                
+                <div className="flex items-center space-x-4 space-x-reverse">
                   <input
                     type="file"
                     accept="image/*"
@@ -264,7 +312,7 @@ export const SettingsManager: React.FC = () => {
                     {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     <span>{uploading ? 'جاري الرفع...' : 'رفع شعار'}</span>
                   </label>
-                  {settings.company_logo && (
+                  {(settings.company_logo || previewLogo) && (
                     <button
                       onClick={handleDeleteLogo}
                       className="flex items-center space-x-2 space-x-reverse px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
@@ -359,6 +407,33 @@ export const SettingsManager: React.FC = () => {
 
         </div>
       </div>
+
+      {/* نافذة عرض الشعار */}
+      {showLogoModal && (settings.company_logo || previewLogo) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowLogoModal(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">معاينة شعار الشركة</h3>
+              <button 
+                onClick={() => setShowLogoModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+            <img 
+              src={previewLogo || settings.company_logo} 
+              alt="شعار الشركة" 
+              className="max-w-full max-h-96 object-contain mx-auto block border rounded-lg"
+            />
+            {previewLogo && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-blue-800 text-sm">🎆 هذا هو الشعار الجديد الذي تم رفعه. اضغط "حفظ جميع الإعدادات" لحفظ التغييرات.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Save Button */}
       <div className="flex justify-center">
