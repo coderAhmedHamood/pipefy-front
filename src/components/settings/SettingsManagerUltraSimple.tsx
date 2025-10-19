@@ -100,16 +100,27 @@ export const SettingsManager: React.FC = () => {
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
-      console.log('💾 بدء حفظ الإعدادات:', settings);
+      console.log('💾 بدء حفظ الإعدادات إلى PUT /api/settings:', settings);
       
-      const response = await settingsService.updateSettings(settings);
-      console.log('📝 استجابة الحفظ:', response);
+      // تنظيف البيانات قبل الإرسال - إزالة القيم الفارغة للحقول الرقمية
+      const cleanedSettings = {
+        ...settings,
+        login_attempts_limit: settings.login_attempts_limit || null,
+        lockout_duration_minutes: settings.lockout_duration_minutes || null,
+        smtp_port: settings.smtp_port || null
+      };
+      
+      console.log('📤 البيانات المُرسلة إلى API:', cleanedSettings);
+      
+      const response = await settingsService.updateSettings(cleanedSettings);
+      console.log('📝 استجابة PUT /api/settings:', response);
       
       if (response.success) {
-        notifications.showSuccess('تم حفظ الإعدادات', 'تم تحديث جميع الإعدادات في قاعدة البيانات');
+        notifications.showSuccess('تم حفظ الإعدادات', 'تم تحديث الإعدادات بنجاح عبر PUT /api/settings');
+        
+        // تحديث البيانات المحلية بالاستجابة من API
         if (response.data) {
-          console.log('🔄 تحديث البيانات المحلية:', response.data);
-          // تحديث البيانات المحلية بالاستجابة من API
+          console.log('🔄 تحديث البيانات المحلية من استجابة API:', response.data);
           setSettings({
             company_name: response.data.company_name || '',
             company_logo: response.data.company_logo || '',
@@ -121,10 +132,13 @@ export const SettingsManager: React.FC = () => {
             smtp_password: response.data.smtp_password || ''
           });
         }
+      } else {
+        notifications.showError('فشل في الحفظ', response.message || 'لم يتم حفظ الإعدادات');
       }
     } catch (error: any) {
-      console.error('❌ خطأ في حفظ الإعدادات:', error);
-      notifications.showError('خطأ في حفظ الإعدادات', error.message || 'فشل في تحديث قاعدة البيانات');
+      console.error('❌ خطأ في استدعاء PUT /api/settings:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'فشل في الاتصال بـ API';
+      notifications.showError('خطأ في حفظ الإعدادات', errorMessage);
     } finally {
       setSaving(false);
     }

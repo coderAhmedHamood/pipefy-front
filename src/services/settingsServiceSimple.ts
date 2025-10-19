@@ -64,15 +64,26 @@ export const settingsService = {
     }
   },
 
-  // تحديث الإعدادات
+  // تحديث الإعدادات عبر PUT /api/settings
   async updateSettings(settings: Partial<ApiSettings>): Promise<ApiResponse<ApiSettings>> {
     try {
-      console.log('🔄 جاري تحديث الإعدادات:', settings);
+      console.log('🔄 استدعاء PUT /api/settings مع البيانات:', settings);
+      console.log('📍 URL الكامل:', `${API_BASE_URL}/settings`);
+      
       const response = await api.put('/settings', settings);
-      console.log('✅ تم تحديث الإعدادات:', response.data);
+      
+      console.log('✅ استجابة PUT /api/settings:', response.data);
+      console.log('📊 حالة الاستجابة:', response.status);
+      
       return response.data;
     } catch (error: any) {
-      console.error('❌ خطأ في تحديث الإعدادات:', error);
+      console.error('❌ خطأ في PUT /api/settings:', error);
+      console.error('📍 تفاصيل الخطأ:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
       throw error;
     }
   },
