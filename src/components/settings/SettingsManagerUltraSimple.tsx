@@ -6,7 +6,7 @@ import {
   Trash2,
   Settings
 } from 'lucide-react';
-import { settingsService, Settings as SettingsType } from '../../services/settingsService';
+import { settingsService, ApiSettings } from '../../services/settingsServiceSimple';
 import { useQuickNotifications } from '../ui/NotificationSystem';
 
 export const SettingsManager: React.FC = () => {
@@ -15,20 +15,17 @@ export const SettingsManager: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const notifications = useQuickNotifications();
   
-  // حالة الإعدادات المبسطة
-  const [settings, setSettings] = useState<SettingsType>({
-    // الحقول المطلوبة فقط
-    system_name: 'نظام إدارة المهام',
+  // حالة الإعدادات المبسطة - متطابقة مع الجدول الفعلي
+  const [settings, setSettings] = useState<any>({
+    // الحقول من الجدول الفعلي
+    system_name: '',
     system_logo_url: '',
-    security_password_min_length: 8,
     security_login_attempts_limit: 5,
     security_lockout_duration: 30,
     integrations_email_smtp_host: '',
     integrations_email_smtp_port: 587,
     integrations_email_smtp_username: '',
-    integrations_email_smtp_password: '',
-    integrations_email_from_address: '',
-    integrations_email_from_name: ''
+    integrations_email_smtp_password: ''
   });
 
   // تحميل الإعدادات عند بدء التشغيل
@@ -39,21 +36,30 @@ export const SettingsManager: React.FC = () => {
   const loadSettings = async () => {
     try {
       setLoading(true);
+      console.log('🔄 بدء تحميل الإعدادات من API...');
+      
       const response = await settingsService.getSettings();
+      console.log('📦 استجابة API:', response);
+      
       if (response.success && response.data) {
+        console.log('✅ البيانات المستلمة:', response.data);
         setSettings(response.data);
-        notifications.showSuccess('تم تحميل الإعدادات', 'تم جلب الإعدادات بنجاح');
+        notifications.showSuccess('تم تحميل الإعدادات', `تم جلب ${Object.keys(response.data).length} إعداد من قاعدة البيانات`);
+      } else {
+        console.warn('⚠️ لا توجد بيانات في الاستجابة');
+        notifications.showWarning('تحذير', 'لا توجد بيانات إعدادات');
       }
     } catch (error: any) {
-      console.error('خطأ في تحميل الإعدادات:', error);
-      notifications.showError('خطأ في تحميل الإعدادات', error.message || 'فشل في جلب الإعدادات');
+      console.error('❌ خطأ في تحميل الإعدادات:', error);
+      notifications.showError('خطأ في تحميل الإعدادات', error.message || 'فشل في الاتصال بقاعدة البيانات');
     } finally {
       setLoading(false);
     }
   };
 
-  const updateSetting = (key: keyof SettingsType, value: any) => {
-    setSettings((prev: SettingsType) => ({
+  const updateSetting = (key: string, value: any) => {
+    console.log(`🔧 تحديث الإعداد: ${key} = ${value}`);
+    setSettings((prev: any) => ({
       ...prev,
       [key]: value
     }));
@@ -62,16 +68,21 @@ export const SettingsManager: React.FC = () => {
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
+      console.log('💾 بدء حفظ الإعدادات:', settings);
+      
       const response = await settingsService.updateSettings(settings);
+      console.log('📝 استجابة الحفظ:', response);
+      
       if (response.success) {
-        notifications.showSuccess('تم حفظ الإعدادات', 'تم تحديث جميع الإعدادات بنجاح');
+        notifications.showSuccess('تم حفظ الإعدادات', 'تم تحديث جميع الإعدادات في قاعدة البيانات');
         if (response.data) {
+          console.log('🔄 تحديث البيانات المحلية:', response.data);
           setSettings(response.data);
         }
       }
     } catch (error: any) {
-      console.error('خطأ في حفظ الإعدادات:', error);
-      notifications.showError('خطأ في حفظ الإعدادات', error.message || 'فشل في تحديث الإعدادات');
+      console.error('❌ خطأ في حفظ الإعدادات:', error);
+      notifications.showError('خطأ في حفظ الإعدادات', error.message || 'فشل في تحديث قاعدة البيانات');
     } finally {
       setSaving(false);
     }
@@ -124,11 +135,26 @@ export const SettingsManager: React.FC = () => {
     <div className="max-w-4xl mx-auto p-6">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center space-x-3 space-x-reverse mb-4">
-          <Settings className="w-8 h-8 text-blue-600" />
-          <h1 className="text-3xl font-bold text-gray-900">إعدادات النظام</h1>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3 space-x-reverse">
+            <Settings className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-bold text-gray-900">إعدادات النظام</h1>
+          </div>
+          <button
+            onClick={async () => {
+              const isConnected = await settingsService.testConnection();
+              if (isConnected) {
+                notifications.showSuccess('الاتصال ناجح', 'تم الاتصال بـ API بنجاح');
+              } else {
+                notifications.showError('فشل الاتصال', 'لا يمكن الاتصال بـ API');
+              }
+            }}
+            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
+          >
+            اختبار الاتصال
+          </button>
         </div>
-        <p className="text-gray-600">إدارة الإعدادات الأساسية للنظام</p>
+        <p className="text-gray-600">إدارة الإعدادات الأساسية للنظام - البيانات من قاعدة البيانات</p>
       </div>
 
       {/* Content */}
@@ -200,19 +226,7 @@ export const SettingsManager: React.FC = () => {
           <div>
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">إعدادات الأمان</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">الحد الأدنى لطول كلمة المرور</label>
-                <input
-                  type="number"
-                  min="6"
-                  max="20"
-                  value={settings.security_password_min_length || 8}
-                  onChange={(e) => updateSetting('security_password_min_length', parseInt(e.target.value))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                />
-              </div>
-              
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">عدد محاولات تسجيل الدخول</label>
                 <input
@@ -282,28 +296,6 @@ export const SettingsManager: React.FC = () => {
                   value={settings.integrations_email_smtp_password || ''}
                   onChange={(e) => updateSetting('integrations_email_smtp_password', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني للإرسال</label>
-                <input
-                  type="email"
-                  value={settings.integrations_email_from_address || ''}
-                  onChange={(e) => updateSetting('integrations_email_from_address', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                  placeholder="noreply@company.com"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم المرسل</label>
-                <input
-                  type="text"
-                  value={settings.integrations_email_from_name || ''}
-                  onChange={(e) => updateSetting('integrations_email_from_name', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                  placeholder="نظام إدارة المهام"
                 />
               </div>
             </div>

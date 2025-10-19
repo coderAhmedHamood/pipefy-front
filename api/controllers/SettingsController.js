@@ -4,6 +4,121 @@ const path = require('path');
 
 class SettingsController {
   /**
+   * التحقق من صحة بيانات الإعدادات
+   */
+  static validateSettingsData(data) {
+    const errors = [];
+
+    // التحقق من اسم النظام
+    if (data.system_name !== undefined) {
+      if (typeof data.system_name !== 'string' || data.system_name.trim().length === 0) {
+        errors.push('اسم النظام يجب أن يكون نص غير فارغ');
+      } else if (data.system_name.length > 255) {
+        errors.push('اسم النظام يجب أن يكون أقل من 255 حرف');
+      }
+    }
+
+    // التحقق من وصف النظام
+    if (data.system_description !== undefined) {
+      if (typeof data.system_description !== 'string') {
+        errors.push('وصف النظام يجب أن يكون نص');
+      } else if (data.system_description.length > 1000) {
+        errors.push('وصف النظام يجب أن يكون أقل من 1000 حرف');
+      }
+    }
+
+    // التحقق من ألوان النظام
+    const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    if (data.system_primary_color !== undefined) {
+      if (typeof data.system_primary_color !== 'string' || !colorRegex.test(data.system_primary_color)) {
+        errors.push('اللون الأساسي يجب أن يكون بصيغة hex صحيحة (مثل #FF0000)');
+      }
+    }
+
+    if (data.system_secondary_color !== undefined) {
+      if (typeof data.system_secondary_color !== 'string' || !colorRegex.test(data.system_secondary_color)) {
+        errors.push('اللون الثانوي يجب أن يكون بصيغة hex صحيحة (مثل #00FF00)');
+      }
+    }
+
+    // التحقق من اللغة
+    if (data.system_language !== undefined) {
+      const validLanguages = ['ar', 'en', 'fr', 'es'];
+      if (!validLanguages.includes(data.system_language)) {
+        errors.push('اللغة يجب أن تكون إحدى القيم: ar, en, fr, es');
+      }
+    }
+
+    // التحقق من إعدادات الأمان
+    if (data.security_login_attempts_limit !== undefined) {
+      const attempts = parseInt(data.security_login_attempts_limit);
+      if (isNaN(attempts) || attempts < 1 || attempts > 20) {
+        errors.push('عدد محاولات تسجيل الدخول يجب أن يكون بين 1 و 20');
+      }
+    }
+
+    if (data.security_lockout_duration !== undefined) {
+      const duration = parseInt(data.security_lockout_duration);
+      if (isNaN(duration) || duration < 1 || duration > 1440) {
+        errors.push('مدة الحظر يجب أن تكون بين 1 و 1440 دقيقة');
+      }
+    }
+
+    if (data.security_session_timeout !== undefined) {
+      const timeout = parseInt(data.security_session_timeout);
+      if (isNaN(timeout) || timeout < 5 || timeout > 1440) {
+        errors.push('مهلة الجلسة يجب أن تكون بين 5 و 1440 دقيقة');
+      }
+    }
+
+    if (data.security_password_min_length !== undefined) {
+      const minLength = parseInt(data.security_password_min_length);
+      if (isNaN(minLength) || minLength < 4 || minLength > 50) {
+        errors.push('الحد الأدنى لطول كلمة المرور يجب أن يكون بين 4 و 50 حرف');
+      }
+    }
+
+    // التحقق من إعدادات البريد الإلكتروني
+    if (data.integrations_email_smtp_port !== undefined) {
+      const port = parseInt(data.integrations_email_smtp_port);
+      if (isNaN(port) || port < 1 || port > 65535) {
+        errors.push('منفذ SMTP يجب أن يكون بين 1 و 65535');
+      }
+    }
+
+    if (data.integrations_email_from_address !== undefined && data.integrations_email_from_address) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.integrations_email_from_address)) {
+        errors.push('عنوان البريد الإلكتروني غير صحيح');
+      }
+    }
+
+    // التحقق من إعدادات التذاكر
+    if (data.default_ticket_priority !== undefined) {
+      const validPriorities = ['low', 'medium', 'high', 'urgent'];
+      if (!validPriorities.includes(data.default_ticket_priority)) {
+        errors.push('أولوية التذكرة الافتراضية يجب أن تكون إحدى القيم: low, medium, high, urgent');
+      }
+    }
+
+    // التحقق من القيم المنطقية
+    const booleanFields = [
+      'notifications_enabled',
+      'notifications_email_enabled', 
+      'notifications_browser_enabled',
+      'maintenance_mode',
+      'auto_assign_tickets'
+    ];
+
+    booleanFields.forEach(field => {
+      if (data[field] !== undefined && typeof data[field] !== 'boolean') {
+        errors.push(`${field} يجب أن يكون قيمة منطقية (true أو false)`);
+      }
+    });
+
+    return errors.length > 0 ? errors.join(', ') : null;
+  }
+  /**
    * جلب الإعدادات الحالية
    */
   static async getSettings(req, res) {
@@ -31,6 +146,16 @@ class SettingsController {
   static async updateSettings(req, res) {
     try {
       const settingsData = req.body;
+
+      // التحقق من صحة البيانات
+      const validationError = SettingsController.validateSettingsData(settingsData);
+      if (validationError) {
+        return res.status(400).json({
+          success: false,
+          message: 'بيانات غير صحيحة',
+          error: validationError
+        });
+      }
 
       // تحديث الإعدادات
       const updatedSettings = await Settings.updateSettings(settingsData);
@@ -86,8 +211,8 @@ class SettingsController {
       // حذف الشعار القديم إذا وُجد
       try {
         const currentSettings = await Settings.getSettings();
-        if (currentSettings.company_logo) {
-          const oldLogoPath = path.join(__dirname, '..', currentSettings.company_logo);
+        if (currentSettings.system_logo_url) {
+          const oldLogoPath = path.join(__dirname, '..', currentSettings.system_logo_url);
           try {
             await fs.access(oldLogoPath);
             await fs.unlink(oldLogoPath);
@@ -101,7 +226,7 @@ class SettingsController {
 
       // حفظ مسار الشعار الجديد
       const logoPath = `/uploads/logos/${req.file.filename}`;
-      const updatedSettings = await Settings.updateCompanyLogo(logoPath);
+      const updatedSettings = await Settings.updateSystemLogo(logoPath);
 
       res.status(200).json({
         success: true,
@@ -138,7 +263,7 @@ class SettingsController {
     try {
       const currentSettings = await Settings.getSettings();
       
-      if (!currentSettings.company_logo) {
+      if (!currentSettings.system_logo_url) {
         return res.status(400).json({
           success: false,
           message: 'لا يوجد شعار للحذف'
@@ -146,7 +271,7 @@ class SettingsController {
       }
 
       // حذف الملف من النظام
-      const logoPath = path.join(__dirname, '..', currentSettings.company_logo);
+      const logoPath = path.join(__dirname, '..', currentSettings.system_logo_url);
       try {
         await fs.access(logoPath);
         await fs.unlink(logoPath);
@@ -155,7 +280,7 @@ class SettingsController {
       }
 
       // حذف مسار الشعار من قاعدة البيانات
-      const updatedSettings = await Settings.removeCompanyLogo();
+      const updatedSettings = await Settings.removeSystemLogo();
 
       res.status(200).json({
         success: true,
