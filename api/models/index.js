@@ -7,6 +7,7 @@ const TicketReviewer = require('./TicketReviewer');
 const EvaluationCriteria = require('./EvaluationCriteria');
 const TicketEvaluation = require('./TicketEvaluation');
 const TicketEvaluationSummary = require('./TicketEvaluationSummary');
+const Settings = require('./Settings');
 
 module.exports = {
   User,
@@ -17,5 +18,6 @@ module.exports = {
   TicketReviewer,
   EvaluationCriteria,
   TicketEvaluation,
-  TicketEvaluationSummary
+  TicketEvaluationSummary,
+  Settings
 };

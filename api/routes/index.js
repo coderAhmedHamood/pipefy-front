@@ -20,6 +20,7 @@ const userProcessRoutes = require('./user-processes');
 const ticketAssignmentRoutes = require('./ticket-assignments');
 const ticketReviewerRoutes = require('./ticket-reviewers');
 const evaluationRoutes = require('./evaluations');
+const settingsRoutes = require('./settings');
 
 const router = express.Router();
 
@@ -45,6 +46,7 @@ router.use('/user-processes', userProcessRoutes);
 router.use('/ticket-assignments', ticketAssignmentRoutes);
 router.use('/ticket-reviewers', ticketReviewerRoutes);
 router.use('/evaluations', evaluationRoutes);
+router.use('/settings', settingsRoutes);
 
 // Route للصفحة الرئيسية للـ API
 router.get('/', (req, res) => {
@@ -73,7 +75,8 @@ router.get('/', (req, res) => {
       ticket_reviewers: '/api/ticket-reviewers',
       evaluations: '/api/evaluations',
       audit: '/api/audit',
-      reports: '/api/reports'
+      reports: '/api/reports',
+      settings: '/api/settings'
     },
     documentation: '/api/docs'
   });
