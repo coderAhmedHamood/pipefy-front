@@ -4,9 +4,13 @@ import {
   Upload,
   Loader2,
   Trash2,
-  Settings
+  Settings,
+  Building2,
+  Image,
+  Shield,
+  Mail
 } from 'lucide-react';
-import { settingsService, ApiSettings } from '../../services/settingsServiceSimple';
+import { settingsService } from '../../services/settingsServiceSimple';
 import { useQuickNotifications } from '../ui/NotificationSystem';
 import { useSystemSettings } from '../../contexts/SystemSettingsContext';
 
@@ -16,6 +20,7 @@ export const SettingsManager: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
   const [showLogoModal, setShowLogoModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('logo'); // التبويبة النشطة - تبدأ بالشعار
   const notifications = useQuickNotifications();
   const { updateSettings: updateSystemSettings } = useSystemSettings();
   
@@ -247,8 +252,16 @@ export const SettingsManager: React.FC = () => {
     );
   }
 
+  // تعريف التبويبات
+  const tabs = [
+    { id: 'general', name: 'الإعدادات العامة', icon: Building2 },
+    { id: 'logo', name: 'شعار الشركة', icon: Image },
+    { id: 'security', name: 'الأمان', icon: Shield },
+    { id: 'email', name: 'البريد الإلكتروني', icon: Mail }
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -273,85 +286,159 @@ export const SettingsManager: React.FC = () => {
         <p className="text-gray-600">إدارة الإعدادات الأساسية للنظام - البيانات من قاعدة البيانات</p>
       </div>
 
-      {/* Content */}
+      {/* Tabs Navigation */}
+      <div className="mb-8">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8 space-x-reverse">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 space-x-reverse transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{tab.name}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
       <div className="bg-white rounded-lg shadow-sm border p-8 mb-8">
-        <div className="space-y-8">
-          
-          {/* الإعدادات العامة */}
-          <div>
+        
+        {/* الإعدادات العامة */}
+        {activeTab === 'general' && (
+          <div className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">الإعدادات العامة</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم النظام</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">اسم الشركة</label>
                 <input
                   type="text"
                   value={settings.system_name}
                   onChange={(e) => updateSetting('system_name', e.target.value)}
-                  placeholder="أدخل اسم النظام"
+                  placeholder="أدخل اسم الشركة"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">شعار الشركة</label>
-                
-                {/* معاينة الشعار الحالي */}
-                {(settings.system_logo_url || previewLogo) && (
-                  <div className="mb-4">
-                    <div className="relative inline-block">
-                      <img 
-                        src={previewLogo || settings.system_logo_url} 
-                        alt="شعار الشركة" 
-                        className="w-32 h-32 object-cover border-2 border-gray-300 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                        onClick={() => setShowLogoModal(true)}
-                      />
-                      {previewLogo && (
-                        <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-                          جديد
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2">اضغط على الصورة للتكبير</p>
-                  </div>
-                )}
-                
-                <div className="flex items-center space-x-4 space-x-reverse">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    id="logo-upload"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleUploadLogo(file);
-                      }
-                    }}
-                  />
-                  <label
-                    htmlFor="logo-upload"
-                    className="flex items-center space-x-2 space-x-reverse px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
-                  >
-                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                    <span>{uploading ? 'جاري الرفع...' : 'رفع شعار'}</span>
-                  </label>
-                  {(settings.system_logo_url || previewLogo) && (
-                    <button
-                      onClick={handleDeleteLogo}
-                      className="flex items-center space-x-2 space-x-reverse px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span>حذف</span>
-                    </button>
-                  )}
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">وصف النظام</label>
+                <textarea
+                  value={settings.system_description}
+                  onChange={(e) => updateSetting('system_description', e.target.value)}
+                  placeholder="أدخل وصف النظام"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
               </div>
             </div>
+            
+            <div className="flex justify-end pt-6 border-t border-gray-200">
+              <button
+                onClick={handleSaveSettings}
+                disabled={saving}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2 space-x-reverse"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري الحفظ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>حفظ الإعدادات</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+        )}
 
-          {/* إعدادات الأمان */}
-          <div>
+        {/* شعار الشركة */}
+        {activeTab === 'logo' && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">شعار الشركة</h3>
+            
+            {/* معاينة الشعار الحالي */}
+            {(settings.system_logo_url || previewLogo) && (
+              <div className="mb-6">
+                <div className="relative inline-block">
+                  <img 
+                    src={previewLogo || settings.system_logo_url} 
+                    alt="شعار الشركة" 
+                    className="w-48 h-48 object-cover border-2 border-gray-300 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => setShowLogoModal(true)}
+                  />
+                  {previewLogo && (
+                    <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                      جديد
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">اضغط على الصورة للتكبير</p>
+              </div>
+            )}
+            
+            {/* أزرار إدارة الشعار */}
+            <div className="flex items-center space-x-4 space-x-reverse">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="logo-upload"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleUploadLogo(file);
+                  }
+                }}
+              />
+              <label
+                htmlFor="logo-upload"
+                className="flex items-center space-x-2 space-x-reverse px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+              >
+                {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                <span className="font-medium">{uploading ? 'جاري الرفع...' : 'رفع شعار جديد'}</span>
+              </label>
+              
+              {(settings.system_logo_url || previewLogo) && (
+                <button
+                  onClick={handleDeleteLogo}
+                  className="flex items-center space-x-2 space-x-reverse px-6 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  <span className="font-medium">حذف الشعار</span>
+                </button>
+              )}
+            </div>
+            
+            {/* معلومات إضافية */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">متطلبات الشعار:</h4>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• الحد الأقصى لحجم الملف: 5 ميجابايت</li>
+                <li>• الصيغ المدعومة: JPG, PNG, SVG</li>
+                <li>• الحجم المُوصى به: 512x512 بكسل</li>
+                <li>• يُفضل خلفية شفافة للشعارات</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* إعدادات الأمان */}
+        {activeTab === 'security' && (
+          <div className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">إعدادات الأمان</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -379,10 +466,32 @@ export const SettingsManager: React.FC = () => {
                 />
               </div>
             </div>
+            
+            <div className="flex justify-end pt-6 border-t border-gray-200">
+              <button
+                onClick={handleSaveSettings}
+                disabled={saving}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2 space-x-reverse"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري الحفظ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>حفظ الإعدادات</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+        )}
 
-          {/* إعدادات البريد الإلكتروني */}
-          <div>
+        {/* إعدادات البريد الإلكتروني */}
+        {activeTab === 'email' && (
+          <div className="space-y-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">إعدادات البريد الإلكتروني</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -427,9 +536,29 @@ export const SettingsManager: React.FC = () => {
                 />
               </div>
             </div>
+            
+            <div className="flex justify-end pt-6 border-t border-gray-200">
+              <button
+                onClick={handleSaveSettings}
+                disabled={saving}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2 space-x-reverse"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>جاري الحفظ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>حفظ الإعدادات</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+        )}
 
-        </div>
       </div>
 
       {/* نافذة عرض الشعار */}
