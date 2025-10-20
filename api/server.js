@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const { testConnection } = require('./config/database');
 const apiRoutes = require('./routes');
@@ -13,6 +14,9 @@ const PORT = process.env.PORT || 3003;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// خدمة الملفات الثابتة (الصور والمرفقات)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {

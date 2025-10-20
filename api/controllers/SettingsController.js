@@ -212,7 +212,14 @@ class SettingsController {
       try {
         const currentSettings = await Settings.getSettings();
         if (currentSettings.system_logo_url) {
-          const oldLogoPath = path.join(__dirname, '..', currentSettings.system_logo_url);
+          // إزالة أي بروتوكول أو دومين من الرابط للحصول على المسار النسبي
+          let relativePath = currentSettings.system_logo_url;
+          if (relativePath.startsWith('http')) {
+            const url = new URL(relativePath);
+            relativePath = url.pathname;
+          }
+          
+          const oldLogoPath = path.join(__dirname, '..', relativePath);
           try {
             await fs.access(oldLogoPath);
             await fs.unlink(oldLogoPath);
@@ -224,15 +231,20 @@ class SettingsController {
         console.warn('تحذير: لم يتم حذف الشعار القديم:', err.message);
       }
 
-      // حفظ مسار الشعار الجديد
-      const logoPath = `/uploads/logos/${req.file.filename}`;
-      const updatedSettings = await Settings.updateSystemLogo(logoPath);
+      // بناء الرابط الكامل للشعار
+      const baseUrl = req.protocol + '://' + req.get('host');
+      const fullLogoUrl = `${baseUrl}/uploads/logos/${req.file.filename}`;
+      
+      // حفظ الرابط الكامل (بدون http://localhost:3003 فقط)
+      const logoUrlToSave = fullLogoUrl.replace('http://localhost:3003', '');
+      const updatedSettings = await Settings.updateSystemLogo(logoUrlToSave);
 
       res.status(200).json({
         success: true,
         message: 'تم رفع شعار الشركة بنجاح',
         data: {
-          logo_url: logoPath,
+          logo_url: logoUrlToSave,
+          full_url: fullLogoUrl, // الرابط الكامل للمرجع
           settings: updatedSettings.toJSON()
         }
       });
@@ -271,7 +283,14 @@ class SettingsController {
       }
 
       // حذف الملف من النظام
-      const logoPath = path.join(__dirname, '..', currentSettings.system_logo_url);
+      // إزالة أي بروتوكول أو دومين من الرابط للحصول على المسار النسبي
+      let relativePath = currentSettings.system_logo_url;
+      if (relativePath.startsWith('http')) {
+        const url = new URL(relativePath);
+        relativePath = url.pathname;
+      }
+      
+      const logoPath = path.join(__dirname, '..', relativePath);
       try {
         await fs.access(logoPath);
         await fs.unlink(logoPath);
