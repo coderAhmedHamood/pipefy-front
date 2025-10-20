@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavig
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WorkflowProvider, useWorkflow } from './contexts/WorkflowContext';
 import { NotificationProvider } from './components/ui/NotificationSystem';
-import { SystemSettingsProvider } from './contexts/SystemSettingsContext';
+import { SystemSettingsProvider, useSystemSettings } from './contexts/SystemSettingsContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { CompanyHeader } from './components/layout/CompanyHeader';
 import { KanbanBoard } from './components/kanban/KanbanBoard';
@@ -85,15 +85,20 @@ const ProtectedRoutes: React.FC = () => {
 // مكون محتوى الكانبان
 const KanbanContent: React.FC = () => {
   const { processes, selectedProcess, setSelectedProcess } = useWorkflow();
+  const { settings } = useSystemSettings();
 
   if (!selectedProcess) {
     return (
       <div className="h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
         <div className="text-center p-8 max-w-md">
           <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <span className="text-white font-bold text-2xl">ن</span>
+            <span className="text-white font-bold text-2xl">
+              {settings.company_name ? settings.company_name.charAt(0) : '🏢'}
+            </span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">مرحباً بك في نظام إدارة العمليات</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-3">
+            مرحباً بك في {settings.company_name || 'النظام'}
+          </h2>
           <p className="text-gray-600 mb-8 leading-relaxed">
             {processes.length > 0
               ? "جاري تحميل العملية الافتراضية..."

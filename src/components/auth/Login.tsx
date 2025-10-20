@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSystemSettings } from '../../contexts/SystemSettingsContext';
 import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
 
 export const Login: React.FC = () => {
@@ -11,6 +12,7 @@ export const Login: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
   const { login, isAuthenticated } = useAuth();
+  const { settings } = useSystemSettings();
 
   // إعادة توجيه إذا كان المستخدم مسجل دخول بالفعل
   useEffect(() => {
@@ -94,10 +96,16 @@ export const Login: React.FC = () => {
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-8 text-center">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl font-bold text-blue-600">ن</span>
+            <span className="text-2xl font-bold text-blue-600">
+              {settings.company_name ? settings.company_name.charAt(0) : '🏢'}
+            </span>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">نظام إدارة العمليات</h1>
-          <p className="text-blue-100">إدارة متقدمة للعمليات والمهام</p>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            {settings.company_name || 'تسجيل الدخول'}
+          </h1>
+          <p className="text-blue-100">
+            {settings.company_name ? `نظام إدارة العمليات - ${settings.company_name}` : 'إدارة متقدمة للعمليات والمهام'}
+          </p>
         </div>
 
         {/* Login Form */}

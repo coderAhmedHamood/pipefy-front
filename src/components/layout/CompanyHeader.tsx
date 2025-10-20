@@ -50,21 +50,24 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({
     console.log('📤 الرابط الكامل:', fullLogoUrl);
   }
 
-  // أحجام مختلفة للمكون
+  // أحجام مختلفة للمكون - محسنة للوضوح
   const sizes = {
     small: {
-      logo: 'w-6 h-6',
+      logo: 'w-10 h-10',
+      logoText: 'text-sm',
       text: 'text-sm',
       container: 'space-x-2'
     },
     medium: {
-      logo: 'w-8 h-8',
-      text: 'text-lg',
+      logo: 'w-12 h-12',
+      logoText: 'text-base',
+      text: 'text-base',
       container: 'space-x-3'
     },
     large: {
-      logo: 'w-12 h-12',
-      text: 'text-2xl',
+      logo: 'w-16 h-16',
+      logoText: 'text-xl',
+      text: 'text-lg',
       container: 'space-x-4'
     }
   };
@@ -96,13 +99,22 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({
               onError={(e) => {
                 console.error('❌ فشل في تحميل الشعار:', companyLogo);
                 console.error('🔗 URL المحاول:', buildImageUrl(companyLogo));
+                // إخفاء الصورة وإظهار البديل
+                const parent = e.currentTarget.parentElement;
                 e.currentTarget.style.display = 'none';
+                if (parent) {
+                  parent.innerHTML = `
+                    <div class="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                      <span class="text-white font-bold ${currentSize.logoText}">${companyName ? companyName.charAt(0) : '🏢'}</span>
+                    </div>
+                  `;
+                }
               }}
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">
-                {companyName ? companyName.charAt(0) : 'ن'}
+              <span className={`text-white font-bold ${currentSize.logoText}`}>
+                {companyName ? companyName.charAt(0) : '🏢'}
               </span>
             </div>
           )}
@@ -111,7 +123,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({
       
       {showName && (
         <h1 className={`font-bold text-gray-900 ${currentSize.text}`}>
-          {companyName || 'نظام إدارة العمليات'}
+          {companyName || ''}
         </h1>
       )}
     </div>
