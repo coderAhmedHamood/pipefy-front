@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WorkflowProvider, useWorkflow } from './contexts/WorkflowContext';
 import { NotificationProvider } from './components/ui/NotificationSystem';
 import { SystemSettingsProvider, useSystemSettings } from './contexts/SystemSettingsContext';
+import { DynamicFavicon } from './components/ui/DynamicFavicon';
 import { Sidebar } from './components/layout/Sidebar';
 import { CompanyHeader } from './components/layout/CompanyHeader';
 import { KanbanBoard } from './components/kanban/KanbanBoard';
@@ -257,6 +258,7 @@ function App() {
     <Router>
       <AuthProvider>
         <SystemSettingsProvider>
+          <DynamicFavicon />
           <WorkflowProvider>
             <NotificationProvider>
               <ProtectedRoutes />
