@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { settingsService, ApiSettings } from '../../services/settingsServiceSimple';
 import { useQuickNotifications } from '../ui/NotificationSystem';
+import { useSystemSettings } from '../../contexts/SystemSettingsContext';
 
 export const SettingsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -16,18 +17,20 @@ export const SettingsManager: React.FC = () => {
   const [previewLogo, setPreviewLogo] = useState<string | null>(null);
   const [showLogoModal, setShowLogoModal] = useState(false);
   const notifications = useQuickNotifications();
+  const { updateSettings: updateSystemSettings } = useSystemSettings();
   
   // حالة الإعدادات - فارغة بدون قيم افتراضية
   const [settings, setSettings] = useState<any>({
-    // الحقول متطابقة مع API response
-    company_name: '',
-    company_logo: '',
-    login_attempts_limit: '',
-    lockout_duration_minutes: '',
-    smtp_server: '',
-    smtp_port: '',
-    smtp_username: '',
-    smtp_password: ''
+    // الحقول متطابقة مع API response الفعلي
+    system_name: '',
+    system_logo_url: '',
+    system_description: '',
+    security_login_attempts_limit: '',
+    security_lockout_duration: '',
+    integrations_email_smtp_host: '',
+    integrations_email_smtp_port: '',
+    integrations_email_smtp_username: '',
+    integrations_email_smtp_password: ''
   });
 
   // تحميل الإعدادات عند بدء التشغيل
@@ -47,28 +50,30 @@ export const SettingsManager: React.FC = () => {
         console.log('✅ البيانات المستلمة:', response.data);
         // تعيين البيانات المُرجعة من API فقط، بدون قيم افتراضية
         setSettings({
-          company_name: response.data.company_name || '',
-          company_logo: response.data.company_logo || '',
-          login_attempts_limit: response.data.login_attempts_limit || '',
-          lockout_duration_minutes: response.data.lockout_duration_minutes || '',
-          smtp_server: response.data.smtp_server || '',
-          smtp_port: response.data.smtp_port || '',
-          smtp_username: response.data.smtp_username || '',
-          smtp_password: response.data.smtp_password || ''
+          system_name: response.data.system_name || '',
+          system_logo_url: response.data.system_logo_url || '',
+          system_description: response.data.system_description || '',
+          security_login_attempts_limit: response.data.security_login_attempts_limit || '',
+          security_lockout_duration: response.data.security_lockout_duration || '',
+          integrations_email_smtp_host: response.data.integrations_email_smtp_host || '',
+          integrations_email_smtp_port: response.data.integrations_email_smtp_port || '',
+          integrations_email_smtp_username: response.data.integrations_email_smtp_username || '',
+          integrations_email_smtp_password: response.data.integrations_email_smtp_password || ''
         });
         notifications.showSuccess('تم تحميل الإعدادات', `تم جلب ${Object.keys(response.data).length} إعداد من قاعدة البيانات`);
       } else {
         console.warn('⚠️ لا توجد بيانات في الاستجابة - الحقول ستبقى فارغة');
         // إبقاء الحقول فارغة إذا لم ترجع بيانات
         setSettings({
-          company_name: '',
-          company_logo: '',
-          login_attempts_limit: '',
-          lockout_duration_minutes: '',
-          smtp_server: '',
-          smtp_port: '',
-          smtp_username: '',
-          smtp_password: ''
+          system_name: '',
+          system_logo_url: '',
+          system_description: '',
+          security_login_attempts_limit: '',
+          security_lockout_duration: '',
+          integrations_email_smtp_host: '',
+          integrations_email_smtp_port: '',
+          integrations_email_smtp_username: '',
+          integrations_email_smtp_password: ''
         });
         notifications.showInfo('لا توجد إعدادات', 'لم يتم العثور على إعدادات محفوظة، الحقول فارغة');
       }
@@ -76,9 +81,9 @@ export const SettingsManager: React.FC = () => {
       console.error('❌ خطأ في تحميل الإعدادات:', error);
       // في حالة الخطأ، إبقاء الحقول فارغة
       setSettings({
-        company_name: '',
-        company_logo: '',
-        login_attempts_limit: '',
+        system_name: '',
+        system_logo_url: '',
+        security_login_attempts_limit: '',
         lockout_duration_minutes: '',
         smtp_server: '',
         smtp_port: '',
@@ -123,15 +128,26 @@ export const SettingsManager: React.FC = () => {
         // تحديث البيانات المحلية بالاستجابة من API
         if (response.data) {
           console.log('🔄 تحديث البيانات المحلية من استجابة API:', response.data);
-          setSettings({
-            company_name: response.data.company_name || '',
-            company_logo: response.data.company_logo || '',
-            login_attempts_limit: response.data.login_attempts_limit || '',
-            lockout_duration_minutes: response.data.lockout_duration_minutes || '',
-            smtp_server: response.data.smtp_server || '',
-            smtp_port: response.data.smtp_port || '',
-            smtp_username: response.data.smtp_username || '',
-            smtp_password: response.data.smtp_password || ''
+          const updatedSettings = {
+            system_name: response.data.system_name || '',
+            system_logo_url: response.data.system_logo_url || '',
+            system_description: response.data.system_description || '',
+            security_login_attempts_limit: response.data.security_login_attempts_limit || '',
+            security_lockout_duration: response.data.security_lockout_duration || '',
+            integrations_email_smtp_host: response.data.integrations_email_smtp_host || '',
+            integrations_email_smtp_port: response.data.integrations_email_smtp_port || '',
+            integrations_email_smtp_username: response.data.integrations_email_smtp_username || '',
+            integrations_email_smtp_password: response.data.integrations_email_smtp_password || ''
+          };
+          
+          setSettings(updatedSettings);
+          
+          // 🎯 تحديث إعدادات النظام العامة (اسم الشركة والشعار)
+          console.log('🌐 تحديث إعدادات النظام العامة في Header...');
+          console.log('📊 بيانات API الفعلية:', response.data);
+          updateSystemSettings({
+            company_name: response.data.system_name || '',
+            company_logo: response.data.system_logo_url || ''
           });
         }
       } else {
@@ -173,9 +189,17 @@ export const SettingsManager: React.FC = () => {
       console.log('📦 استجابة رفع الشعار:', response);
       
       if (response.success && response.data) {
-        const logoUrl = response.data.logoUrl || response.data.data?.logoUrl;
+        // جلب رابط الشعار من الاستجابة
+        const logoUrl = (response.data as any).logo_url || response.data.settings?.system_logo_url || response.data.logoUrl;
         console.log('🎆 تم رفع الشعار بنجاح:', logoUrl);
-        updateSetting('company_logo', logoUrl);
+        updateSetting('system_logo_url', logoUrl);
+        
+        // 🎯 تحديث شعار النظام في Header فوراً
+        console.log('🌐 تحديث شعار النظام في Header...');
+        updateSystemSettings({
+          company_logo: logoUrl
+        });
+        
         notifications.showSuccess('تم رفع الشعار', 'تم رفع شعار الشركة بنجاح عبر POST /api/settings/logo');
       } else {
         notifications.showError('فشل في الرفع', response.message || 'لم يتم رفع الشعار');
@@ -198,7 +222,7 @@ export const SettingsManager: React.FC = () => {
       console.log('🗑️ بدء حذف الشعار...');
       const response = await settingsService.deleteLogo();
       if (response.success) {
-        updateSetting('company_logo', '');
+        updateSetting('system_logo_url', '');
         setPreviewLogo(null); // إزالة المعاينة أيضاً
         setShowLogoModal(false); // إغلاق النافذة إذا كانت مفتوحة
         notifications.showSuccess('تم حذف الشعار', 'تم حذف شعار الشركة بنجاح');
@@ -262,10 +286,10 @@ export const SettingsManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">اسم النظام</label>
                 <input
                   type="text"
-                  value={settings.company_name || ''}
-                  onChange={(e) => updateSetting('company_name', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                  placeholder="اسم الشركة"
+                  value={settings.system_name}
+                  onChange={(e) => updateSetting('system_name', e.target.value)}
+                  placeholder="أدخل اسم النظام"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
               
@@ -273,11 +297,11 @@ export const SettingsManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">شعار الشركة</label>
                 
                 {/* معاينة الشعار الحالي */}
-                {(settings.company_logo || previewLogo) && (
+                {(settings.system_logo_url || previewLogo) && (
                   <div className="mb-4">
                     <div className="relative inline-block">
                       <img 
-                        src={previewLogo || settings.company_logo} 
+                        src={previewLogo || settings.system_logo_url} 
                         alt="شعار الشركة" 
                         className="w-32 h-32 object-cover border-2 border-gray-300 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                         onClick={() => setShowLogoModal(true)}
@@ -312,7 +336,7 @@ export const SettingsManager: React.FC = () => {
                     {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     <span>{uploading ? 'جاري الرفع...' : 'رفع شعار'}</span>
                   </label>
-                  {(settings.company_logo || previewLogo) && (
+                  {(settings.system_logo_url || previewLogo) && (
                     <button
                       onClick={handleDeleteLogo}
                       className="flex items-center space-x-2 space-x-reverse px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
@@ -337,8 +361,8 @@ export const SettingsManager: React.FC = () => {
                   type="number"
                   min="3"
                   max="10"
-                  value={settings.login_attempts_limit || ''}
-                  onChange={(e) => updateSetting('login_attempts_limit', e.target.value ? parseInt(e.target.value) : '')}
+                  value={settings.security_login_attempts_limit || ''}
+                  onChange={(e) => updateSetting('security_login_attempts_limit', e.target.value ? parseInt(e.target.value) : '')}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                 />
               </div>
@@ -349,8 +373,8 @@ export const SettingsManager: React.FC = () => {
                   type="number"
                   min="5"
                   max="60"
-                  value={settings.lockout_duration_minutes || ''}
-                  onChange={(e) => updateSetting('lockout_duration_minutes', e.target.value ? parseInt(e.target.value) : '')}
+                  value={settings.security_lockout_duration || ''}
+                  onChange={(e) => updateSetting('security_lockout_duration', e.target.value ? parseInt(e.target.value) : '')}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                 />
               </div>
@@ -366,8 +390,8 @@ export const SettingsManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">خادم SMTP</label>
                 <input
                   type="text"
-                  value={settings.smtp_server || ''}
-                  onChange={(e) => updateSetting('smtp_server', e.target.value)}
+                  value={settings.integrations_email_smtp_host || ''}
+                  onChange={(e) => updateSetting('integrations_email_smtp_host', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                   placeholder="smtp.gmail.com"
                 />
@@ -377,8 +401,8 @@ export const SettingsManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">المنفذ</label>
                 <input
                   type="number"
-                  value={settings.smtp_port || ''}
-                  onChange={(e) => updateSetting('smtp_port', e.target.value ? parseInt(e.target.value) : '')}
+                  value={settings.integrations_email_smtp_port || ''}
+                  onChange={(e) => updateSetting('integrations_email_smtp_port', e.target.value ? parseInt(e.target.value) : '')}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                 />
               </div>
@@ -387,8 +411,8 @@ export const SettingsManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">اسم المستخدم</label>
                 <input
                   type="text"
-                  value={settings.smtp_username || ''}
-                  onChange={(e) => updateSetting('smtp_username', e.target.value)}
+                  value={settings.integrations_email_smtp_username || ''}
+                  onChange={(e) => updateSetting('integrations_email_smtp_username', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                 />
               </div>
@@ -397,8 +421,8 @@ export const SettingsManager: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
                 <input
                   type="password"
-                  value={settings.smtp_password || ''}
-                  onChange={(e) => updateSetting('smtp_password', e.target.value)}
+                  value={settings.integrations_email_smtp_password || ''}
+                  onChange={(e) => updateSetting('integrations_email_smtp_password', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                 />
               </div>
@@ -409,7 +433,7 @@ export const SettingsManager: React.FC = () => {
       </div>
 
       {/* نافذة عرض الشعار */}
-      {showLogoModal && (settings.company_logo || previewLogo) && (
+      {showLogoModal && (settings.system_logo_url || previewLogo) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowLogoModal(false)}>
           <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
@@ -422,7 +446,7 @@ export const SettingsManager: React.FC = () => {
               </button>
             </div>
             <img 
-              src={previewLogo || settings.company_logo} 
+              src={previewLogo || settings.system_logo_url} 
               alt="شعار الشركة" 
               className="max-w-full max-h-96 object-contain mx-auto block border rounded-lg"
             />

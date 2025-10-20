@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DndContext } from '@dnd-kit/core';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WorkflowProvider, useWorkflow } from './contexts/WorkflowContext';
 import { NotificationProvider } from './components/ui/NotificationSystem';
+import { SystemSettingsProvider } from './contexts/SystemSettingsContext';
 import { Sidebar } from './components/layout/Sidebar';
+import { CompanyHeader } from './components/layout/CompanyHeader';
 import { KanbanBoard } from './components/kanban/KanbanBoard';
 import { ProcessSelector } from './components/dashboard/ProcessSelector';
 import { HeaderProcessSelector } from './components/layout/HeaderProcessSelector';
@@ -26,7 +25,7 @@ import { ApiDocumentation } from './components/api/ApiDocumentation';
 import { Login } from './components/auth/Login';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { DebugInfo } from './components/debug/DebugInfo';
-import { Menu, X, HelpCircle, BookOpen } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 // مكون معلومات المستخدم
 const UserInfo: React.FC = () => {
@@ -152,12 +151,7 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <Menu className="w-5 h-5 text-gray-600" />
               </button>
               
-              <div className="flex items-center space-x-3 space-x-reverse">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">ن</span>
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">نظام إدارة العمليات</h1>
-              </div>
+              <CompanyHeader size="medium" />
 
               {/* Process Selector في الهيدر */}
               <HeaderProcessSelector
@@ -224,12 +218,7 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {/* Header للوضع العادي */}
           <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3 space-x-reverse">
-                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">ن</span>
-                </div>
-                <h1 className="text-lg font-bold text-gray-900">نظام إدارة العمليات</h1>
-              </div>
+              <CompanyHeader size="small" />
 
               <div className="flex items-center space-x-4 space-x-reverse">
                 {/* Process Selector في الهيدر */}
@@ -262,11 +251,13 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <WorkflowProvider>
-          <NotificationProvider>
-            <ProtectedRoutes />
-          </NotificationProvider>
-        </WorkflowProvider>
+        <SystemSettingsProvider>
+          <WorkflowProvider>
+            <NotificationProvider>
+              <ProtectedRoutes />
+            </NotificationProvider>
+          </WorkflowProvider>
+        </SystemSettingsProvider>
       </AuthProvider>
     </Router>
   );

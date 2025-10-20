@@ -28,19 +28,47 @@ api.interceptors.response.use(
   }
 );
 
-// واجهة البيانات المُرجعة من API الفعلي
+// واجهة البيانات المُرجعة من API الفعلي - متطابقة 100%
 export interface ApiSettings {
   id?: string;
-  company_name?: string;
-  company_logo?: string;
-  login_attempts_limit?: number;
-  lockout_duration_minutes?: number;
-  smtp_server?: string;
-  smtp_port?: number;
-  smtp_username?: string;
-  smtp_password?: string;
+  system_name?: string;
+  system_description?: string;
+  system_logo_url?: string;
+  system_favicon_url?: string;
+  system_primary_color?: string;
+  system_secondary_color?: string;
+  system_language?: string;
+  system_timezone?: string;
+  system_date_format?: string;
+  system_time_format?: string;
+  notifications_enabled?: boolean;
+  notifications_email_enabled?: boolean;
+  notifications_browser_enabled?: boolean;
+  security_session_timeout?: number;
+  security_password_min_length?: number;
+  security_login_attempts_limit?: number;
+  security_lockout_duration?: number;
+  integrations_email_smtp_host?: string;
+  integrations_email_smtp_port?: number;
+  integrations_email_smtp_username?: string;
+  integrations_email_smtp_password?: string;
+  integrations_email_from_address?: string;
+  integrations_email_from_name?: string;
+  backup_enabled?: boolean;
+  backup_frequency?: string;
+  backup_retention_days?: number;
+  working_hours_enabled?: boolean;
+  maintenance_mode?: boolean;
+  maintenance_message?: string;
+  max_file_upload_size?: number;
+  allowed_file_types?: string[];
+  default_ticket_priority?: string;
+  auto_assign_tickets?: boolean;
+  ticket_numbering_format?: string;
   created_at?: string;
   updated_at?: string;
+  created_by?: string;
+  updated_by?: string;
 }
 
 interface ApiResponse<T = any> {
