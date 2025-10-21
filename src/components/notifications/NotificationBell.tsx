@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, X, Check, Trash2, CheckCheck } from 'lucide-react';
+import { Bell, X, Check, Trash2, CheckCheck, Eye } from 'lucide-react';
 import notificationService, { Notification } from '../../services/notificationService';
+import { openTicketUrl, isValidTicketUrl } from '../../utils/urlHelper';
 // date-fns removed - using custom function
 
 
@@ -113,6 +114,14 @@ export const NotificationBell: React.FC = () => {
       }
     } catch (error) {
       console.error('خطأ في حذف الإشعارات المقروءة:', error);
+    }
+  };
+
+  // فتح التذكرة في الكانبان
+  const handleViewTicket = (actionUrl: string) => {
+    if (isValidTicketUrl(actionUrl)) {
+      openTicketUrl(actionUrl, false); // فتح في نفس النافذة
+      setIsOpen(false); // إغلاق قائمة الإشعارات
     }
   };
 
@@ -250,6 +259,16 @@ export const NotificationBell: React.FC = () => {
 
                           {/* أزرار الإجراءات */}
                           <div className="flex items-center space-x-1 space-x-reverse mr-2">
+                            {/* أيقونة معاينة التذكرة */}
+                            {notification.action_url && isValidTicketUrl(notification.action_url) && (
+                              <button
+                                onClick={() => handleViewTicket(notification.action_url!)}
+                                className="p-1 text-green-600 hover:bg-green-100 rounded transition-colors"
+                                title="معاينة التذكرة"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                            )}
                             {!notification.is_read && (
                               <button
                                 onClick={() => markAsRead(notification.id)}
@@ -259,13 +278,13 @@ export const NotificationBell: React.FC = () => {
                                 <Check className="w-4 h-4" />
                               </button>
                             )}
-                            <button
+                            {/* <button
                               onClick={() => deleteNotification(notification.id)}
                               className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
                               title="حذف"
                             >
                               <Trash2 className="w-4 h-4" />
-                            </button>
+                            </button> */}
                           </div>
                         </div>
                       </div>

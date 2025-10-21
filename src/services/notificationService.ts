@@ -8,6 +8,8 @@ export interface Notification {
   type: 'info' | 'success' | 'warning' | 'error';
   is_read: boolean;
   data?: Record<string, any>;
+  action_url?: string;
+  url?: string;
   created_at: string;
   read_at?: string;
 }
