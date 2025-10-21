@@ -1,0 +1,483 @@
+/* ملف الثيمات الأساسي */
+
+/* متغيرات CSS للثيم الافتراضي */
+:root {
+  /* الألوان الأساسية */
+  --color-primary: #3b82f6;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #93c5fd;
+  --color-secondary: #6366f1;
+  --color-accent: #8b5cf6;
+  
+  /* ألوان الخلفية */
+  --color-background: #ffffff;
+  --color-background-secondary: #f8fafc;
+  --color-background-accent: #f1f5f9;
+  
+  /* ألوان النصوص */
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #9ca3af;
+  
+  /* ألوان الحالات */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+  
+  /* ألوان الحدود والظلال */
+  --color-border: #e5e7eb;
+  --color-shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* الثيم الافتراضي - يستخدم المتغيرات الافتراضية */
+
+/* ثيم كلين لايف - محسن */
+.theme-cleanlife {
+  /* الألوان الأساسية - Teal كلون رئيسي */
+  --color-primary: #00B8A9;
+  --color-primary-dark: #006D5B;
+  --color-primary-light: #33C9BC;
+  --color-secondary: #008A7B;
+  --color-accent: #00E6D6;
+  
+  /* ألوان الخلفية - نظيفة وبسيطة */
+  --color-background: #FFFFFF;
+  --color-background-secondary: #F5F5F5;
+  --color-background-accent: #F0FFFE;
+  
+  /* ألوان النصوص - وضوح عالي */
+  --color-text-primary: #4A4A4A;
+  --color-text-secondary: #006D5B;
+  --color-text-muted: #8A8A8A;
+  
+  /* ألوان الحالات - متوازنة ومتناسقة */
+  --color-success: #00B8A9;
+  --color-warning: #FF9500;
+  --color-error: #FF4757;
+  --color-info: #00B8A9;
+  
+  /* ألوان الحدود والظلال */
+  --color-border: #E0E0E0;
+  --color-shadow: rgba(0, 184, 169, 0.15);
+  
+  /* تحسينات إضافية للثيم */
+  /* ألوان hover للأزرار */
+  --color-primary-hover: #009688;
+  --color-secondary-hover: #00695C;
+  
+  /* ألوان focus للنماذج */
+  --color-focus: rgba(0, 184, 169, 0.3);
+  
+  /* ألوان للبطاقات والعناصر التفاعلية */
+  --color-card-bg: #FFFFFF;
+  --color-card-border: #E0E0E0;
+  --color-card-shadow: rgba(0, 184, 169, 0.08);
+  
+  /* ألوان للتنقل والقوائم */
+  --color-nav-bg: #FFFFFF;
+  --color-nav-hover: #F0FFFE;
+  --color-nav-active: #00B8A9;
+  
+  /* ألوان للإشعارات */
+  --color-notification-success-bg: rgba(0, 184, 169, 0.1);
+  --color-notification-warning-bg: rgba(255, 149, 0, 0.1);
+  --color-notification-error-bg: rgba(255, 71, 87, 0.1);
+  --color-notification-info-bg: rgba(0, 184, 169, 0.1);
+}
+
+/* كلاسات مساعدة للثيمات */
+.theme-bg-primary {
+  background-color: var(--color-primary);
+}
+
+.theme-bg-secondary {
+  background-color: var(--color-secondary);
+}
+
+.theme-text-primary {
+  color: var(--color-primary);
+}
+
+.theme-text-secondary {
+  color: var(--color-secondary);
+}
+
+.theme-border-primary {
+  border-color: var(--color-primary);
+}
+
+/* تحسينات للأزرار */
+.theme-btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.theme-btn-primary:hover {
+  background-color: var(--color-primary-hover, var(--color-primary-dark));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+.theme-btn-secondary {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  transition: all 0.3s ease;
+}
+
+.theme-btn-secondary:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* تحسينات للبطاقات */
+.theme-card {
+  background-color: var(--color-card-bg, var(--color-background));
+  border: 1px solid var(--color-card-border, var(--color-border));
+  border-radius: 12px;
+  box-shadow: 0 2px 8px var(--color-card-shadow, var(--color-shadow));
+  transition: all 0.3s ease;
+}
+
+.theme-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--color-shadow);
+}
+
+/* تحسينات للنماذج */
+.theme-input {
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.theme-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus, rgba(59, 130, 246, 0.1));
+}
+
+/* تحسينات للتنقل */
+.theme-nav-item {
+  color: var(--color-text-primary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.theme-nav-item:hover {
+  background-color: var(--color-nav-hover, var(--color-background-accent));
+  color: var(--color-primary);
+}
+
+.theme-nav-item.active {
+  background-color: var(--color-nav-active, var(--color-primary));
+  color: white;
+}
+
+.theme-bg-accent {
+  background-color: var(--color-accent);
+}
+
+.theme-bg-background {
+  background-color: var(--color-background);
+}
+
+.theme-bg-background-secondary {
+  background-color: var(--color-background-secondary);
+}
+
+.theme-text-primary {
+  color: var(--color-text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--color-text-secondary);
+}
+
+.theme-text-muted {
+  color: var(--color-text-muted);
+}
+
+.theme-border {
+  border-color: var(--color-border);
+}
+
+.theme-shadow {
+  box-shadow: 0 1px 3px var(--color-shadow);
+}
+
+/* تأثيرات الانتقال للثيمات */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* تخصيصات خاصة لثيم كلين لايف */
+.theme-cleanlife .bg-white {
+  background-color: var(--color-background) !important;
+}
+
+.theme-cleanlife .bg-gray-50 {
+  background-color: var(--color-background-secondary) !important;
+}
+
+.theme-cleanlife .bg-gray-100 {
+  background-color: var(--color-background-accent) !important;
+}
+
+.theme-cleanlife .text-gray-900 {
+  color: var(--color-text-primary) !important;
+}
+
+.theme-cleanlife .text-gray-600 {
+  color: var(--color-text-secondary) !important;
+}
+
+.theme-cleanlife .text-gray-400 {
+  color: var(--color-text-muted) !important;
+}
+
+.theme-cleanlife .border-gray-200 {
+  border-color: var(--color-border) !important;
+}
+
+.theme-cleanlife .border-gray-300 {
+  border-color: var(--color-border) !important;
+}
+
+/* تخصيصات الأزرار */
+.theme-cleanlife .bg-blue-500,
+.theme-cleanlife .bg-blue-600 {
+  background-color: var(--color-primary) !important;
+}
+
+.theme-cleanlife .bg-blue-50 {
+  background-color: var(--color-background-accent) !important;
+}
+
+.theme-cleanlife .text-blue-600 {
+  color: var(--color-primary) !important;
+}
+
+.theme-cleanlife .text-blue-500 {
+  color: var(--color-primary-light) !important;
+}
+
+/* تخصيصات الإشعارات */
+.theme-cleanlife .bg-green-50 {
+  background-color: rgba(94, 202, 173, 0.1) !important;
+}
+
+.theme-cleanlife .text-green-600 {
+  color: var(--color-success) !important;
+}
+
+.theme-cleanlife .bg-yellow-50 {
+  background-color: rgba(255, 197, 85, 0.1) !important;
+}
+
+.theme-cleanlife .text-yellow-600 {
+  color: var(--color-warning) !important;
+}
+
+.theme-cleanlife .bg-red-50 {
+  background-color: rgba(244, 132, 108, 0.1) !important;
+}
+
+.theme-cleanlife .text-red-600 {
+  color: var(--color-error) !important;
+}
+
+/* تخصيصات التدرجات */
+.theme-cleanlife .from-blue-500 {
+  --tw-gradient-from: var(--color-primary);
+}
+
+.theme-cleanlife .to-purple-600 {
+  --tw-gradient-to: var(--color-secondary);
+}
+
+/* تأثيرات hover للثيم الجديد */
+.theme-cleanlife .hover\:bg-blue-100:hover {
+  background-color: rgba(0, 62, 102, 0.1) !important;
+}
+
+.theme-cleanlife .hover\:bg-green-100:hover {
+  background-color: rgba(94, 202, 173, 0.1) !important;
+}
+
+.theme-cleanlife .hover\:bg-red-100:hover {
+  background-color: rgba(244, 132, 108, 0.1) !important;
+}
+
+/* تخصيصات خاصة للمكونات */
+.theme-cleanlife .notification-bell {
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.theme-cleanlife .notification-item {
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+}
+
+.theme-cleanlife .notification-item:hover {
+  background-color: var(--color-background-secondary);
+}
+
+.theme-cleanlife .notification-unread {
+  background-color: rgba(10, 186, 181, 0.1);
+}
+
+/* تخصيصات الكانبان */
+.theme-cleanlife .kanban-board {
+  background-color: var(--color-background);
+}
+
+.theme-cleanlife .kanban-column {
+  background-color: var(--color-background-secondary);
+  border-color: var(--color-border);
+}
+
+.theme-cleanlife .kanban-card {
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+  box-shadow: 0 1px 3px var(--color-shadow);
+}
+
+/* تخصيصات النماذج */
+.theme-cleanlife .form-input {
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.theme-cleanlife .form-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 62, 102, 0.1);
+}
+
+/* تخصيصات الأزرار الأساسية */
+.theme-cleanlife .btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.theme-cleanlife .btn-primary:hover {
+  background-color: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+.theme-cleanlife .btn-secondary {
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+  color: white;
+}
+
+.theme-cleanlife .btn-secondary:hover {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+/* تخصيصات الجداول */
+.theme-cleanlife .table {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.theme-cleanlife .table th {
+  background-color: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.theme-cleanlife .table td {
+  border-color: var(--color-border);
+}
+
+.theme-cleanlife .table tr:hover {
+  background-color: var(--color-background-accent);
+}
+
+/* تخصيصات القوائم المنسدلة */
+.theme-cleanlife .dropdown {
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+  box-shadow: 0 4px 6px var(--color-shadow);
+}
+
+.theme-cleanlife .dropdown-item:hover {
+  background-color: var(--color-background-secondary);
+}
+
+/* تخصيصات الشريط الجانبي */
+.theme-cleanlife .sidebar {
+  background-color: var(--color-background-secondary);
+  border-color: var(--color-border);
+}
+
+.theme-cleanlife .sidebar-item {
+  color: var(--color-text-primary);
+}
+
+.theme-cleanlife .sidebar-item:hover {
+  background-color: var(--color-background-accent);
+}
+
+.theme-cleanlife .sidebar-item.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* تخصيصات الهيدر */
+.theme-cleanlife .header {
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+}
+
+/* تخصيصات البطاقات */
+.theme-cleanlife .card {
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+  box-shadow: 0 1px 3px var(--color-shadow);
+}
+
+.theme-cleanlife .card-header {
+  background-color: var(--color-background-secondary);
+  border-color: var(--color-border);
+}
+
+/* تخصيصات الشارات */
+.theme-cleanlife .badge-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.theme-cleanlife .badge-secondary {
+  background-color: var(--color-secondary);
+  color: white;
+}
+
+.theme-cleanlife .badge-success {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.theme-cleanlife .badge-warning {
+  background-color: var(--color-warning);
+  color: var(--color-text-primary);
+}
+
+.theme-cleanlife .badge-error {
+  background-color: var(--color-error);
+  color: white;
+}

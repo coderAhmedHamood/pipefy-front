@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WorkflowProvider, useWorkflow } from './contexts/WorkflowContext';
 import { NotificationProvider } from './components/ui/NotificationSystem';
 import { SystemSettingsProvider, useSystemSettings } from './contexts/SystemSettingsContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { DynamicFavicon } from './components/ui/DynamicFavicon';
 import { Sidebar } from './components/layout/Sidebar';
 import { CompanyHeader } from './components/layout/CompanyHeader';
@@ -258,12 +259,14 @@ function App() {
     <Router>
       <AuthProvider>
         <SystemSettingsProvider>
-          <DynamicFavicon />
-          <WorkflowProvider>
-            <NotificationProvider>
-              <ProtectedRoutes />
-            </NotificationProvider>
-          </WorkflowProvider>
+          <ThemeProvider>
+            <DynamicFavicon />
+            <WorkflowProvider>
+              <NotificationProvider>
+                <ProtectedRoutes />
+              </NotificationProvider>
+            </WorkflowProvider>
+          </ThemeProvider>
         </SystemSettingsProvider>
       </AuthProvider>
     </Router>

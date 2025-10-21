@@ -8,11 +8,14 @@ import {
   Building2,
   Image,
   Shield,
-  Mail
+  Mail,
+  Palette
 } from 'lucide-react';
 import { settingsService } from '../../services/settingsServiceSimple';
 import { useQuickNotifications } from '../ui/NotificationSystem';
 import { useSystemSettings } from '../../contexts/SystemSettingsContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { ThemePreview } from '../ui/ThemeToggle';
 
 export const SettingsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -23,6 +26,7 @@ export const SettingsManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState('logo'); // التبويبة النشطة - تبدأ بالشعار
   const notifications = useQuickNotifications();
   const { updateSettings: updateSystemSettings } = useSystemSettings();
+  const { currentTheme, setTheme, availableThemes } = useTheme();
   
   // حالة الإعدادات - فارغة بدون قيم افتراضية
   const [settings, setSettings] = useState<any>({
@@ -256,6 +260,7 @@ export const SettingsManager: React.FC = () => {
   const tabs = [
     { id: 'general', name: 'الإعدادات العامة', icon: Building2 },
     { id: 'logo', name: 'شعار الشركة', icon: Image },
+    { id: 'themes', name: 'الثيمات والألوان', icon: Palette },
     { id: 'security', name: 'الأمان', icon: Shield },
     { id: 'email', name: 'البريد الإلكتروني', icon: Mail }
   ];
@@ -432,6 +437,101 @@ export const SettingsManager: React.FC = () => {
                 <li>• الحجم المُوصى به: 512x512 بكسل</li>
                 <li>• يُفضل خلفية شفافة للشعارات</li>
               </ul>
+            </div>
+          </div>
+        )}
+
+        {/* الثيمات والألوان */}
+        {activeTab === 'themes' && (
+          <div className="space-y-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">الثيمات والألوان</h3>
+            
+            {/* الثيم الحالي */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center space-x-3 space-x-reverse">
+                <Palette className="w-6 h-6 text-blue-600" />
+                <div>
+                  <h4 className="font-medium text-blue-900">الثيم الحالي</h4>
+                  <p className="text-blue-700 text-sm">{currentTheme.displayName}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* اختيار الثيم */}
+            <div>
+              <h4 className="text-lg font-medium text-gray-900 mb-4">اختر الثيم المفضل</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {availableThemes.map((theme) => (
+                  <ThemePreview
+                    key={theme.name}
+                    themeName={theme.name}
+                    isActive={currentTheme.name === theme.name}
+                    onClick={() => {
+                      setTheme(theme.name);
+                      notifications.showSuccess(
+                        'تم تغيير الثيم', 
+                        `تم تطبيق ${theme.displayName} بنجاح`
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* لوحة الألوان الحالية */}
+            <div>
+              <h4 className="text-lg font-medium text-gray-900 mb-4">لوحة الألوان الحالية</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {Object.entries(currentTheme.colors).map(([name, color]) => (
+                  <div key={name} className="text-center">
+                    <div
+                      className="w-16 h-16 rounded-lg border border-gray-200 mx-auto mb-2 shadow-sm"
+                      style={{ backgroundColor: color }}
+                    />
+                    <p className="text-xs font-medium text-gray-700">{name}</p>
+                    <p className="text-xs text-gray-500 font-mono">{color}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* معلومات الثيم */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <h4 className="text-lg font-medium text-gray-900 mb-4">معلومات الثيم</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h5 className="font-medium text-gray-800 mb-2">التفاصيل</h5>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li><strong>الاسم:</strong> {currentTheme.displayName}</li>
+                    <li><strong>المعرف:</strong> {currentTheme.name}</li>
+                    <li><strong>اللون الأساسي:</strong> {currentTheme.colors.primary}</li>
+                    <li><strong>اللون الثانوي:</strong> {currentTheme.colors.secondary}</li>
+                  </ul>
+                </div>
+                <div>
+                  <h5 className="font-medium text-gray-800 mb-2">الميزات</h5>
+                  <ul className="space-y-2 text-sm text-gray-600">
+                    <li>• تبديل سريع بين الثيمات</li>
+                    <li>• حفظ تلقائي للاختيار</li>
+                    <li>• ألوان متناسقة ومتجانسة</li>
+                    <li>• دعم جميع المكونات</li>
+                    <li>• تأثيرات انتقال سلسة</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* ملاحظة */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3 space-x-reverse">
+                <div className="text-green-600 text-xl">💡</div>
+                <div>
+                  <h4 className="font-medium text-green-900 mb-1">نصيحة</h4>
+                  <p className="text-green-700 text-sm">
+                    يتم حفظ اختيار الثيم تلقائياً في متصفحك. عند إعادة فتح النظام سيتم تحميل الثيم المفضل لديك.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}
