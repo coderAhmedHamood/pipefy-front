@@ -171,15 +171,16 @@ class Notification {
         notification_type,
         data = {},
         action_url = null,
+        url = null,
         expires_at = null
       } = notificationData;
 
       const result = await pool.query(`
         INSERT INTO notifications (
           user_id, title, message, notification_type,
-          data, action_url, expires_at, created_at
+          data, action_url, url, expires_at, created_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
         RETURNING *
       `, [
         user_id,
@@ -188,6 +189,7 @@ class Notification {
         notification_type,
         JSON.stringify(data),
         action_url,
+        url,
         expires_at
       ]);
 
@@ -208,9 +210,9 @@ class Notification {
         const result = await client.query(`
           INSERT INTO notifications (
             user_id, title, message, notification_type,
-            data, action_url, expires_at, created_at
+            data, action_url, url, expires_at, created_at
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
           RETURNING *
         `, [
           notif.user_id,
@@ -219,6 +221,7 @@ class Notification {
           notif.notification_type,
           JSON.stringify(notif.data || {}),
           notif.action_url || null,
+          notif.url || null,
           notif.expires_at || null
         ]);
         createdNotifications.push(result.rows[0]);

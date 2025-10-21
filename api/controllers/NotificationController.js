@@ -321,18 +321,19 @@ class NotificationController {
         notification_type,
         data = {},
         action_url,
+        url,
         expires_at
       } = req.body;
       
       const result = await pool.query(`
         INSERT INTO notifications (
           user_id, title, message, notification_type, 
-          data, action_url, expires_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          data, action_url, url, expires_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *
       `, [
         user_id, title, message, notification_type,
-        JSON.stringify(data), action_url, expires_at
+        JSON.stringify(data), action_url, url, expires_at
       ]);
       
       res.status(201).json({
@@ -420,6 +421,7 @@ class NotificationController {
         notification_type,
         data = {},
         action_url,
+        url,
         expires_at
       } = req.body;
       
@@ -431,19 +433,19 @@ class NotificationController {
       }
       
       const values = user_ids.map((userId, index) => {
-        const baseIndex = index * 7;
-        return `($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7})`;
+        const baseIndex = index * 8;
+        return `($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8})`;
       }).join(', ');
       
       const params = [];
       user_ids.forEach(userId => {
-        params.push(userId, title, message, notification_type, JSON.stringify(data), action_url, expires_at);
+        params.push(userId, title, message, notification_type, JSON.stringify(data), action_url, url, expires_at);
       });
       
       const result = await pool.query(`
         INSERT INTO notifications (
           user_id, title, message, notification_type, 
-          data, action_url, expires_at
+          data, action_url, url, expires_at
         ) VALUES ${values}
         RETURNING *
       `, params);

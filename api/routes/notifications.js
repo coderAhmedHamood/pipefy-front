@@ -46,6 +46,9 @@ const { authenticateToken } = require('../middleware/auth');
  *         action_url:
  *           type: string
  *           description: رابط الإجراء
+ *         url:
+ *           type: string
+ *           description: رابط إضافي
  *         expires_at:
  *           type: string
  *           format: date-time
@@ -383,6 +386,9 @@ router.get('/', authenticateToken, NotificationController.getUserNotifications);
  *               action_url:
  *                 type: string
  *                 example: "/tickets/456"
+ *               url:
+ *                 type: string
+ *                 example: "https://example.com/details"
  *               expires_at:
  *                 type: string
  *                 format: date-time
@@ -444,6 +450,9 @@ router.post('/', authenticateToken, NotificationController.create);
  *               action_url:
  *                 type: string
  *                 example: "/updates"
+ *               url:
+ *                 type: string
+ *                 example: "https://example.com/updates"
  *     responses:
  *       201:
  *         description: تم إرسال الإشعارات بنجاح
