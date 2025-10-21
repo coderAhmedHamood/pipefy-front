@@ -1,5 +1,6 @@
 const TicketAssignment = require('../models/TicketAssignment');
 const { pool } = require('../config/database');
+const NotificationHelper = require('../utils/notificationHelper');
 
 class TicketAssignmentController {
   // إضافة مستخدم مُسند إلى تذكرة
@@ -75,7 +76,28 @@ class TicketAssignmentController {
         VALUES ($1, $2, $3, $4)
       `, [ticket_id, assigned_by || user_id, commentContent, false]);
 
+      // جلب عنوان التذكرة لإرسال الإشعار
+      const ticketQuery = await client.query(`
+        SELECT title FROM tickets WHERE id = $1
+      `, [ticket_id]);
+      
+      const ticketTitle = ticketQuery.rows[0]?.title || 'تذكرة';
+
       await client.query('COMMIT');
+
+      // إرسال إشعار للمستخدم المُسند (خارج المعاملة)
+      try {
+        await NotificationHelper.sendAssignmentNotification({
+          assignedUserId: user_id,
+          assignerUserId: assigned_by,
+          ticketId: ticket_id,
+          ticketTitle: ticketTitle,
+          role: role
+        });
+      } catch (notificationError) {
+        console.error('خطأ في إرسال إشعار الإسناد:', notificationError);
+        // لا نفشل المعاملة بسبب خطأ في الإشعار
+      }
 
       res.status(201).json({
         success: true,

@@ -1,6 +1,7 @@
 const TicketReviewer = require('../models/TicketReviewer');
 const TicketEvaluationSummary = require('../models/TicketEvaluationSummary');
 const { pool } = require('../config/database');
+const NotificationHelper = require('../utils/notificationHelper');
 
 class TicketReviewerController {
   // إضافة مراجع إلى تذكرة
@@ -83,7 +84,28 @@ class TicketReviewerController {
         console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
       }
 
+      // جلب عنوان التذكرة لإرسال الإشعار
+      const ticketQuery = await client.query(`
+        SELECT title FROM tickets WHERE id = $1
+      `, [ticket_id]);
+      
+      const ticketTitle = ticketQuery.rows[0]?.title || 'تذكرة';
+
       await client.query('COMMIT');
+
+      // إرسال إشعار للمراجع (خارج المعاملة)
+      try {
+        await NotificationHelper.sendReviewerNotification({
+          reviewerId: reviewer_id,
+          adderUserId: added_by,
+          ticketId: ticket_id,
+          ticketTitle: ticketTitle,
+          reviewNotes: review_notes
+        });
+      } catch (notificationError) {
+        console.error('خطأ في إرسال إشعار المراجعة:', notificationError);
+        // لا نفشل المعاملة بسبب خطأ في الإشعار
+      }
 
       res.status(201).json({
         success: true,
@@ -186,6 +208,38 @@ class TicketReviewerController {
         await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
       } catch (evalError) {
         console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
+      }
+
+      // إرسال إشعارات عند تحديث حالة المراجعة (خاصة عند الإكمال مع تقييم)
+      if (review_status === 'completed' && rate) {
+        try {
+          // جلب عنوان التذكرة
+          const ticketQuery = await pool.query(`
+            SELECT title FROM tickets WHERE id = $1
+          `, [reviewer.ticket_id]);
+          
+          const ticketTitle = ticketQuery.rows[0]?.title || 'تذكرة';
+
+          // جلب المستخدمين المرتبطين بالتذكرة للإشعار (باستثناء المراجع نفسه)
+          const relatedUserIds = await NotificationHelper.getTicketRelatedUserIds(
+            reviewer.ticket_id, 
+            reviewer.reviewer_id
+          );
+
+          if (relatedUserIds.length > 0) {
+            await NotificationHelper.sendReviewStatusUpdateNotification({
+              ticketId: reviewer.ticket_id,
+              ticketTitle: ticketTitle,
+              reviewerId: reviewer.reviewer_id,
+              reviewStatus: review_status,
+              rate: rate,
+              notifyUserIds: relatedUserIds
+            });
+          }
+        } catch (notificationError) {
+          console.error('خطأ في إرسال إشعارات تحديث المراجعة:', notificationError);
+          // لا نفشل المعاملة بسبب خطأ في الإشعار
+        }
       }
 
       res.json({
