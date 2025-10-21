@@ -29,6 +29,10 @@ const { authenticateToken } = require('../middleware/auth');
  *                 format: uuid
  *               review_notes:
  *                 type: string
+ *               rate:
+ *                 type: string
+ *                 enum: [ضعيف, جيد, جيد جدا, ممتاز]
+ *                 description: تقييم المراجع (اختياري)
  *     responses:
  *       201:
  *         description: تمت الإضافة بنجاح
@@ -123,6 +127,10 @@ router.get('/reviewer/:reviewerId', authenticateToken, TicketReviewerController.
  *                 enum: [pending, in_progress, completed, skipped]
  *               review_notes:
  *                 type: string
+ *               rate:
+ *                 type: string
+ *                 enum: [ضعيف, جيد, جيد جدا, ممتاز]
+ *                 description: تقييم المراجع (اختياري)
  *     responses:
  *       200:
  *         description: تم التحديث بنجاح

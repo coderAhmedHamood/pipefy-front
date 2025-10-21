@@ -14,6 +14,7 @@ class TicketReviewer {
           added_by UUID REFERENCES users(id),
           review_status VARCHAR(50) DEFAULT 'pending',
           review_notes TEXT,
+          rate VARCHAR(20) CHECK (rate IN ('ضعيف', 'جيد', 'جيد جدا', 'ممتاز')),
           reviewed_at TIMESTAMPTZ,
           is_active BOOLEAN DEFAULT TRUE,
           added_at TIMESTAMPTZ DEFAULT NOW(),
@@ -26,9 +27,16 @@ class TicketReviewer {
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_reviewer ON ticket_reviewers(reviewer_id);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_status ON ticket_reviewers(review_status);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_active ON ticket_reviewers(is_active);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_rate ON ticket_reviewers(rate);`);
     } finally {
       client.release();
     }
+  }
+
+  // التحقق من صحة قيمة التقييم
+  static validateRate(rate) {
+    const validRates = ['ضعيف', 'جيد', 'جيد جدا', 'ممتاز'];
+    return !rate || validRates.includes(rate);
   }
 
   // إضافة مراجع إلى تذكرة
@@ -37,13 +45,19 @@ class TicketReviewer {
       ticket_id,
       reviewer_id,
       added_by,
-      review_notes
+      review_notes,
+      rate
     } = reviewerData;
+
+    // التحقق من صحة التقييم
+    if (rate && !this.validateRate(rate)) {
+      throw new Error('قيمة التقييم غير صحيحة. القيم المسموحة: ضعيف، جيد، جيد جدا، ممتاز');
+    }
 
     const query = `
       INSERT INTO ticket_reviewers 
-      (ticket_id, reviewer_id, added_by, review_notes)
-      VALUES ($1, $2, $3, $4)
+      (ticket_id, reviewer_id, added_by, review_notes, rate)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
 
@@ -51,7 +65,8 @@ class TicketReviewer {
       ticket_id,
       reviewer_id,
       added_by,
-      review_notes
+      review_notes,
+      rate
     ]);
 
     return result.rows[0];
@@ -127,8 +142,14 @@ class TicketReviewer {
     const { 
       review_status, 
       review_notes,
+      rate,
       reviewed_at = new Date() 
     } = statusData;
+
+    // التحقق من صحة التقييم
+    if (rate && !this.validateRate(rate)) {
+      throw new Error('قيمة التقييم غير صحيحة. القيم المسموحة: ضعيف، جيد، جيد جدا، ممتاز');
+    }
     
     const updates = [];
     const values = [];
@@ -143,6 +164,12 @@ class TicketReviewer {
     if (review_notes !== undefined) {
       updates.push(`review_notes = $${paramIndex}`);
       values.push(review_notes);
+      paramIndex++;
+    }
+
+    if (rate !== undefined) {
+      updates.push(`rate = $${paramIndex}`);
+      values.push(rate);
       paramIndex++;
     }
 
@@ -172,7 +199,12 @@ class TicketReviewer {
 
   // تحديث معلومات المراجع
   static async update(id, updateData) {
-    const { review_notes, is_active } = updateData;
+    const { review_notes, is_active, rate } = updateData;
+
+    // التحقق من صحة التقييم
+    if (rate && !this.validateRate(rate)) {
+      throw new Error('قيمة التقييم غير صحيحة. القيم المسموحة: ضعيف، جيد، جيد جدا، ممتاز');
+    }
     
     const updates = [];
     const values = [];
@@ -187,6 +219,12 @@ class TicketReviewer {
     if (is_active !== undefined) {
       updates.push(`is_active = $${paramIndex}`);
       values.push(is_active);
+      paramIndex++;
+    }
+
+    if (rate !== undefined) {
+      updates.push(`rate = $${paramIndex}`);
+      values.push(rate);
       paramIndex++;
     }
 
@@ -268,7 +306,12 @@ class TicketReviewer {
 
   // إعادة تفعيل مراجع محذوف
   static async reactivate(id, updateData = {}) {
-    const { added_by, review_notes } = updateData;
+    const { added_by, review_notes, rate } = updateData;
+
+    // التحقق من صحة التقييم
+    if (rate && !this.validateRate(rate)) {
+      throw new Error('قيمة التقييم غير صحيحة. القيم المسموحة: ضعيف، جيد، جيد جدا، ممتاز');
+    }
     
     const updates = ['is_active = true', 'review_status = \'pending\'', 'reviewed_at = NULL'];
     const values = [];
@@ -283,6 +326,12 @@ class TicketReviewer {
     if (review_notes !== undefined) {
       updates.push(`review_notes = $${paramIndex}`);
       values.push(review_notes);
+      paramIndex++;
+    }
+
+    if (rate !== undefined) {
+      updates.push(`rate = $${paramIndex}`);
+      values.push(rate);
       paramIndex++;
     }
 

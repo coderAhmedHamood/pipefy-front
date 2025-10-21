@@ -10,7 +10,7 @@ class TicketReviewerController {
     try {
       await client.query('BEGIN');
       
-      const { ticket_id, reviewer_id, review_notes } = req.body;
+      const { ticket_id, reviewer_id, review_notes, rate } = req.body;
       const added_by = req.user?.id;
 
       if (!ticket_id || !reviewer_id) {
@@ -39,7 +39,8 @@ class TicketReviewerController {
         // إعادة تفعيل المراجع المحذوف
         reviewer = await TicketReviewer.reactivate(existingReviewer.id, {
           added_by,
-          review_notes
+          review_notes,
+          rate
         });
       } else {
         // إنشاء مراجع جديد
@@ -47,7 +48,8 @@ class TicketReviewerController {
           ticket_id,
           reviewer_id,
           added_by,
-          review_notes
+          review_notes,
+          rate
         });
       }
 
@@ -155,7 +157,7 @@ class TicketReviewerController {
   static async updateReviewStatus(req, res) {
     try {
       const { id } = req.params;
-      const { review_status, review_notes } = req.body;
+      const { review_status, review_notes, rate } = req.body;
       const reviewer_id = req.user?.id;
 
       if (!review_status) {
@@ -168,6 +170,7 @@ class TicketReviewerController {
       const reviewer = await TicketReviewer.updateReviewStatus(id, {
         review_status,
         review_notes,
+        rate,
         reviewed_at: review_status === 'completed' ? new Date() : null
       });
 
