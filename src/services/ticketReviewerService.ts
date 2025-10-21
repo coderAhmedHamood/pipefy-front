@@ -11,6 +11,7 @@ export interface TicketReviewer {
   is_active: boolean;
   added_at: string;
   updated_at: string;
+  rate?: 'ضعيف' | 'جيد' | 'جيد جدا' | 'ممتاز' | null;
   reviewer_name?: string;
   reviewer_email?: string;
   reviewer_avatar?: string;
@@ -26,6 +27,7 @@ export interface CreateReviewerData {
 export interface UpdateReviewStatusData {
   review_status: 'pending' | 'in_progress' | 'completed' | 'skipped';
   review_notes?: string;
+  rate?: 'ضعيف' | 'جيد' | 'جيد جدا' | 'ممتاز' | null;
 }
 
 class TicketReviewerService {

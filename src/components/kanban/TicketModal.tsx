@@ -13,6 +13,7 @@ import ticketService from '../../services/ticketService';
 import userService from '../../services/userService';
 import commentService from '../../services/commentService';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
+import { useQuickNotifications } from '../ui/NotificationSystem';
 import { 
   X, 
   Save, 
@@ -79,6 +80,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   onDelete
 }) => {
   const { getProcessUsers, processes } = useWorkflow();
+  const notifications = useQuickNotifications();
   const { moveTicket, isMoving } = useSimpleMove();
   const { deleteTicket, isDeleting } = useSimpleDelete();
   const { updateTicket, isUpdating } = useSimpleUpdate();
@@ -312,6 +314,23 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     } catch (error) {
       console.error('خطأ في تحديث حالة المراجعة:', error);
       alert('فشل في تحديث حالة المراجعة');
+    }
+  };
+
+  const handleUpdateReviewRate = async (reviewerId: string, rate: 'ضعيف' | 'جيد' | 'جيد جدا' | 'ممتاز') => {
+    try {
+      const response = await ticketReviewerService.updateReviewStatus(reviewerId, {
+        review_status: 'completed',
+        rate: rate
+      });
+      
+      if (response.success) {
+        await loadReviewers();
+        notifications.showSuccess('تم تحديث التقييم بنجاح!', `تم تقييم المراجع بـ "${rate}"`);
+      }
+    } catch (error) {
+      console.error('خطأ في تحديث التقييم:', error);
+      notifications.showError('فشل في تحديث التقييم', 'حدث خطأ أثناء حفظ التقييم');
     }
   };
 
@@ -1330,6 +1349,59 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               >
                                 تخطي
                               </button>
+                            </div>
+                          )}
+                          
+                          {/* نظام التقييم بعد اكتمال المراجعة */}
+                          {reviewer.review_status === 'completed' && !reviewer.rate && (
+                            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <p className="text-sm font-medium text-blue-900 mb-2">قيم أداء المراجع:</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  onClick={() => handleUpdateReviewRate(reviewer.id, 'ممتاز')}
+                                  className="text-xs bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 transition-colors"
+                                >
+                                  ⭐ ممتاز
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateReviewRate(reviewer.id, 'جيد جدا')}
+                                  className="text-xs bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition-colors"
+                                >
+                                  👍 جيد جداً
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateReviewRate(reviewer.id, 'جيد')}
+                                  className="text-xs bg-yellow-500 text-white px-3 py-2 rounded hover:bg-yellow-600 transition-colors"
+                                >
+                                  👌 جيد
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateReviewRate(reviewer.id, 'ضعيف')}
+                                  className="text-xs bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 transition-colors"
+                                >
+                                  👎 ضعيف
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* عرض التقييم إذا كان موجوداً */}
+                          {reviewer.review_status === 'completed' && reviewer.rate && (
+                            <div className="mt-2 p-2 bg-gray-100 border border-gray-200 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-700">التقييم:</span>
+                                <span className={`text-sm px-2 py-1 rounded ${
+                                  reviewer.rate === 'ممتاز' ? 'bg-green-200 text-green-800' :
+                                  reviewer.rate === 'جيد جدا' ? 'bg-blue-200 text-blue-800' :
+                                  reviewer.rate === 'جيد' ? 'bg-yellow-200 text-yellow-800' :
+                                  'bg-red-200 text-red-800'
+                                }`}>
+                                  {reviewer.rate === 'ممتاز' ? '⭐ ممتاز' :
+                                   reviewer.rate === 'جيد جدا' ? '👍 جيد جداً' :
+                                   reviewer.rate === 'جيد' ? '👌 جيد' :
+                                   '👎 ضعيف'}
+                                </span>
+                              </div>
                             </div>
                           )}
                         </div>
