@@ -1244,12 +1244,12 @@ export const ReportsManager: React.FC = () => {
                       </div>
                     )}
 
-                    {/* تفاصيل التذاكر المكتملة */}
-                    {userReport.completed_tickets_details && userReport.completed_tickets_details.length > 0 && (
+                    {/* التذاكر الحديثة */}
+                    {userReport.recent_tickets && userReport.recent_tickets.length > 0 && (
                       <div className="bg-white rounded-lg shadow-sm p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                          <FileText className="w-5 h-5 text-purple-500" />
-                          <span>تفاصيل التذاكر المكتملة ({userReport.completed_tickets_details.length})</span>
+                          <FileText className="w-5 h-5 text-blue-500" />
+                          <span>التذاكر الحديثة ({userReport.recent_tickets.length})</span>
                         </h3>
                         
                         <div className="overflow-x-auto">
@@ -1260,14 +1260,14 @@ export const ReportsManager: React.FC = () => {
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">العنوان</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأولوية</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المرحلة</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفارق (ساعات)</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">حالة الأداء</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">تاريخ الإكمال</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">تاريخ الإنشاء</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">موعد الاستحقاق</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجراءات</th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                              {userReport.completed_tickets_details.map((ticket) => (
+                              {userReport.recent_tickets.map((ticket) => (
                                 <tr key={ticket.id} className="hover:bg-gray-50">
                                   <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                                     {ticket.ticket_number}
@@ -1281,32 +1281,30 @@ export const ReportsManager: React.FC = () => {
                                     </span>
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-600">
-                                    {ticket.stage_name}
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap">
-                                    <span className={`text-sm font-bold ${
-                                      parseFloat(ticket.variance_hours) > 0 
-                                        ? 'text-green-600' 
-                                        : parseFloat(ticket.variance_hours) < 0 
-                                        ? 'text-red-600' 
-                                        : 'text-gray-600'
-                                    }`}>
-                                      {parseFloat(ticket.variance_hours) > 0 ? '+' : ''}{parseFloat(ticket.variance_hours).toFixed(1)}
-                                    </span>
+                                    <div className="flex items-center space-x-2 space-x-reverse">
+                                      <div 
+                                        className="w-3 h-3 rounded-full"
+                                        style={{ backgroundColor: ticket.stage_color }}
+                                      ></div>
+                                      <span>{ticket.stage_name}</span>
+                                    </div>
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      ticket.performance_status === 'early' 
-                                        ? 'bg-green-100 text-green-800' 
-                                        : ticket.performance_status === 'late' 
+                                      ticket.is_overdue 
                                         ? 'bg-red-100 text-red-800' 
-                                        : 'bg-gray-100 text-gray-800'
+                                        : ticket.status === 'completed'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-blue-100 text-blue-800'
                                     }`}>
-                                      {ticket.performance_status === 'early' ? '✅ مبكر' : ticket.performance_status === 'late' ? '⚠️ متأخر' : '⏱️ في الوقت'}
+                                      {ticket.is_overdue ? '⚠️ متأخر' : ticket.status === 'completed' ? '✅ مكتمل' : '🔄 نشط'}
                                     </span>
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                    {new Date(ticket.completed_at).toLocaleDateString('ar-SA')}
+                                    {new Date(ticket.created_at).toLocaleDateString('ar-SA')}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                    {ticket.due_date ? new Date(ticket.due_date).toLocaleDateString('ar-SA') : 'غير محدد'}
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap text-sm">
                                     <button
