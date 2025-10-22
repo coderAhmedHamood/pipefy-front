@@ -571,7 +571,8 @@ class ReportController {
           AND deleted_at IS NULL
       `, [user_id, date_from, date_to]);
 
-      // 7. أحدث التذاكر
+      // 7. التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة)
+      console.log('🔍 تنفيذ استعلام recent_tickets للمستخدم:', user_id);
       const recentTickets = await pool.query(`
         SELECT 
           t.id,
@@ -584,20 +585,103 @@ class ReportController {
           t.completed_at,
           s.name as stage_name,
           s.color as stage_color,
+          s.is_final,
           p.name as process_name,
           CASE 
             WHEN t.due_date < NOW() AND t.status = 'active' THEN true
             ELSE false
-          END as is_overdue
+          END as is_overdue,
+          CASE 
+            WHEN t.due_date < NOW() THEN 'overdue'
+            WHEN t.due_date < NOW() + INTERVAL '3 days' THEN 'near_due'
+            ELSE 'normal'
+          END as urgency_status
         FROM tickets t
         JOIN stages s ON t.current_stage_id = s.id
         JOIN processes p ON t.process_id = p.id
         WHERE t.assigned_to = $1
+          AND t.deleted_at IS NULL
+          AND t.due_date IS NOT NULL
+          AND s.is_final = false
+          AND (
+            t.due_date < NOW() + INTERVAL '3 days'
+            OR t.due_date < NOW()
+          )
+        ORDER BY 
+          CASE WHEN t.due_date < NOW() THEN 0 ELSE 1 END,
+          t.due_date ASC
+        LIMIT 20
+      `, [user_id]);
+      console.log('📊 نتائج recent_tickets:', recentTickets.rows.length, 'تذكرة');
+
+      // 8. مؤشر الأداء (صافي الفارق بالساعات)
+      const performanceMetrics = await pool.query(`
+        SELECT 
+          ROUND(
+            SUM(
+              EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600
+            )::DECIMAL, 
+            2
+          ) as net_performance_hours
+        FROM tickets t
+        JOIN stages s ON t.current_stage_id = s.id
+        WHERE t.assigned_to = $1
+          AND t.completed_at IS NOT NULL
+          AND t.due_date IS NOT NULL
           AND t.created_at BETWEEN $2 AND $3
           AND t.deleted_at IS NULL
-        ORDER BY t.created_at DESC
-        LIMIT 10
+          AND s.is_final = true
       `, [user_id, date_from, date_to]);
+
+      // 9. تفاصيل التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة)
+      const completedTicketsDetails = await pool.query(`
+        SELECT 
+          t.id,
+          t.ticket_number,
+          t.title,
+          t.priority,
+          t.created_at,
+          t.due_date,
+          t.completed_at,
+          s.name as stage_name,
+          s.is_final,
+          p.name as process_name,
+          CASE 
+            WHEN t.due_date IS NOT NULL AND t.completed_at IS NOT NULL THEN
+              ROUND(EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600, 2)
+            WHEN t.due_date IS NOT NULL AND t.completed_at IS NULL THEN
+              ROUND(EXTRACT(EPOCH FROM (t.due_date - NOW())) / 3600, 2)
+            ELSE NULL
+          END as variance_hours,
+          CASE 
+            WHEN t.completed_at IS NOT NULL AND t.completed_at < t.due_date THEN 'early'
+            WHEN t.completed_at IS NOT NULL AND t.completed_at = t.due_date THEN 'on_time'
+            WHEN t.completed_at IS NOT NULL AND t.completed_at > t.due_date THEN 'late'
+            WHEN t.completed_at IS NULL AND t.due_date < NOW() THEN 'overdue'
+            WHEN t.completed_at IS NULL AND t.due_date >= NOW() THEN 'pending'
+            ELSE 'unknown'
+          END as performance_status,
+          CASE 
+            WHEN t.due_date < NOW() THEN 'overdue'
+            WHEN t.due_date < NOW() + INTERVAL '3 days' THEN 'near_due'
+            ELSE 'normal'
+          END as urgency_status
+        FROM tickets t
+        JOIN stages s ON t.current_stage_id = s.id
+        JOIN processes p ON t.process_id = p.id
+        WHERE t.assigned_to = $1
+          AND t.due_date IS NOT NULL
+          AND t.deleted_at IS NULL
+          AND s.is_final = false
+          AND (
+            t.due_date < NOW() + INTERVAL '3 days'
+            OR t.due_date < NOW()
+          )
+        ORDER BY 
+          CASE WHEN t.due_date < NOW() THEN 0 ELSE 1 END,
+          t.due_date ASC
+        LIMIT 50
+      `, [user_id]);
 
       // تنسيق بيانات المستخدم
       const user = userInfo.rows[0];
@@ -627,7 +711,9 @@ class ReportController {
           overdue_by_stage: overdueByStage.rows,
           priority_distribution: priorityDistribution.rows,
           completion_rate: completionRate.rows[0],
-          recent_tickets: recentTickets.rows
+          recent_tickets: recentTickets.rows,
+          performance_metrics: performanceMetrics.rows[0],
+          completed_tickets_details: completedTicketsDetails.rows
         }
       });
     } catch (error) {
