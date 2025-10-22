@@ -818,7 +818,7 @@ class ReportController {
         LIMIT 10
       `, [process_id, date_from, date_to]);
 
-      // 8. أحدث التذاكر
+      // 8. التذاكر المتأخرة والقريبة من الانتهاء (من جميع المراحل، فقط المُسندة)
       const recentTickets = await pool.query(`
         SELECT 
           t.id,
@@ -831,20 +831,33 @@ class ReportController {
           t.completed_at,
           s.name as stage_name,
           s.color as stage_color,
+          s.is_final,
           u.name as assigned_to_name,
           CASE 
             WHEN t.due_date < NOW() AND t.status = 'active' THEN true
             ELSE false
-          END as is_overdue
+          END as is_overdue,
+          CASE 
+            WHEN t.due_date < NOW() THEN 'overdue'
+            WHEN t.due_date < NOW() + INTERVAL '3 days' THEN 'near_due'
+            ELSE 'normal'
+          END as urgency_status
         FROM tickets t
         JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN users u ON t.assigned_to = u.id
         WHERE t.process_id = $1
-          AND t.created_at BETWEEN $2 AND $3
           AND t.deleted_at IS NULL
-        ORDER BY t.created_at DESC
-        LIMIT 10
-      `, [process_id, date_from, date_to]);
+          AND t.due_date IS NOT NULL
+          AND s.is_final = false
+          AND (
+            t.due_date < NOW() + INTERVAL '3 days'
+            OR t.due_date < NOW()
+          )
+        ORDER BY 
+          CASE WHEN t.due_date < NOW() THEN 0 ELSE 1 END,
+          t.due_date ASC
+        LIMIT 20
+      `, [process_id]);
 
       // 9. مؤشر الأداء (صافي الفارق بالساعات)
       const performanceMetrics = await pool.query(`
@@ -865,7 +878,7 @@ class ReportController {
           AND s.is_final = true
       `, [process_id, date_from, date_to]);
 
-      // 10. تفاصيل التذاكر المكتملة
+      // 10. تفاصيل التذاكر المتأخرة والقريبة من الانتهاء (من جميع المراحل، فقط المُسندة)
       const completedTicketsDetails = await pool.query(`
         SELECT 
           t.id,
@@ -876,24 +889,44 @@ class ReportController {
           t.due_date,
           t.completed_at,
           s.name as stage_name,
+          s.is_final,
           u.name as assigned_to_name,
-          ROUND(EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600, 2) as variance_hours,
           CASE 
-            WHEN t.completed_at < t.due_date THEN 'early'
-            WHEN t.completed_at = t.due_date THEN 'on_time'
-            ELSE 'late'
-          END as performance_status
+            WHEN t.due_date IS NOT NULL AND t.completed_at IS NOT NULL THEN
+              ROUND(EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600, 2)
+            WHEN t.due_date IS NOT NULL AND t.completed_at IS NULL THEN
+              ROUND(EXTRACT(EPOCH FROM (t.due_date - NOW())) / 3600, 2)
+            ELSE NULL
+          END as variance_hours,
+          CASE 
+            WHEN t.completed_at IS NOT NULL AND t.completed_at < t.due_date THEN 'early'
+            WHEN t.completed_at IS NOT NULL AND t.completed_at = t.due_date THEN 'on_time'
+            WHEN t.completed_at IS NOT NULL AND t.completed_at > t.due_date THEN 'late'
+            WHEN t.completed_at IS NULL AND t.due_date < NOW() THEN 'overdue'
+            WHEN t.completed_at IS NULL AND t.due_date >= NOW() THEN 'pending'
+            ELSE 'unknown'
+          END as performance_status,
+          CASE 
+            WHEN t.due_date < NOW() THEN 'overdue'
+            WHEN t.due_date < NOW() + INTERVAL '3 days' THEN 'near_due'
+            ELSE 'normal'
+          END as urgency_status
         FROM tickets t
         JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN users u ON t.assigned_to = u.id
         WHERE t.process_id = $1
-          AND t.completed_at IS NOT NULL
           AND t.due_date IS NOT NULL
-          AND t.created_at BETWEEN $2 AND $3
           AND t.deleted_at IS NULL
-          AND s.is_final = true
-        ORDER BY t.completed_at DESC
-      `, [process_id, date_from, date_to]);
+          AND s.is_final = false
+          AND (
+            t.due_date < NOW() + INTERVAL '3 days'
+            OR t.due_date < NOW()
+          )
+        ORDER BY 
+          CASE WHEN t.due_date < NOW() THEN 0 ELSE 1 END,
+          t.due_date ASC
+        LIMIT 50
+      `, [process_id]);
 
       res.json({
         success: true,
