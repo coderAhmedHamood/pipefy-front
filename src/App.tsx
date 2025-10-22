@@ -12,6 +12,7 @@ import { KanbanBoard } from './components/kanban/KanbanBoard';
 import { ProcessSelector } from './components/dashboard/ProcessSelector';
 import { HeaderProcessSelector } from './components/layout/HeaderProcessSelector';
 import { NotificationBell } from './components/notifications/NotificationBell';
+import { LatestNotificationBanner } from './components/notifications/LatestNotificationBanner';
 import { ProcessManager } from './components/processes/ProcessManager';
 import { UserManagerNew as UserManager } from './components/users/UserManagerNew';
 import { ReportsManager } from './components/reports/ReportsManager';
@@ -159,18 +160,21 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </button>
               
               <CompanyHeader size="medium" />
+            </div>
 
-              {/* Process Selector في الهيدر */}
+            {/* Latest Notification في المنتصف */}
+            <div className="flex-1 flex justify-center">
+              <LatestNotificationBanner />
+            </div>
+            
+            <div className="flex items-center space-x-3 space-x-reverse">
+              {/* Process Selector في الجهة اليمنى */}
               <HeaderProcessSelector
                 processes={processes}
                 selectedProcess={selectedProcess}
                 onProcessSelect={setSelectedProcess}
                 compact={true}
               />
-
-            </div>
-            
-            <div className="flex items-center space-x-3 space-x-reverse">
               <NotificationBell />
               <UserInfo />
             </div>
@@ -225,17 +229,23 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {/* Header للوضع العادي */}
           <div className="bg-white border-b border-gray-200 p-4 flex-shrink-0">
             <div className="flex items-center justify-between">
-              <CompanyHeader size="small" />
+              <div className="flex items-center space-x-4 space-x-reverse">
+                <CompanyHeader size="small" />
+              </div>
+
+              {/* Latest Notification في المنتصف */}
+              <div className="flex-1 flex justify-center">
+                <LatestNotificationBanner />
+              </div>
 
               <div className="flex items-center space-x-4 space-x-reverse">
-                {/* Process Selector في الهيدر */}
+                {/* Process Selector في الجهة اليمنى */}
                 <HeaderProcessSelector
                   processes={processes}
                   selectedProcess={selectedProcess}
                   onProcessSelect={setSelectedProcess}
                   compact={false}
                 />
-
                 <NotificationBell />
                 <UserInfo />
               </div>
