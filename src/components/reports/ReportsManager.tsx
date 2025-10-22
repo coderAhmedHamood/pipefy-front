@@ -14,8 +14,13 @@ import {
   RefreshCw,
   Loader,
   TrendingUp,
-  FileText
+  FileText,
+  Bell,
+  Send
 } from 'lucide-react';
+import notificationService from '../../services/notificationService';
+import ticketAssignmentService from '../../services/ticketAssignmentService';
+import { useQuickNotifications } from '../ui/NotificationSystem';
 
 interface Process {
   id: string;
@@ -175,6 +180,8 @@ interface UserReport {
 type TabType = 'users' | 'processes' | 'development';
 
 export const ReportsManager: React.FC = () => {
+  const notifications = useQuickNotifications();
+  
   const [activeTab, setActiveTab] = useState<TabType>('processes');
   const [processes, setProcesses] = useState<Process[]>([]);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
@@ -188,6 +195,7 @@ export const ReportsManager: React.FC = () => {
   const [userReport, setUserReport] = useState<UserReport | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingUserReport, setIsLoadingUserReport] = useState(false);
+  const [sendingNotifications, setSendingNotifications] = useState<{ [key: string]: boolean }>({});
   
   // حقول التاريخ - افتراضياً آخر 30 يوم
   const getDefaultDates = () => {
@@ -362,6 +370,92 @@ export const ReportsManager: React.FC = () => {
       alert('حدث خطأ أثناء جلب التقرير. تحقق من اتصال الإنترنت.');
     } finally {
       setIsLoadingUserReport(false);
+    }
+  };
+
+  // دالة لجلب المستخدمين المُسندين لتذكرة
+  const getTicketAssignedUsers = async (ticketId: string) => {
+    try {
+      const response = await ticketAssignmentService.getTicketAssignments(ticketId);
+      if (response.success && response.data) {
+        return response.data.filter(assignment => assignment.is_active);
+      }
+      return [];
+    } catch (error) {
+      console.error('خطأ في جلب المستخدمين المُسندين:', error);
+      return [];
+    }
+  };
+
+  // دالة لإرسال إشعار للمستخدمين المُسندين
+  const sendNotificationToAssignedUsers = async (ticketId: string, ticketNumber: string, ticketTitle: string) => {
+    setSendingNotifications(prev => ({ ...prev, [ticketId]: true }));
+    
+    try {
+      // جلب المستخدمين المُسندين
+      const assignments = await getTicketAssignedUsers(ticketId);
+      
+      if (assignments.length === 0) {
+        notifications.showWarning('لا يوجد مستخدمين مُسندين', 'لا يوجد مستخدمين مُسندين لهذه التذكرة');
+        return;
+      }
+
+      // جلب معلومات المستخدم الحالي
+      const token = localStorage.getItem('auth_token');
+      let currentUserName = 'المدير';
+      
+      try {
+        const userResponse = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          currentUserName = userData.data?.name || userData.name || 'المدير';
+        }
+      } catch (error) {
+        console.log('تعذر جلب اسم المستخدم، سيتم استخدام الاسم الافتراضي');
+      }
+
+      // استخراج معرفات المستخدمين
+      const userIds = assignments.map(assignment => assignment.user_id);
+      
+      // استخراج رقم التذكرة الأساسي (إزالة الأرقام الإضافية)
+      const cleanTicketNumber = ticketNumber.split('-')[0] + '-' + ticketNumber.split('-')[1];
+      
+      // إعداد بيانات الإشعار
+      const notificationData = {
+        user_ids: userIds,
+        title: `💬 إشعار متابعة التذكرة ${cleanTicketNumber}`,
+        message: `📌 نود تنبيهكم بأن التذكرة "${ticketTitle}" لم تُحدّث مؤخرًا ويقترب موعد استحقاقها.\nيُرجى مراجعة حالتها والتأكد من إنجاز المهام المطلوبة لتفادي أي تأخير في سير العمل.\n\n👤 بواسطة: ${currentUserName}`,
+        notification_type: 'ticket_follow_up',
+        action_url: `/tickets/${ticketId}`,
+        url: `/tickets/${ticketId}`,
+        data: {
+          ticket_id: ticketId,
+          ticket_title: ticketTitle,
+          ticket_number: cleanTicketNumber,
+          sent_by: currentUserName,
+          sent_by_id: localStorage.getItem('user_id') || null
+        }
+      };
+
+      // إرسال الإشعار الجماعي
+      const response = await notificationService.sendBulkNotification(notificationData);
+      
+      if (response.success) {
+        notifications.showSuccess('تم إرسال الإشعار بنجاح', `تم إرسال الإشعار إلى ${response.data?.sent_count || 0} مستخدم`);
+      } else {
+        notifications.showError('فشل في إرسال الإشعار', 'حدث خطأ أثناء إرسال الإشعار');
+      }
+    } catch (error) {
+      console.error('خطأ في إرسال الإشعار:', error);
+      notifications.showError('خطأ في الإرسال', 'حدث خطأ أثناء إرسال الإشعار. يرجى المحاولة مرة أخرى.');
+    } finally {
+      setSendingNotifications(prev => ({ ...prev, [ticketId]: false }));
     }
   };
 
@@ -753,6 +847,7 @@ export const ReportsManager: React.FC = () => {
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأيام المخططة</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفرق</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجراءات</th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -799,6 +894,21 @@ export const ReportsManager: React.FC = () => {
                                       {ticket.performance_status === 'early' ? 'قريب' :
                                        ticket.performance_status === 'on_time' ? 'في الوقت' : 'متأخر'}
                                     </span>
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    <button
+                                      onClick={() => sendNotificationToAssignedUsers(ticket.id, ticket.ticket_number, ticket.title)}
+                                      disabled={sendingNotifications[ticket.id]}
+                                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="إرسال إشعار للمستخدمين المُسندين"
+                                    >
+                                      {sendingNotifications[ticket.id] ? (
+                                        <Loader className="w-3 h-3 animate-spin ml-1" />
+                                      ) : (
+                                        <Send className="w-3 h-3 ml-1" />
+                                      )}
+                                      {sendingNotifications[ticket.id] ? 'جاري الإرسال...' : 'إرسال إشعار'}
+                                    </button>
                                   </td>
                                 </tr>
                               ))}
@@ -1153,6 +1263,7 @@ export const ReportsManager: React.FC = () => {
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفارق (ساعات)</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">حالة الأداء</th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">تاريخ الإكمال</th>
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجراءات</th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -1196,6 +1307,21 @@ export const ReportsManager: React.FC = () => {
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                                     {new Date(ticket.completed_at).toLocaleDateString('ar-SA')}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                    <button
+                                      onClick={() => sendNotificationToAssignedUsers(ticket.id, ticket.ticket_number, ticket.title)}
+                                      disabled={sendingNotifications[ticket.id]}
+                                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="إرسال إشعار للمستخدمين المُسندين"
+                                    >
+                                      {sendingNotifications[ticket.id] ? (
+                                        <Loader className="w-3 h-3 animate-spin ml-1" />
+                                      ) : (
+                                        <Send className="w-3 h-3 ml-1" />
+                                      )}
+                                      {sendingNotifications[ticket.id] ? 'جاري الإرسال...' : 'إرسال إشعار'}
+                                    </button>
                                   </td>
                                 </tr>
                               ))}
