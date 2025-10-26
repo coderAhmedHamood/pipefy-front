@@ -404,7 +404,10 @@ class ReportController {
    */
   static async getUserDetailedReport(req, res) {
     try {
+      console.log('🚨 DEBUG: بداية تنفيذ getUserDetailedReport');
+      console.log('🚨 DEBUG: req.params:', req.params);
       const { user_id } = req.params;
+      console.log('🚨 DEBUG: user_id المستخرج:', user_id);
       const {
         date_from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
         date_to = new Date().toISOString()
@@ -571,8 +574,10 @@ class ReportController {
           AND deleted_at IS NULL
       `, [user_id, date_from, date_to]);
 
-      // 7. التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة)
-      console.log('🔍 تنفيذ استعلام recent_tickets للمستخدم:', user_id);
+      // 7. التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة فقط)
+      console.log('🚨 DEBUG: تنفيذ استعلام recent_tickets للمستخدم:', user_id);
+      console.log('🚨 DEBUG: استبعاد المراحل المكتملة (is_final = true)');
+      console.log('🚨 DEBUG: الاستعلام سيتم تنفيذه الآن...');
       const recentTickets = await pool.query(`
         SELECT 
           t.id,
@@ -602,7 +607,7 @@ class ReportController {
         WHERE t.assigned_to = $1
           AND t.deleted_at IS NULL
           AND t.due_date IS NOT NULL
-          AND s.is_final = false
+          AND (s.is_final = false OR s.is_final IS NULL)
           AND (
             t.due_date < NOW() + INTERVAL '3 days'
             OR t.due_date < NOW()
@@ -612,7 +617,12 @@ class ReportController {
           t.due_date ASC
         LIMIT 20
       `, [user_id]);
-      console.log('📊 نتائج recent_tickets:', recentTickets.rows.length, 'تذكرة');
+      console.log('🚨 DEBUG: انتهى تنفيذ استعلام recent_tickets');
+      console.log('🚨 DEBUG: عدد النتائج:', recentTickets.rows.length);
+      console.log('🚨 DEBUG: أول 3 نتائج:');
+      recentTickets.rows.slice(0, 3).forEach((ticket, index) => {
+        console.log(`  ${index + 1}. ${ticket.title} - المرحلة: ${ticket.stage_name} (is_final: ${ticket.is_final})`);
+      });
 
       // 8. مؤشر الأداء (صافي الفارق بالساعات)
       const performanceMetrics = await pool.query(`
@@ -634,6 +644,7 @@ class ReportController {
       `, [user_id, date_from, date_to]);
 
       // 9. تفاصيل التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة)
+      console.log('🚨 DEBUG: تنفيذ استعلام completed_tickets_details للمستخدم:', user_id);
       const completedTicketsDetails = await pool.query(`
         SELECT 
           t.id,
@@ -672,7 +683,7 @@ class ReportController {
         WHERE t.assigned_to = $1
           AND t.due_date IS NOT NULL
           AND t.deleted_at IS NULL
-          AND s.is_final = false
+          AND (s.is_final = false OR s.is_final IS NULL)
           AND (
             t.due_date < NOW() + INTERVAL '3 days'
             OR t.due_date < NOW()
@@ -682,6 +693,12 @@ class ReportController {
           t.due_date ASC
         LIMIT 50
       `, [user_id]);
+      console.log('🚨 DEBUG: انتهى تنفيذ استعلام completed_tickets_details');
+      console.log('🚨 DEBUG: عدد النتائج:', completedTicketsDetails.rows.length);
+      console.log('🚨 DEBUG: أول 3 نتائج:');
+      completedTicketsDetails.rows.slice(0, 3).forEach((ticket, index) => {
+        console.log(`  ${index + 1}. ${ticket.title} - المرحلة: ${ticket.stage_name} (is_final: ${ticket.is_final})`);
+      });
 
       // تنسيق بيانات المستخدم
       const user = userInfo.rows[0];
@@ -1223,7 +1240,8 @@ class ReportController {
         GROUP BY u.id, u.name, u.email
       `, [user_id, date_from, date_to]);
 
-      // 7. أحدث التذاكر
+      // 7. أحدث التذاكر (من المراحل غير المكتملة فقط)
+      console.log('🚨 DEBUG: تنفيذ استعلام recent_tickets في getUserReport للمستخدم:', user_id);
       const recentTickets = await pool.query(`
         SELECT DISTINCT
           t.id,
@@ -1240,7 +1258,8 @@ class ReportController {
           CASE 
             WHEN t.due_date < NOW() AND t.status = 'active' THEN true
             ELSE false
-          END as is_overdue
+          END as is_overdue,
+          CASE WHEN t.due_date < NOW() THEN 0 ELSE 1 END as urgency_order
         FROM tickets t
         JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN users u ON t.assigned_to = u.id
@@ -1248,8 +1267,13 @@ class ReportController {
         WHERE (t.assigned_to = $1 OR ta.user_id = $1)
           AND t.created_at BETWEEN $2 AND $3
           AND t.deleted_at IS NULL
-        ORDER BY t.created_at DESC
-        LIMIT 10
+          AND (s.is_final = false OR s.is_final IS NULL)
+          AND (
+            t.due_date < NOW() + INTERVAL '3 days'
+            OR t.due_date < NOW()
+          )
+        ORDER BY urgency_order, t.due_date ASC
+        LIMIT 20
       `, [user_id, date_from, date_to]);
 
       // 8. مؤشر الأداء (صافي الفارق بالساعات)
@@ -1272,7 +1296,8 @@ class ReportController {
           AND s.is_final = true
       `, [user_id, date_from, date_to]);
 
-      // 9. تفاصيل التذاكر المكتملة
+      // 9. تفاصيل التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة فقط)
+      console.log('🚨 DEBUG: تنفيذ استعلام completed_tickets_details في getUserReport للمستخدم:', user_id);
       const completedTicketsDetails = await pool.query(`
         SELECT DISTINCT
           t.id,
@@ -1284,23 +1309,37 @@ class ReportController {
           t.completed_at,
           s.name as stage_name,
           u.name as assigned_to_name,
-          ROUND(EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600, 2) as variance_hours,
           CASE 
-            WHEN t.completed_at < t.due_date THEN 'early'
-            WHEN t.completed_at = t.due_date THEN 'on_time'
-            ELSE 'late'
-          END as performance_status
+            WHEN t.due_date IS NOT NULL AND t.completed_at IS NOT NULL THEN
+              ROUND(EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600, 2)
+            WHEN t.due_date IS NOT NULL AND t.completed_at IS NULL THEN
+              ROUND(EXTRACT(EPOCH FROM (t.due_date - NOW())) / 3600, 2)
+            ELSE NULL
+          END as variance_hours,
+          CASE 
+            WHEN t.completed_at IS NOT NULL AND t.completed_at < t.due_date THEN 'early'
+            WHEN t.completed_at IS NOT NULL AND t.completed_at = t.due_date THEN 'on_time'
+            WHEN t.completed_at IS NOT NULL AND t.completed_at > t.due_date THEN 'late'
+            WHEN t.completed_at IS NULL AND t.due_date < NOW() THEN 'overdue'
+            WHEN t.completed_at IS NULL AND t.due_date >= NOW() THEN 'pending'
+            ELSE 'unknown'
+          END as performance_status,
+          CASE WHEN t.due_date < NOW() THEN 0 ELSE 1 END as urgency_order
         FROM tickets t
         JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN users u ON t.assigned_to = u.id
         LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
         WHERE (t.assigned_to = $1 OR ta.user_id = $1)
-          AND t.completed_at IS NOT NULL
           AND t.due_date IS NOT NULL
           AND t.created_at BETWEEN $2 AND $3
           AND t.deleted_at IS NULL
-          AND s.is_final = true
-        ORDER BY t.completed_at DESC
+          AND (s.is_final = false OR s.is_final IS NULL)
+          AND (
+            t.due_date < NOW() + INTERVAL '3 days'
+            OR t.due_date < NOW()
+          )
+        ORDER BY urgency_order, t.due_date ASC
+        LIMIT 50
       `, [user_id, date_from, date_to]);
 
       res.json({

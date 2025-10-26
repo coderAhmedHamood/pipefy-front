@@ -1,0 +1,132 @@
+const { pool } = require('./config/database');
+require('dotenv').config();
+
+const USER_ID = 'a00a2f8e-2843-41da-8080-6eb4cd0a706b';
+
+async function testIsFinalExclusion() {
+  try {
+    console.log('🧪 اختبار استبعاد المراحل بدلالة is_final = true...\n');
+
+    // 1. فحص جميع التذاكر المتأخرة (بدون قيد is_final)
+    console.log('📊 جميع التذاكر المتأخرة والقريبة (بدون قيد is_final):');
+    const allTickets = await pool.query(`
+      SELECT 
+        t.ticket_number,
+        t.title,
+        s.name as stage_name,
+        s.is_final,
+        p.name as process_name,
+        CASE 
+          WHEN t.due_date < NOW() THEN 'overdue'
+          WHEN t.due_date < NOW() + INTERVAL '3 days' THEN 'near_due'
+          ELSE 'normal'
+        END as urgency_status
+      FROM tickets t
+      JOIN stages s ON t.current_stage_id = s.id
+      JOIN processes p ON t.process_id = p.id
+      WHERE t.assigned_to = $1
+        AND t.deleted_at IS NULL
+        AND t.due_date IS NOT NULL
+        AND (
+          t.due_date < NOW() + INTERVAL '3 days'
+          OR t.due_date < NOW()
+        )
+      ORDER BY 
+        CASE WHEN t.due_date < NOW() THEN 0 ELSE 1 END,
+        t.due_date ASC
+    `, [USER_ID]);
+
+    console.log(`عدد جميع التذاكر: ${allTickets.rows.length}\n`);
+
+    let finalStageCount = 0;
+    let nonFinalStageCount = 0;
+
+    allTickets.rows.forEach((ticket, index) => {
+      if (ticket.is_final === true) {
+        finalStageCount++;
+      } else {
+        nonFinalStageCount++;
+      }
+
+      if (index < 10) {
+        console.log(`${index + 1}. ${ticket.ticket_number} - ${ticket.title}`);
+        console.log(`   المرحلة: ${ticket.stage_name} (is_final: ${ticket.is_final})`);
+        console.log(`   العملية: ${ticket.process_name}`);
+        console.log(`   حالة الإلحاح: ${ticket.urgency_status}`);
+        console.log(`   نوع المرحلة: ${ticket.is_final ? 'مكتملة ❌' : 'غير مكتملة ✅'}`);
+        console.log('');
+      }
+    });
+
+    console.log(`📈 الإحصائيات:`);
+    console.log(`- التذاكر في مراحل مكتملة (is_final = true): ${finalStageCount}`);
+    console.log(`- التذاكر في مراحل غير مكتملة (is_final = false): ${nonFinalStageCount}`);
+
+    // 2. فحص الاستعلام الجديد (مع قيد is_final = false فقط)
+    console.log('\n🎯 الاستعلام الجديد (مع قيد is_final = false فقط):');
+    const filteredTickets = await pool.query(`
+      SELECT 
+        t.ticket_number,
+        t.title,
+        s.name as stage_name,
+        s.is_final,
+        p.name as process_name,
+        CASE 
+          WHEN t.due_date < NOW() THEN 'overdue'
+          WHEN t.due_date < NOW() + INTERVAL '3 days' THEN 'near_due'
+          ELSE 'normal'
+        END as urgency_status
+      FROM tickets t
+      JOIN stages s ON t.current_stage_id = s.id
+      JOIN processes p ON t.process_id = p.id
+      WHERE t.assigned_to = $1
+        AND t.deleted_at IS NULL
+        AND t.due_date IS NOT NULL
+        AND s.is_final = false
+        AND (
+          t.due_date < NOW() + INTERVAL '3 days'
+          OR t.due_date < NOW()
+        )
+      ORDER BY 
+        CASE WHEN t.due_date < NOW() THEN 0 ELSE 1 END,
+        t.due_date ASC
+      LIMIT 20
+    `, [USER_ID]);
+
+    console.log(`عدد التذاكر بعد الفلترة: ${filteredTickets.rows.length}\n`);
+
+    filteredTickets.rows.forEach((ticket, index) => {
+      console.log(`${index + 1}. ${ticket.ticket_number} - ${ticket.title}`);
+      console.log(`   المرحلة: ${ticket.stage_name} (is_final: ${ticket.is_final})`);
+      console.log(`   العملية: ${ticket.process_name}`);
+      console.log(`   حالة الإلحاح: ${ticket.urgency_status}`);
+      console.log('');
+    });
+
+    // 3. التحقق من عدم وجود مراحل مكتملة (is_final = true)
+    const hasFinalStages = filteredTickets.rows.some(ticket => ticket.is_final === true);
+
+    console.log(`✅ التحقق من استبعاد المراحل المكتملة:`);
+    console.log(`- يحتوي على مراحل مكتملة (is_final = true): ${hasFinalStages ? 'نعم ❌' : 'لا ✅'}`);
+    console.log(`- عدد التذاكر المستبعدة: ${finalStageCount}`);
+    console.log(`- عدد التذاكر المتبقية: ${filteredTickets.rows.length}`);
+
+    // 4. عرض أسماء المراحل المتبقية
+    const remainingStages = [...new Set(filteredTickets.rows.map(t => t.stage_name))];
+    console.log(`\n📋 المراحل المتبقية بعد الفلترة:`);
+    remainingStages.forEach(stageName => {
+      console.log(`- ${stageName}`);
+    });
+
+    if (!hasFinalStages) {
+      console.log('\n🎉 تم استبعاد جميع المراحل المكتملة (is_final = true) بنجاح!');
+    } else {
+      console.log('\n⚠️ ما زالت هناك مراحل مكتملة في النتائج!');
+    }
+
+  } catch (error) {
+    console.error('❌ خطأ:', error.message);
+  }
+}
+
+testIsFinalExclusion();
