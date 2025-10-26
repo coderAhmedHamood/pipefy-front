@@ -34,13 +34,13 @@ const menuItems = [
   { id: 'users', label: 'المستخدمين', icon: Users },
   { id: 'automation', label: 'الأتمتة', icon: Zap },
   { id: 'recurring', label: 'التذاكر المتكررة', icon: RefreshCw },
-  { id: 'integrations', label: 'التكاملات', icon: Globe },
+  // { id: 'integrations', label: 'التكاملات', icon: Globe },
   { id: 'reports', label: 'التقارير', icon: BarChart3 },
   { id: 'notifications', label: 'الإشعارات', icon: Bell },
   { id: 'api', label: 'توثيق API', icon: Code },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
   // { id: 'setup', label: 'دليل الإعداد', icon: Settings },
-  { id: 'help', label: 'المساعدة', icon: HelpCircle }
+  // { id: 'help', label: 'المساعدة', icon: HelpCircle }
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({
