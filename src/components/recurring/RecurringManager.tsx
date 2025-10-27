@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { RecurringRule, RecurringSchedule, Process } from '../../types/workflow';
+import { API_ENDPOINTS, apiRequest } from '../../config/api';
 import { 
   RefreshCw, 
   Plus, 
@@ -16,10 +17,58 @@ import {
   Settings
 } from 'lucide-react';
 
+interface ProcessField {
+  id: string;
+  name: string;
+  label: string;
+  field_type: string;
+  is_required: boolean;
+  is_system_field: boolean;
+  default_value: any;
+  options: any;
+  validation_rules: any;
+  order_index: number;
+  group_name?: string;
+  width?: string;
+  help_text?: string;
+  placeholder?: string;
+}
+
+interface ProcessStage {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  order_index: number;
+  is_initial: boolean;
+  is_final: boolean;
+}
+
+interface ProcessDetails {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  icon: string;
+  is_active: boolean;
+  stages: ProcessStage[];
+  fields: ProcessField[];
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export const RecurringManager: React.FC = () => {
   const { processes } = useWorkflow();
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
+  const [selectedProcessDetails, setSelectedProcessDetails] = useState<ProcessDetails | null>(null);
+  const [loadingProcessDetails, setLoadingProcessDetails] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
 
@@ -30,7 +79,11 @@ export const RecurringManager: React.FC = () => {
       title: '',
       description: '',
       priority: 'medium' as const,
-      data: {}
+      due_date: '',
+      assigned_to: '',
+      stage_id: '',
+      ticket_type: 'task' as 'task' | 'bug' | 'feature' | 'support',
+      data: {} as Record<string, any>
     },
     schedule: {
       type: 'daily' as const,
@@ -60,14 +113,87 @@ export const RecurringManager: React.FC = () => {
     { value: 6, label: 'السبت' }
   ];
 
+  // جلب تفاصيل العملية المختارة
+  const fetchProcessDetails = async (processId: string) => {
+    setLoadingProcessDetails(true);
+    try {
+      const data = await apiRequest(API_ENDPOINTS.PROCESSES.GET_BY_ID(processId));
+      if (data.success && data.data) {
+        setSelectedProcessDetails(data.data);
+        
+        // اختيار المرحلة الأولية كافتراضي
+        const initialStage = data.data.stages?.find((stage: ProcessStage) => stage.is_initial && !stage.is_final);
+        if (initialStage) {
+          setRuleForm(prev => ({
+            ...prev,
+            template_data: {
+              ...prev.template_data,
+              stage_id: initialStage.id
+            }
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('خطأ في جلب تفاصيل العملية:', error);
+    } finally {
+      setLoadingProcessDetails(false);
+    }
+  };
+
+  // جلب المستخدمين من API
+  const fetchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const data = await apiRequest(API_ENDPOINTS.USERS.LIST);
+      if (data.success && data.data) {
+        setUsers(data.data);
+      }
+    } catch (error) {
+      console.error('خطأ في جلب المستخدمين:', error);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // معالجة اختيار العملية
+  const handleProcessSelect = (process: Process) => {
+    setSelectedProcess(process);
+    fetchProcessDetails(process.id);
+  };
+
+  // معالجة تغيير قيم الحقول المخصصة
+  const handleFieldChange = (fieldName: string, value: any) => {
+    setRuleForm({
+      ...ruleForm,
+      template_data: {
+        ...ruleForm.template_data,
+        data: {
+          ...ruleForm.template_data.data,
+          [fieldName]: value
+        }
+      }
+    });
+  };
+
+  // جلب المستخدمين عند فتح فورم الإنشاء
+  useEffect(() => {
+    if (isCreating) {
+      fetchUsers();
+    }
+  }, [isCreating]);
+
   const handleCreateRule = () => {
-    if (!selectedProcess) return;
+    if (!selectedProcess || !ruleForm.name || !ruleForm.template_data.title) return;
 
     const newRule: RecurringRule = {
       id: Date.now().toString(),
       name: ruleForm.name,
       process_id: selectedProcess.id,
-      template_data: ruleForm.template_data,
+      template_data: {
+        ...ruleForm.template_data,
+        // تأكد من وجود process_id في template_data
+        process_id: selectedProcess.id
+      },
       schedule: ruleForm.schedule,
       is_active: ruleForm.is_active,
       created_by: '1',
@@ -87,11 +213,15 @@ export const RecurringManager: React.FC = () => {
       template_data: {
         title: '',
         description: '',
-        priority: 'medium',
+        priority: 'medium' as const,
+        due_date: '',
+        assigned_to: '',
+        stage_id: '',
+        ticket_type: 'task' as 'task' | 'bug' | 'feature' | 'support',
         data: {}
       },
       schedule: {
-        type: 'daily',
+        type: 'daily' as const,
         interval: 1,
         time: '09:00',
         days_of_week: [],
@@ -99,6 +229,7 @@ export const RecurringManager: React.FC = () => {
       },
       is_active: true
     });
+    setSelectedProcessDetails(null);
   };
 
   const calculateNextExecution = (schedule: RecurringSchedule): string => {
@@ -201,7 +332,7 @@ export const RecurringManager: React.FC = () => {
                 {processes.map((process) => (
                 <button
                   key={process.id}
-                  onClick={() => setSelectedProcess(process)}
+                  onClick={() => handleProcessSelect(process)}
                   className={`
                     w-full p-4 rounded-lg border-2 transition-all duration-200 text-right
                     ${selectedProcess?.id === process.id
@@ -241,12 +372,21 @@ export const RecurringManager: React.FC = () => {
           ) : (
             <>
               <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  قواعد التكرار - {selectedProcess.name}
-                </h3>
-                <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
-                  {recurringRules.filter(r => r.process_id === selectedProcess.id).length} قاعدة
-                </span>
+                <div className="flex items-center space-x-3 space-x-reverse">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    قواعد التكرار - {selectedProcess.name}
+                  </h3>
+                  <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
+                    {recurringRules.filter(r => r.process_id === selectedProcess.id).length} قاعدة
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsCreating(true)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 space-x-reverse"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>قاعدة جديدة</span>
+                </button>
               </div>
               
               <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
@@ -398,22 +538,350 @@ export const RecurringManager: React.FC = () => {
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">الأولوية</label>
-                  <select
-                    value={ruleForm.template_data.priority}
-                    onChange={(e) => setRuleForm({
-                      ...ruleForm,
-                      template_data: { ...ruleForm.template_data, priority: e.target.value as any }
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="low">منخفض</option>
-                    <option value="medium">متوسط</option>
-                    <option value="high">عاجل</option>
-                    <option value="urgent">عاجل جداً</option>
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">الأولوية</label>
+                    <select
+                      value={ruleForm.template_data.priority}
+                      onChange={(e) => setRuleForm({
+                        ...ruleForm,
+                        template_data: { ...ruleForm.template_data, priority: e.target.value as any }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="low">منخفض</option>
+                      <option value="medium">متوسط</option>
+                      <option value="high">عاجل</option>
+                      <option value="urgent">عاجل جداً</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">نوع التذكرة</label>
+                    <select
+                      value={ruleForm.template_data.ticket_type || 'task'}
+                      onChange={(e) => setRuleForm({
+                        ...ruleForm,
+                        template_data: { ...ruleForm.template_data, ticket_type: e.target.value as 'task' | 'bug' | 'feature' | 'support' }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="task">مهمة</option>
+                      <option value="bug">خطأ</option>
+                      <option value="feature">ميزة</option>
+                      <option value="support">دعم</option>
+                    </select>
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">تاريخ الاستحقاق</label>
+                    <input
+                      type="date"
+                      value={ruleForm.template_data.due_date || ''}
+                      onChange={(e) => setRuleForm({
+                        ...ruleForm,
+                        template_data: { ...ruleForm.template_data, due_date: e.target.value }
+                      })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">المسند إليه</label>
+                    {loadingUsers ? (
+                      <div className="flex items-center justify-center py-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                        <span className="text-sm text-gray-600">جاري تحميل المستخدمين...</span>
+                      </div>
+                    ) : (
+                      <select
+                        value={ruleForm.template_data.assigned_to || ''}
+                        onChange={(e) => setRuleForm({
+                          ...ruleForm,
+                          template_data: { ...ruleForm.template_data, assigned_to: e.target.value }
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">اختر المستخدم</option>
+                        {users.map((user) => (
+                          <option key={user.id} value={user.id}>
+                            {user.name} ({user.email})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+
+                {/* Process Stages */}
+                {selectedProcessDetails && selectedProcessDetails.stages && selectedProcessDetails.stages.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">المرحلة الأولية</label>
+                    {loadingProcessDetails ? (
+                      <div className="flex items-center justify-center py-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                        <span className="text-sm text-gray-600">جاري تحميل المراحل...</span>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {selectedProcessDetails.stages
+                          .filter(stage => !stage.is_final) // استبعاد المراحل النهائية
+                          .sort((a, b) => a.order_index - b.order_index)
+                          .map((stage) => (
+                            <button
+                              key={stage.id}
+                              type="button"
+                              onClick={() => setRuleForm({
+                                ...ruleForm,
+                                template_data: { ...ruleForm.template_data, stage_id: stage.id }
+                              })}
+                              className={`
+                                p-3 rounded-lg border-2 transition-all duration-200 text-right
+                                ${ruleForm.template_data.stage_id === stage.id
+                                  ? 'border-blue-500 bg-blue-50'
+                                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                }
+                              `}
+                            >
+                              <div className="flex items-center space-x-2 space-x-reverse">
+                                <div className={`w-3 h-3 rounded-full ${stage.color}`}></div>
+                                <span className="font-medium text-gray-900">{stage.name}</span>
+                                {stage.is_initial && (
+                                  <span className="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">
+                                    افتراضي
+                                  </span>
+                                )}
+                              </div>
+                              {stage.description && (
+                                <p className="text-sm text-gray-500 mt-1">{stage.description}</p>
+                              )}
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Process Fields */}
+                {selectedProcessDetails && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-900">حقول العملية المخصصة</h4>
+                      {loadingProcessDetails && (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                          <span className="text-sm text-gray-600">جاري التحميل...</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {selectedProcessDetails.fields && selectedProcessDetails.fields.filter(field => !field.is_system_field).length === 0 ? (
+                      <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                        <div className="text-gray-400 mb-2">
+                          <Settings className="w-8 h-8 mx-auto" />
+                        </div>
+                        <p className="text-sm text-gray-500">لا توجد حقول مخصصة لهذه العملية</p>
+                        <p className="text-xs text-gray-400 mt-1">سيتم استخدام الحقول الأساسية فقط</p>
+                      </div>
+                    ) : selectedProcessDetails.fields && selectedProcessDetails.fields.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedProcessDetails.fields
+                        .filter(field => !field.is_system_field)
+                        .sort((a, b) => a.order_index - b.order_index)
+                        .map((field) => (
+                          <div key={field.id} className={
+                            field.width === 'full' || field.width === '100%' || field.field_type === 'textarea' || field.field_type === 'multiselect' 
+                              ? 'md:col-span-2' 
+                              : ''
+                          }>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              {field.label}
+                              {field.is_required && <span className="text-red-500 mr-1">*</span>}
+                            </label>
+                            
+                            {field.field_type === 'text' && (
+                              <input
+                                type="text"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || field.label}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.field_type === 'email' && (
+                              <input
+                                type="email"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || field.label}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.field_type === 'number' && (
+                              <input
+                                type="number"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || field.label}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.field_type === 'textarea' && (
+                              <textarea
+                                rows={3}
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || field.label}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.field_type === 'select' && (field.options?.choices || field.options) && (
+                              <select 
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              >
+                                <option value="">اختر {field.label}</option>
+                                {(field.options?.choices || field.options || []).map((choice: any, index: number) => (
+                                  <option key={index} value={choice.value}>
+                                    {choice.label}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                            
+                            {field.field_type === 'date' && (
+                              <input
+                                type="date"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.field_type === 'datetime' && (
+                              <input
+                                type="datetime-local"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.field_type === 'checkbox' && (
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={ruleForm.template_data.data[field.name] || false}
+                                  onChange={(e) => handleFieldChange(field.name, e.target.checked)}
+                                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                />
+                                <span className="mr-2 text-sm text-gray-700">{field.help_text || field.label}</span>
+                              </div>
+                            )}
+                            
+                            {field.field_type === 'multiselect' && field.options && (
+                              <div className="border border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50">
+                                <div className="text-sm text-gray-600 mb-2">اختر عدة خيارات:</div>
+                                <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                                  {field.options.map((option: any, index: number) => (
+                                    <label key={index} className="flex items-center p-2 hover:bg-white rounded transition-colors cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={
+                                          Array.isArray(ruleForm.template_data.data[field.name]) 
+                                            ? ruleForm.template_data.data[field.name].includes(option.value)
+                                            : false
+                                        }
+                                        onChange={(e) => {
+                                          const currentValues = Array.isArray(ruleForm.template_data.data[field.name]) 
+                                            ? ruleForm.template_data.data[field.name] 
+                                            : [];
+                                          
+                                          if (e.target.checked) {
+                                            handleFieldChange(field.name, [...currentValues, option.value]);
+                                          } else {
+                                            handleFieldChange(field.name, currentValues.filter((v: any) => v !== option.value));
+                                          }
+                                        }}
+                                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                      />
+                                      <span className="mr-2 text-sm text-gray-700 font-medium">{option.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {field.field_type === 'radio' && field.options && (
+                              <div className="border border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50">
+                                <div className="text-sm text-gray-600 mb-2">اختر خيار واحد:</div>
+                                <div className="space-y-2">
+                                  {field.options.map((option: any, index: number) => (
+                                    <label key={index} className="flex items-center p-2 hover:bg-white rounded transition-colors cursor-pointer">
+                                      <input
+                                        type="radio"
+                                        name={field.name}
+                                        value={option.value}
+                                        checked={ruleForm.template_data.data[field.name] === option.value}
+                                        onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                        className="border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                      />
+                                      <span className="mr-2 text-sm text-gray-700 font-medium">{option.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {field.field_type === 'url' && (
+                              <input
+                                type="url"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || field.label}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.field_type === 'phone' && (
+                              <input
+                                type="tel"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || field.label}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.field_type === 'file' && (
+                              <input
+                                type="file"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    handleFieldChange(field.name, file.name);
+                                  }
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {field.help_text && field.field_type !== 'checkbox' && (
+                              <p className="mt-1 text-xs text-gray-500">{field.help_text}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Schedule */}
@@ -538,23 +1006,52 @@ export const RecurringManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center justify-end space-x-3 space-x-reverse p-6 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setIsCreating(false);
-                  setEditingRule(null);
-                }}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                إلغاء
-              </button>
+            <div className="p-6 border-t border-gray-200">
+              {/* Required Fields Notice */}
+              {selectedProcessDetails?.fields?.some(field => field.is_required && !field.is_system_field) && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center">
+                    <div className="text-blue-500 mr-2">
+                      <Settings className="w-4 h-4" />
+                    </div>
+                    <p className="text-sm text-blue-700">
+                      <span className="font-medium">ملاحظة:</span> الحقول المميزة بـ 
+                      <span className="text-red-500 mx-1">*</span> 
+                      مطلوبة لإنشاء القاعدة
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-end space-x-3 space-x-reverse">
+                <button
+                  onClick={() => {
+                    setIsCreating(false);
+                    setEditingRule(null);
+                  }}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  إلغاء
+                </button>
               <button
                 onClick={handleCreateRule}
-                disabled={!ruleForm.name || !ruleForm.template_data.title}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={
+                  !ruleForm.name || 
+                  !ruleForm.template_data.title ||
+                  !selectedProcess ||
+                  (selectedProcessDetails?.fields?.some(field => 
+                    field.is_required && 
+                    !field.is_system_field && 
+                    (!ruleForm.template_data.data[field.name] || 
+                     (Array.isArray(ruleForm.template_data.data[field.name]) && ruleForm.template_data.data[field.name].length === 0))
+                  ))
+                }
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
               >
-                {editingRule ? 'حفظ التغييرات' : 'إنشاء القاعدة'}
+                <Save className="w-4 h-4" />
+                <span>{editingRule ? 'حفظ التغييرات' : 'إنشاء القاعدة'}</span>
               </button>
+              </div>
             </div>
           </div>
         </div>
@@ -562,3 +1059,5 @@ export const RecurringManager: React.FC = () => {
     </div>
   );
 };
+
+export default RecurringManager;
