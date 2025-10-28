@@ -13,8 +13,11 @@ import {
   Pause,
   Calendar,
   Clock,
-  Repeat,
-  Settings
+  Settings,
+  FileText,
+  Flag,
+  Tag,
+  User
 } from 'lucide-react';
 
 interface ProcessField {
@@ -477,204 +480,389 @@ export const RecurringManager: React.FC = () => {
       {/* Create/Edit Rule Modal */}
       {(isCreating || editingRule) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {editingRule ? 'تعديل قاعدة التكرار' : 'قاعدة تكرار جديدة'}
-              </h3>
-              <button
-                onClick={() => {
-                  setIsCreating(false);
-                  setEditingRule(null);
-                }}
-                className="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Header with gradient background */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3 space-x-reverse">
+                  <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <RefreshCw className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">
+                      {editingRule ? 'تعديل قاعدة التكرار' : 'قاعدة تكرار جديدة'}
+                    </h3>
+                    {selectedProcess && (
+                      <p className="text-blue-100 text-sm">
+                        عملية: {selectedProcess.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsCreating(false);
+                    setEditingRule(null);
+                  }}
+                  className="p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors"
+                >
+                  <X className="w-5 h-5 text-white" />
+                </button>
+              </div>
             </div>
             
-            <div className="p-6 space-y-6">
-              {/* Rule Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم القاعدة</label>
-                <input
-                  type="text"
-                  value={ruleForm.name}
-                  onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="مثال: تقرير شهري"
-                />
-              </div>
-
-              {/* Template Data */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">قالب التذكرة</h4>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">العنوان</label>
-                  <input
-                    type="text"
-                    value={ruleForm.template_data.title}
-                    onChange={(e) => setRuleForm({
-                      ...ruleForm,
-                      template_data: { ...ruleForm.template_data, title: e.target.value }
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="عنوان التذكرة المتكررة"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">الوصف</label>
-                  <textarea
-                    value={ruleForm.template_data.description}
-                    onChange={(e) => setRuleForm({
-                      ...ruleForm,
-                      template_data: { ...ruleForm.template_data, description: e.target.value }
-                    })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="وصف التذكرة المتكررة"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">الأولوية</label>
-                    <select
-                      value={ruleForm.template_data.priority}
-                      onChange={(e) => setRuleForm({
-                        ...ruleForm,
-                        template_data: { ...ruleForm.template_data, priority: e.target.value as any }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="low">منخفض</option>
-                      <option value="medium">متوسط</option>
-                      <option value="high">عاجل</option>
-                      <option value="urgent">عاجل جداً</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">نوع التذكرة</label>
-                    <select
-                      value={ruleForm.template_data.ticket_type || 'task'}
-                      onChange={(e) => setRuleForm({
-                        ...ruleForm,
-                        template_data: { ...ruleForm.template_data, ticket_type: e.target.value as 'task' | 'bug' | 'feature' | 'support' }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="task">مهمة</option>
-                      <option value="bug">خطأ</option>
-                      <option value="feature">ميزة</option>
-                      <option value="support">دعم</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">تاريخ الاستحقاق</label>
-                    <input
-                      type="date"
-                      value={ruleForm.template_data.due_date || ''}
-                      onChange={(e) => setRuleForm({
-                        ...ruleForm,
-                        template_data: { ...ruleForm.template_data, due_date: e.target.value }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">المسند إليه</label>
-                    {loadingUsers ? (
-                      <div className="flex items-center justify-center py-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                        <span className="text-sm text-gray-600">جاري تحميل المستخدمين...</span>
+            <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+              <div className="p-6">
+                {/* Form Content - Two Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  
+                  {/* العمود الأيمن */}
+                  <div className="space-y-6">
+                    {/* معلومات القاعدة */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                        <Settings className="w-5 h-5 text-blue-500" />
+                        <h3 className="text-lg font-semibold text-gray-900">معلومات القاعدة</h3>
                       </div>
-                    ) : (
-                      <select
-                        value={ruleForm.template_data.assigned_to || ''}
-                        onChange={(e) => setRuleForm({
-                          ...ruleForm,
-                          template_data: { ...ruleForm.template_data, assigned_to: e.target.value }
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">اختر المستخدم</option>
-                        {users.map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.name} ({user.email})
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-
-                {/* Process Stages */}
-                {selectedProcessDetails && selectedProcessDetails.stages && selectedProcessDetails.stages.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">المرحلة الأولية</label>
-                    {loadingProcessDetails ? (
-                      <div className="flex items-center justify-center py-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                        <span className="text-sm text-gray-600">جاري تحميل المراحل...</span>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          اسم القاعدة *
+                        </label>
+                        <input
+                          type="text"
+                          value={ruleForm.name}
+                          onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          placeholder="أدخل اسم واضح ومختصر للقاعدة..."
+                        />
                       </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {selectedProcessDetails.stages
-                          .filter(stage => !stage.is_final) // استبعاد المراحل النهائية
-                          .sort((a, b) => a.order_index - b.order_index)
-                          .map((stage) => (
-                            <button
-                              key={stage.id}
-                              type="button"
-                              onClick={() => setRuleForm({
-                                ...ruleForm,
-                                template_data: { ...ruleForm.template_data, stage_id: stage.id }
-                              })}
-                              className={`
-                                p-3 rounded-lg border-2 transition-all duration-200 text-right
-                                ${ruleForm.template_data.stage_id === stage.id
-                                  ? 'border-blue-500 bg-blue-50'
-                                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                }
-                              `}
-                            >
-                              <div className="flex items-center space-x-2 space-x-reverse">
-                                <div className={`w-3 h-3 rounded-full ${stage.color}`}></div>
-                                <span className="font-medium text-gray-900">{stage.name}</span>
-                                {stage.is_initial && (
-                                  <span className="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">
-                                    افتراضي
-                                  </span>
-                                )}
-                              </div>
-                              {stage.description && (
-                                <p className="text-sm text-gray-500 mt-1">{stage.description}</p>
-                              )}
-                            </button>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                    </div>
 
-                {/* Process Fields */}
-                {selectedProcessDetails && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-gray-900">حقول العملية المخصصة</h4>
-                      {loadingProcessDetails && (
-                        <div className="flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                          <span className="text-sm text-gray-600">جاري التحميل...</span>
+                    {/* معلومات أساسية للتذكرة */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                        <FileText className="w-5 h-5 text-blue-500" />
+                        <h3 className="text-lg font-semibold text-gray-900">معلومات أساسية</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            عنوان التذكرة *
+                          </label>
+                          <input
+                            type="text"
+                            value={ruleForm.template_data.title}
+                            onChange={(e) => setRuleForm({
+                              ...ruleForm,
+                              template_data: { ...ruleForm.template_data, title: e.target.value }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                            placeholder="أدخل عنوان واضح ومختصر للتذكرة..."
+                          />
                         </div>
-                      )}
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            الوصف التفصيلي
+                          </label>
+                          <textarea
+                            value={ruleForm.template_data.description}
+                            onChange={(e) => setRuleForm({
+                              ...ruleForm,
+                              template_data: { ...ruleForm.template_data, description: e.target.value }
+                            })}
+                            rows={4}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            placeholder="اشرح التفاصيل والمتطلبات بوضوح..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* إعدادات التذكرة */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                        <Settings className="w-5 h-5 text-green-500" />
+                        <h3 className="text-lg font-semibold text-gray-900">إعدادات التذكرة</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <Flag className="w-4 h-4 inline ml-1" />
+                            الأولوية
+                          </label>
+                          <select
+                            value={ruleForm.template_data.priority}
+                            onChange={(e) => setRuleForm({
+                              ...ruleForm,
+                              template_data: { ...ruleForm.template_data, priority: e.target.value as any }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="low">منخفض</option>
+                            <option value="medium">متوسط</option>
+                            <option value="high">عاجل</option>
+                            <option value="urgent">عاجل جداً</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <Calendar className="w-4 h-4 inline ml-1" />
+                            تاريخ الاستحقاق
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={ruleForm.template_data.due_date || ''}
+                            onChange={(e) => setRuleForm({
+                              ...ruleForm,
+                              template_data: { ...ruleForm.template_data, due_date: e.target.value }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <Tag className="w-4 h-4 inline ml-1" />
+                            نوع التذكرة
+                          </label>
+                          <select
+                            value={ruleForm.template_data.ticket_type || 'task'}
+                            onChange={(e) => setRuleForm({
+                              ...ruleForm,
+                              template_data: { ...ruleForm.template_data, ticket_type: e.target.value as 'task' | 'bug' | 'feature' | 'support' }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="task">مهمة</option>
+                            <option value="bug">خطأ</option>
+                            <option value="feature">ميزة</option>
+                            <option value="support">دعم</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <User className="w-4 h-4 inline ml-1" />
+                            المسند إليه
+                          </label>
+                          {loadingUsers ? (
+                            <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                              <span className="text-sm text-gray-500">جاري التحميل...</span>
+                            </div>
+                          ) : (
+                            <select
+                              value={ruleForm.template_data.assigned_to || ''}
+                              onChange={(e) => setRuleForm({
+                                ...ruleForm,
+                                template_data: { ...ruleForm.template_data, assigned_to: e.target.value }
+                              })}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="">اختر المستخدم</option>
+                              {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                  {user.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* العمود الأيسر */}
+                  <div className="space-y-6">
+                    {/* المرحلة الأولية */}
+                    {selectedProcessDetails && selectedProcessDetails.stages && selectedProcessDetails.stages.length > 0 && (
+                      <div className="bg-white border border-gray-200 rounded-lg p-6">
+                        <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                          <RefreshCw className="w-5 h-5 text-purple-500" />
+                          <h3 className="text-lg font-semibold text-gray-900">المرحلة الأولية</h3>
+                        </div>
+                        {loadingProcessDetails ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
+                            <span className="text-sm text-gray-600">جاري تحميل المراحل...</span>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 gap-3">
+                            {selectedProcessDetails.stages
+                              .filter(stage => !stage.is_final)
+                              .sort((a, b) => a.order_index - b.order_index)
+                              .map((stage) => (
+                                <button
+                                  key={stage.id}
+                                  type="button"
+                                  onClick={() => setRuleForm({
+                                    ...ruleForm,
+                                    template_data: { ...ruleForm.template_data, stage_id: stage.id }
+                                  })}
+                                  className={`
+                                    p-4 rounded-lg border-2 transition-all duration-200 text-right
+                                    ${ruleForm.template_data.stage_id === stage.id
+                                      ? 'border-purple-500 bg-purple-50'
+                                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                    }
+                                  `}
+                                >
+                                  <div className="flex items-center space-x-2 space-x-reverse">
+                                    <div className={`w-4 h-4 rounded-full ${stage.color}`}></div>
+                                    <span className="font-medium text-gray-900">{stage.name}</span>
+                                    {stage.is_initial && (
+                                      <span className="bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">
+                                        افتراضي
+                                      </span>
+                                    )}
+                                  </div>
+                                  {stage.description && (
+                                    <p className="text-sm text-gray-500 mt-1">{stage.description}</p>
+                                  )}
+                                </button>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* جدول التكرار */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                        <Clock className="w-5 h-5 text-indigo-500" />
+                        <h3 className="text-lg font-semibold text-gray-900">جدول التكرار</h3>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">نوع التكرار</label>
+                          <select
+                            value={ruleForm.schedule.type}
+                            onChange={(e) => setRuleForm({
+                              ...ruleForm,
+                              schedule: { ...ruleForm.schedule, type: e.target.value as any }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            {scheduleTypes.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">الفترة</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={ruleForm.schedule.interval}
+                            onChange={(e) => setRuleForm({
+                              ...ruleForm,
+                              schedule: { ...ruleForm.schedule, interval: parseInt(e.target.value) }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">الوقت</label>
+                          <input
+                            type="time"
+                            value={ruleForm.schedule.time}
+                            onChange={(e) => setRuleForm({
+                              ...ruleForm,
+                              schedule: { ...ruleForm.schedule, time: e.target.value }
+                            })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+
+                        {ruleForm.schedule.type === 'weekly' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">أيام الأسبوع</label>
+                            <div className="flex flex-wrap gap-3">
+                              {daysOfWeek.map((day) => (
+                                <label key={day.value} className="flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={ruleForm.schedule.days_of_week?.includes(day.value) || false}
+                                    onChange={(e) => {
+                                      const days = ruleForm.schedule.days_of_week || [];
+                                      if (e.target.checked) {
+                                        setRuleForm({
+                                          ...ruleForm,
+                                          schedule: {
+                                            ...ruleForm.schedule,
+                                            days_of_week: [...days, day.value]
+                                          }
+                                        });
+                                      } else {
+                                        setRuleForm({
+                                          ...ruleForm,
+                                          schedule: {
+                                            ...ruleForm.schedule,
+                                            days_of_week: days.filter(d => d !== day.value)
+                                          }
+                                        });
+                                      }
+                                    }}
+                                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                  />
+                                  <span className="mr-2 text-sm text-gray-700">{day.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {ruleForm.schedule.type === 'monthly' && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">يوم الشهر</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="31"
+                              value={ruleForm.schedule.day_of_month}
+                              onChange={(e) => setRuleForm({
+                                ...ruleForm,
+                                schedule: { ...ruleForm.schedule, day_of_month: parseInt(e.target.value) }
+                              })}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          </div>
+                        )}
+
+                        {/* تفعيل القاعدة */}
+                        <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                          <input
+                            type="checkbox"
+                            id="active"
+                            checked={ruleForm.is_active}
+                            onChange={(e) => setRuleForm({ ...ruleForm, is_active: e.target.checked })}
+                            className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                          />
+                          <label htmlFor="active" className="mr-2 text-sm font-medium text-gray-700">
+                            تفعيل القاعدة فور الإنشاء
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* حقول العملية المخصصة - عرض كامل */}
+                {selectedProcessDetails && (
+                  <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6">
+                    <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                      <div className={`w-6 h-6 ${selectedProcess?.color || 'bg-blue-500'} rounded mr-2`}></div>
+                      <h3 className="text-lg font-semibold text-gray-900">حقول {selectedProcess?.name}</h3>
                     </div>
                     
                     {selectedProcessDetails.fields && selectedProcessDetails.fields.filter(field => !field.is_system_field).length === 0 ? (
@@ -686,7 +874,7 @@ export const RecurringManager: React.FC = () => {
                         <p className="text-xs text-gray-400 mt-1">سيتم استخدام الحقول الأساسية فقط</p>
                       </div>
                     ) : selectedProcessDetails.fields && selectedProcessDetails.fields.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {selectedProcessDetails.fields
                         .filter(field => !field.is_system_field)
                         .sort((a, b) => a.order_index - b.order_index)
@@ -706,8 +894,8 @@ export const RecurringManager: React.FC = () => {
                                 type="text"
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                placeholder={field.placeholder || field.label}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder={field.placeholder || `أدخل ${field.label}...`}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                               />
                             )}
                             
@@ -716,8 +904,8 @@ export const RecurringManager: React.FC = () => {
                                 type="email"
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                placeholder={field.placeholder || field.label}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder={field.placeholder || "example@domain.com"}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                               />
                             )}
                             
@@ -726,8 +914,8 @@ export const RecurringManager: React.FC = () => {
                                 type="number"
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                placeholder={field.placeholder || field.label}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder={field.placeholder || `أدخل ${field.label}...`}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                               />
                             )}
                             
@@ -736,8 +924,8 @@ export const RecurringManager: React.FC = () => {
                                 rows={3}
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                placeholder={field.placeholder || field.label}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder={field.placeholder || `أدخل ${field.label}...`}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                               />
                             )}
                             
@@ -745,7 +933,7 @@ export const RecurringManager: React.FC = () => {
                               <select 
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
                                 <option value="">اختر {field.label}</option>
                                 {(field.options?.choices || field.options || []).map((choice: any, index: number) => (
@@ -756,125 +944,8 @@ export const RecurringManager: React.FC = () => {
                               </select>
                             )}
                             
-                            {field.field_type === 'date' && (
-                              <input
-                                type="date"
-                                value={ruleForm.template_data.data[field.name] || ''}
-                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            )}
-                            
-                            {field.field_type === 'datetime' && (
-                              <input
-                                type="datetime-local"
-                                value={ruleForm.template_data.data[field.name] || ''}
-                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            )}
-                            
-                            {field.field_type === 'checkbox' && (
-                              <div className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={ruleForm.template_data.data[field.name] || false}
-                                  onChange={(e) => handleFieldChange(field.name, e.target.checked)}
-                                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                />
-                                <span className="mr-2 text-sm text-gray-700">{field.help_text || field.label}</span>
-                              </div>
-                            )}
-                            
-                            {field.field_type === 'multiselect' && field.options && (
-                              <div className="border border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50">
-                                <div className="text-sm text-gray-600 mb-2">اختر عدة خيارات:</div>
-                                <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
-                                  {field.options.map((option: any, index: number) => (
-                                    <label key={index} className="flex items-center p-2 hover:bg-white rounded transition-colors cursor-pointer">
-                                      <input
-                                        type="checkbox"
-                                        checked={
-                                          Array.isArray(ruleForm.template_data.data[field.name]) 
-                                            ? ruleForm.template_data.data[field.name].includes(option.value)
-                                            : false
-                                        }
-                                        onChange={(e) => {
-                                          const currentValues = Array.isArray(ruleForm.template_data.data[field.name]) 
-                                            ? ruleForm.template_data.data[field.name] 
-                                            : [];
-                                          
-                                          if (e.target.checked) {
-                                            handleFieldChange(field.name, [...currentValues, option.value]);
-                                          } else {
-                                            handleFieldChange(field.name, currentValues.filter((v: any) => v !== option.value));
-                                          }
-                                        }}
-                                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                      />
-                                      <span className="mr-2 text-sm text-gray-700 font-medium">{option.label}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {field.field_type === 'radio' && field.options && (
-                              <div className="border border-gray-300 rounded-lg p-3 space-y-2 bg-gray-50">
-                                <div className="text-sm text-gray-600 mb-2">اختر خيار واحد:</div>
-                                <div className="space-y-2">
-                                  {field.options.map((option: any, index: number) => (
-                                    <label key={index} className="flex items-center p-2 hover:bg-white rounded transition-colors cursor-pointer">
-                                      <input
-                                        type="radio"
-                                        name={field.name}
-                                        value={option.value}
-                                        checked={ruleForm.template_data.data[field.name] === option.value}
-                                        onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                        className="border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                      />
-                                      <span className="mr-2 text-sm text-gray-700 font-medium">{option.label}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {field.field_type === 'url' && (
-                              <input
-                                type="url"
-                                value={ruleForm.template_data.data[field.name] || ''}
-                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                placeholder={field.placeholder || field.label}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            )}
-                            
-                            {field.field_type === 'phone' && (
-                              <input
-                                type="tel"
-                                value={ruleForm.template_data.data[field.name] || ''}
-                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                placeholder={field.placeholder || field.label}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            )}
-                            
-                            {field.field_type === 'file' && (
-                              <input
-                                type="file"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFieldChange(field.name, file.name);
-                                  }
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            )}
-                            
                             {field.help_text && field.field_type !== 'checkbox' && (
-                              <p className="mt-1 text-xs text-gray-500">{field.help_text}</p>
+                              <p className="mt-1 text-sm text-gray-500">{field.help_text}</p>
                             )}
                           </div>
                         ))}
@@ -882,127 +953,6 @@ export const RecurringManager: React.FC = () => {
                     )}
                   </div>
                 )}
-              </div>
-
-              {/* Schedule */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">جدول التكرار</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">نوع التكرار</label>
-                    <select
-                      value={ruleForm.schedule.type}
-                      onChange={(e) => setRuleForm({
-                        ...ruleForm,
-                        schedule: { ...ruleForm.schedule, type: e.target.value as any }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {scheduleTypes.map((type) => (
-                        <option key={type.value} value={type.value}>
-                          {type.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">الفترة</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={ruleForm.schedule.interval}
-                      onChange={(e) => setRuleForm({
-                        ...ruleForm,
-                        schedule: { ...ruleForm.schedule, interval: parseInt(e.target.value) }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">الوقت</label>
-                  <input
-                    type="time"
-                    value={ruleForm.schedule.time}
-                    onChange={(e) => setRuleForm({
-                      ...ruleForm,
-                      schedule: { ...ruleForm.schedule, time: e.target.value }
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {ruleForm.schedule.type === 'weekly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">أيام الأسبوع</label>
-                    <div className="flex flex-wrap gap-2">
-                      {daysOfWeek.map((day) => (
-                        <label key={day.value} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={ruleForm.schedule.days_of_week?.includes(day.value) || false}
-                            onChange={(e) => {
-                              const days = ruleForm.schedule.days_of_week || [];
-                              if (e.target.checked) {
-                                setRuleForm({
-                                  ...ruleForm,
-                                  schedule: {
-                                    ...ruleForm.schedule,
-                                    days_of_week: [...days, day.value]
-                                  }
-                                });
-                              } else {
-                                setRuleForm({
-                                  ...ruleForm,
-                                  schedule: {
-                                    ...ruleForm.schedule,
-                                    days_of_week: days.filter(d => d !== day.value)
-                                  }
-                                });
-                              }
-                            }}
-                            className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                          />
-                          <span className="mr-2 text-sm text-gray-700">{day.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {ruleForm.schedule.type === 'monthly' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">يوم الشهر</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={ruleForm.schedule.day_of_month}
-                      onChange={(e) => setRuleForm({
-                        ...ruleForm,
-                        schedule: { ...ruleForm.schedule, day_of_month: parseInt(e.target.value) }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Active Status */}
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="active"
-                  checked={ruleForm.is_active}
-                  onChange={(e) => setRuleForm({ ...ruleForm, is_active: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                />
-                <label htmlFor="active" className="mr-2 text-sm text-gray-700">
-                  تفعيل القاعدة
-                </label>
               </div>
             </div>
             
@@ -1023,34 +973,40 @@ export const RecurringManager: React.FC = () => {
                 </div>
               )}
               
-              <div className="flex items-center justify-end space-x-3 space-x-reverse">
-                <button
-                  onClick={() => {
-                    setIsCreating(false);
-                    setEditingRule(null);
-                  }}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  إلغاء
-                </button>
-              <button
-                onClick={handleCreateRule}
-                disabled={
-                  !ruleForm.name || 
-                  !ruleForm.template_data.title ||
-                  !selectedProcess ||
-                  (selectedProcessDetails?.fields?.some(field => 
-                    field.is_required && 
-                    !field.is_system_field && 
-                    (!ruleForm.template_data.data[field.name] || 
-                     (Array.isArray(ruleForm.template_data.data[field.name]) && ruleForm.template_data.data[field.name].length === 0))
-                  ))
-                }
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
-              >
-                <Save className="w-4 h-4" />
-                <span>{editingRule ? 'حفظ التغييرات' : 'إنشاء القاعدة'}</span>
-              </button>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  تأكد من ملء جميع الحقول المطلوبة قبل الحفظ
+                </div>
+                <div className="flex items-center space-x-3 space-x-reverse">
+                  <button
+                    onClick={() => {
+                      setIsCreating(false);
+                      setEditingRule(null);
+                    }}
+                    className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2 space-x-reverse"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>إلغاء</span>
+                  </button>
+                  <button
+                    onClick={handleCreateRule}
+                    disabled={
+                      !ruleForm.name || 
+                      !ruleForm.template_data.title ||
+                      !selectedProcess ||
+                      (selectedProcessDetails?.fields?.some(field => 
+                        field.is_required && 
+                        !field.is_system_field && 
+                        (!ruleForm.template_data.data[field.name] || 
+                         (Array.isArray(ruleForm.template_data.data[field.name]) && ruleForm.template_data.data[field.name].length === 0))
+                      ))
+                    }
+                    className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse transition-all duration-200"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{editingRule ? 'حفظ التغييرات' : 'إنشاء القاعدة'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
