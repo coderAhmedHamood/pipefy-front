@@ -857,30 +857,21 @@ export const RecurringManager: React.FC = () => {
                   </div>
                 </div>
 
-                {/* حقول العملية المخصصة - عرض كامل */}
-                {selectedProcessDetails && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6">
-                    <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                {/* حقول العملية المخصصة - في العمودين */}
+                {selectedProcessDetails && selectedProcessDetails.fields && selectedProcessDetails.fields.filter(field => !field.is_system_field).length > 0 && (
+                  <div className="col-span-2 bg-white border border-gray-200 rounded-lg p-6">
+                    <div className="flex items-center space-x-2 space-x-reverse mb-6">
                       <div className={`w-6 h-6 ${selectedProcess?.color || 'bg-blue-500'} rounded mr-2`}></div>
                       <h3 className="text-lg font-semibold text-gray-900">حقول {selectedProcess?.name}</h3>
                     </div>
                     
-                    {selectedProcessDetails.fields && selectedProcessDetails.fields.filter(field => !field.is_system_field).length === 0 ? (
-                      <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                        <div className="text-gray-400 mb-2">
-                          <Settings className="w-8 h-8 mx-auto" />
-                        </div>
-                        <p className="text-sm text-gray-500">لا توجد حقول مخصصة لهذه العملية</p>
-                        <p className="text-xs text-gray-400 mt-1">سيتم استخدام الحقول الأساسية فقط</p>
-                      </div>
-                    ) : selectedProcessDetails.fields && selectedProcessDetails.fields.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {selectedProcessDetails.fields
                         .filter(field => !field.is_system_field)
                         .sort((a, b) => a.order_index - b.order_index)
                         .map((field) => (
                           <div key={field.id} className={
-                            field.width === 'full' || field.width === '100%' || field.field_type === 'textarea' || field.field_type === 'multiselect' 
+                            field.width === 'full' || field.width === '100%' || field.field_type === 'textarea' || field.field_type === 'multiselect' || field.field_type === 'radio'
                               ? 'md:col-span-2' 
                               : ''
                           }>
@@ -929,6 +920,34 @@ export const RecurringManager: React.FC = () => {
                               />
                             )}
                             
+                            {field.field_type === 'phone' && (
+                              <input
+                                type="tel"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || "+966 50 123 4567"}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                              />
+                            )}
+
+                            {field.field_type === 'date' && (
+                              <input
+                                type="date"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+
+                            {field.field_type === 'datetime' && (
+                              <input
+                                type="datetime-local"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+
                             {field.field_type === 'select' && (field.options?.choices || field.options) && (
                               <select 
                                 value={ruleForm.template_data.data[field.name] || ''}
@@ -943,14 +962,162 @@ export const RecurringManager: React.FC = () => {
                                 ))}
                               </select>
                             )}
+
+                            {field.field_type === 'multiselect' && field.options && (
+                              <div className="space-y-2">
+                                {field.options.map((option: any, index: number) => (
+                                  <label key={index} className="flex items-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={
+                                        Array.isArray(ruleForm.template_data.data[field.name]) 
+                                          ? ruleForm.template_data.data[field.name].includes(option.value)
+                                          : false
+                                      }
+                                      onChange={(e) => {
+                                        const currentValues = Array.isArray(ruleForm.template_data.data[field.name]) 
+                                          ? ruleForm.template_data.data[field.name] 
+                                          : [];
+                                        
+                                        if (e.target.checked) {
+                                          handleFieldChange(field.name, [...currentValues, option.value]);
+                                        } else {
+                                          handleFieldChange(field.name, currentValues.filter((v: any) => v !== option.value));
+                                        }
+                                      }}
+                                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    />
+                                    <span className="mr-2 text-sm text-gray-700">{option.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+
+                            {field.field_type === 'radio' && field.options && (
+                              <div className="space-y-2">
+                                {field.options.map((option: any, index: number) => (
+                                  <label key={index} className="flex items-center">
+                                    <input
+                                      type="radio"
+                                      name={field.name}
+                                      value={option.value}
+                                      checked={ruleForm.template_data.data[field.name] === option.value}
+                                      onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                      className="border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    />
+                                    <span className="mr-2 text-sm text-gray-700">{option.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+
+                            {field.field_type === 'checkbox' && (
+                              <label className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={ruleForm.template_data.data[field.name] || false}
+                                  onChange={(e) => handleFieldChange(field.name, e.target.checked)}
+                                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                />
+                                <span className="mr-2 text-sm text-gray-700">{field.help_text || field.label}</span>
+                              </label>
+                            )}
+
+                            {field.field_type === 'url' && (
+                              <input
+                                type="url"
+                                value={ruleForm.template_data.data[field.name] || ''}
+                                onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                placeholder={field.placeholder || `أدخل ${field.label}...`}
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                              />
+                            )}
+
+                            {field.field_type === 'file' && (
+                              <div className="space-y-2">
+                                <input
+                                  type="file"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      handleFieldChange(field.name, {
+                                        name: file.name,
+                                        size: file.size,
+                                        type: file.type,
+                                        url: URL.createObjectURL(file)
+                                      });
+                                    }
+                                  }}
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                {ruleForm.template_data.data[field.name] && (
+                                  <div className="text-sm text-gray-600">
+                                    ملف محدد: {ruleForm.template_data.data[field.name].name || ruleForm.template_data.data[field.name]}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {field.field_type === 'ticket_reviewer' && (
+                              <div className="space-y-2">
+                                <select
+                                  value={ruleForm.template_data.data[field.name] || ''}
+                                  onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                  <option value="">اختر المراجع</option>
+                                  {users.map((user) => (
+                                    <option key={user.id} value={user.id}>
+                                      {user.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                
+                                {ruleForm.template_data.data[field.name] && (
+                                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex items-center space-x-3 space-x-reverse">
+                                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                        <span className="text-white font-bold text-sm">
+                                          {users.find(u => u.id === ruleForm.template_data.data[field.name])?.name.charAt(0)}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <div className="font-medium text-blue-900">
+                                          {users.find(u => u.id === ruleForm.template_data.data[field.name])?.name}
+                                        </div>
+                                        <div className="text-sm text-blue-700">
+                                          {users.find(u => u.id === ruleForm.template_data.data[field.name])?.email}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             
                             {field.help_text && field.field_type !== 'checkbox' && (
                               <p className="mt-1 text-sm text-gray-500">{field.help_text}</p>
                             )}
                           </div>
                         ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* رسالة عدم وجود حقول مخصصة */}
+                {selectedProcessDetails && selectedProcessDetails.fields && selectedProcessDetails.fields.filter(field => !field.is_system_field).length === 0 && (
+                  <div className="col-span-2 bg-white border border-gray-200 rounded-lg p-6">
+                    <div className="flex items-center space-x-2 space-x-reverse mb-4">
+                      <div className={`w-6 h-6 ${selectedProcess?.color || 'bg-blue-500'} rounded mr-2`}></div>
+                      <h3 className="text-lg font-semibold text-gray-900">حقول {selectedProcess?.name}</h3>
+                    </div>
+                    <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                      <div className="text-gray-400 mb-2">
+                        <Settings className="w-8 h-8 mx-auto" />
                       </div>
-                    )}
+                      <p className="text-sm text-gray-500">لا توجد حقول مخصصة لهذه العملية</p>
+                      <p className="text-xs text-gray-400 mt-1">سيتم استخدام الحقول الأساسية فقط</p>
+                    </div>
                   </div>
                 )}
               </div>
