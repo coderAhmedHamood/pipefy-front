@@ -511,7 +511,7 @@ export const RecurringManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+            <div className="overflow-y-auto max-h-[calc(80vh-200px)]">
               <div className="p-6">
                 {/* Form Content - Two Column Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1123,7 +1123,7 @@ export const RecurringManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6 border-t border-gray-200">
+            <div className="p-6 border-t border-gray-200 bg-white sticky bottom-0">
               {/* Required Fields Notice */}
               {selectedProcessDetails?.fields?.some(field => field.is_required && !field.is_system_field) && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
