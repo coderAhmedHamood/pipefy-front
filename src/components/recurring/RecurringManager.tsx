@@ -625,25 +625,7 @@ export const RecurringManager: React.FC = () => {
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <Tag className="w-4 h-4 inline ml-1" />
-                            نوع التذكرة
-                          </label>
-                          <select
-                            value={ruleForm.template_data.ticket_type || 'task'}
-                            onChange={(e) => setRuleForm({
-                              ...ruleForm,
-                              template_data: { ...ruleForm.template_data, ticket_type: e.target.value as 'task' | 'bug' | 'feature' | 'support' }
-                            })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="task">مهمة</option>
-                            <option value="bug">خطأ</option>
-                            <option value="feature">ميزة</option>
-                            <option value="support">دعم</option>
-                          </select>
-                        </div>
+                    
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -758,7 +740,7 @@ export const RecurringManager: React.FC = () => {
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">الفترة</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">التكرار </label>
                           <input
                             type="number"
                             min="1"
@@ -772,13 +754,16 @@ export const RecurringManager: React.FC = () => {
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">الوقت</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <Calendar className="w-4 h-4 inline ml-1" />
+                            تاريخ البداية
+                          </label>
                           <input
-                            type="time"
-                            value={ruleForm.schedule.time}
+                            type="datetime-local"
+                            value={ruleForm.template_data.due_date || ''}
                             onChange={(e) => setRuleForm({
                               ...ruleForm,
-                              schedule: { ...ruleForm.schedule, time: e.target.value }
+                              template_data: { ...ruleForm.template_data, due_date: e.target.value }
                             })}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
@@ -856,6 +841,9 @@ export const RecurringManager: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+
+
 
                 {/* حقول العملية المخصصة - في العمودين */}
                 {selectedProcessDetails && selectedProcessDetails.fields && selectedProcessDetails.fields.filter(field => !field.is_system_field).length > 0 && (
