@@ -9,7 +9,7 @@ class RecurringController {
         limit = 50, 
         process_id, 
         is_active,
-        schedule_type 
+        recurrence_type 
       } = req.query;
       
       const offset = (page - 1) * limit;
@@ -38,14 +38,14 @@ class RecurringController {
         params.push(is_active === 'true');
       }
       
-      if (schedule_type) {
+      if (recurrence_type) {
         paramCount++;
-        query += ` AND rr.schedule_type = $${paramCount}`;
-        params.push(schedule_type);
+        query += ` AND rr.recurrence_type = $${paramCount}`;
+        params.push(recurrence_type);
       }
       
       query += ` 
-        ORDER BY rr.next_execution ASC
+        ORDER BY rr.next_execution_date ASC
         LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
       `;
       params.push(limit, offset);
@@ -59,7 +59,7 @@ class RecurringController {
         WHERE 1=1
         ${process_id ? `AND rr.process_id = '${process_id}'` : ''}
         ${is_active !== undefined ? `AND rr.is_active = ${is_active === 'true'}` : ''}
-        ${schedule_type ? `AND rr.schedule_type = '${schedule_type}'` : ''}
+        ${recurrence_type ? `AND rr.recurrence_type = '${recurrence_type}'` : ''}
       `;
       const countResult = await pool.query(countQuery);
       const total = parseInt(countResult.rows[0].total);
@@ -125,30 +125,61 @@ class RecurringController {
     try {
       const {
         name,
+        rule_name,
+        rule_description,
         description,
+        title,
         process_id,
-        template_data,
-        schedule_type,
-        schedule_config,
-        timezone = 'Asia/Riyadh',
-        is_active = true
+        current_stage_id,
+        assigned_to,
+        priority = 'medium',
+        status = 'active',
+        due_date,
+        data = {},
+        tags = [],
+        process_name,
+        stage_name,
+        created_by_name,
+        assigned_to_name,
+        assigned_to_id,
+        recurrence_type = 'daily',
+        recurrence_count = 1,
+        start_date = new Date().toISOString(),
+        end_date,
+        recurrence_interval = 1,
+        weekdays = [],
+        month_day,
+        custom_pattern = {},
+        is_active = true,
+        is_paused = false
       } = req.body;
       
+      // التأكد من وجود الحقول المطلوبة
+      const finalName = name || rule_name || 'قاعدة بدون اسم';
+      const finalTitle = title || 'تذكرة متكررة';
+      
       // حساب التنفيذ التالي
-      const next_execution = calculateNextExecution(schedule_type, schedule_config, timezone);
+      const next_execution_date = new Date(start_date);
+      next_execution_date.setDate(next_execution_date.getDate() + 1);
       
       const result = await pool.query(`
         INSERT INTO recurring_rules (
-          name, description, process_id, template_data, 
-          schedule_type, schedule_config, timezone, 
-          is_active, next_execution, created_by
+          name, rule_name, rule_description, description, title, process_id, 
+          current_stage_id, assigned_to, created_by, priority, status, 
+          due_date, data, tags, process_name, stage_name, created_by_name, 
+          assigned_to_name, assigned_to_id, recurrence_type, recurrence_count, 
+          start_date, end_date, next_execution_date, recurrence_interval, 
+          weekdays, month_day, custom_pattern, is_active, is_paused
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
         RETURNING *
       `, [
-        name, description, process_id, JSON.stringify(template_data),
-        schedule_type, JSON.stringify(schedule_config), timezone,
-        is_active, next_execution, req.user.id
+        finalName, rule_name, rule_description, description, finalTitle, process_id,
+        current_stage_id, assigned_to, req.user.id, priority, status,
+        due_date, JSON.stringify(data), tags, process_name, stage_name, created_by_name,
+        assigned_to_name, assigned_to_id, recurrence_type, recurrence_count,
+        start_date, end_date, next_execution_date, recurrence_interval,
+        weekdays, month_day, JSON.stringify(custom_pattern), is_active, is_paused
       ]);
       
       res.status(201).json({

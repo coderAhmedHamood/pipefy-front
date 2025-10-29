@@ -12,6 +12,7 @@ const notificationRoutes = require('./notifications');
 const statisticsRoutes = require('./statistics');
 const automationRoutes = require('./automation');
 const recurringRoutes = require('./recurring');
+const recurringTicketRoutes = require('./recurring-tickets');
 const commentRoutes = require('./comments');
 const attachmentRoutes = require('./attachments');
 const auditRoutes = require('./audit');
@@ -38,6 +39,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/statistics', statisticsRoutes);
 router.use('/automation', automationRoutes);
 router.use('/recurring', recurringRoutes);
+router.use('/recurring-tickets', recurringTicketRoutes);
 router.use('/comments', commentRoutes);
 router.use('/attachments', attachmentRoutes);
 router.use('/audit', auditRoutes);
@@ -68,6 +70,7 @@ router.get('/', (req, res) => {
       statistics: '/api/statistics',
       automation: '/api/automation',
       recurring: '/api/recurring',
+      'recurring-tickets': '/api/recurring-tickets',
       comments: '/api/comments',
       attachments: '/api/attachments',
       user_processes: '/api/user-processes',
@@ -206,6 +209,15 @@ router.get('/docs', (req, res) => {
       'DELETE /api/recurring/rules/:id': 'حذف قاعدة تكرار',
       'POST /api/recurring/rules/:id/execute': 'تشغيل قاعدة تكرار يدوياً',
       'GET /api/recurring/rules/due': 'جلب القواعد المستحقة للتنفيذ',
+
+      // Recurring Tickets
+      'GET /api/recurring-tickets': 'جلب جميع قواعد التذاكر المتكررة',
+      'POST /api/recurring-tickets': 'إنشاء قاعدة تذكرة متكررة جديدة',
+      'GET /api/recurring-tickets/active': 'جلب القواعد النشطة فقط',
+      'GET /api/recurring-tickets/:id': 'جلب قاعدة تذكرة متكررة واحدة',
+      'PUT /api/recurring-tickets/:id': 'تحديث قاعدة تذكرة متكررة',
+      'DELETE /api/recurring-tickets/:id': 'حذف قاعدة تذكرة متكررة',
+      'PATCH /api/recurring-tickets/:id/toggle': 'تفعيل/إلغاء تفعيل قاعدة تذكرة متكررة',
 
       // Comments
       'GET /api/tickets/:ticket_id/comments': 'جلب تعليقات تذكرة',
