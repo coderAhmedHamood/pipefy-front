@@ -203,39 +203,87 @@ class RecurringController {
       const { id } = req.params;
       const {
         name,
+        rule_name,
+        rule_description,
         description,
-        template_data,
-        schedule_type,
-        schedule_config,
-        timezone,
-        is_active
+        title,
+        process_id,
+        current_stage_id,
+        assigned_to,
+        priority,
+        status,
+        due_date,
+        data,
+        tags,
+        process_name,
+        stage_name,
+        created_by_name,
+        assigned_to_name,
+        assigned_to_id,
+        recurrence_type,
+        recurrence_count,
+        start_date,
+        end_date,
+        recurrence_interval,
+        weekdays,
+        month_day,
+        custom_pattern,
+        is_active,
+        is_paused
       } = req.body;
       
-      let next_execution = null;
-      if (schedule_type && schedule_config) {
-        next_execution = calculateNextExecution(schedule_type, schedule_config, timezone || 'Asia/Riyadh');
+      // حساب التنفيذ التالي إذا تم تحديث التاريخ أو النوع
+      let next_execution_date = null;
+      if (start_date || recurrence_type) {
+        const baseDate = start_date ? new Date(start_date) : new Date();
+        next_execution_date = new Date(baseDate);
+        next_execution_date.setDate(next_execution_date.getDate() + (recurrence_interval || 1));
       }
       
       const result = await pool.query(`
         UPDATE recurring_rules 
         SET 
           name = COALESCE($1, name),
-          description = COALESCE($2, description),
-          template_data = COALESCE($3, template_data),
-          schedule_type = COALESCE($4, schedule_type),
-          schedule_config = COALESCE($5, schedule_config),
-          timezone = COALESCE($6, timezone),
-          is_active = COALESCE($7, is_active),
-          next_execution = COALESCE($8, next_execution),
+          rule_name = COALESCE($2, rule_name),
+          rule_description = COALESCE($3, rule_description),
+          description = COALESCE($4, description),
+          title = COALESCE($5, title),
+          process_id = COALESCE($6, process_id),
+          current_stage_id = COALESCE($7, current_stage_id),
+          assigned_to = COALESCE($8, assigned_to),
+          priority = COALESCE($9, priority),
+          status = COALESCE($10, status),
+          due_date = COALESCE($11, due_date),
+          data = COALESCE($12, data),
+          tags = COALESCE($13, tags),
+          process_name = COALESCE($14, process_name),
+          stage_name = COALESCE($15, stage_name),
+          created_by_name = COALESCE($16, created_by_name),
+          assigned_to_name = COALESCE($17, assigned_to_name),
+          assigned_to_id = COALESCE($18, assigned_to_id),
+          recurrence_type = COALESCE($19, recurrence_type),
+          recurrence_count = COALESCE($20, recurrence_count),
+          start_date = COALESCE($21, start_date),
+          end_date = COALESCE($22, end_date),
+          next_execution_date = COALESCE($23, next_execution_date),
+          recurrence_interval = COALESCE($24, recurrence_interval),
+          weekdays = COALESCE($25, weekdays),
+          month_day = COALESCE($26, month_day),
+          custom_pattern = COALESCE($27, custom_pattern),
+          is_active = COALESCE($28, is_active),
+          is_paused = COALESCE($29, is_paused),
           updated_at = NOW()
-        WHERE id = $9
+        WHERE id = $30
         RETURNING *
       `, [
-        name, description, 
-        template_data ? JSON.stringify(template_data) : null,
-        schedule_type,
-        schedule_config ? JSON.stringify(schedule_config) : null,
-        timezone, is_active, next_execution, id
+        name, rule_name, rule_description, description, title, process_id,
+        current_stage_id, assigned_to, priority, status, due_date,
+        data ? JSON.stringify(data) : null, tags, process_name, stage_name,
+        created_by_name, assigned_to_name, assigned_to_id, recurrence_type,
+        recurrence_count, start_date, end_date, next_execution_date,
+        recurrence_interval, weekdays, month_day,
+        custom_pattern ? JSON.stringify(custom_pattern) : null,
+        is_active, is_paused, id
       ]);
       
       if (result.rows.length === 0) {
