@@ -18,7 +18,8 @@ import {
   FileText,
   Flag,
   Tag,
-  User
+  User,
+  PlayCircle
 } from 'lucide-react';
 
 interface ProcessField {
@@ -391,6 +392,60 @@ export const RecurringManager: React.FC = () => {
     }
   };
 
+  // تشغيل قاعدة التكرار يدوياً
+  const handleRunRule = async (ruleId: string, ruleName: string) => {
+    try {
+      // تأكيد التشغيل
+      const confirmed = window.confirm(
+        `هل تريد تشغيل قاعدة التكرار "${ruleName}" الآن؟\n\nسيتم إنشاء تذكرة جديدة وفقاً لإعدادات القاعدة.`
+      );
+      
+      if (!confirmed) {
+        return;
+      }
+
+      // استدعاء API لتشغيل القاعدة
+      const response = await fetch(`http://localhost:3003/api/recurring/rules/${ruleId}/run`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // إظهار رسالة نجاح مع تفاصيل التذكرة المُنشأة
+        if (result.success && result.data) {
+          notifications.showSuccess(
+            'تم تشغيل القاعدة بنجاح',
+            `تم إنشاء التذكرة "${result.data.ticket_title || 'تذكرة جديدة'}" بنجاح\nرقم التذكرة: ${result.data.ticket_number || 'غير محدد'}`
+          );
+        } else {
+          notifications.showSuccess(
+            'تم تشغيل القاعدة بنجاح',
+            `تم تشغيل قاعدة التكرار "${ruleName}" وإنشاء تذكرة جديدة`
+          );
+        }
+
+        // إعادة جلب قواعد التكرار لتحديث آخر تاريخ تنفيذ
+        if (selectedProcess) {
+          fetchRecurringRules(selectedProcess.id);
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'فشل في تشغيل قاعدة التكرار');
+      }
+    } catch (error) {
+      console.error('خطأ في تشغيل قاعدة التكرار:', error);
+      notifications.showError(
+        'خطأ في التشغيل',
+        `فشل في تشغيل قاعدة التكرار: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
+      );
+    }
+  };
+
   const getScheduleDescription = (rule: any): string => {
     // استخدام البيانات الفعلية من API
     if (!rule) {
@@ -559,6 +614,13 @@ export const RecurringManager: React.FC = () => {
                           }`}
                         >
                           {rule.is_active ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => handleRunRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')}
+                          className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                          title="تشغيل القاعدة الآن"
+                        >
+                          <PlayCircle className="w-4 h-4 text-blue-600" />
                         </button>
                         <button
                           onClick={() => setEditingRule(rule)}
