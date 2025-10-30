@@ -7,7 +7,6 @@ const TicketAssignmentController = require('./TicketAssignmentController');
 const TicketReviewerController = require('./TicketReviewerController');
 const EvaluationController = require('./EvaluationController');
 const SettingsController = require('./SettingsController');
-const RecurringTicketController = require('./RecurringTicketController');
 
 module.exports = {
   UserController,
@@ -18,6 +17,5 @@ module.exports = {
   TicketAssignmentController,
   TicketReviewerController,
   EvaluationController,
-  SettingsController,
-  RecurringTicketController
+  SettingsController
 };

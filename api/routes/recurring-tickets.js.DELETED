@@ -1,0 +1,17 @@
+// ❌ هذا الملف محذوف - تم توحيد النظام
+// استخدم /api/recurring/rules بدلاً من /api/recurring-tickets
+// 
+// النظام الجديد الموحد:
+// - GET /api/recurring/rules
+// - POST /api/recurring/rules  
+// - POST /api/recurring/rules/{id}/run (تنفيذ شامل)
+//
+// تاريخ الحذف: 29 أكتوبر 2025
+
+// تم نقل جميع الوظائف إلى:
+// - routes/recurring.js
+// - routes/recurring-execution.js
+// - controllers/RecurringController.js  
+// - controllers/RecurringExecutionController.js
+
+module.exports = null; // ملف محذوف
