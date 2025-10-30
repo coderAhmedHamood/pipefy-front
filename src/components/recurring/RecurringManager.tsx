@@ -76,6 +76,7 @@ export const RecurringManager: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [creatingRule, setCreatingRule] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
 
   const [ruleForm, setRuleForm] = useState({
@@ -213,28 +214,75 @@ export const RecurringManager: React.FC = () => {
     }
   }, [isCreating]);
 
-  const handleCreateRule = () => {
+  const handleCreateRule = async () => {
     if (!selectedProcess || !ruleForm.name || !ruleForm.template_data.title) return;
 
-    const newRule: RecurringRule = {
-      id: Date.now().toString(),
-      name: ruleForm.name,
-      process_id: selectedProcess.id,
-      template_data: {
-        ...ruleForm.template_data,
-        // تأكد من وجود process_id في template_data
-        process_id: selectedProcess.id
-      },
-      schedule: ruleForm.schedule,
-      is_active: ruleForm.is_active,
-      created_by: '1',
-      created_at: new Date().toISOString(),
-      next_execution: calculateNextExecution(ruleForm.schedule)
-    };
+    setCreatingRule(true);
+    try {
+      // إعداد بيانات القاعدة للإرسال إلى API
+      const ruleData = {
+        name: ruleForm.name,
+        process_id: selectedProcess.id,
+        recurrence_type: ruleForm.schedule.type,
+        recurrence_interval: ruleForm.schedule.interval,
+        start_date: ruleForm.template_data.due_date || new Date().toISOString(),
+        end_date: null, // يمكن إضافة حقل منفصل لتاريخ النهاية لاحقاً
+        template_data: {
+          ...ruleForm.template_data,
+          process_id: selectedProcess.id
+        },
+        schedule: ruleForm.schedule,
+        is_active: ruleForm.is_active
+      };
 
-    setRecurringRules([...recurringRules, newRule]);
-    setIsCreating(false);
-    resetForm();
+      // استدعاء API لإنشاء قاعدة التكرار
+      const response = await fetch(API_ENDPOINTS.RECURRING.CREATE_RULE, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(ruleData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // إضافة القاعدة الجديدة إلى القائمة المحلية
+        if (result.success && result.data) {
+          setRecurringRules([...recurringRules, result.data]);
+        } else if (result.data) {
+          // في حالة عدم وجود success flag
+          setRecurringRules([...recurringRules, result.data]);
+        } else {
+          // إعادة جلب قواعد التكرار للعملية المحددة
+          if (selectedProcess) {
+            fetchRecurringRules(selectedProcess.id);
+          }
+        }
+        
+        // إظهار رسالة نجاح
+        notifications.showSuccess(
+          'تم الإنشاء بنجاح',
+          `تم إنشاء قاعدة التكرار "${ruleForm.name}" بنجاح`
+        );
+        
+        // إغلاق النموذج وإعادة تعيين البيانات
+        setIsCreating(false);
+        resetForm();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'فشل في إنشاء قاعدة التكرار');
+      }
+    } catch (error) {
+      console.error('خطأ في إنشاء قاعدة التكرار:', error);
+      notifications.showError(
+        'خطأ في الإنشاء',
+        `فشل في إنشاء قاعدة التكرار: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
+      );
+    } finally {
+      setCreatingRule(false);
+    }
   };
 
   const resetForm = () => {
@@ -1338,6 +1386,7 @@ export const RecurringManager: React.FC = () => {
                   <button
                     onClick={handleCreateRule}
                     disabled={
+                      creatingRule ||
                       !ruleForm.name || 
                       !ruleForm.template_data.title ||
                       !selectedProcess ||
@@ -1350,8 +1399,19 @@ export const RecurringManager: React.FC = () => {
                     }
                     className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse transition-all duration-200"
                   >
-                    <Save className="w-4 h-4" />
-                    <span>{editingRule ? 'حفظ التغييرات' : 'إنشاء القاعدة'}</span>
+                    {creatingRule ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    <span>
+                      {creatingRule 
+                        ? 'جاري الإنشاء...' 
+                        : editingRule 
+                          ? 'حفظ التغييرات' 
+                          : 'إنشاء القاعدة'
+                      }
+                    </span>
                   </button>
                 </div>
               </div>
