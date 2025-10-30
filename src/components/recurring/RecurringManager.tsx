@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { RecurringRule, RecurringSchedule, Process } from '../../types/workflow';
 import { API_ENDPOINTS, apiRequest } from '../../config/api';
+import { useQuickNotifications } from '../ui/NotificationSystem';
 import { 
   RefreshCw, 
   Plus, 
@@ -66,6 +67,7 @@ interface User {
 
 export const RecurringManager: React.FC = () => {
   const { processes } = useWorkflow();
+  const notifications = useQuickNotifications();
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [selectedProcessDetails, setSelectedProcessDetails] = useState<ProcessDetails | null>(null);
@@ -300,6 +302,47 @@ export const RecurringManager: React.FC = () => {
     );
   };
 
+  // حذف قاعدة التكرار
+  const handleDeleteRule = async (ruleId: string, ruleName: string) => {
+    try {
+      // تأكيد الحذف باستخدام نظام الرسائل الموحد
+      const confirmed = await notifications.confirmDelete(ruleName, 'قاعدة التكرار');
+      
+      if (!confirmed) {
+        return;
+      }
+
+      // استدعاء API للحذف
+      const response = await fetch(API_ENDPOINTS.RECURRING.DELETE_RULE(ruleId), {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // إزالة القاعدة من القائمة المحلية
+        setRecurringRules(rules => rules.filter(rule => rule.id !== ruleId));
+        
+        // إظهار رسالة نجاح
+        notifications.showSuccess(
+          'تم الحذف بنجاح',
+          `تم حذف قاعدة التكرار "${ruleName}" بنجاح`
+        );
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'فشل في حذف قاعدة التكرار');
+      }
+    } catch (error) {
+      console.error('خطأ في حذف قاعدة التكرار:', error);
+      notifications.showError(
+        'خطأ في الحذف',
+        `فشل في حذف قاعدة التكرار: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
+      );
+    }
+  };
+
   const getScheduleDescription = (rule: any): string => {
     // استخدام البيانات الفعلية من API
     if (!rule) {
@@ -475,7 +518,10 @@ export const RecurringManager: React.FC = () => {
                         >
                           <Edit className="w-4 h-4 text-gray-500" />
                         </button>
-                        <button className="p-2 rounded-lg hover:bg-red-50 transition-colors">
+                        <button 
+                          onClick={() => handleDeleteRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')}
+                          className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        >
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </button>
                       </div>
