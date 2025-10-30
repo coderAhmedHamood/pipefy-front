@@ -70,6 +70,7 @@ export const RecurringManager: React.FC = () => {
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [selectedProcessDetails, setSelectedProcessDetails] = useState<ProcessDetails | null>(null);
   const [loadingProcessDetails, setLoadingProcessDetails] = useState(false);
+  const [loadingRules, setLoadingRules] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -158,10 +159,35 @@ export const RecurringManager: React.FC = () => {
     }
   };
 
+  // جلب قواعد التكرار للعملية المحددة
+  const fetchRecurringRules = async (processId: string) => {
+    setLoadingRules(true);
+    try {
+      // استخدام نفس المعاملات من المثال المقدم
+      const url = `${API_ENDPOINTS.RECURRING.RULES}?page=1&limit=50&process_id=${processId}`;
+      const data = await apiRequest(url);
+      
+      if (data.success && data.data) {
+        setRecurringRules(data.data);
+      } else if (data.data && Array.isArray(data.data)) {
+        // في حالة عدم وجود success flag
+        setRecurringRules(data.data);
+      } else {
+        setRecurringRules([]);
+      }
+    } catch (error) {
+      console.error('خطأ في جلب قواعد التكرار:', error);
+      setRecurringRules([]);
+    } finally {
+      setLoadingRules(false);
+    }
+  };
+
   // معالجة اختيار العملية
   const handleProcessSelect = (process: Process) => {
     setSelectedProcess(process);
     fetchProcessDetails(process.id);
+    fetchRecurringRules(process.id); // جلب قواعد التكرار للعملية المحددة
   };
 
   // معالجة تغيير قيم الحقول المخصصة
@@ -274,18 +300,26 @@ export const RecurringManager: React.FC = () => {
     );
   };
 
-  const getScheduleDescription = (schedule: RecurringSchedule): string => {
-    switch (schedule.type) {
+  const getScheduleDescription = (rule: any): string => {
+    // استخدام البيانات الفعلية من API
+    if (!rule) {
+      return 'جدول غير محدد';
+    }
+
+    const type = rule.recurrence_type;
+    const interval = rule.recurrence_interval || 1;
+    
+    switch (type) {
       case 'daily':
-        return `كل ${schedule.interval} يوم في ${schedule.time}`;
+        return `كل ${interval} يوم`;
       case 'weekly':
-        return `كل ${schedule.interval} أسبوع في ${schedule.time}`;
+        return `كل ${interval} أسبوع`;
       case 'monthly':
-        return `كل ${schedule.interval} شهر في اليوم ${schedule.day_of_month} في ${schedule.time}`;
+        return `كل ${interval} شهر`;
       case 'yearly':
-        return `كل ${schedule.interval} سنة في ${schedule.time}`;
+        return `كل ${interval} سنة`;
       default:
-        return 'جدول مخصص';
+        return type ? `نوع: ${type}` : 'جدول غير محدد';
     }
   };
 
@@ -393,7 +427,13 @@ export const RecurringManager: React.FC = () => {
               </div>
               
               <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                <div className="space-y-4">
+                {loadingRules ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
+                    <span className="text-gray-600">جاري تحميل قواعد التكرار...</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
                 {recurringRules
                   .filter(rule => rule.process_id === selectedProcess.id)
                   .map((rule) => (
@@ -408,9 +448,12 @@ export const RecurringManager: React.FC = () => {
                           }`} />
                         </div>
                         <div>
-                          <h4 className="font-medium text-gray-900">{rule.name}</h4>
+                          <h4 className="font-medium text-gray-900">{(rule as any).rule_name || rule.name || 'قاعدة بدون اسم'}</h4>
                           <p className="text-sm text-gray-500">
-                            {getScheduleDescription(rule.schedule)}
+                            {getScheduleDescription(rule)}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {(rule as any).rule_description || (rule as any).description || 'لا يوجد وصف'}
                           </p>
                         </div>
                       </div>
@@ -438,22 +481,124 @@ export const RecurringManager: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
                       <div>
-                        <span className="font-medium">القالب:</span> {rule.template_data.title}
+                        <span className="font-medium">عنوان التذكرة:</span><br />
+                        <span className="text-gray-800">{(rule as any).title || 'غير محدد'}</span>
                       </div>
                       <div>
-                        <span className="font-medium">التنفيذ التالي:</span>{' '}
-                        {new Date(rule.next_execution).toLocaleDateString('ar-SA')}
+                        <span className="font-medium">الأولوية:</span><br />
+                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                          (rule as any).priority === 'high' ? 'bg-red-100 text-red-800' :
+                          (rule as any).priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {(rule as any).priority === 'high' ? 'عالية' :
+                           (rule as any).priority === 'medium' ? 'متوسطة' : 'منخفضة'}
+                        </span>
                       </div>
                       <div>
-                        <span className="font-medium">آخر تنفيذ:</span>{' '}
-                        {rule.last_executed 
-                          ? new Date(rule.last_executed).toLocaleDateString('ar-SA')
-                          : 'لم يتم التنفيذ بعد'
-                        }
+                        <span className="font-medium">عدد التنفيذات:</span><br />
+                        <span className="text-gray-800">{(rule as any).execution_count || 0}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium">الحالة:</span><br />
+                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                          rule.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {rule.is_active ? 'نشط' : 'متوقف'}
+                        </span>
                       </div>
                     </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100">
+                      <div>
+                        <span className="font-medium">التنفيذ التالي:</span><br />
+                        <span className="text-gray-800">
+                          {(rule as any).next_execution_date 
+                            ? new Date((rule as any).next_execution_date).toLocaleString('ar', {
+                                calendar: 'gregory',
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'غير محدد'
+                          }
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium">آخر تنفيذ:</span><br />
+                        <span className="text-gray-800">
+                          {(rule as any).last_execution_date 
+                            ? new Date((rule as any).last_execution_date).toLocaleString('ar', {
+                                calendar: 'gregory',
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'لم يتم التنفيذ بعد'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mt-3">
+                      <div>
+                        <span className="font-medium">تاريخ البداية:</span><br />
+                        <span className="text-gray-800">
+                          {(rule as any).start_date 
+                            ? new Date((rule as any).start_date).toLocaleDateString('ar', {
+                                calendar: 'gregory',
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit'
+                              })
+                            : 'غير محدد'
+                          }
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium">تاريخ النهاية:</span><br />
+                        <span className="text-gray-800">
+                          {(rule as any).end_date 
+                            ? new Date((rule as any).end_date).toLocaleDateString('ar', {
+                                calendar: 'gregory',
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit'
+                              })
+                            : 'مستمر'
+                          }
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium">اسم العملية:</span><br />
+                        <span className="text-gray-800">
+                          {(rule as any).process_name || 'غير محدد'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {((rule as any).assigned_to_name || (rule as any).created_by_name) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100">
+                        {(rule as any).assigned_to_name && (
+                          <div>
+                            <span className="font-medium">مُسند إلى:</span><br />
+                            <span className="text-gray-800">{(rule as any).assigned_to_name}</span>
+                          </div>
+                        )}
+                        {(rule as any).created_by_name && (
+                          <div>
+                            <span className="font-medium">أُنشئ بواسطة:</span><br />
+                            <span className="text-gray-800">{(rule as any).created_by_name}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
                 
@@ -471,6 +616,7 @@ export const RecurringManager: React.FC = () => {
                   </div>
                 )}
                 </div>
+                )}
               </div>
             </>
           )}

@@ -84,6 +84,16 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `${API_BASE_URL}/api/tickets/${id}`,
     MOVE_SIMPLE: (id: string) => `${API_BASE_URL}/api/tickets/${id}/move-simple`,
     COMMENTS: (id: string) => `${API_BASE_URL}/api/tickets/${id}/comments`,
+  },
+  
+  // التذاكر المتكررة
+  RECURRING: {
+    RULES: `${API_BASE_URL}/api/recurring/rules`,
+    CREATE_RULE: `${API_BASE_URL}/api/recurring/rules`,
+    GET_RULE: (id: string) => `${API_BASE_URL}/api/recurring/rules/${id}`,
+    UPDATE_RULE: (id: string) => `${API_BASE_URL}/api/recurring/rules/${id}`,
+    DELETE_RULE: (id: string) => `${API_BASE_URL}/api/recurring/rules/${id}`,
+    TOGGLE_RULE: (id: string) => `${API_BASE_URL}/api/recurring/rules/${id}/toggle`,
   }
 };
 
