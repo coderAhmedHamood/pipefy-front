@@ -78,6 +78,7 @@ export const RecurringManager: React.FC = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [creatingRule, setCreatingRule] = useState(false);
+  const [loadingRuleDetails, setLoadingRuleDetails] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
 
   const [ruleForm, setRuleForm] = useState({
@@ -215,6 +216,94 @@ export const RecurringManager: React.FC = () => {
     }
   }, [isCreating]);
 
+  // جلب تفاصيل قاعدة التكرار من API
+  const fetchRuleDetails = async (ruleId: string) => {
+    setLoadingRuleDetails(true);
+    try {
+      const response = await fetch(`http://localhost:3003/api/recurring/rules/${ruleId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        const ruleData = result.success ? result.data : result;
+        
+        console.log('Fetched Rule Details:', ruleData);
+        
+        // تحميل البيانات المفصلة في النموذج
+        loadRuleDataToForm(ruleData);
+      } else {
+        console.error('Failed to fetch rule details');
+        // استخدام البيانات المحلية كبديل
+        loadRuleDataToForm(editingRule);
+      }
+    } catch (error) {
+      console.error('Error fetching rule details:', error);
+      // استخدام البيانات المحلية كبديل
+      loadRuleDataToForm(editingRule);
+    } finally {
+      setLoadingRuleDetails(false);
+    }
+  };
+
+  // تحميل بيانات القاعدة في النموذج
+  const loadRuleDataToForm = (ruleData: any) => {
+    console.log('Loading Rule Data to Form:', ruleData);
+    
+    // البيانات موجودة في الجذر مباشرة وليس في template_data
+    const templateData = ruleData.template_data || {};
+    
+    setRuleForm({
+      name: ruleData.name || ruleData.rule_name || '',
+      process_id: ruleData.process_id,
+      template_data: {
+        title: ruleData.title || templateData.title || '',
+        description: ruleData.description || ruleData.rule_description || templateData.description || '',
+        priority: ruleData.priority || templateData.priority || 'medium',
+        due_date: ruleData.due_date || ruleData.start_date || templateData.due_date || '',
+        assigned_to: ruleData.assigned_to_id || ruleData.assigned_to || templateData.assigned_to || '',
+        stage_id: ruleData.current_stage_id || templateData.stage_id || '',
+        ticket_type: ruleData.ticket_type || templateData.ticket_type || 'task',
+        data: ruleData.data || templateData.data || {}
+      },
+      schedule: {
+        type: ruleData.recurrence_type || 'daily',
+        interval: ruleData.recurrence_interval || 1,
+        time: ruleData.time || '09:00',
+        days_of_week: ruleData.weekdays || [],
+        day_of_month: ruleData.month_day || 1
+      },
+      is_active: ruleData.is_active !== undefined ? ruleData.is_active : true
+    });
+    
+    console.log('Form Updated with:', {
+      name: ruleData.name || ruleData.rule_name || '',
+      title: ruleData.title,
+      description: ruleData.description,
+      priority: ruleData.priority,
+      due_date: ruleData.due_date,
+      assigned_to: ruleData.assigned_to || ruleData.assigned_to_id,
+      recurrence_type: ruleData.recurrence_type,
+      recurrence_interval: ruleData.recurrence_interval,
+      current_stage_id: ruleData.current_stage_id,
+      custom_data: ruleData.data // إضافة البيانات المخصصة للتشخيص
+    });
+  };
+
+  // تحميل بيانات القاعدة عند التعديل
+  useEffect(() => {
+    if (editingRule) {
+      setIsCreating(true); // فتح النموذج
+      fetchUsers(); // جلب المستخدمين
+      
+      // جلب تفاصيل القاعدة من API للحصول على البيانات الكاملة
+      fetchRuleDetails(editingRule.id);
+    }
+  }, [editingRule]);
+
   const handleCreateRule = async () => {
     if (!selectedProcess || !ruleForm.name || !ruleForm.template_data.title) return;
 
@@ -228,6 +317,22 @@ export const RecurringManager: React.FC = () => {
         recurrence_interval: ruleForm.schedule.interval,
         start_date: ruleForm.template_data.due_date || new Date().toISOString(),
         end_date: null, // يمكن إضافة حقل منفصل لتاريخ النهاية لاحقاً
+        
+        // بيانات التذكرة الأساسية
+        title: ruleForm.template_data.title,
+        description: ruleForm.template_data.description,
+        priority: ruleForm.template_data.priority,
+        assigned_to: ruleForm.template_data.assigned_to,
+        stage_id: ruleForm.template_data.stage_id,
+        ticket_type: ruleForm.template_data.ticket_type,
+        
+        // الحقول المخصصة - تحويل من أسماء الحقول إلى معرفاتها (UUID)
+        data: selectedProcessDetails?.fields ? Object.fromEntries(
+          selectedProcessDetails.fields
+            .filter(field => !field.is_system_field && ruleForm.template_data.data[field.name] !== undefined)
+            .map(field => [field.id, ruleForm.template_data.data[field.name]])
+        ) : (ruleForm.template_data.data || {}),
+        
         template_data: {
           ...ruleForm.template_data,
           process_id: selectedProcess.id
@@ -235,6 +340,9 @@ export const RecurringManager: React.FC = () => {
         schedule: ruleForm.schedule,
         is_active: ruleForm.is_active
       };
+
+      console.log('Creating Rule with Data:', ruleData);
+      console.log('Custom Fields in Create:', ruleForm.template_data.data);
 
       // استدعاء API لإنشاء قاعدة التكرار
       const response = await fetch(API_ENDPOINTS.RECURRING.CREATE_RULE, {
@@ -446,6 +554,105 @@ export const RecurringManager: React.FC = () => {
     }
   };
 
+  // تحديث قاعدة التكرار
+  const handleUpdateRule = async () => {
+    if (!editingRule || !ruleForm.name || !ruleForm.template_data.title) return;
+
+    setCreatingRule(true);
+    try {
+      // إعداد بيانات القاعدة للتحديث
+      const ruleData = {
+        name: ruleForm.name,
+        process_id: editingRule.process_id,
+        recurrence_type: ruleForm.schedule.type,
+        recurrence_interval: ruleForm.schedule.interval,
+        start_date: ruleForm.template_data.due_date || editingRule.created_at,
+        end_date: null,
+        
+        // بيانات التذكرة الأساسية
+        title: ruleForm.template_data.title,
+        description: ruleForm.template_data.description,
+        priority: ruleForm.template_data.priority,
+        assigned_to: ruleForm.template_data.assigned_to,
+        stage_id: ruleForm.template_data.stage_id,
+        ticket_type: ruleForm.template_data.ticket_type,
+        
+        // الحقول المخصصة - تحويل من أسماء الحقول إلى معرفاتها (UUID)
+        data: selectedProcessDetails?.fields ? Object.fromEntries(
+          selectedProcessDetails.fields
+            .filter(field => !field.is_system_field && ruleForm.template_data.data[field.name] !== undefined)
+            .map(field => [field.id, ruleForm.template_data.data[field.name]])
+        ) : (ruleForm.template_data.data || {}),
+        
+        template_data: {
+          ...ruleForm.template_data,
+          process_id: editingRule.process_id
+        },
+        schedule: ruleForm.schedule,
+        is_active: ruleForm.is_active
+      };
+
+      console.log('Sending Update Data:', ruleData);
+      console.log('Custom Fields in Update:', ruleForm.template_data.data);
+
+      // استدعاء API لتحديث قاعدة التكرار
+      const response = await fetch(`http://localhost:3003/api/recurring/rules/${editingRule.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(ruleData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // تحديث القاعدة في القائمة المحلية
+        if (result.success && result.data) {
+          setRecurringRules(rules => 
+            rules.map(rule => 
+              rule.id === editingRule.id ? result.data : rule
+            )
+          );
+        } else if (result.data) {
+          setRecurringRules(rules => 
+            rules.map(rule => 
+              rule.id === editingRule.id ? result.data : rule
+            )
+          );
+        } else {
+          // إعادة جلب قواعد التكرار للعملية المحددة
+          if (selectedProcess) {
+            fetchRecurringRules(selectedProcess.id);
+          }
+        }
+        
+        // إظهار رسالة نجاح
+        notifications.showSuccess(
+          'تم التحديث بنجاح',
+          `تم تحديث قاعدة التكرار "${ruleForm.name}" بنجاح`
+        );
+        
+        // إغلاق نموذج التعديل وإعادة تعيين البيانات
+        setEditingRule(null);
+        setIsCreating(false);
+        resetForm();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'فشل في تحديث قاعدة التكرار');
+      }
+    } catch (error) {
+      console.error('خطأ في تحديث قاعدة التكرار:', error);
+      notifications.showError(
+        'خطأ في التحديث',
+        `فشل في تحديث قاعدة التكرار: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`
+      );
+    } finally {
+      setCreatingRule(false);
+    }
+  };
+
   const getScheduleDescription = (rule: any): string => {
     // استخدام البيانات الفعلية من API
     if (!rule) {
@@ -481,14 +688,14 @@ export const RecurringManager: React.FC = () => {
             </h1>
             <p className="text-gray-600">إنشاء تذاكر تلقائية حسب جدول محدد</p>
           </div>
-          
+{/*           
           <button
             onClick={() => setIsCreating(true)}
             className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
           >
             <Plus className="w-4 h-4" />
             <span>قاعدة تكرار جديدة</span>
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -1446,7 +1653,7 @@ export const RecurringManager: React.FC = () => {
                     <span>إلغاء</span>
                   </button>
                   <button
-                    onClick={handleCreateRule}
+                    onClick={editingRule ? handleUpdateRule : handleCreateRule}
                     disabled={
                       creatingRule ||
                       !ruleForm.name || 
@@ -1468,7 +1675,7 @@ export const RecurringManager: React.FC = () => {
                     )}
                     <span>
                       {creatingRule 
-                        ? 'جاري الإنشاء...' 
+                        ? (editingRule ? 'جاري التحديث...' : 'جاري الإنشاء...') 
                         : editingRule 
                           ? 'حفظ التغييرات' 
                           : 'إنشاء القاعدة'
