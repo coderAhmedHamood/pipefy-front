@@ -972,7 +972,7 @@ export const RecurringManager: React.FC = () => {
                             </button>
                             <button onClick={() => handleDeleteRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')} className="p-2.5 rounded hover:bg-red-50 text-red-500" title="حذف">
                               <Trash2 className="w-5 h-5" />
-ر                            </button>
+                          </button>
                           </div>
                         </div>
                       </div>
