@@ -894,215 +894,90 @@ export const RecurringManager: React.FC = () => {
                     <span className="text-gray-600">جاري تحميل قواعد التكرار...</span>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 text-[15px]">
                 {recurringRules
                   .filter(rule => rule.process_id === selectedProcess.id)
-                  .map((rule) => (
-                  <div key={rule.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3 space-x-reverse">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          rule.is_active ? 'bg-green-100' : 'bg-gray-100'
-                        }`}>
-                          <RefreshCw className={`w-4 h-4 ${
-                            rule.is_active ? 'text-green-600' : 'text-gray-400'
-                          }`} />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-900">{(rule as any).rule_name || rule.name || 'قاعدة بدون اسم'}</h4>
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
-                            <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                              {getScheduleDescription(rule)}
-                            </span>
-                            <span className={`text-xs px-2 py-1 rounded-full ${rule.is_active ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-600 border border-gray-200'}`}>
-                              {rule.is_active ? 'نشطة' : 'متوقفة'}
-                            </span>
+                  .map((rule, index) => {
+                    const executionCount = (rule as any).execution_count || 0;
+                    const recurrenceInterval = (rule as any).recurrence_interval || 0;
+                    const progressPercentage = recurrenceInterval > 0 
+                      ? Math.min(100, Math.round((executionCount / recurrenceInterval) * 100))
+                      : 0;
+                    const isEven = index % 2 === 0;
+                    const bgColor = isEven ? 'bg-white' : 'bg-gray-50';
+                    return (
+                      <div key={rule.id} className={`${bgColor} border border-gray-200 rounded-lg px-5 py-4 hover:bg-gray-50 transition-colors`}> 
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                          {/* الاسم والحالة والأولوية */}
+                          <div className="md:col-span-4">
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-block w-2 h-2 rounded-full ${rule.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                              <span className="font-semibold text-gray-900 truncate">{(rule as any).rule_name || rule.name || 'قاعدة بدون اسم'}</span>
+                              <span className={`text-xs px-2.5 py-0.5 rounded-full ${
+                                (rule as any).priority === 'high' ? 'bg-red-50 text-red-700' :
+                                (rule as any).priority === 'medium' ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'
+                              }`}>{(rule as any).priority === 'high' ? 'عالية' : (rule as any).priority === 'medium' ? 'متوسطة' : 'منخفضة'}</span>
+                            </div>
+                            {(rule as any).title && (
+                              <div className="text-sm text-gray-600 mt-1 truncate">{(rule as any).title}</div>
+                            )}
                           </div>
-                          {(rule as any).rule_description && (
-                            <p className="text-xs text-gray-400 mt-1">
-                              {(rule as any).rule_description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <button
-                          onClick={() => toggleRuleStatus(rule)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            rule.is_active
-                              ? 'text-green-600 hover:bg-green-50'
-                              : 'text-gray-400 hover:bg-gray-50'
-                          }`}
-                        >
-                          {rule.is_active ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={() => handleRunRule(rule)}
-                          className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                          title="تشغيل القاعدة الآن"
-                        >
-                          <PlayCircle className="w-4 h-4 text-blue-600" />
-                        </button>
-                        <button
-                          onClick={() => setEditingRule(rule)}
-                          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                        >
-                          <Edit className="w-4 h-4 text-gray-500" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')}
-                          className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* مؤشرات التنفيذ */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
-                      <div className="col-span-1 md:col-span-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium">التنفيذات</span>
-                          <span className="text-xs text-gray-600">
-                            {(rule as any).execution_count || 0} / {(rule as any).recurrence_interval ?? '—'}
-                          </span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-2 ${((rule as any).execution_count || 0) >= ((rule as any).recurrence_interval || 0) ? 'bg-green-500' : 'bg-blue-500'}`}
-                            style={{ width: `${Math.min(100, Math.round((((rule as any).execution_count || 0) / Math.max(1, ((rule as any).recurrence_interval || 0))) * 100))}%` }}
-                          />
-                        </div>
-                        <div className="mt-1 text-xs text-gray-500">
-                          المتبقي: {Math.max(0, Math.max(0, ((rule as any).recurrence_interval || 0)) - ((rule as any).execution_count || 0))}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div>
-                          <span className="font-medium">الأولوية: </span>
-                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                            (rule as any).priority === 'high' ? 'bg-red-100 text-red-800' :
-                            (rule as any).priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {(rule as any).priority === 'high' ? 'عالية' :
-                             (rule as any).priority === 'medium' ? 'متوسطة' : 'منخفضة'}
-                          </span>
-                        </div>
-                        <div className="truncate">
-                          <span className="font-medium">عنوان: </span>
-                          <span className="text-gray-700">{(rule as any).title || 'غير محدد'}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700 mt-3 pt-3 border-t border-gray-100">
-                      <div>
-                        <span className="font-medium">التنفيذ التالي:</span><br />
-                        <span className="text-gray-800">
-                          {(rule as any).next_execution_date 
-                            ? new Date((rule as any).next_execution_date).toLocaleString('ar', {
-                                calendar: 'gregory',
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : 'غير محدد'
-                          }
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">انتهاء القاعدة:</span><br />
-                        <span className="text-gray-800">
-                          {(rule as any).end_date 
-                            ? new Date((rule as any).end_date).toLocaleString('ar', {
-                                calendar: 'gregory',
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : 'مستمر'
-                          }
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">آخر تنفيذ:</span><br />
-                        <span className="text-gray-800">
-                          {(rule as any).last_execution_date 
-                            ? new Date((rule as any).last_execution_date).toLocaleString('ar', {
-                                calendar: 'gregory',
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : 'لم يتم التنفيذ بعد'
-                          }
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600 mt-3">
-                      <div>
-                        <span className="font-medium">تاريخ البداية:</span><br />
-                        <span className="text-gray-800">
-                          {(rule as any).start_date 
-                            ? new Date((rule as any).start_date).toLocaleDateString('ar', {
-                                calendar: 'gregory',
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit'
-                              })
-                            : 'غير محدد'
-                          }
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">تاريخ النهاية:</span><br />
-                        <span className="text-gray-800">
-                          {(rule as any).end_date 
-                            ? new Date((rule as any).end_date).toLocaleDateString('ar', {
-                                calendar: 'gregory',
-                                year: 'numeric',
-                                month: '2-digit',
-                                day: '2-digit'
-                              })
-                            : 'مستمر'
-                          }
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">اسم العملية:</span><br />
-                        <span className="text-gray-800">
-                          {(rule as any).process_name || 'غير محدد'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {((rule as any).assigned_to_name || (rule as any).created_by_name) && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100">
-                        {(rule as any).assigned_to_name && (
-                          <div>
-                            <span className="font-medium">مُسند إلى:</span><br />
-                            <span className="text-gray-800">{(rule as any).assigned_to_name}</span>
+
+                          {/* التنفيذات */}
+                          <div className="md:col-span-3">
+                            <div className="flex items-center justify-between text-sm text-gray-600">
+                              <span>التنفيذات</span>
+                              <span className="font-medium text-gray-800">{executionCount}/{recurrenceInterval || '∞'}</span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
+                              <div className="h-full bg-blue-500" style={{ width: `${progressPercentage}%` }} />
+                            </div>
                           </div>
-                        )}
-                        {(rule as any).created_by_name && (
-                          <div>
-                            <span className="font-medium">أُنشئ بواسطة:</span><br />
-                            <span className="text-gray-800">{(rule as any).created_by_name}</span>
+
+                          {/* القادم والانتهاء وآخر تنفيذ */}
+                          <div className="md:col-span-3 text-sm text-gray-700">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-4 h-4 text-blue-600" />
+                              <span className="font-medium">التالي:</span>
+                              <span className="truncate">
+                                {(rule as any).next_execution_date ? new Date((rule as any).next_execution_date).toLocaleString('ar', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Calendar className="w-4 h-4 text-orange-600" />
+                              <span className="font-medium">الانتهاء:</span>
+                              <span className="truncate">
+                                {(rule as any).end_date ? new Date((rule as any).end_date).toLocaleDateString('ar', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'مستمر'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Clock className="w-4 h-4 text-purple-600" />
+                              <span className="font-medium">آخر:</span>
+                              <span className="truncate">
+                                {(rule as any).last_execution_date ? new Date((rule as any).last_execution_date).toLocaleString('ar', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                              </span>
+                            </div>
                           </div>
-                        )}
+
+                          {/* أزرار */}
+                          <div className="md:col-span-2 flex items-center justify-end gap-1.5">
+                            <button onClick={() => toggleRuleStatus(rule)} className={`p-2.5 rounded hover:bg-gray-100 ${rule.is_active ? 'text-green-600' : 'text-gray-400'}`} title={rule.is_active ? 'إيقاف' : 'تفعيل'}>
+                              {rule.is_active ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                            </button>
+                            <button onClick={() => handleRunRule(rule)} className="p-2.5 rounded hover:bg-gray-100 text-blue-600" title="تشغيل الآن">
+                              <PlayCircle className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => setEditingRule(rule)} className="p-2.5 rounded hover:bg-gray-100 text-gray-600" title="تعديل">
+                              <Edit className="w-5 h-5" />
+                            </button>
+                            <button onClick={() => handleDeleteRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')} className="p-2.5 rounded hover:bg-red-50 text-red-500" title="حذف">
+                              <Trash2 className="w-5 h-5" />
+ر                            </button>
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+                    );
+                  })}
                 
                 {recurringRules.filter(r => r.process_id === selectedProcess.id).length === 0 && (
                   <div className="text-center py-12">
