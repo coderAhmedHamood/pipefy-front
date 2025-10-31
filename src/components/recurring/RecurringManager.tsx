@@ -577,11 +577,11 @@ export const RecurringManager: React.FC = () => {
   };
 
   // تشغيل قاعدة التكرار يدوياً
-  const handleRunRule = async (ruleId: string, ruleName: string) => {
+  const handleRunRule = async (rule: any) => {
     try {
       // تأكيد التشغيل
       const confirmed = window.confirm(
-        `هل تريد تشغيل قاعدة التكرار "${ruleName}" الآن؟\n\nسيتم إنشاء تذكرة جديدة وفقاً لإعدادات القاعدة.`
+        `هل تريد تشغيل قاعدة التكرار "${(rule as any).rule_name || rule.name || 'قاعدة'}" الآن؟\n\nسيتم إنشاء تذكرة جديدة وفقاً لإعدادات القاعدة.`
       );
       
       if (!confirmed) {
@@ -589,7 +589,7 @@ export const RecurringManager: React.FC = () => {
       }
 
       // استدعاء API لتشغيل القاعدة
-      const response = await fetch(`http://localhost:3003/api/recurring/rules/${ruleId}/run`, {
+      const response = await fetch(`http://localhost:3003/api/recurring/rules/${rule.id}/run`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
@@ -609,7 +609,7 @@ export const RecurringManager: React.FC = () => {
         } else {
           notifications.showSuccess(
             'تم تشغيل القاعدة بنجاح',
-            `تم تشغيل قاعدة التكرار "${ruleName}" وإنشاء تذكرة جديدة`
+            `تم تشغيل قاعدة التكرار "${(rule as any).rule_name || rule.name || 'قاعدة'}" وإنشاء تذكرة جديدة`
           );
         }
 
@@ -619,6 +619,38 @@ export const RecurringManager: React.FC = () => {
         }
       } else {
         const errorData = await response.json();
+        // معالجة حالة الوصول للحد الأقصى: عرض خيار لزيادة الحد ثم إعادة المحاولة
+        if (errorData?.message?.includes('الحد الأقصى') || errorData?.message?.includes('تم الوصول')) {
+          const allowIncrease = window.confirm('تم الوصول للحد الأقصى من التنفيذات لهذه القاعدة. هل ترغب بزيادة الحد وتنفيذها الآن؟');
+          if (allowIncrease) {
+            const currentExec = (rule as any).execution_count || 0;
+            const newLimit = Math.max(((rule as any).recurrence_interval || currentExec), currentExec) + 1;
+            const updateRes = await fetch(`http://localhost:3003/api/recurring/rules/${rule.id}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ recurrence_interval: newLimit })
+            });
+            if (updateRes.ok) {
+              // أعد المحاولة بعد الزيادة
+              const retry = await fetch(`http://localhost:3003/api/recurring/rules/${rule.id}/run`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              if (retry.ok) {
+                const result = await retry.json();
+                notifications.showSuccess('تم التشغيل بعد زيادة الحد', `تم إنشاء التذكرة "${result?.data?.ticket_title || 'تذكرة جديدة'}" بنجاح`);
+                if (selectedProcess) fetchRecurringRules(selectedProcess.id);
+                return;
+              }
+            }
+          }
+        }
         throw new Error(errorData.message || 'فشل في تشغيل قاعدة التكرار');
       }
     } catch (error) {
@@ -899,7 +931,7 @@ export const RecurringManager: React.FC = () => {
                           {rule.is_active ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
                         </button>
                         <button
-                          onClick={() => handleRunRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')}
+                          onClick={() => handleRunRule(rule)}
                           className="p-2 rounded-lg hover:bg-blue-50 transition-colors"
                           title="تشغيل القاعدة الآن"
                         >
