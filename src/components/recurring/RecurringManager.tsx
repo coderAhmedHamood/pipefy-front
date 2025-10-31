@@ -497,12 +497,42 @@ export const RecurringManager: React.FC = () => {
     return nextExecution.toISOString();
   };
 
-  const toggleRuleStatus = (ruleId: string) => {
+  const toggleRuleStatus = async (rule: RecurringRule) => {
+    const newStatus = !rule.is_active;
+    // تحديث متفائل
     setRecurringRules(rules =>
-      rules.map(rule =>
-        rule.id === ruleId ? { ...rule, is_active: !rule.is_active } : rule
-      )
+      rules.map(r => (r.id === rule.id ? { ...r, is_active: newStatus } : r))
     );
+    try {
+      const response = await fetch(API_ENDPOINTS.RECURRING.UPDATE_RULE(rule.id), {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: newStatus })
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result && (result.success ? result.data : result)) {
+          const updated = result.success ? result.data : result;
+          setRecurringRules(rules => rules.map(r => (r.id === rule.id ? updated : r)));
+        }
+        notifications.showSuccess(
+          newStatus ? 'تم التفعيل' : 'تم الإيقاف',
+          `تم ${newStatus ? 'تفعيل' : 'إيقاف'} القاعدة "${(rule as any).name || (rule as any).rule_name || ''}"`
+        );
+      } else {
+        throw new Error((await response.json()).message || 'فشل تحديث الحالة');
+      }
+    } catch (error) {
+      // الرجوع عن التحديث المتفائل
+      setRecurringRules(rules =>
+        rules.map(r => (r.id === rule.id ? { ...r, is_active: !newStatus } : r))
+      );
+      console.error('خطأ في تحديث حالة القاعدة:', error);
+      notifications.showError('خطأ في التحديث', 'فشل في تغيير حالة القاعدة');
+    }
   };
 
   // حذف قاعدة التكرار
@@ -859,7 +889,7 @@ export const RecurringManager: React.FC = () => {
                       
                       <div className="flex items-center space-x-2 space-x-reverse">
                         <button
-                          onClick={() => toggleRuleStatus(rule.id)}
+                          onClick={() => toggleRuleStatus(rule)}
                           className={`p-2 rounded-lg transition-colors ${
                             rule.is_active
                               ? 'text-green-600 hover:bg-green-50'
