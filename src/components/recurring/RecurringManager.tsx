@@ -910,12 +910,19 @@ export const RecurringManager: React.FC = () => {
                         </div>
                         <div>
                           <h4 className="font-medium text-gray-900">{(rule as any).rule_name || rule.name || 'قاعدة بدون اسم'}</h4>
-                          <p className="text-sm text-gray-500">
-                            {getScheduleDescription(rule)}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {(rule as any).rule_description || (rule as any).description || 'لا يوجد وصف'}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                              {getScheduleDescription(rule)}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${rule.is_active ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-600 border border-gray-200'}`}>
+                              {rule.is_active ? 'نشطة' : 'متوقفة'}
+                            </span>
+                          </div>
+                          {(rule as any).rule_description && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              {(rule as any).rule_description}
+                            </p>
+                          )}
                         </div>
                       </div>
                       
@@ -952,37 +959,45 @@ export const RecurringManager: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
-                      <div>
-                        <span className="font-medium">عنوان التذكرة:</span><br />
-                        <span className="text-gray-800">{(rule as any).title || 'غير محدد'}</span>
+                    {/* مؤشرات التنفيذ */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700">
+                      <div className="col-span-1 md:col-span-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium">التنفيذات</span>
+                          <span className="text-xs text-gray-600">
+                            {(rule as any).execution_count || 0} / {(rule as any).recurrence_interval ?? '—'}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-2 ${((rule as any).execution_count || 0) >= ((rule as any).recurrence_interval || 0) ? 'bg-green-500' : 'bg-blue-500'}`}
+                            style={{ width: `${Math.min(100, Math.round((((rule as any).execution_count || 0) / Math.max(1, ((rule as any).recurrence_interval || 0))) * 100))}%` }}
+                          />
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          المتبقي: {Math.max(0, Math.max(0, ((rule as any).recurrence_interval || 0)) - ((rule as any).execution_count || 0))}
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-medium">الأولوية:</span><br />
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                          (rule as any).priority === 'high' ? 'bg-red-100 text-red-800' :
-                          (rule as any).priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {(rule as any).priority === 'high' ? 'عالية' :
-                           (rule as any).priority === 'medium' ? 'متوسطة' : 'منخفضة'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">عدد التنفيذات:</span><br />
-                        <span className="text-gray-800">{(rule as any).execution_count || 0}</span>
-                      </div>
-                      <div>
-                        <span className="font-medium">الحالة:</span><br />
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                          rule.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {rule.is_active ? 'نشط' : 'متوقف'}
-                        </span>
+                      <div className="space-y-1">
+                        <div>
+                          <span className="font-medium">الأولوية: </span>
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                            (rule as any).priority === 'high' ? 'bg-red-100 text-red-800' :
+                            (rule as any).priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {(rule as any).priority === 'high' ? 'عالية' :
+                             (rule as any).priority === 'medium' ? 'متوسطة' : 'منخفضة'}
+                          </span>
+                        </div>
+                        <div className="truncate">
+                          <span className="font-medium">عنوان: </span>
+                          <span className="text-gray-700">{(rule as any).title || 'غير محدد'}</span>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 mt-3 pt-3 border-t border-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-700 mt-3 pt-3 border-t border-gray-100">
                       <div>
                         <span className="font-medium">التنفيذ التالي:</span><br />
                         <span className="text-gray-800">
@@ -996,6 +1011,22 @@ export const RecurringManager: React.FC = () => {
                                 minute: '2-digit'
                               })
                             : 'غير محدد'
+                          }
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium">انتهاء القاعدة:</span><br />
+                        <span className="text-gray-800">
+                          {(rule as any).end_date 
+                            ? new Date((rule as any).end_date).toLocaleString('ar', {
+                                calendar: 'gregory',
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'مستمر'
                           }
                         </span>
                       </div>
