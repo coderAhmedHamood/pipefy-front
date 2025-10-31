@@ -122,6 +122,34 @@ export const RecurringManager: React.FC = () => {
     { value: 6, label: 'السبت' }
   ];
 
+  // فتح نموذج إنشاء قاعدة جديدة مع تفريغ البيانات
+  const openCreateRuleModal = () => {
+    setEditingRule(null);
+    setRuleForm({
+      name: '',
+      process_id: selectedProcess?.id || '',
+      template_data: {
+        title: '',
+        description: '',
+        priority: 'medium',
+        due_date: '',
+        assigned_to: '',
+        stage_id: '',
+        ticket_type: 'task',
+        data: {}
+      },
+      schedule: {
+        type: 'daily',
+        interval: 1,
+        time: '09:00',
+        days_of_week: [],
+        day_of_month: 1
+      },
+      is_active: true
+    });
+    setIsCreating(true);
+  };
+
   // جلب تفاصيل العملية المختارة
   const fetchProcessDetails = async (processId: string) => {
     setLoadingProcessDetails(true);
@@ -789,7 +817,7 @@ export const RecurringManager: React.FC = () => {
                   </span>
                 </div>
                 <button
-                  onClick={() => setIsCreating(true)}
+                  onClick={openCreateRuleModal}
                   className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 space-x-reverse"
                 >
                   <Plus className="w-4 h-4" />
@@ -989,7 +1017,7 @@ export const RecurringManager: React.FC = () => {
                     <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد قواعد تكرار</h3>
                     <p className="text-gray-500 mb-4">ابدأ بإنشاء قاعدة تكرار لإنشاء تذاكر تلقائية</p>
                     <button
-                      onClick={() => setIsCreating(true)}
+                      onClick={openCreateRuleModal}
                       className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
                     >
                       إنشاء قاعدة جديدة
