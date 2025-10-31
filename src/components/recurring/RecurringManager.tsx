@@ -255,6 +255,20 @@ export const RecurringManager: React.FC = () => {
     
     // البيانات موجودة في الجذر مباشرة وليس في template_data
     const templateData = ruleData.template_data || {};
+    const apiDataObject = ruleData.data || templateData.data || {};
+
+    // تحويل بيانات الحقول من مفاتيح UUID إلى مفاتيح أسماء الحقول لعرضها في النموذج
+    let dataByFieldName: Record<string, any> = {};
+    if (selectedProcessDetails?.fields && Array.isArray(selectedProcessDetails.fields)) {
+      dataByFieldName = Object.fromEntries(
+        selectedProcessDetails.fields
+          .filter((field) => !field.is_system_field)
+          .map((field) => [field.name, apiDataObject[field.id]])
+      );
+    } else {
+      // في حال عدم توفر تفاصيل العملية، نُبقي البيانات كما هي (قد لا تُعرض بشكل كامل حتى يتم تحميل التفاصيل)
+      dataByFieldName = templateData.data || {};
+    }
     
     setRuleForm({
       name: ruleData.name || ruleData.rule_name || '',
@@ -267,7 +281,7 @@ export const RecurringManager: React.FC = () => {
         assigned_to: ruleData.assigned_to_id || ruleData.assigned_to || templateData.assigned_to || '',
         stage_id: ruleData.current_stage_id || templateData.stage_id || '',
         ticket_type: ruleData.ticket_type || templateData.ticket_type || 'task',
-        data: ruleData.data || templateData.data || {}
+        data: dataByFieldName
       },
       schedule: {
         type: ruleData.recurrence_type || 'daily',
@@ -298,6 +312,10 @@ export const RecurringManager: React.FC = () => {
     if (editingRule) {
       setIsCreating(true); // فتح النموذج
       fetchUsers(); // جلب المستخدمين
+      // التأكد من تحميل تفاصيل العملية لإتاحة خريطة الحقول (id -> name)
+      if (!selectedProcessDetails || selectedProcessDetails.id !== editingRule.process_id) {
+        fetchProcessDetails(editingRule.process_id);
+      }
       
       // جلب تفاصيل القاعدة من API للحصول على البيانات الكاملة
       fetchRuleDetails(editingRule.id);
