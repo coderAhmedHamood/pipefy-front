@@ -261,17 +261,40 @@ export const RecurringManager: React.FC = () => {
         
         console.log('Fetched Rule Details:', ruleData);
         
-        // تحميل البيانات المفصلة في النموذج
-        loadRuleDataToForm(ruleData);
+        // التحقق من توفر تفاصيل العملية قبل تحميل البيانات
+        if (selectedProcessDetails && selectedProcessDetails.id === ruleData.process_id) {
+          // تفاصيل العملية متاحة، قم بتحميل البيانات مباشرة
+          loadRuleDataToForm(ruleData);
+        } else {
+          // تفاصيل العملية غير متاحة بعد، احفظ البيانات مؤقتاً
+          console.log('تفاصيل العملية غير متاحة بعد، حفظ البيانات مؤقتاً...');
+          setPendingRuleData(ruleData);
+          // محاولة تحميل البيانات الأساسية (بدون تحويل الحقول المخصصة)
+          loadRuleDataToForm(ruleData);
+        }
       } else {
         console.error('Failed to fetch rule details');
         // استخدام البيانات المحلية كبديل
-        loadRuleDataToForm(editingRule);
+        if (editingRule) {
+          if (selectedProcessDetails && selectedProcessDetails.id === editingRule.process_id) {
+            loadRuleDataToForm(editingRule);
+          } else {
+            setPendingRuleData(editingRule);
+            loadRuleDataToForm(editingRule);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching rule details:', error);
       // استخدام البيانات المحلية كبديل
-      loadRuleDataToForm(editingRule);
+      if (editingRule) {
+        if (selectedProcessDetails && selectedProcessDetails.id === editingRule.process_id) {
+          loadRuleDataToForm(editingRule);
+        } else {
+          setPendingRuleData(editingRule);
+          loadRuleDataToForm(editingRule);
+        }
+      }
     } finally {
       setLoadingRuleDetails(false);
     }
@@ -335,20 +358,39 @@ export const RecurringManager: React.FC = () => {
     });
   };
 
+  // حفظ بيانات القاعدة المحملة مؤقتاً لإعادة استخدامها عند توفر تفاصيل العملية
+  const [pendingRuleData, setPendingRuleData] = useState<any>(null);
+
   // تحميل بيانات القاعدة عند التعديل
   useEffect(() => {
     if (editingRule) {
       setIsCreating(true); // فتح النموذج
       fetchUsers(); // جلب المستخدمين
-      // التأكد من تحميل تفاصيل العملية لإتاحة خريطة الحقول (id -> name)
-      if (!selectedProcessDetails || selectedProcessDetails.id !== editingRule.process_id) {
-        fetchProcessDetails(editingRule.process_id);
-      }
+      setPendingRuleData(null); // إعادة تعيين البيانات المؤقتة
       
-      // جلب تفاصيل القاعدة من API للحصول على البيانات الكاملة
-      fetchRuleDetails(editingRule.id);
+      // دالة مساعدة لتحميل البيانات بالترتيب الصحيح
+      const loadEditData = async () => {
+        // أولاً: تحميل تفاصيل العملية (مهمة جداً لتحويل UUID إلى أسماء الحقول)
+        if (!selectedProcessDetails || selectedProcessDetails.id !== editingRule.process_id) {
+          await fetchProcessDetails(editingRule.process_id);
+        }
+        
+        // ثانياً: تحميل تفاصيل القاعدة
+        fetchRuleDetails(editingRule.id);
+      };
+      
+      loadEditData();
     }
   }, [editingRule]);
+
+  // إعادة تحميل البيانات في النموذج عند توفر تفاصيل العملية
+  useEffect(() => {
+    if (editingRule && pendingRuleData && selectedProcessDetails && selectedProcessDetails.id === editingRule.process_id) {
+      console.log('إعادة تحميل البيانات مع تفاصيل العملية المتاحة الآن');
+      loadRuleDataToForm(pendingRuleData);
+      setPendingRuleData(null); // مسح البيانات المؤقتة
+    }
+  }, [selectedProcessDetails, editingRule, pendingRuleData]);
 
   const handleCreateRule = async () => {
     if (!selectedProcess || !ruleForm.name || !ruleForm.template_data.title) return;
