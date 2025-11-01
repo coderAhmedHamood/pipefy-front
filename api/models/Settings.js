@@ -14,6 +14,7 @@ class Settings {
     this.system_timezone = data.system_timezone;
     this.system_date_format = data.system_date_format;
     this.system_time_format = data.system_time_format;
+    this.system_theme = data.system_theme;
     
     // إعدادات الإشعارات
     this.notifications_enabled = data.notifications_enabled;
@@ -33,6 +34,12 @@ class Settings {
     this.integrations_email_smtp_password = data.integrations_email_smtp_password;
     this.integrations_email_from_address = data.integrations_email_from_address;
     this.integrations_email_from_name = data.integrations_email_from_name;
+    this.integrations_email_enabled = data.integrations_email_enabled;
+    this.integrations_email_send_delayed_tickets = data.integrations_email_send_delayed_tickets;
+    this.integrations_email_send_on_assignment = data.integrations_email_send_on_assignment;
+    this.integrations_email_send_on_comment = data.integrations_email_send_on_comment;
+    this.integrations_email_send_on_completion = data.integrations_email_send_on_completion;
+    this.integrations_email_send_on_creation = data.integrations_email_send_on_creation;
     
     // إعدادات النسخ الاحتياطي
     this.backup_enabled = data.backup_enabled;
@@ -48,7 +55,22 @@ class Settings {
     
     // إعدادات الملفات
     this.max_file_upload_size = data.max_file_upload_size;
-    this.allowed_file_types = data.allowed_file_types;
+    // معالجة allowed_file_types إذا كان JSON/JSONB
+    if (data.allowed_file_types) {
+      if (typeof data.allowed_file_types === 'string') {
+        try {
+          this.allowed_file_types = JSON.parse(data.allowed_file_types);
+        } catch (e) {
+          this.allowed_file_types = data.allowed_file_types;
+        }
+      } else if (Array.isArray(data.allowed_file_types)) {
+        this.allowed_file_types = data.allowed_file_types;
+      } else {
+        this.allowed_file_types = data.allowed_file_types;
+      }
+    } else {
+      this.allowed_file_types = data.allowed_file_types;
+    }
     
     // إعدادات التذاكر
     this.default_ticket_priority = data.default_ticket_priority;
@@ -116,161 +138,70 @@ class Settings {
   }
 
   /**
-   * تحديث الإعدادات
+   * تحديث الإعدادات - تحديث جميع الحقول بدون استثناء
    */
   static async updateSettings(settingsData) {
     try {
       // جلب الإعدادات الحالية
       const currentSettings = await this.getSettings();
       
-      // بناء استعلام التحديث ديناميكياً
+      // بناء استعلام التحديث لجميع الحقول
       const updateFields = [];
       const values = [];
       let paramCount = 1;
       
-      // معلومات النظام الأساسية
-      if (settingsData.system_name !== undefined) {
-        updateFields.push(`system_name = $${paramCount}`);
-        values.push(settingsData.system_name);
-        paramCount++;
-      }
+      // قائمة جميع الحقول القابلة للتحديث
+      const allFields = [
+        // معلومات النظام الأساسية
+        'system_name', 'system_description', 'system_logo_url', 'system_favicon_url',
+        'system_primary_color', 'system_secondary_color', 'system_language', 
+        'system_timezone', 'system_date_format', 'system_time_format', 'system_theme',
+        // إعدادات الإشعارات
+        'notifications_enabled', 'notifications_email_enabled', 'notifications_browser_enabled',
+        // إعدادات الأمان
+        'security_session_timeout', 'security_password_min_length', 
+        'security_login_attempts_limit', 'security_lockout_duration',
+        // إعدادات البريد الإلكتروني
+        'integrations_email_smtp_host', 'integrations_email_smtp_port',
+        'integrations_email_smtp_username', 'integrations_email_smtp_password',
+        'integrations_email_from_address', 'integrations_email_from_name',
+        'integrations_email_enabled', 'integrations_email_send_delayed_tickets',
+        'integrations_email_send_on_assignment', 'integrations_email_send_on_comment',
+        'integrations_email_send_on_completion', 'integrations_email_send_on_creation',
+        // إعدادات النسخ الاحتياطي
+        'backup_enabled', 'backup_frequency', 'backup_retention_days',
+        // إعدادات ساعات العمل
+        'working_hours_enabled',
+        // إعدادات الصيانة
+        'maintenance_mode', 'maintenance_message',
+        // إعدادات الملفات
+        'max_file_upload_size', 'allowed_file_types',
+        // إعدادات التذاكر
+        'default_ticket_priority', 'auto_assign_tickets', 'ticket_numbering_format'
+      ];
       
-      if (settingsData.system_description !== undefined) {
-        updateFields.push(`system_description = $${paramCount}`);
-        values.push(settingsData.system_description);
-        paramCount++;
-      }
-      
-      if (settingsData.system_logo_url !== undefined) {
-        updateFields.push(`system_logo_url = $${paramCount}`);
-        values.push(settingsData.system_logo_url);
-        paramCount++;
-      }
-      
-      if (settingsData.system_primary_color !== undefined) {
-        updateFields.push(`system_primary_color = $${paramCount}`);
-        values.push(settingsData.system_primary_color);
-        paramCount++;
-      }
-      
-      if (settingsData.system_secondary_color !== undefined) {
-        updateFields.push(`system_secondary_color = $${paramCount}`);
-        values.push(settingsData.system_secondary_color);
-        paramCount++;
-      }
-      
-      if (settingsData.system_language !== undefined) {
-        updateFields.push(`system_language = $${paramCount}`);
-        values.push(settingsData.system_language);
-        paramCount++;
-      }
-      
-      if (settingsData.system_timezone !== undefined) {
-        updateFields.push(`system_timezone = $${paramCount}`);
-        values.push(settingsData.system_timezone);
-        paramCount++;
-      }
-      
-      // إعدادات الأمان
-      if (settingsData.security_login_attempts_limit !== undefined) {
-        updateFields.push(`security_login_attempts_limit = $${paramCount}`);
-        values.push(settingsData.security_login_attempts_limit);
-        paramCount++;
-      }
-      
-      if (settingsData.security_lockout_duration !== undefined) {
-        updateFields.push(`security_lockout_duration = $${paramCount}`);
-        values.push(settingsData.security_lockout_duration);
-        paramCount++;
-      }
-      
-      if (settingsData.security_session_timeout !== undefined) {
-        updateFields.push(`security_session_timeout = $${paramCount}`);
-        values.push(settingsData.security_session_timeout);
-        paramCount++;
-      }
-      
-      if (settingsData.security_password_min_length !== undefined) {
-        updateFields.push(`security_password_min_length = $${paramCount}`);
-        values.push(settingsData.security_password_min_length);
-        paramCount++;
-      }
-      
-      // إعدادات البريد الإلكتروني
-      if (settingsData.integrations_email_smtp_host !== undefined) {
-        updateFields.push(`integrations_email_smtp_host = $${paramCount}`);
-        values.push(settingsData.integrations_email_smtp_host);
-        paramCount++;
-      }
-      
-      if (settingsData.integrations_email_smtp_port !== undefined) {
-        updateFields.push(`integrations_email_smtp_port = $${paramCount}`);
-        values.push(settingsData.integrations_email_smtp_port);
-        paramCount++;
-      }
-      
-      if (settingsData.integrations_email_smtp_username !== undefined) {
-        updateFields.push(`integrations_email_smtp_username = $${paramCount}`);
-        values.push(settingsData.integrations_email_smtp_username);
-        paramCount++;
-      }
-      
-      if (settingsData.integrations_email_smtp_password !== undefined) {
-        updateFields.push(`integrations_email_smtp_password = $${paramCount}`);
-        values.push(settingsData.integrations_email_smtp_password);
-        paramCount++;
-      }
-      
-      if (settingsData.integrations_email_from_address !== undefined) {
-        updateFields.push(`integrations_email_from_address = $${paramCount}`);
-        values.push(settingsData.integrations_email_from_address);
-        paramCount++;
-      }
-      
-      if (settingsData.integrations_email_from_name !== undefined) {
-        updateFields.push(`integrations_email_from_name = $${paramCount}`);
-        values.push(settingsData.integrations_email_from_name);
-        paramCount++;
-      }
-      
-      // إعدادات الإشعارات
-      if (settingsData.notifications_enabled !== undefined) {
-        updateFields.push(`notifications_enabled = $${paramCount}`);
-        values.push(settingsData.notifications_enabled);
-        paramCount++;
-      }
-      
-      if (settingsData.notifications_email_enabled !== undefined) {
-        updateFields.push(`notifications_email_enabled = $${paramCount}`);
-        values.push(settingsData.notifications_email_enabled);
-        paramCount++;
-      }
-      
-      // إعدادات الصيانة
-      if (settingsData.maintenance_mode !== undefined) {
-        updateFields.push(`maintenance_mode = $${paramCount}`);
-        values.push(settingsData.maintenance_mode);
-        paramCount++;
-      }
-      
-      if (settingsData.maintenance_message !== undefined) {
-        updateFields.push(`maintenance_message = $${paramCount}`);
-        values.push(settingsData.maintenance_message);
-        paramCount++;
-      }
-      
-      // إعدادات التذاكر
-      if (settingsData.default_ticket_priority !== undefined) {
-        updateFields.push(`default_ticket_priority = $${paramCount}`);
-        values.push(settingsData.default_ticket_priority);
-        paramCount++;
-      }
-      
-      if (settingsData.auto_assign_tickets !== undefined) {
-        updateFields.push(`auto_assign_tickets = $${paramCount}`);
-        values.push(settingsData.auto_assign_tickets);
-        paramCount++;
-      }
+      // تحديث جميع الحقول الممررة (حتى لو كانت undefined سيتم تحديثها إلى NULL)
+      allFields.forEach(field => {
+        if (settingsData.hasOwnProperty(field)) {
+          updateFields.push(`${field} = $${paramCount}`);
+          // معالجة المصفوفات والكائنات (مثل allowed_file_types)
+          if (field === 'allowed_file_types' && Array.isArray(settingsData[field])) {
+            values.push(JSON.stringify(settingsData[field]));
+          } else if (field === 'integrations_email_smtp_password') {
+            // معالجة خاصة لكلمة المرور - السماح بالقيم الفارغة والنصوص
+            // إذا كانت null أو undefined، يتم تعيينها إلى null
+            // إذا كانت نصاً (حتى لو فارغاً)، يتم الاحتفاظ بها
+            if (settingsData[field] === null || settingsData[field] === undefined) {
+              values.push(null);
+            } else {
+              values.push(String(settingsData[field]));
+            }
+          } else {
+            values.push(settingsData[field] === '' ? null : settingsData[field]);
+          }
+          paramCount++;
+        }
+      });
       
       // إذا لم يتم تمرير أي حقول للتحديث
       if (updateFields.length === 0) {

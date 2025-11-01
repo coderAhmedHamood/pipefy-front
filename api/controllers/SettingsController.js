@@ -72,9 +72,14 @@ class SettingsController {
     }
 
     if (data.security_password_min_length !== undefined) {
-      const minLength = parseInt(data.security_password_min_length);
-      if (isNaN(minLength) || minLength < 4 || minLength > 50) {
-        errors.push('الحد الأدنى لطول كلمة المرور يجب أن يكون بين 4 و 50 حرف');
+      // التحقق من أن القيمة رقم وليست نص
+      if (typeof data.security_password_min_length === 'string' && isNaN(parseInt(data.security_password_min_length))) {
+        errors.push('الحد الأدنى لطول كلمة المرور يجب أن يكون رقماً وليس نصاً');
+      } else {
+        const minLength = parseInt(data.security_password_min_length);
+        if (isNaN(minLength) || minLength < 4 || minLength > 50) {
+          errors.push('الحد الأدنى لطول كلمة المرور يجب أن يكون رقماً بين 4 و 50');
+        }
       }
     }
 
@@ -107,7 +112,15 @@ class SettingsController {
       'notifications_email_enabled', 
       'notifications_browser_enabled',
       'maintenance_mode',
-      'auto_assign_tickets'
+      'auto_assign_tickets',
+      'integrations_email_enabled',
+      'integrations_email_send_delayed_tickets',
+      'integrations_email_send_on_assignment',
+      'integrations_email_send_on_comment',
+      'integrations_email_send_on_completion',
+      'integrations_email_send_on_creation',
+      'backup_enabled',
+      'working_hours_enabled'
     ];
 
     booleanFields.forEach(field => {
@@ -115,6 +128,14 @@ class SettingsController {
         errors.push(`${field} يجب أن يكون قيمة منطقية (true أو false)`);
       }
     });
+
+    // التحقق من الثيم
+    if (data.system_theme !== undefined) {
+      const validThemes = ['light', 'dark', 'auto'];
+      if (!validThemes.includes(data.system_theme)) {
+        errors.push('الثيم يجب أن يكون إحدى القيم: light, dark, auto');
+      }
+    }
 
     return errors.length > 0 ? errors.join(', ') : null;
   }
