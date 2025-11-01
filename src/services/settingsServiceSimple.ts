@@ -41,6 +41,7 @@ export interface ApiSettings {
   system_timezone?: string;
   system_date_format?: string;
   system_time_format?: string;
+  system_theme?: string;
   notifications_enabled?: boolean;
   notifications_email_enabled?: boolean;
   notifications_browser_enabled?: boolean;
@@ -54,6 +55,12 @@ export interface ApiSettings {
   integrations_email_smtp_password?: string;
   integrations_email_from_address?: string;
   integrations_email_from_name?: string;
+  integrations_email_enabled?: boolean;
+  integrations_email_send_delayed_tickets?: boolean;
+  integrations_email_send_on_assignment?: boolean;
+  integrations_email_send_on_comment?: boolean;
+  integrations_email_send_on_completion?: boolean;
+  integrations_email_send_on_creation?: boolean;
   backup_enabled?: boolean;
   backup_frequency?: string;
   backup_retention_days?: number;
@@ -167,6 +174,67 @@ export const settingsService = {
       return response.data;
     } catch (error: any) {
       console.error('❌ خطأ في حذف الشعار:', error);
+      throw error;
+    }
+  },
+
+  // رفع أيقونة الموقع (Favicon) عبر POST /api/settings/favicon
+  async uploadFavicon(file: File): Promise<ApiResponse<{ faviconUrl: string; settings: ApiSettings }>> {
+    try {
+      console.log('🔄 استدعاء POST /api/settings/favicon');
+      console.log('📍 URL الكامل:', `${API_BASE_URL}/settings/favicon`);
+      console.log('📁 معلومات الملف:', {
+        name: file.name,
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        type: file.type
+      });
+      
+      const formData = new FormData();
+      formData.append('favicon', file);
+      
+      console.log('📤 إرسال الملف إلى API...');
+      
+      const response = await api.post('/settings/favicon', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('✅ استجابة POST /api/settings/favicon:', response.data);
+      console.log('📊 حالة الاستجابة:', response.status);
+      
+      if (response.data.success && response.data.data) {
+        console.log('🖼️ رابط الأيقونة الجديد:', response.data.data.faviconUrl || response.data.data.favicon_url);
+      }
+      
+      return {
+        ...response.data,
+        data: {
+          faviconUrl: response.data.data?.faviconUrl || response.data.data?.favicon_url || '',
+          settings: response.data.data?.settings || response.data.data
+        }
+      };
+    } catch (error: any) {
+      console.error('❌ خطأ في POST /api/settings/favicon:', error);
+      console.error('📍 تفاصيل الخطأ:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      throw error;
+    }
+  },
+
+  // حذف أيقونة الموقع (Favicon)
+  async deleteFavicon(): Promise<ApiResponse<ApiSettings>> {
+    try {
+      console.log('🔄 جاري حذف الأيقونة');
+      const response = await api.delete('/settings/favicon');
+      console.log('✅ تم حذف الأيقونة:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ خطأ في حذف الأيقونة:', error);
       throw error;
     }
   },

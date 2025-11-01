@@ -6,46 +6,25 @@ import {
   Save,
   Upload,
   Loader2,
-  Trash2
+  Trash2,
+  Bell,
+  Database,
+  FileText,
+  Clock,
+  Globe
 } from 'lucide-react';
-import { settingsService, Settings as SettingsType } from '../../services/settingsService';
+import { settingsService, ApiSettings as SettingsType } from '../../services/settingsServiceSimple';
 import { useQuickNotifications } from '../ui/NotificationSystem';
 
 export const SettingsManager: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'general' | 'security' | 'integrations'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'security' | 'integrations' | 'notifications' | 'backup' | 'tickets'>('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const notifications = useQuickNotifications();
   
   // حالة الإعدادات
-  const [settings, setSettings] = useState<SettingsType>({
-    // إعدادات عامة
-    system_name: 'نظام إدارة المهام',
-    system_description: 'نظام شامل لإدارة المهام والعمليات',
-    system_logo_url: '',
-    system_primary_color: '#3B82F6',
-    system_secondary_color: '#10B981',
-    system_language: 'ar',
-    system_timezone: 'Asia/Riyadh',
-    
-    // إعدادات الأمان
-    security_session_timeout: 480,
-    security_password_min_length: 8,
-    security_password_require_uppercase: true,
-    security_password_require_lowercase: true,
-    security_password_require_numbers: true,
-    security_login_attempts_limit: 5,
-    security_lockout_duration: 30,
-    
-    // إعدادات التكاملات
-    integrations_email_smtp_host: '',
-    integrations_email_smtp_port: 587,
-    integrations_email_smtp_username: '',
-    integrations_email_smtp_password: '',
-    integrations_email_from_address: '',
-    integrations_email_from_name: ''
-  });
+  const [settings, setSettings] = useState<SettingsType>({});
 
   // تحميل الإعدادات عند بدء التشغيل
   useEffect(() => {
@@ -55,13 +34,61 @@ export const SettingsManager: React.FC = () => {
   const loadSettings = async () => {
     try {
       setLoading(true);
+      console.log('🔄 [SettingsManager] جاري تحميل الإعدادات...');
       const response = await settingsService.getSettings();
+      console.log('📦 [SettingsManager] استجابة API:', response);
+      
       if (response.success && response.data) {
-        setSettings(response.data);
-        notifications.showSuccess('تم تحميل الإعدادات', 'تم جلب الإعدادات بنجاح');
+        console.log('✅ [SettingsManager] تم جلب الإعدادات بنجاح:', response.data);
+        console.log('📊 [SettingsManager] عدد الحقول:', Object.keys(response.data).length);
+        console.log('🔍 [SettingsManager] الحقول المتاحة:', Object.keys(response.data));
+        
+        // التأكد من أن جميع الحقول موجودة مع الحفاظ على القيم الفعلية من API
+        const loadedSettings: SettingsType = {
+          ...response.data,
+          // ضمان وجود الحقول الأساسية حتى لو كانت null/undefined
+          system_name: response.data.system_name || '',
+          system_description: response.data.system_description || '',
+          system_logo_url: response.data.system_logo_url || '',
+          system_favicon_url: response.data.system_favicon_url || null,
+          system_primary_color: response.data.system_primary_color || '#3B82F6',
+          system_secondary_color: response.data.system_secondary_color || '#10B981',
+          system_language: response.data.system_language || 'ar',
+          system_timezone: response.data.system_timezone || 'Asia/Riyadh',
+          system_date_format: response.data.system_date_format || 'DD/MM/YYYY',
+          system_time_format: response.data.system_time_format || '24h',
+          system_theme: response.data.system_theme || 'light',
+          // إعدادات الإشعارات
+          notifications_enabled: response.data.notifications_enabled ?? true,
+          notifications_email_enabled: response.data.notifications_email_enabled ?? true,
+          notifications_browser_enabled: response.data.notifications_browser_enabled ?? true,
+          // إعدادات التكاملات - البريد الإلكتروني
+          integrations_email_enabled: response.data.integrations_email_enabled ?? false,
+          integrations_email_send_on_creation: response.data.integrations_email_send_on_creation ?? false,
+          integrations_email_send_on_assignment: response.data.integrations_email_send_on_assignment ?? false,
+          integrations_email_send_on_comment: response.data.integrations_email_send_on_comment ?? false,
+          integrations_email_send_on_completion: response.data.integrations_email_send_on_completion ?? false,
+          integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets ?? false,
+        };
+        
+        console.log('📧 [SettingsManager] إعدادات البريد الإلكتروني:', {
+          integrations_email_enabled: loadedSettings.integrations_email_enabled,
+          integrations_email_send_on_creation: loadedSettings.integrations_email_send_on_creation,
+          integrations_email_send_on_assignment: loadedSettings.integrations_email_send_on_assignment,
+          integrations_email_send_on_comment: loadedSettings.integrations_email_send_on_comment,
+          integrations_email_send_on_completion: loadedSettings.integrations_email_send_on_completion,
+          integrations_email_send_delayed_tickets: loadedSettings.integrations_email_send_delayed_tickets,
+        });
+        
+        setSettings(loadedSettings);
+        console.log('💾 [SettingsManager] تم حفظ الإعدادات في الحالة');
+        notifications.showSuccess('تم تحميل الإعدادات', `تم جلب ${Object.keys(loadedSettings).length} حقل من الإعدادات بنجاح`);
+      } else {
+        console.warn('⚠️ [SettingsManager] استجابة غير ناجحة:', response);
+        notifications.showError('خطأ في تحميل الإعدادات', response.message || 'فشل في جلب الإعدادات');
       }
     } catch (error: any) {
-      console.error('خطأ في تحميل الإعدادات:', error);
+      console.error('❌ [SettingsManager] خطأ في تحميل الإعدادات:', error);
       notifications.showError('خطأ في تحميل الإعدادات', error.message || 'فشل في جلب الإعدادات');
     } finally {
       setLoading(false);
@@ -125,10 +152,45 @@ export const SettingsManager: React.FC = () => {
     }
   };
 
+  const handleUploadFavicon = async (file: File) => {
+    try {
+      setUploading(true);
+      const response = await settingsService.uploadFavicon(file);
+      if (response.success && response.data) {
+        updateSetting('system_favicon_url', response.data.faviconUrl);
+        notifications.showSuccess('تم رفع الأيقونة', 'تم رفع أيقونة الموقع بنجاح');
+      }
+    } catch (error: any) {
+      console.error('خطأ في رفع الأيقونة:', error);
+      notifications.showError('خطأ في رفع الأيقونة', error.message || 'فشل في رفع الأيقونة');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteFavicon = async () => {
+    const confirmed = await notifications.confirmDelete('أيقونة الموقع');
+    if (!confirmed) return;
+
+    try {
+      const response = await settingsService.deleteFavicon();
+      if (response.success) {
+        updateSetting('system_favicon_url', '');
+        notifications.showSuccess('تم حذف الأيقونة', 'تم حذف أيقونة الموقع بنجاح');
+      }
+    } catch (error: any) {
+      console.error('خطأ في حذف الأيقونة:', error);
+      notifications.showError('خطأ في حذف الأيقونة', error.message || 'فشل في حذف الأيقونة');
+    }
+  };
+
   const tabs = [
     { id: 'general', label: 'عام', icon: Palette },
     { id: 'security', label: 'الأمان', icon: Shield },
-    { id: 'integrations', label: 'التكاملات', icon: Zap }
+    { id: 'notifications', label: 'الإشعارات', icon: Bell },
+    { id: 'integrations', label: 'التكاملات', icon: Zap },
+    { id: 'backup', label: 'النسخ الاحتياطي', icon: Database },
+    { id: 'tickets', label: 'التذاكر والملفات', icon: FileText }
   ];
 
   if (loading) {
@@ -148,6 +210,11 @@ export const SettingsManager: React.FC = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">إعدادات النظام</h1>
         <p className="text-gray-600">تخصيص النظام حسب احتياجاتك</p>
+        {Object.keys(settings).length > 0 && (
+          <p className="text-sm text-gray-500 mt-2">
+            تم تحميل {Object.keys(settings).length} حقل من الإعدادات
+          </p>
+        )}
       </div>
 
       {/* Tabs */}
@@ -206,6 +273,60 @@ export const SettingsManager: React.FC = () => {
                 </select>
               </div>
               
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">المنطقة الزمنية</label>
+                <select
+                  value={settings.system_timezone || 'Asia/Riyadh'}
+                  onChange={(e) => updateSetting('system_timezone', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="Asia/Riyadh">المملكة العربية السعودية (Asia/Riyadh)</option>
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">أمريكا الشرقية (America/New_York)</option>
+                  <option value="Europe/London">لندن (Europe/London)</option>
+                  <option value="Asia/Dubai">دبي (Asia/Dubai)</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">تنسيق التاريخ</label>
+                <select
+                  value={settings.system_date_format || 'DD/MM/YYYY'}
+                  onChange={(e) => updateSetting('system_date_format', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                  <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">تنسيق الوقت</label>
+                <select
+                  value={settings.system_time_format || '24h'}
+                  onChange={(e) => updateSetting('system_time_format', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="24h">24 ساعة</option>
+                  <option value="12h">12 ساعة (AM/PM)</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">المظهر</label>
+                <select
+                  value={settings.system_theme || 'light'}
+                  onChange={(e) => updateSetting('system_theme', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="light">فاتح</option>
+                  <option value="dark">داكن</option>
+                  <option value="auto">تلقائي</option>
+                </select>
+              </div>
+              
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">وصف النظام</label>
                 <textarea
@@ -242,7 +363,7 @@ export const SettingsManager: React.FC = () => {
                   {settings.system_logo_url && (
                     <div className="w-16 h-16 border border-gray-300 rounded-lg overflow-hidden">
                       <img 
-                        src={settings.system_logo_url} 
+                        src={settings.system_logo_url.startsWith('http') ? settings.system_logo_url : `http://localhost:3003${settings.system_logo_url}`}
                         alt="شعار النظام" 
                         className="w-full h-full object-cover"
                       />
@@ -277,6 +398,55 @@ export const SettingsManager: React.FC = () => {
                     </button>
                   )}
                 </div>
+                {settings.system_logo_url && (
+                  <p className="mt-2 text-xs text-gray-500">الرابط: {settings.system_logo_url}</p>
+                )}
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">أيقونة الموقع (Favicon)</label>
+                <div className="flex items-center space-x-4 space-x-reverse">
+                  {settings.system_favicon_url && (
+                    <div className="w-12 h-12 border border-gray-300 rounded-lg overflow-hidden">
+                      <img 
+                        src={settings.system_favicon_url.startsWith('http') ? settings.system_favicon_url : `http://localhost:3003${settings.system_favicon_url}`}
+                        alt="أيقونة الموقع" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/x-icon,image/png,image/jpeg"
+                    className="hidden"
+                    id="favicon-upload"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleUploadFavicon(file);
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="favicon-upload"
+                    className="flex items-center space-x-2 space-x-reverse px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  >
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    <span>{uploading ? 'جاري الرفع...' : 'رفع أيقونة'}</span>
+                  </label>
+                  {settings.system_favicon_url && (
+                    <button
+                      onClick={handleDeleteFavicon}
+                      className="flex items-center space-x-2 space-x-reverse px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>حذف</span>
+                    </button>
+                  )}
+                </div>
+                {settings.system_favicon_url && (
+                  <p className="mt-2 text-xs text-gray-500">الرابط: {settings.system_favicon_url}</p>
+                )}
               </div>
             </div>
           </div>
@@ -333,41 +503,6 @@ export const SettingsManager: React.FC = () => {
                   onChange={(e) => updateSetting('security_lockout_duration', parseInt(e.target.value))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h4 className="font-medium text-gray-900">متطلبات كلمة المرور</h4>
-              <div className="space-y-3">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={settings.security_password_require_uppercase || false}
-                    onChange={(e) => updateSetting('security_password_require_uppercase', e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                  />
-                  <span className="mr-3 text-sm text-gray-700">يجب أن تحتوي على أحرف كبيرة</span>
-                </label>
-                
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={settings.security_password_require_lowercase || false}
-                    onChange={(e) => updateSetting('security_password_require_lowercase', e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                  />
-                  <span className="mr-3 text-sm text-gray-700">يجب أن تحتوي على أحرف صغيرة</span>
-                </label>
-                
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={settings.security_password_require_numbers || false}
-                    onChange={(e) => updateSetting('security_password_require_numbers', e.target.checked)}
-                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                  />
-                  <span className="mr-3 text-sm text-gray-700">يجب أن تحتوي على أرقام</span>
-                </label>
               </div>
             </div>
           </div>
@@ -439,6 +574,315 @@ export const SettingsManager: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="نظام إدارة المهام"
                 />
+              </div>
+            </div>
+            
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h4 className="text-md font-semibold text-gray-900 mb-4">إعدادات إشعارات البريد الإلكتروني</h4>
+              <p className="text-sm text-gray-500 mb-4">اختر متى تريد إرسال إشعارات البريد الإلكتروني للتذاكر</p>
+              <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                <label className="flex items-center p-2 hover:bg-white rounded transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={settings.integrations_email_enabled === true}
+                    onChange={(e) => {
+                      console.log('📧 تحديث integrations_email_enabled:', e.target.checked);
+                      updateSetting('integrations_email_enabled', e.target.checked);
+                    }}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm font-medium text-gray-700">تفعيل إرسال البريد الإلكتروني</span>
+                  {settings.integrations_email_enabled !== undefined && (
+                    <span className="text-xs text-gray-500">({settings.integrations_email_enabled ? 'مفعل' : 'معطل'})</span>
+                  )}
+                </label>
+                
+                <div className="mr-6 space-y-2 border-r-2 border-blue-200 pr-4">
+                  <label className="flex items-center p-2 hover:bg-white rounded transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_creation === true}
+                      onChange={(e) => {
+                        console.log('📧 تحديث integrations_email_send_on_creation:', e.target.checked);
+                        updateSetting('integrations_email_send_on_creation', e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند إنشاء التذكرة</span>
+                    {settings.integrations_email_send_on_creation !== undefined && (
+                      <span className="text-xs text-gray-500">({settings.integrations_email_send_on_creation ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-2 hover:bg-white rounded transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_assignment === true}
+                      onChange={(e) => {
+                        console.log('📧 تحديث integrations_email_send_on_assignment:', e.target.checked);
+                        updateSetting('integrations_email_send_on_assignment', e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند تعيين التذكرة</span>
+                    {settings.integrations_email_send_on_assignment !== undefined && (
+                      <span className="text-xs text-gray-500">({settings.integrations_email_send_on_assignment ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-2 hover:bg-white rounded transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_comment === true}
+                      onChange={(e) => {
+                        console.log('📧 تحديث integrations_email_send_on_comment:', e.target.checked);
+                        updateSetting('integrations_email_send_on_comment', e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند إضافة تعليق</span>
+                    {settings.integrations_email_send_on_comment !== undefined && (
+                      <span className="text-xs text-gray-500">({settings.integrations_email_send_on_comment ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-2 hover:bg-white rounded transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_completion === true}
+                      onChange={(e) => {
+                        console.log('📧 تحديث integrations_email_send_on_completion:', e.target.checked);
+                        updateSetting('integrations_email_send_on_completion', e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند إكمال التذكرة</span>
+                    {settings.integrations_email_send_on_completion !== undefined && (
+                      <span className="text-xs text-gray-500">({settings.integrations_email_send_on_completion ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-2 hover:bg-white rounded transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_delayed_tickets === true}
+                      onChange={(e) => {
+                        console.log('📧 تحديث integrations_email_send_delayed_tickets:', e.target.checked);
+                        updateSetting('integrations_email_send_delayed_tickets', e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال إشعارات للتذاكر المتأخرة</span>
+                    {settings.integrations_email_send_delayed_tickets !== undefined && (
+                      <span className="text-xs text-gray-500">({settings.integrations_email_send_delayed_tickets ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">إعدادات الإشعارات</h3>
+            
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={settings.notifications_enabled || false}
+                    onChange={(e) => updateSetting('notifications_enabled', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm font-medium text-gray-700">تفعيل الإشعارات</span>
+                </label>
+                
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={settings.notifications_email_enabled || false}
+                    onChange={(e) => updateSetting('notifications_email_enabled', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm text-gray-700">تفعيل إشعارات البريد الإلكتروني</span>
+                </label>
+                
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={settings.notifications_browser_enabled || false}
+                    onChange={(e) => updateSetting('notifications_browser_enabled', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm text-gray-700">تفعيل إشعارات المتصفح</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'backup' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">إعدادات النسخ الاحتياطي</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="flex items-center mb-4">
+                  <input
+                    type="checkbox"
+                    checked={settings.backup_enabled || false}
+                    onChange={(e) => updateSetting('backup_enabled', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm font-medium text-gray-700">تفعيل النسخ الاحتياطي التلقائي</span>
+                </label>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">تكرار النسخ الاحتياطي</label>
+                <select
+                  value={settings.backup_frequency || 'daily'}
+                  onChange={(e) => updateSetting('backup_frequency', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="hourly">كل ساعة</option>
+                  <option value="daily">يومي</option>
+                  <option value="weekly">أسبوعي</option>
+                  <option value="monthly">شهري</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">عدد أيام الاحتفاظ بالنسخ (يوم)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={settings.backup_retention_days || 30}
+                  onChange={(e) => updateSetting('backup_retention_days', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'tickets' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">إعدادات التذاكر والملفات</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">أولوية التذكرة الافتراضية</label>
+                <select
+                  value={settings.default_ticket_priority || 'high'}
+                  onChange={(e) => updateSetting('default_ticket_priority', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="low">منخفضة</option>
+                  <option value="medium">متوسطة</option>
+                  <option value="high">عالية</option>
+                  <option value="urgent">عاجلة</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="flex items-center mb-4">
+                  <input
+                    type="checkbox"
+                    checked={settings.auto_assign_tickets || false}
+                    onChange={(e) => updateSetting('auto_assign_tickets', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm font-medium text-gray-700">تعيين التذاكر تلقائياً</span>
+                </label>
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">تنسيق ترقيم التذاكر</label>
+                <input
+                  type="text"
+                  value={settings.ticket_numbering_format || 'TKT-{YYYY}-{MM}-{####}'}
+                  onChange={(e) => updateSetting('ticket_numbering_format', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="TKT-{YYYY}-{MM}-{####}"
+                />
+                <p className="mt-1 text-xs text-gray-500">استخدم {`{YYYY}`} للسنة، {`{MM}`} للشهر، {`{####}`} للرقم التسلسلي</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">الحد الأقصى لحجم الملف (بايت)</label>
+                <input
+                  type="number"
+                  min="1048576"
+                  step="1048576"
+                  value={settings.max_file_upload_size || 10485760}
+                  onChange={(e) => updateSetting('max_file_upload_size', parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="mt-1 text-xs text-gray-500">{(settings.max_file_upload_size || 10485760) / 1024 / 1024} ميجابايت</p>
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">أنواع الملفات المسموحة</label>
+                <div className="flex flex-wrap gap-2">
+                  {['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif'].map((type) => (
+                    <label key={type} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={(settings.allowed_file_types || []).includes(type)}
+                        onChange={(e) => {
+                          const currentTypes = settings.allowed_file_types || [];
+                          if (e.target.checked) {
+                            updateSetting('allowed_file_types', [...currentTypes, type]);
+                          } else {
+                            updateSetting('allowed_file_types', currentTypes.filter(t => t !== type));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      />
+                      <span className="mr-2 text-sm text-gray-700">{type.toUpperCase()}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="md:col-span-2 pt-4 border-t border-gray-200">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={settings.working_hours_enabled || false}
+                    onChange={(e) => updateSetting('working_hours_enabled', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm font-medium text-gray-700">تفعيل ساعات العمل</span>
+                </label>
+              </div>
+              
+              <div className="md:col-span-2 pt-4 border-t border-gray-200">
+                <label className="flex items-center mb-4">
+                  <input
+                    type="checkbox"
+                    checked={settings.maintenance_mode || false}
+                    onChange={(e) => updateSetting('maintenance_mode', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm font-medium text-gray-700">وضع الصيانة</span>
+                </label>
+                {settings.maintenance_mode && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">رسالة الصيانة</label>
+                    <textarea
+                      value={settings.maintenance_message || ''}
+                      onChange={(e) => updateSetting('maintenance_message', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={3}
+                      placeholder="النظام قيد الصيانة، يرجى المحاولة لاحقاً"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

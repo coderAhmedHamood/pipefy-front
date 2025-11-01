@@ -57,17 +57,55 @@ export const SettingsManager: React.FC = () => {
       
       if (response.success && response.data) {
         console.log('✅ البيانات المستلمة:', response.data);
-        // تعيين البيانات المُرجعة من API فقط، بدون قيم افتراضية
+        // معالجة allowed_file_types من API
+        let allowedFileTypes = [];
+        if (response.data.allowed_file_types) {
+          if (Array.isArray(response.data.allowed_file_types)) {
+            allowedFileTypes = response.data.allowed_file_types;
+          } else if (typeof response.data.allowed_file_types === 'string') {
+            try {
+              const parsed = JSON.parse(response.data.allowed_file_types);
+              allowedFileTypes = Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+              console.warn('⚠️ فشل في تحليل allowed_file_types من API:', e);
+              allowedFileTypes = [];
+            }
+          }
+        }
+        
+        // تعيين جميع البيانات المُرجعة من API
         setSettings({
+          ...response.data,
+          // الحقول الأساسية
           system_name: response.data.system_name || '',
           system_logo_url: response.data.system_logo_url || '',
           system_description: response.data.system_description || '',
           security_login_attempts_limit: response.data.security_login_attempts_limit || '',
           security_lockout_duration: response.data.security_lockout_duration || '',
+          // إعدادات البريد الإلكتروني - SMTP
           integrations_email_smtp_host: response.data.integrations_email_smtp_host || '',
           integrations_email_smtp_port: response.data.integrations_email_smtp_port || '',
           integrations_email_smtp_username: response.data.integrations_email_smtp_username || '',
-          integrations_email_smtp_password: response.data.integrations_email_smtp_password || ''
+          integrations_email_smtp_password: response.data.integrations_email_smtp_password || '',
+          integrations_email_from_address: response.data.integrations_email_from_address || '',
+          integrations_email_from_name: response.data.integrations_email_from_name || '',
+          // إعدادات إشعارات البريد الإلكتروني
+          integrations_email_enabled: response.data.integrations_email_enabled ?? false,
+          integrations_email_send_on_creation: response.data.integrations_email_send_on_creation ?? false,
+          integrations_email_send_on_assignment: response.data.integrations_email_send_on_assignment ?? false,
+          integrations_email_send_on_comment: response.data.integrations_email_send_on_comment ?? false,
+          integrations_email_send_on_completion: response.data.integrations_email_send_on_completion ?? false,
+          integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets ?? false,
+          // معالجة allowed_file_types
+          allowed_file_types: allowedFileTypes,
+        });
+        console.log('📧 إعدادات البريد الإلكتروني المحملة:', {
+          integrations_email_enabled: response.data.integrations_email_enabled,
+          integrations_email_send_on_creation: response.data.integrations_email_send_on_creation,
+          integrations_email_send_on_assignment: response.data.integrations_email_send_on_assignment,
+          integrations_email_send_on_comment: response.data.integrations_email_send_on_comment,
+          integrations_email_send_on_completion: response.data.integrations_email_send_on_completion,
+          integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets,
         });
         notifications.showSuccess('تم تحميل الإعدادات', `تم جلب ${Object.keys(response.data).length} إعداد من قاعدة البيانات`);
       } else {
@@ -118,15 +156,69 @@ export const SettingsManager: React.FC = () => {
       setSaving(true);
       console.log('💾 بدء حفظ الإعدادات إلى PUT /api/settings:', settings);
       
-      // تنظيف البيانات قبل الإرسال - إزالة القيم الفارغة للحقول الرقمية
-      const cleanedSettings = {
-        ...settings,
-        login_attempts_limit: settings.login_attempts_limit || null,
-        lockout_duration_minutes: settings.lockout_duration_minutes || null,
-        smtp_port: settings.smtp_port || null
+      // تنظيف البيانات قبل الإرسال
+      const cleanedSettings: any = {
+        ...settings
       };
       
-      console.log('📤 البيانات المُرسلة إلى API:', cleanedSettings);
+      // معالجة allowed_file_types - التأكد من أنها مصفوفة وليست سلسلة
+      if (cleanedSettings.hasOwnProperty('allowed_file_types')) {
+        if (typeof cleanedSettings.allowed_file_types === 'string') {
+          try {
+            // إذا كانت سلسلة JSON، تحويلها إلى مصفوفة
+            const parsed = JSON.parse(cleanedSettings.allowed_file_types);
+            if (Array.isArray(parsed)) {
+              cleanedSettings.allowed_file_types = parsed;
+            } else {
+              console.warn('⚠️ allowed_file_types ليست مصفوفة بعد التحويل، استخدام مصفوفة فارغة');
+              cleanedSettings.allowed_file_types = [];
+            }
+          } catch (e) {
+            // إذا فشل التحويل، حاول تحليلها يدوياً
+            console.warn('⚠️ فشل في تحويل allowed_file_types من JSON، محاولة تحليل يدوي:', e);
+            const str = cleanedSettings.allowed_file_types;
+            if (str.startsWith('[') && str.endsWith(']')) {
+              const cleanStr = str.replace(/[\[\]"]/g, '');
+              cleanedSettings.allowed_file_types = cleanStr.split(',').map(s => s.trim()).filter(s => s);
+            } else {
+              cleanedSettings.allowed_file_types = [];
+            }
+          }
+        }
+        // التأكد من أنها مصفوفة حقيقية
+        if (!Array.isArray(cleanedSettings.allowed_file_types)) {
+          console.warn('⚠️ allowed_file_types ليست مصفوفة، تحويلها إلى مصفوفة فارغة');
+          cleanedSettings.allowed_file_types = [];
+        }
+        console.log('✅ allowed_file_types بعد التنظيف:', cleanedSettings.allowed_file_types, Array.isArray(cleanedSettings.allowed_file_types));
+      }
+      
+      // معالجة الحقول الرقمية - تحويل القيم الفارغة إلى null
+      if (cleanedSettings.security_login_attempts_limit === '' || cleanedSettings.security_login_attempts_limit === undefined) {
+        cleanedSettings.security_login_attempts_limit = null;
+      }
+      if (cleanedSettings.security_lockout_duration === '' || cleanedSettings.security_lockout_duration === undefined) {
+        cleanedSettings.security_lockout_duration = null;
+      }
+      if (cleanedSettings.integrations_email_smtp_port === '' || cleanedSettings.integrations_email_smtp_port === undefined) {
+        cleanedSettings.integrations_email_smtp_port = null;
+      }
+      if (cleanedSettings.max_file_upload_size === '' || cleanedSettings.max_file_upload_size === undefined) {
+        cleanedSettings.max_file_upload_size = null;
+      }
+      if (cleanedSettings.backup_retention_days === '' || cleanedSettings.backup_retention_days === undefined) {
+        cleanedSettings.backup_retention_days = null;
+      }
+      
+      // إزالة الحقول الفارغة غير الضرورية
+      Object.keys(cleanedSettings).forEach(key => {
+        if (cleanedSettings[key] === '' && key !== 'system_description' && key !== 'maintenance_message') {
+          delete cleanedSettings[key];
+        }
+      });
+      
+      console.log('📤 البيانات المُرسلة إلى API (بعد التنظيف):', cleanedSettings);
+      console.log('🔍 نوع allowed_file_types:', typeof cleanedSettings.allowed_file_types, Array.isArray(cleanedSettings.allowed_file_types));
       
       const response = await settingsService.updateSettings(cleanedSettings);
       console.log('📝 استجابة PUT /api/settings:', response);
@@ -137,19 +229,16 @@ export const SettingsManager: React.FC = () => {
         // تحديث البيانات المحلية بالاستجابة من API
         if (response.data) {
           console.log('🔄 تحديث البيانات المحلية من استجابة API:', response.data);
-          const updatedSettings = {
-            system_name: response.data.system_name || '',
-            system_logo_url: response.data.system_logo_url || '',
-            system_description: response.data.system_description || '',
-            security_login_attempts_limit: response.data.security_login_attempts_limit || '',
-            security_lockout_duration: response.data.security_lockout_duration || '',
-            integrations_email_smtp_host: response.data.integrations_email_smtp_host || '',
-            integrations_email_smtp_port: response.data.integrations_email_smtp_port || '',
-            integrations_email_smtp_username: response.data.integrations_email_smtp_username || '',
-            integrations_email_smtp_password: response.data.integrations_email_smtp_password || ''
-          };
-          
-          setSettings(updatedSettings);
+          // تحديث جميع البيانات من الاستجابة
+          setSettings({
+            ...response.data,
+            // التأكد من الحفاظ على التنسيق الصحيح
+            allowed_file_types: Array.isArray(response.data.allowed_file_types) 
+              ? response.data.allowed_file_types 
+              : (typeof response.data.allowed_file_types === 'string' 
+                  ? JSON.parse(response.data.allowed_file_types) 
+                  : [])
+          });
           
           // 🎯 تحديث إعدادات النظام العامة (اسم الشركة والشعار)
           console.log('🌐 تحديث إعدادات النظام العامة في Header...');
@@ -160,7 +249,9 @@ export const SettingsManager: React.FC = () => {
           });
         }
       } else {
-        notifications.showError('فشل في الحفظ', response.message || 'لم يتم حفظ الإعدادات');
+        const errorMsg = response.error || response.message || 'لم يتم حفظ الإعدادات';
+        console.error('❌ فشل في حفظ الإعدادات:', errorMsg);
+        notifications.showError('فشل في الحفظ', errorMsg);
       }
     } catch (error: any) {
       console.error('❌ خطأ في استدعاء PUT /api/settings:', error);
@@ -634,6 +725,116 @@ export const SettingsManager: React.FC = () => {
                   onChange={(e) => updateSetting('integrations_email_smtp_password', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
                 />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني للإرسال</label>
+                <input
+                  type="email"
+                  value={settings.integrations_email_from_address || ''}
+                  onChange={(e) => updateSetting('integrations_email_from_address', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  placeholder="noreply@company.com"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">اسم المرسل</label>
+                <input
+                  type="text"
+                  value={settings.integrations_email_from_name || ''}
+                  onChange={(e) => updateSetting('integrations_email_from_name', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  placeholder="نظام إدارة المهام"
+                />
+              </div>
+            </div>
+            
+            {/* إعدادات إشعارات البريد الإلكتروني */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">إعدادات إشعارات البريد الإلكتروني</h4>
+              <p className="text-sm text-gray-500 mb-6">اختر متى تريد إرسال إشعارات البريد الإلكتروني للتذاكر</p>
+              
+              <div className="bg-gray-50 p-6 rounded-lg space-y-4">
+                <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.integrations_email_enabled === true}
+                    onChange={(e) => updateSetting('integrations_email_enabled', e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  />
+                  <span className="mr-3 text-sm font-medium text-gray-700">تفعيل إرسال البريد الإلكتروني</span>
+                  {settings.integrations_email_enabled !== undefined && (
+                    <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_enabled ? 'مفعل' : 'معطل'})</span>
+                  )}
+                </label>
+                
+                <div className="mr-6 space-y-3 border-r-2 border-blue-200 pr-6">
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_creation === true}
+                      onChange={(e) => updateSetting('integrations_email_send_on_creation', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند إنشاء التذكرة</span>
+                    {settings.integrations_email_send_on_creation !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_creation ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_assignment === true}
+                      onChange={(e) => updateSetting('integrations_email_send_on_assignment', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند تعيين التذكرة</span>
+                    {settings.integrations_email_send_on_assignment !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_assignment ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_comment === true}
+                      onChange={(e) => updateSetting('integrations_email_send_on_comment', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند إضافة تعليق</span>
+                    {settings.integrations_email_send_on_comment !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_comment ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_completion === true}
+                      onChange={(e) => updateSetting('integrations_email_send_on_completion', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند إكمال التذكرة</span>
+                    {settings.integrations_email_send_on_completion !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_completion ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_delayed_tickets === true}
+                      onChange={(e) => updateSetting('integrations_email_send_delayed_tickets', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال إشعارات للتذاكر المتأخرة</span>
+                    {settings.integrations_email_send_delayed_tickets !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_delayed_tickets ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                </div>
               </div>
             </div>
             

@@ -185,8 +185,48 @@ class Settings {
         if (settingsData.hasOwnProperty(field)) {
           updateFields.push(`${field} = $${paramCount}`);
           // معالجة المصفوفات والكائنات (مثل allowed_file_types)
-          if (field === 'allowed_file_types' && Array.isArray(settingsData[field])) {
-            values.push(JSON.stringify(settingsData[field]));
+          if (field === 'allowed_file_types') {
+            console.log(`📦 [Settings.updateSettings] معالجة allowed_file_types:`, {
+              type: typeof settingsData[field],
+              isArray: Array.isArray(settingsData[field]),
+              value: settingsData[field]
+            });
+            
+            // معالجة allowed_file_types - يجب أن تكون مصفوفة TEXT[] في PostgreSQL
+            if (Array.isArray(settingsData[field])) {
+              console.log(`✅ [Settings.updateSettings] allowed_file_types هي مصفوفة، إرسالها مباشرة`);
+              // إذا كانت مصفوفة، استخدمها مباشرة - node-postgres سيتعامل معها تلقائياً
+              values.push(settingsData[field]);
+            } else if (typeof settingsData[field] === 'string') {
+              // إذا كانت سلسلة JSON، حاول تحويلها
+              try {
+                const parsed = JSON.parse(settingsData[field]);
+                if (Array.isArray(parsed)) {
+                  values.push(parsed);
+                } else {
+                  values.push(null);
+                }
+              } catch (e) {
+                console.warn('⚠️ فشل في تحليل allowed_file_types من JSON:', e);
+                // إذا فشل التحويل، حاول تقسيم السلسلة إلى مصفوفة
+                if (settingsData[field].startsWith('[') && settingsData[field].endsWith(']')) {
+                  try {
+                    const cleanString = settingsData[field].replace(/[\[\]"]/g, '');
+                    const arrayFromString = cleanString.split(',').map(item => item.trim()).filter(item => item);
+                    values.push(arrayFromString);
+                  } catch (e2) {
+                    console.error('❌ فشل في تحويل allowed_file_types:', e2);
+                    values.push(null);
+                  }
+                } else {
+                  values.push(null);
+                }
+              }
+            } else if (settingsData[field] === null || settingsData[field] === undefined) {
+              values.push(null);
+            } else {
+              values.push(null);
+            }
           } else if (field === 'integrations_email_smtp_password') {
             // معالجة خاصة لكلمة المرور - السماح بالقيم الفارغة والنصوص
             // إذا كانت null أو undefined، يتم تعيينها إلى null
