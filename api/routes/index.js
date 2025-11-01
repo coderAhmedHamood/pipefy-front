@@ -22,6 +22,7 @@ const ticketAssignmentRoutes = require('./ticket-assignments');
 const ticketReviewerRoutes = require('./ticket-reviewers');
 const evaluationRoutes = require('./evaluations');
 const settingsRoutes = require('./settings');
+const emailRoutes = require('./email');
 
 const router = express.Router();
 
@@ -49,6 +50,7 @@ router.use('/ticket-assignments', ticketAssignmentRoutes);
 router.use('/ticket-reviewers', ticketReviewerRoutes);
 router.use('/evaluations', evaluationRoutes);
 router.use('/settings', settingsRoutes);
+router.use('/email', emailRoutes);
 
 // Route للصفحة الرئيسية للـ API
 router.get('/', (req, res) => {
@@ -78,7 +80,8 @@ router.get('/', (req, res) => {
       evaluations: '/api/evaluations',
       audit: '/api/audit',
       reports: '/api/reports',
-      settings: '/api/settings'
+      settings: '/api/settings',
+      email: '/api/email'
     },
     documentation: '/api/docs'
   });
