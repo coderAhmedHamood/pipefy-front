@@ -40,6 +40,10 @@ class Settings {
     this.integrations_email_send_on_comment = data.integrations_email_send_on_comment;
     this.integrations_email_send_on_completion = data.integrations_email_send_on_completion;
     this.integrations_email_send_on_creation = data.integrations_email_send_on_creation;
+    this.integrations_email_send_on_update = data.integrations_email_send_on_update;
+    this.integrations_email_send_on_move = data.integrations_email_send_on_move;
+    this.integrations_email_send_on_review_assigned = data.integrations_email_send_on_review_assigned;
+    this.integrations_email_send_on_review_updated = data.integrations_email_send_on_review_updated;
     
     // إعدادات النسخ الاحتياطي
     this.backup_enabled = data.backup_enabled;
@@ -168,6 +172,8 @@ class Settings {
         'integrations_email_enabled', 'integrations_email_send_delayed_tickets',
         'integrations_email_send_on_assignment', 'integrations_email_send_on_comment',
         'integrations_email_send_on_completion', 'integrations_email_send_on_creation',
+        'integrations_email_send_on_update', 'integrations_email_send_on_move',
+        'integrations_email_send_on_review_assigned', 'integrations_email_send_on_review_updated',
         // إعدادات النسخ الاحتياطي
         'backup_enabled', 'backup_frequency', 'backup_retention_days',
         // إعدادات ساعات العمل

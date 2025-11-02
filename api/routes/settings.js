@@ -137,6 +137,22 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *           type: boolean
  *           description: إرسال رسائل عند الإنشاء
  *           example: true
+ *         integrations_email_send_on_update:
+ *           type: boolean
+ *           description: إرسال رسائل عند تحديث التذكرة
+ *           example: true
+ *         integrations_email_send_on_move:
+ *           type: boolean
+ *           description: إرسال رسائل عند تحريك التذكرة إلى مرحلة أخرى
+ *           example: true
+ *         integrations_email_send_on_review_assigned:
+ *           type: boolean
+ *           description: إرسال رسائل عند تعيين مراجع لتذكرة
+ *           example: true
+ *         integrations_email_send_on_review_updated:
+ *           type: boolean
+ *           description: إرسال رسائل عند تحديث حالة المراجعة
+ *           example: true
  *         backup_enabled:
  *           type: boolean
  *           description: تفعيل النسخ الاحتياطي
@@ -314,6 +330,18 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *         integrations_email_send_on_creation:
  *           type: boolean
  *           description: إرسال رسائل عند الإنشاء
+ *         integrations_email_send_on_update:
+ *           type: boolean
+ *           description: إرسال رسائل عند تحديث التذكرة
+ *         integrations_email_send_on_move:
+ *           type: boolean
+ *           description: إرسال رسائل عند تحريك التذكرة إلى مرحلة أخرى
+ *         integrations_email_send_on_review_assigned:
+ *           type: boolean
+ *           description: إرسال رسائل عند تعيين مراجع لتذكرة
+ *         integrations_email_send_on_review_updated:
+ *           type: boolean
+ *           description: إرسال رسائل عند تحديث حالة المراجعة
  *         backup_enabled:
  *           type: boolean
  *           description: تفعيل النسخ الاحتياطي

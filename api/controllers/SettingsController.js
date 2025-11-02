@@ -119,6 +119,10 @@ class SettingsController {
       'integrations_email_send_on_comment',
       'integrations_email_send_on_completion',
       'integrations_email_send_on_creation',
+      'integrations_email_send_on_update',
+      'integrations_email_send_on_move',
+      'integrations_email_send_on_review_assigned',
+      'integrations_email_send_on_review_updated',
       'backup_enabled',
       'working_hours_enabled'
     ];
