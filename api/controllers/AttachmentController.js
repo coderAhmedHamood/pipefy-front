@@ -228,8 +228,9 @@ class AttachmentController {
       // يمكن إضافة تسجيل نشاط التحميل هنا إذا لزم الأمر
       
       // تحديد Content-Disposition بناءً على نوع الملف
-      // للصور وPDF والنصوص - عرض مباشر (inline)، للملفات الأخرى - تحميل (attachment)
+      // للصور وPDF والنصوص والفيديو - عرض مباشر (inline)، للملفات الأخرى - تحميل (attachment)
       const isInline = attachment.mime_type?.startsWith('image/') || 
+                       attachment.mime_type?.startsWith('video/') ||
                        attachment.mime_type === 'application/pdf' || 
                        attachment.mime_type?.startsWith('text/');
       

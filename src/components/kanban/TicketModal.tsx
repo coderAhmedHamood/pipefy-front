@@ -2509,6 +2509,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     {ticket.attachments?.map((attachment: any) => {
                       // معالجة المرفقات القديمة (من ticket.attachments مباشرة)
                       const isImage = attachment.mime_type?.startsWith('image/') || attachment.type?.startsWith('image/');
+                      const isVideo = attachment.mime_type?.startsWith('video/') || attachment.type?.startsWith('video/');
                       const isPDF = attachment.mime_type === 'application/pdf' || attachment.type === 'application/pdf';
                       const isText = attachment.mime_type?.startsWith('text/') || attachment.type?.startsWith('text/');
                       
@@ -2537,6 +2538,12 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                           setViewingImage({ 
                             id: attachmentId, 
                             filename: attachment.name || attachment.filename || attachment.original_filename || 'صورة' 
+                          });
+                        } else if (isVideo && attachmentId) {
+                          // للفيديو - فتح Modal داخلي
+                          setViewingVideo({ 
+                            id: attachmentId, 
+                            filename: attachment.name || attachment.filename || attachment.original_filename || 'فيديو' 
                           });
                         } else if (isPDF || isText) {
                           window.open(downloadUrl, '_blank');
@@ -2567,6 +2574,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                                   filename: attachment.name || attachment.filename || attachment.original_filename || 'صورة' 
                                 })}
                               />
+                            ) : isVideo && attachmentId ? (
+                              <div className="w-10 h-10 flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer hover:border-purple-300 transition-colors" onClick={() => setViewingVideo({ 
+                                id: attachmentId, 
+                                filename: attachment.name || attachment.filename || attachment.original_filename || 'فيديو' 
+                              })}>
+                                <Video className="w-5 h-5 text-purple-500" />
+                              </div>
                             ) : isPDF ? (
                               <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
                             ) : isText ? (
@@ -2620,6 +2634,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                         if (isImage) {
                           // للصور - فتح Modal داخلي
                           setViewingImage({ id: attachment.id, filename: attachment.original_filename });
+                        } else if (isVideo) {
+                          // للفيديو - فتح Modal داخلي
+                          setViewingVideo({ id: attachment.id, filename: attachment.original_filename });
                         } else if (isPDF || isText) {
                           // للPDF والنصوص - فتح في نافذة جديدة
                           if (token) {
