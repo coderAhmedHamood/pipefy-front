@@ -2558,6 +2558,39 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                         }
                       };
 
+                      const handleDownloadFile = async () => {
+                        if (!attachmentId) return;
+                        
+                        try {
+                          const token = localStorage.getItem('auth_token');
+                          const fileUrl = `${API_BASE_URL}/api/attachments/${attachmentId}/download`;
+                          
+                          const response = await fetch(fileUrl, {
+                            headers: token ? {
+                              'Authorization': `Bearer ${token}`
+                            } : {}
+                          });
+                          
+                          if (response.ok) {
+                            const blob = await response.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = blobUrl;
+                            link.download = attachment.name || attachment.filename || attachment.original_filename || 'file';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+                            notifications.showSuccess('تم التحميل', 'تم تحميل الملف بنجاح');
+                          } else {
+                            notifications.showError('فشل التحميل', 'فشل في تحميل الملف');
+                          }
+                        } catch (error) {
+                          console.error('❌ خطأ في تحميل الملف:', error);
+                          notifications.showError('خطأ في التحميل', 'حدث خطأ أثناء تحميل الملف');
+                        }
+                      };
+
                       return (
                         <div 
                           key={attachment.id || attachment.name} 
@@ -2598,16 +2631,30 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               </div>
                             </div>
                           </div>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenFile();
-                            }}
-                            className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors"
-                            title={isImage || isVideo || isPDF || isText ? "فتح الملف" : "تحميل"}
-                          >
-                            {isImage || isVideo || isPDF || isText ? <Eye className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-                          </button>
+                          {(isImage || isVideo || isPDF || isText) && attachmentId && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenFile();
+                              }}
+                              className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors"
+                              title="فتح الملف"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          )}
+                          {attachmentId && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadFile();
+                              }}
+                              className="text-green-600 hover:text-green-700 p-1 rounded transition-colors"
+                              title="تحميل الملف"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -2703,6 +2750,36 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       }
                     };
 
+                    const handleDownloadFile = async () => {
+                      try {
+                        const token = localStorage.getItem('auth_token');
+                        
+                        const response = await fetch(fileUrl, {
+                          headers: token ? {
+                            'Authorization': `Bearer ${token}`
+                          } : {}
+                        });
+                        
+                        if (response.ok) {
+                          const blob = await response.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = blobUrl;
+                          link.download = attachment.original_filename;
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+                          notifications.showSuccess('تم التحميل', 'تم تحميل الملف بنجاح');
+                        } else {
+                          notifications.showError('فشل التحميل', 'فشل في تحميل الملف');
+                        }
+                      } catch (error) {
+                        console.error('❌ خطأ في تحميل الملف:', error);
+                        notifications.showError('خطأ في التحميل', 'حدث خطأ أثناء تحميل الملف');
+                      }
+                    };
+
                     return (
                       <div 
                         key={attachment.id} 
@@ -2738,15 +2815,27 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                           </div>
                         </div>
                         <div className="flex items-center space-x-2 space-x-reverse" onClick={(e) => e.stopPropagation()}>
+                          {(isImage || isVideo || isPDF || isText) && (
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenFile();
+                              }}
+                              className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors" 
+                              title="فتح الملف"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          )}
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleOpenFile();
+                              handleDownloadFile();
                             }}
-                            className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors" 
-                            title={isImage || isVideo || isPDF || isText ? "فتح الملف" : "تحميل"}
+                            className="text-green-600 hover:text-green-700 p-1 rounded transition-colors" 
+                            title="تحميل الملف"
                           >
-                            {isImage || isVideo || isPDF || isText ? <Eye className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                            <Download className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => {
