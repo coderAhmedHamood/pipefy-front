@@ -1041,52 +1041,165 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {process.fields.map((field) => {
+                  {process.fields
+                    .filter(field => !field.is_system_field)
+                    .map((field) => {
+                    const fieldType = (field as any).field_type || field.type || 'text';
                     const value = formData.data[field.id];
+                    const fieldName = field.name || (field as any).label || '';
                     
                     return (
-                      <div key={field.id} className="space-y-2">
+                      <div key={field.id} className={`space-y-2 ${
+                        fieldType === 'textarea' || fieldType === 'multiselect' || fieldType === 'radio' ? 'md:col-span-2' : ''
+                      }`}>
                         <label className="block text-sm font-medium text-gray-700">
-                          {field.name}
+                          {fieldName}
                           {field.is_required && <span className="text-red-500 mr-1">*</span>}
                         </label>
                         
                         {isEditing ? (
                           <>
-                            {field.type === 'text' && (
+                            {fieldType === 'text' && (
                               <input
                                 type="text"
+                                value={value || ''}
+                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                placeholder={(field as any).placeholder || `أدخل ${fieldName}...`}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {fieldType === 'email' && (
+                              <input
+                                type="email"
+                                value={value || ''}
+                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                placeholder={(field as any).placeholder || "example@domain.com"}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {fieldType === 'number' && (
+                              <input
+                                type="number"
+                                value={value || ''}
+                                onChange={(e) => handleFieldChange(field.id, Number(e.target.value))}
+                                placeholder={(field as any).placeholder || `أدخل ${fieldName}...`}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {fieldType === 'textarea' && (
+                              <textarea
+                                rows={3}
+                                value={value || ''}
+                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                placeholder={(field as any).placeholder || `أدخل ${fieldName}...`}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              />
+                            )}
+                            
+                            {fieldType === 'phone' && (
+                              <input
+                                type="tel"
+                                value={value || ''}
+                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                placeholder={(field as any).placeholder || "+966 50 123 4567"}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                            
+                            {fieldType === 'date' && (
+                              <input
+                                type="date"
                                 value={value || ''}
                                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               />
                             )}
                             
-                            {field.type === 'number' && (
+                            {fieldType === 'datetime' && (
                               <input
-                                type="number"
+                                type="datetime-local"
                                 value={value || ''}
-                                onChange={(e) => handleFieldChange(field.id, Number(e.target.value))}
+                                onChange={(e) => handleFieldChange(field.id, e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               />
                             )}
                             
-                            {field.type === 'select' && (
+                            {fieldType === 'select' && (
                               <select
                                 value={value || ''}
                                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
-                                <option value="">اختر {field.name}</option>
-                                {field.options?.map((option) => (
-                                  <option key={option.id} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
+                                <option value="">اختر {fieldName}</option>
+                                {((field.options as any)?.choices || field.options || []).map((option: any, index: number) => {
+                                  const optionValue = option.value !== undefined ? option.value : (option.id || index);
+                                  const optionLabel = option.label || option.name || optionValue;
+                                  return (
+                                    <option key={option.id || index} value={optionValue}>
+                                      {optionLabel}
+                                    </option>
+                                  );
+                                })}
                               </select>
                             )}
                             
-                            {field.type === 'file' && (
+                            {fieldType === 'multiselect' && field.options && (
+                              <div className="space-y-2">
+                                {((field.options as any)?.choices || field.options || []).map((option: any, index: number) => {
+                                  const optionValue = option.value !== undefined ? option.value : (option.id || index);
+                                  const optionLabel = option.label || option.name || optionValue;
+                                  return (
+                                    <label key={option.id || index} className="flex items-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={
+                                          Array.isArray(value) 
+                                            ? value.includes(optionValue)
+                                            : false
+                                        }
+                                        onChange={(e) => {
+                                          const currentValues = Array.isArray(value) ? value : [];
+                                          if (e.target.checked) {
+                                            handleFieldChange(field.id, [...currentValues, optionValue]);
+                                          } else {
+                                            handleFieldChange(field.id, currentValues.filter((v: any) => v !== optionValue));
+                                          }
+                                        }}
+                                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                      />
+                                      <span className="mr-2 text-sm text-gray-700">{optionLabel}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            
+                            {fieldType === 'radio' && field.options && (
+                              <div className="space-y-2">
+                                {((field.options as any)?.choices || field.options || []).map((option: any, index: number) => {
+                                  const optionValue = option.value !== undefined ? option.value : (option.id || index);
+                                  const optionLabel = option.label || option.name || optionValue;
+                                  return (
+                                    <label key={option.id || index} className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        name={`field-${field.id}`}
+                                        value={optionValue}
+                                        checked={value === optionValue}
+                                        onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                                        className="text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                      />
+                                      <span className="mr-2 text-sm text-gray-700">{optionLabel}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            
+                            {fieldType === 'file' && (
                               <div className="space-y-2">
                                 <input
                                   type="file"
@@ -1130,7 +1243,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               </div>
                             )}
 
-                            {field.type === 'ticket_reviewer' && (
+                            {fieldType === 'ticket_reviewer' && (
                               <div className="space-y-2">
                                 <select
                                   value={value || ''}
@@ -1169,7 +1282,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                           </>
                         ) : (
                           <div className="text-gray-900">
-                            {field.type === 'ticket_reviewer' && value ? (
+                            {fieldType === 'ticket_reviewer' && value ? (
                               <div className="flex items-center space-x-3 space-x-reverse">
                                 <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                                   <span className="text-white font-bold text-xs">
@@ -1178,9 +1291,24 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                                 </div>
                                 <span>{processUsers.find(u => u.id === value)?.name}</span>
                               </div>
-                            ) : field.type === 'select' ? (
-                              field.options?.find(o => o.value === value)?.label || value || 'غير محدد'
-                            ) : field.type === 'file' && value && typeof value === 'object' ? (
+                            ) : fieldType === 'multiselect' && Array.isArray(value) ? (
+                              <div className="flex flex-wrap gap-2">
+                                {value.map((val: any, idx: number) => {
+                                  const option = ((field.options as any)?.choices || field.options || []).find((o: any) => 
+                                    (o.value !== undefined ? o.value : o.id) === val
+                                  );
+                                  return (
+                                    <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                                      {option?.label || option?.name || val}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : fieldType === 'select' ? (
+                              ((field.options as any)?.choices || field.options || []).find((o: any) => 
+                                (o.value !== undefined ? o.value : o.id) === value
+                              )?.label || value || 'غير محدد'
+                            ) : fieldType === 'file' && value && typeof value === 'object' ? (
                               <div className="flex items-center space-x-2 space-x-reverse">
                                 <FileText className="w-4 h-4 text-blue-500" />
                                 <a
