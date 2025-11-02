@@ -95,6 +95,10 @@ export const SettingsManager: React.FC = () => {
           integrations_email_send_on_assignment: response.data.integrations_email_send_on_assignment ?? false,
           integrations_email_send_on_comment: response.data.integrations_email_send_on_comment ?? false,
           integrations_email_send_on_completion: response.data.integrations_email_send_on_completion ?? false,
+          integrations_email_send_on_update: response.data.integrations_email_send_on_update ?? false,
+          integrations_email_send_on_move: response.data.integrations_email_send_on_move ?? false,
+          integrations_email_send_on_review_assigned: response.data.integrations_email_send_on_review_assigned ?? false,
+          integrations_email_send_on_review_updated: response.data.integrations_email_send_on_review_updated ?? false,
           integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets ?? false,
           // معالجة allowed_file_types
           allowed_file_types: allowedFileTypes,
@@ -105,6 +109,10 @@ export const SettingsManager: React.FC = () => {
           integrations_email_send_on_assignment: response.data.integrations_email_send_on_assignment,
           integrations_email_send_on_comment: response.data.integrations_email_send_on_comment,
           integrations_email_send_on_completion: response.data.integrations_email_send_on_completion,
+          integrations_email_send_on_update: response.data.integrations_email_send_on_update,
+          integrations_email_send_on_move: response.data.integrations_email_send_on_move,
+          integrations_email_send_on_review_assigned: response.data.integrations_email_send_on_review_assigned,
+          integrations_email_send_on_review_updated: response.data.integrations_email_send_on_review_updated,
           integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets,
         });
         notifications.showSuccess('تم تحميل الإعدادات', `تم جلب ${Object.keys(response.data).length} إعداد من قاعدة البيانات`);
@@ -819,6 +827,58 @@ export const SettingsManager: React.FC = () => {
                     <span className="mr-3 text-sm text-gray-700">إرسال عند إكمال التذكرة</span>
                     {settings.integrations_email_send_on_completion !== undefined && (
                       <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_completion ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_update === true}
+                      onChange={(e) => updateSetting('integrations_email_send_on_update', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند تحديث التذكرة</span>
+                    {settings.integrations_email_send_on_update !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_update ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_move === true}
+                      onChange={(e) => updateSetting('integrations_email_send_on_move', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند نقل التذكرة</span>
+                    {settings.integrations_email_send_on_move !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_move ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_review_assigned === true}
+                      onChange={(e) => updateSetting('integrations_email_send_on_review_assigned', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند تعيين مراجعة</span>
+                    {settings.integrations_email_send_on_review_assigned !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_review_assigned ? 'مفعل' : 'معطل'})</span>
+                    )}
+                  </label>
+                  
+                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.integrations_email_send_on_review_updated === true}
+                      onChange={(e) => updateSetting('integrations_email_send_on_review_updated', e.target.checked)}
+                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    />
+                    <span className="mr-3 text-sm text-gray-700">إرسال عند تحديث مراجعة</span>
+                    {settings.integrations_email_send_on_review_updated !== undefined && (
+                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_review_updated ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   

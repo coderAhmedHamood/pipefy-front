@@ -61,6 +61,10 @@ export interface ApiSettings {
   integrations_email_send_on_comment?: boolean;
   integrations_email_send_on_completion?: boolean;
   integrations_email_send_on_creation?: boolean;
+  integrations_email_send_on_update?: boolean;
+  integrations_email_send_on_move?: boolean;
+  integrations_email_send_on_review_assigned?: boolean;
+  integrations_email_send_on_review_updated?: boolean;
   backup_enabled?: boolean;
   backup_frequency?: string;
   backup_retention_days?: number;
