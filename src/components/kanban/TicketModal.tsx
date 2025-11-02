@@ -62,7 +62,11 @@ import {
   Image as ImageIcon,
   ZoomIn,
   ZoomOut,
-  RotateCcw
+  RotateCcw,
+  Play,
+  Video,
+  Pause,
+  Volume2
 } from 'lucide-react';
 import { getPriorityLabel, getPriorityColor } from '../../utils/priorityUtils';
 
@@ -452,6 +456,373 @@ const ImageViewerModal: React.FC<{
   );
 };
 
+// مكون Modal لعرض الفيديو
+const VideoViewerModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  videoUrl: string | null;
+  filename: string;
+  onLoadVideo?: () => Promise<string | null>;
+}> = ({ isOpen, onClose, videoUrl, filename, onLoadVideo }) => {
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const onLoadVideoRef = useRef(onLoadVideo);
+  const videoUrlRef = useRef(videoUrl);
+
+  // تحديث refs عند تغيير القيم
+  useEffect(() => {
+    onLoadVideoRef.current = onLoadVideo;
+    videoUrlRef.current = videoUrl;
+  }, [onLoadVideo, videoUrl]);
+
+  // تحميل الفيديو عند فتح Modal
+  useEffect(() => {
+    if (!isOpen) {
+      // تنظيف blob URL عند إغلاق Modal
+      if (currentVideoUrl && currentVideoUrl.startsWith('blob:')) {
+        console.log('🧹 [VideoViewerModal] تنظيف Blob URL');
+        URL.revokeObjectURL(currentVideoUrl);
+      }
+      setCurrentVideoUrl(null);
+      setLoading(false);
+      setError(false);
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+      return;
+    }
+
+    // إذا كان Modal مفتوح، ابدأ تحميل الفيديو
+    let blobUrlToClean: string | null = null;
+    let isCancelled = false;
+    
+    const loadVideo = async () => {
+      if (onLoadVideoRef.current) {
+        setLoading(true);
+        setError(false);
+        setCurrentVideoUrl(null);
+        
+        console.log('🎬 [VideoViewerModal] بدء تحميل الفيديو...');
+        
+        try {
+          const url = await onLoadVideoRef.current();
+          
+          if (isCancelled) {
+            if (url && url.startsWith('blob:')) {
+              URL.revokeObjectURL(url);
+            }
+            return;
+          }
+          
+          console.log('✅ [VideoViewerModal] تم تحميل الفيديو بنجاح:', url ? 'URL موجود' : 'URL فارغ');
+          
+          if (url) {
+            blobUrlToClean = url;
+            setCurrentVideoUrl(url);
+            setLoading(false);
+          } else {
+            console.error('⚠️ [VideoViewerModal] URL فارغ');
+            setError(true);
+            setLoading(false);
+          }
+        } catch (err) {
+          if (isCancelled) return;
+          console.error('❌ [VideoViewerModal] خطأ في تحميل الفيديو:', err);
+          setError(true);
+          setLoading(false);
+        }
+      } else if (videoUrlRef.current) {
+        console.log('🎥 [VideoViewerModal] استخدام videoUrl مباشرة');
+        setCurrentVideoUrl(videoUrlRef.current);
+        setLoading(false);
+      } else {
+        console.warn('⚠️ [VideoViewerModal] لا يوجد onLoadVideo أو videoUrl');
+        setLoading(false);
+      }
+    };
+
+    loadVideo();
+    
+    // Cleanup function - تنظيف عند إغلاق Modal أو unmount
+    return () => {
+      isCancelled = true;
+      if (blobUrlToClean && blobUrlToClean.startsWith('blob:')) {
+        console.log('🧹 [VideoViewerModal] تنظيف Blob URL في cleanup');
+        URL.revokeObjectURL(blobUrlToClean);
+      }
+    };
+  }, [isOpen]);
+
+  // معالجة أحداث الفيديو
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !currentVideoUrl) return;
+
+    const handleLoadedMetadata = () => {
+      setDuration(video.duration);
+      console.log('📹 [VideoViewerModal] مدة الفيديو:', video.duration);
+    };
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
+    };
+  }, [currentVideoUrl]);
+
+  // معالجة Fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  // معالجة لوحة المفاتيح
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      switch (e.key) {
+        case 'Escape':
+          if (isFullscreen) {
+            document.exitFullscreen();
+          } else {
+            onClose();
+          }
+          break;
+        case ' ': // Spacebar
+          e.preventDefault();
+          if (isPlaying) {
+            video.pause();
+          } else {
+            video.play();
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          video.currentTime = Math.max(0, video.currentTime - 10);
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          video.currentTime = Math.min(duration, video.currentTime + 10);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setVolume(Math.min(1, volume + 0.1));
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setVolume(Math.max(0, volume - 0.1));
+          break;
+        case 'f':
+        case 'F':
+          e.preventDefault();
+          if (!isFullscreen) {
+            video.requestFullscreen();
+          } else {
+            document.exitFullscreen();
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isPlaying, duration, volume, isFullscreen, onClose]);
+
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    if (isPlaying) {
+      video.pause();
+    } else {
+      video.play();
+    }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    const time = parseFloat(e.target.value);
+    video.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    video.volume = newVolume;
+  };
+
+  const toggleFullscreen = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    if (!isFullscreen) {
+      video.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-95 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="relative max-w-7xl max-h-[95vh] w-full h-full flex flex-col items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* زر الإغلاق */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 left-4 z-10 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2 transition-colors"
+          title="إغلاق (ESC)"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        {/* اسم الملف */}
+        <div className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg">
+          <p className="text-sm font-medium truncate max-w-md">{filename}</p>
+        </div>
+
+        {/* الفيديو */}
+        <div className="w-full h-full flex items-center justify-center">
+          {loading ? (
+            <div className="text-white text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-lg">جاري تحميل الفيديو...</p>
+            </div>
+          ) : error ? (
+            <div className="text-white text-center">
+              <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
+              <p className="text-lg">فشل في تحميل الفيديو</p>
+            </div>
+          ) : currentVideoUrl ? (
+            <div className="w-full max-w-5xl">
+              <video
+                ref={videoRef}
+                src={currentVideoUrl}
+                className="w-full h-auto rounded-lg shadow-2xl max-h-[80vh]"
+                controls
+                volume={volume}
+                onError={(e) => {
+                  console.error('❌ [VideoViewerModal] فشل تحميل الفيديو:', e);
+                  setError(true);
+                }}
+              />
+              
+              {/* أزرار التحكم المخصصة */}
+              <div className="mt-4 bg-black bg-opacity-50 rounded-lg p-4 text-white">
+                <div className="flex items-center space-x-4 space-x-reverse mb-3">
+                  <button
+                    onClick={togglePlay}
+                    className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors"
+                    title={isPlaying ? "إيقاف (Space)" : "تشغيل (Space)"}
+                  >
+                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                  </button>
+                  
+                  <div className="flex-1">
+                    <input
+                      type="range"
+                      min="0"
+                      max={duration || 0}
+                      value={currentTime}
+                      onChange={handleSeek}
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs mt-1">
+                      <span>{formatTime(currentTime)}</span>
+                      <span>{formatTime(duration)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <Volume2 className="w-4 h-4" />
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={volume}
+                      onChange={handleVolumeChange}
+                      className="w-20 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={toggleFullscreen}
+                    className="p-2 hover:bg-white hover:bg-opacity-20 rounded transition-colors"
+                    title="ملء الشاشة (F)"
+                  >
+                    <Maximize2 className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                <div className="text-xs text-gray-400 text-center">
+                  <p>Space: تشغيل/إيقاف | ← →: رجوع/تقديم 10 ثواني | ↑ ↓: صوت | F: ملء الشاشة | ESC: إغلاق</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 interface TicketModalProps {
   ticket: Ticket;
   process: Process;
@@ -484,7 +855,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadingFiles, setUploadingFiles] = useState<{ name: string; progress: number; status: 'uploading' | 'success' | 'error' }[]>([]);
   const [viewingImage, setViewingImage] = useState<{ id: string; filename: string } | null>(null);
+  const [viewingVideo, setViewingVideo] = useState<{ id: string; filename: string } | null>(null);
   
   // حالات الإسنادات والمراجعين
   const [assignments, setAssignments] = useState<TicketAssignment[]>([]);
@@ -877,87 +1250,132 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     setIsUploadingAttachment(true);
     setUploadProgress(0);
 
+    // تهيئة قائمة الملفات الجارية رفعها
+    const filesList = Array.from(files);
+    setUploadingFiles(filesList.map(file => ({ 
+      name: file.name, 
+      progress: 0, 
+      status: 'uploading' as const 
+    })));
+
     try {
       const token = localStorage.getItem('auth_token');
-      console.log(`🔑 التوكن: ${token ? 'موجود' : 'غير موجود'}`);
-      console.log(`🔑 التوكن الكامل: ${token}`);
-
-      // طباعة معلومات المستخدم الحالي
-      const userData = localStorage.getItem('user_data');
-      if (userData) {
-        const user = JSON.parse(userData);
-        console.log(`👤 المستخدم الحالي: ${user.email}`);
-        console.log(`🔐 دور المستخدم: ${user.role?.name || user.role_name || 'غير محدد'}`);
-        console.log(`📋 معرف المستخدم: ${user.id}`);
-      }
 
       // إنشاء FormData للملفات
       const formData = new FormData();
 
-      // إضافة الملفات إلى FormData (يجب استخدام 'files' كما هو متوقع من API)
-      Array.from(files).forEach((file, index) => {
+      // إضافة الملفات إلى FormData
+      filesList.forEach((file) => {
         formData.append('files', file);
-        console.log(`📁 ملف ${index + 1}: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
       });
 
       // إضافة وصف اختياري للمرفقات
       formData.append('description', `مرفقات للتذكرة: ${ticket.title}`);
 
-      // طباعة محتويات FormData للتشخيص
-      console.log(`📤 رفع المرفقات للتذكرة: ${ticket.id}`);
-      console.log('📋 محتويات FormData:');
-      for (let [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(`  ${key}: ${value.name} (${value.size} bytes, ${value.type})`);
-        } else {
-          console.log(`  ${key}: ${value}`);
-        }
-      }
+      // استخدام XMLHttpRequest لتتبع التقدم
+      const xhr = new XMLHttpRequest();
 
-      const response = await fetch(`${API_BASE_URL}/api/tickets/${ticket.id}/attachments`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          // لا نضع Content-Type للـ multipart/form-data - المتصفح سيضعه تلقائياً
-        },
-        body: formData,
+      // تتبع التقدم للرفع الكلي
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const totalProgress = Math.round((e.loaded / e.total) * 100);
+          setUploadProgress(totalProgress);
+          
+          // تحديث التقدم لكل ملف بشكل متساوٍ
+          const progressPerFile = totalProgress / filesList.length;
+          setUploadingFiles(prev => prev.map((file, index) => ({
+            ...file,
+            progress: Math.min(100, Math.round(progressPerFile * (index + 1)))
+          })));
+        }
       });
 
-      console.log(`📡 استجابة الخادم: ${response.status} ${response.statusText}`);
+      // معالجة الاستجابة
+      xhr.addEventListener('load', async () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const result = JSON.parse(xhr.responseText);
+            console.log(`✅ تم رفع المرفقات بنجاح:`, result);
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`✅ تم رفع المرفقات بنجاح:`, result);
+            // تحديث حالة جميع الملفات إلى نجاح
+            setUploadingFiles(prev => prev.map(file => ({ ...file, progress: 100, status: 'success' as const })));
 
-        // إعادة تحميل المرفقات لتحديث القائمة
-        await refreshAttachments();
+            // إعادة تحميل المرفقات لتحديث القائمة
+            await refreshAttachments();
 
-        // إعادة تعيين progress
-        setUploadProgress(100);
+            // إظهار رسالة نجاح
+            notifications.showSuccess(
+              'تم الرفع بنجاح', 
+              `تم رفع ${filesList.length} مرفق بنجاح!`
+            );
 
-        // رسالة نجاح
-        alert(`تم رفع ${files.length} مرفق بنجاح!`);
+            // إزالة قائمة الملفات بعد ثانيتين
+            setTimeout(() => {
+              setUploadingFiles([]);
+              setIsUploadingAttachment(false);
+              setUploadProgress(0);
+            }, 2000);
 
-      } else {
-        const errorData = await response.json();
-        console.log(`❌ فشل الرفع:`, errorData);
+          } catch (parseError) {
+            console.error('❌ خطأ في تحليل الاستجابة:', parseError);
+            setUploadingFiles(prev => prev.map(file => ({ ...file, status: 'error' as const })));
+            notifications.showError('خطأ في الرفع', 'فشل في معالجة استجابة الخادم');
+            setTimeout(() => {
+              setUploadingFiles([]);
+              setIsUploadingAttachment(false);
+            }, 3000);
+          }
+        } else {
+          // خطأ في الرفع
+          let errorMessage = 'خطأ غير معروف';
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          } catch (e) {
+            errorMessage = xhr.statusText || `خطأ ${xhr.status}`;
+          }
 
-        // رسالة خطأ مفصلة
-        let errorMessage = errorData.message || 'خطأ غير معروف';
-        if (response.status === 403) {
-          errorMessage += '\n\nتأكد من أنك مسجل دخول بحساب له صلاحيات رفع المرفقات';
-        } else if (response.status === 413) {
-          errorMessage = 'حجم الملف كبير جداً. يرجى اختيار ملف أصغر.';
+          console.log(`❌ فشل الرفع:`, errorMessage);
+
+          // تحديث حالة جميع الملفات إلى خطأ
+          setUploadingFiles(prev => prev.map(file => ({ ...file, status: 'error' as const })));
+
+          notifications.showError('فشل الرفع', errorMessage);
+
+          setTimeout(() => {
+            setUploadingFiles([]);
+            setIsUploadingAttachment(false);
+            setUploadProgress(0);
+          }, 3000);
         }
+      });
 
-        alert(`فشل في رفع المرفقات: ${errorMessage}`);
-      }
+      // معالجة الأخطاء
+      xhr.addEventListener('error', () => {
+        console.error('❌ خطأ في رفع المرفقات');
+        setUploadingFiles(prev => prev.map(file => ({ ...file, status: 'error' as const })));
+        notifications.showError('خطأ في الرفع', 'حدث خطأ أثناء رفع المرفقات');
+        setTimeout(() => {
+          setUploadingFiles([]);
+          setIsUploadingAttachment(false);
+          setUploadProgress(0);
+        }, 3000);
+      });
+
+      // إرسال الطلب
+      xhr.open('POST', `${API_BASE_URL}/api/tickets/${ticket.id}/attachments`);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.send(formData);
+
     } catch (error) {
       console.error('❌ خطأ في رفع المرفقات:', error);
-      alert('حدث خطأ أثناء رفع المرفقات');
-    } finally {
-      setIsUploadingAttachment(false);
-      setUploadProgress(0);
+      setUploadingFiles(prev => prev.map(file => ({ ...file, status: 'error' as const })));
+      notifications.showError('خطأ في الرفع', 'حدث خطأ غير متوقع');
+      setTimeout(() => {
+        setUploadingFiles([]);
+        setIsUploadingAttachment(false);
+        setUploadProgress(0);
+      }, 3000);
     }
   };
 
@@ -2039,6 +2457,53 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </div>
                   </div>
 
+                  {/* مؤشرات التقدم للرفع */}
+                  {uploadingFiles.length > 0 && (
+                    <div className="mt-3 mb-3 space-y-2">
+                      {uploadingFiles.map((file, index) => (
+                        <div key={index} className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2 space-x-reverse flex-1 min-w-0">
+                              <div className="flex-shrink-0">
+                                {file.status === 'uploading' && (
+                                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                )}
+                                {file.status === 'success' && (
+                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                )}
+                                {file.status === 'error' && (
+                                  <AlertTriangle className="w-4 h-4 text-red-600" />
+                                )}
+                              </div>
+                              <span className="text-sm font-medium text-gray-900 truncate" title={file.name}>
+                                {file.name}
+                              </span>
+                            </div>
+                            <span className="text-xs font-medium text-blue-600 ml-2 flex-shrink-0">
+                              {file.progress}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                file.status === 'success' ? 'bg-green-500' :
+                                file.status === 'error' ? 'bg-red-500' :
+                                'bg-blue-600'
+                              }`}
+                              style={{ width: `${file.progress}%` }}
+                            />
+                          </div>
+                          {file.status === 'success' && (
+                            <p className="text-xs text-green-600 mt-1">✓ تم الرفع بنجاح</p>
+                          )}
+                          {file.status === 'error' && (
+                            <p className="text-xs text-red-600 mt-1">✗ فشل الرفع</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* منطقة المرفقات مع Scroll */}
                   <div className="max-h-80 md:max-h-96 overflow-y-auto space-y-2 pr-2 scrollbar-thin border border-gray-200 rounded-lg p-3 bg-gray-50">
                     {ticket.attachments?.map((attachment: any) => {
@@ -2125,9 +2590,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               handleOpenFile();
                             }}
                             className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors"
-                            title={isImage || isPDF || isText ? "فتح الملف" : "تحميل"}
+                            title={isImage || isVideo || isPDF || isText ? "فتح الملف" : "تحميل"}
                           >
-                            {isImage || isPDF || isText ? <Eye className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                            {isImage || isVideo || isPDF || isText ? <Eye className="w-4 h-4" /> : <Download className="w-4 h-4" />}
                           </button>
                         </div>
                       );
@@ -2142,6 +2607,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 ) : attachments.length > 0 ? (
                   attachments.map((attachment) => {
                     const isImage = attachment.mime_type?.startsWith('image/') || attachment.is_image;
+                    const isVideo = attachment.mime_type?.startsWith('video/');
                     const isPDF = attachment.mime_type === 'application/pdf';
                     const isText = attachment.mime_type?.startsWith('text/');
                     const fileUrl = `${API_BASE_URL}/api/attachments/${attachment.id}/download`;
@@ -2233,6 +2699,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               filename={attachment.original_filename}
                               onClick={() => setViewingImage({ id: attachment.id, filename: attachment.original_filename })}
                             />
+                          ) : isVideo ? (
+                            <div className="w-10 h-10 flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer hover:border-purple-300 transition-colors" onClick={() => setViewingVideo({ id: attachment.id, filename: attachment.original_filename })}>
+                              <Video className="w-5 h-5 text-purple-500" />
+                            </div>
                           ) : isPDF ? (
                             <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
                           ) : isText ? (
@@ -2257,9 +2727,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               handleOpenFile();
                             }}
                             className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors" 
-                            title={isImage || isPDF || isText ? "فتح الملف" : "تحميل"}
+                            title={isImage || isVideo || isPDF || isText ? "فتح الملف" : "تحميل"}
                           >
-                            {isImage || isPDF || isText ? <Eye className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                            {isImage || isVideo || isPDF || isText ? <Eye className="w-4 h-4" /> : <Download className="w-4 h-4" />}
                           </button>
                           <button
                             onClick={() => {
@@ -2832,6 +3302,50 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 throw new Error(error.message);
               }
               throw new Error('حدث خطأ غير متوقع أثناء تحميل الصورة');
+            }
+          }}
+        />
+      )}
+
+      {/* Video Viewer Modal */}
+      {viewingVideo && (
+        <VideoViewerModal
+          isOpen={!!viewingVideo}
+          onClose={() => setViewingVideo(null)}
+          videoUrl={null}
+          filename={viewingVideo.filename}
+          onLoadVideo={async () => {
+            const token = localStorage.getItem('auth_token');
+            const fileUrl = `${API_BASE_URL}/api/attachments/${viewingVideo.id}/download`;
+            
+            console.log('🔄 [VideoViewerModal] جلب الفيديو:', fileUrl);
+            
+            try {
+              const response = await fetch(fileUrl, {
+                method: 'GET',
+                headers: token ? {
+                  'Authorization': `Bearer ${token}`,
+                  'Accept': 'video/*'
+                } : {
+                  'Accept': 'video/*'
+                }
+              });
+              
+              if (!response.ok) {
+                throw new Error(`فشل في تحميل الفيديو: ${response.status}`);
+              }
+              
+              const blob = await response.blob();
+              
+              if (blob.size === 0) {
+                throw new Error('الفيديو فارغ أو غير موجود');
+              }
+              
+              const blobUrl = URL.createObjectURL(blob);
+              return blobUrl;
+            } catch (error) {
+              console.error('❌ [VideoViewerModal] خطأ في تحميل الفيديو:', error);
+              throw error;
             }
           }}
         />

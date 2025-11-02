@@ -35,7 +35,9 @@ const upload = multer({
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/plain', 'text/csv'
+      'text/plain', 'text/csv',
+      // أنواع الفيديو المدعومة
+      'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'
     ];
     
     if (allowedTypes.includes(file.mimetype)) {
