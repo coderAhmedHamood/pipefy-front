@@ -58,9 +58,399 @@ import {
   Grid,
   List,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Image as ImageIcon,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw
 } from 'lucide-react';
 import { getPriorityLabel, getPriorityColor } from '../../utils/priorityUtils';
+
+// مكون معاينة الصور للمرفقات
+const AttachmentImagePreview: React.FC<{ 
+  attachmentId: string; 
+  filename: string;
+  onClick?: () => void;
+}> = ({ attachmentId, filename, onClick }) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const loadImage = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        const fileUrl = `${API_BASE_URL}/api/attachments/${attachmentId}/download`;
+        
+        const response = await fetch(fileUrl, {
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {}
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          setImageUrl(blobUrl);
+          setLoading(false);
+        } else {
+          setError(true);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('❌ خطأ في تحميل الصورة:', err);
+        setError(true);
+        setLoading(false);
+      }
+    };
+
+    loadImage();
+    
+    // تنظيف blob URL عند إلغاء التحميل
+    return () => {
+      if (imageUrl) {
+        URL.revokeObjectURL(imageUrl);
+      }
+    };
+  }, [attachmentId, imageUrl]);
+
+  if (loading) {
+    return (
+      <div className="w-10 h-10 flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (error || !imageUrl) {
+    return (
+      <div className="w-10 h-10 flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+        <ImageIcon className="w-5 h-5 text-gray-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="w-10 h-10 flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 cursor-pointer hover:border-blue-300 transition-colors"
+      onClick={onClick}
+    >
+      <img 
+        src={imageUrl} 
+        alt={filename}
+        className="w-full h-full object-cover"
+        onError={() => setError(true)}
+      />
+    </div>
+  );
+};
+
+// مكون Modal لعرض الصورة الكاملة
+const ImageViewerModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  imageUrl: string | null;
+  filename: string;
+  onLoadImage?: () => Promise<string | null>;
+}> = ({ isOpen, onClose, imageUrl, filename, onLoadImage }) => {
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const onLoadImageRef = useRef(onLoadImage);
+  const imageUrlRef = useRef(imageUrl);
+
+  // تحديث refs عند تغيير القيم
+  useEffect(() => {
+    onLoadImageRef.current = onLoadImage;
+    imageUrlRef.current = imageUrl;
+  }, [onLoadImage, imageUrl]);
+
+  // تحميل الصورة عند فتح Modal
+  useEffect(() => {
+    if (!isOpen) {
+      // تنظيف blob URL عند إغلاق Modal
+      if (currentImageUrl && currentImageUrl.startsWith('blob:')) {
+        console.log('🧹 [ImageViewerModal] تنظيف Blob URL');
+        URL.revokeObjectURL(currentImageUrl);
+      }
+      setCurrentImageUrl(null);
+      setLoading(false);
+      setError(false);
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+      return;
+    }
+
+    // إذا كان Modal مفتوح، ابدأ تحميل الصورة
+    let blobUrlToClean: string | null = null;
+    let isCancelled = false;
+    
+    const loadImage = async () => {
+      if (onLoadImageRef.current) {
+        setLoading(true);
+        setError(false);
+        setCurrentImageUrl(null);
+        
+        console.log('🖼️ [ImageViewerModal] بدء تحميل الصورة...');
+        
+        try {
+          const url = await onLoadImageRef.current();
+          
+          if (isCancelled) {
+            if (url && url.startsWith('blob:')) {
+              URL.revokeObjectURL(url);
+            }
+            return;
+          }
+          
+          console.log('✅ [ImageViewerModal] تم تحميل الصورة بنجاح:', url ? 'URL موجود' : 'URL فارغ');
+          
+          if (url) {
+            blobUrlToClean = url;
+            setCurrentImageUrl(url);
+            setLoading(false);
+          } else {
+            console.error('⚠️ [ImageViewerModal] URL فارغ');
+            setError(true);
+            setLoading(false);
+          }
+        } catch (err) {
+          if (isCancelled) return;
+          console.error('❌ [ImageViewerModal] خطأ في تحميل الصورة:', err);
+          setError(true);
+          setLoading(false);
+        }
+      } else if (imageUrlRef.current) {
+        console.log('📷 [ImageViewerModal] استخدام imageUrl مباشرة');
+        setCurrentImageUrl(imageUrlRef.current);
+        setLoading(false);
+      } else {
+        console.warn('⚠️ [ImageViewerModal] لا يوجد onLoadImage أو imageUrl');
+        setLoading(false);
+      }
+    };
+
+    loadImage();
+    
+    // Cleanup function - تنظيف عند إغلاق Modal أو unmount
+    return () => {
+      isCancelled = true;
+      if (blobUrlToClean && blobUrlToClean.startsWith('blob:')) {
+        console.log('🧹 [ImageViewerModal] تنظيف Blob URL في cleanup');
+        URL.revokeObjectURL(blobUrlToClean);
+      }
+    };
+  }, [isOpen]); // فقط isOpen كـ dependency
+
+  // معالجة السحب للصورة
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (scale <= 1) return;
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || scale <= 1) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+  
+  const handleZoomIn = () => {
+    const newScale = Math.min(5, scale + 0.25);
+    setScale(newScale);
+  };
+  
+  const handleZoomOut = () => {
+    const newScale = Math.max(0.5, scale - 0.25);
+    setScale(newScale);
+    if (newScale <= 1) {
+      setPosition({ x: 0, y: 0 });
+    }
+  };
+  
+  const handleResetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  // إغلاق عند الضغط على ESC والتكبير بالعجلة
+  useEffect(() => {
+    if (!isOpen) return;
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setScale(1);
+        setPosition({ x: 0, y: 0 });
+        onClose();
+      }
+    };
+    
+    const handleWheel = (e: WheelEvent) => {
+      if (!imageContainerRef.current) return;
+      e.preventDefault();
+      
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      const newScale = Math.max(0.5, Math.min(5, scale + delta));
+      
+      if (newScale !== scale) {
+        setScale(newScale);
+        
+        // تكبير نحو موضع الفأرة
+        const rect = imageContainerRef.current.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const scaleChange = newScale - scale;
+        setPosition({
+          x: position.x - (x - rect.width / 2) * (scaleChange / scale),
+          y: position.y - (y - rect.height / 2) * (scaleChange / scale)
+        });
+      }
+      
+      if (newScale <= 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+    };
+    
+    const container = imageContainerRef.current;
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
+    }
+    
+    window.addEventListener('keydown', handleEscape);
+    
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+      if (container) {
+        container.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, [isOpen, onClose, scale, position]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="relative max-w-7xl max-h-[95vh] w-full h-full flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* زر الإغلاق */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 left-4 z-10 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2 transition-colors"
+          title="إغلاق (ESC)"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        {/* اسم الملف */}
+        <div className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg">
+          <p className="text-sm font-medium truncate max-w-md">{filename}</p>
+        </div>
+
+        {/* أزرار التكبير */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 flex items-center space-x-2 space-x-reverse bg-black bg-opacity-50 rounded-lg p-2">
+          <button
+            onClick={handleZoomOut}
+            disabled={scale <= 0.5}
+            className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="تصغير"
+          >
+            <ZoomOut className="w-5 h-5" />
+          </button>
+          <span className="text-white text-sm px-2 min-w-[60px] text-center">
+            {Math.round(scale * 100)}%
+          </span>
+          <button
+            onClick={handleZoomIn}
+            disabled={scale >= 5}
+            className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="تكبير"
+          >
+            <ZoomIn className="w-5 h-5" />
+          </button>
+          <div className="w-px h-6 bg-white bg-opacity-30 mx-1"></div>
+          <button
+            onClick={handleResetZoom}
+            disabled={scale === 1}
+            className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="إعادة تعيين التكبير"
+          >
+            <RotateCcw className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* الصورة */}
+        <div 
+          ref={imageContainerRef}
+          className="w-full h-full flex items-center justify-center overflow-hidden"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{ cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default' }}
+        >
+          {loading ? (
+            <div className="text-white text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-lg">جاري تحميل الصورة...</p>
+            </div>
+          ) : error ? (
+            <div className="text-white text-center">
+              <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
+              <p className="text-lg">فشل في تحميل الصورة</p>
+            </div>
+          ) : currentImageUrl ? (
+            <div
+              style={{
+                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+                transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                transformOrigin: 'center center',
+              }}
+            >
+              <img
+                src={currentImageUrl}
+                alt={filename}
+                className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl select-none"
+                draggable={false}
+                onLoad={() => {
+                  console.log('✅ [ImageViewerModal] تم تحميل الصورة بنجاح في <img>');
+                }}
+                onError={(e) => {
+                  console.error('❌ [ImageViewerModal] فشل تحميل الصورة في <img>:', e);
+                  setError(true);
+                }}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        {/* تلميح الإغلاق */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 bg-black bg-opacity-50 text-white px-4 py-2 rounded-lg text-sm">
+          اضغط ESC أو اضغط خارج الصورة للإغلاق
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface TicketModalProps {
   ticket: Ticket;
@@ -94,6 +484,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [isDeletingAttachment, setIsDeletingAttachment] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [viewingImage, setViewingImage] = useState<{ id: string; filename: string } | null>(null);
   
   // حالات الإسنادات والمراجعين
   const [assignments, setAssignments] = useState<TicketAssignment[]>([]);
@@ -1650,20 +2041,97 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
                   {/* منطقة المرفقات مع Scroll */}
                   <div className="max-h-80 md:max-h-96 overflow-y-auto space-y-2 pr-2 scrollbar-thin border border-gray-200 rounded-lg p-3 bg-gray-50">
-                    {ticket.attachments?.map((attachment) => (
-                      <div key={attachment.id} className="flex items-center space-x-3 space-x-reverse p-2 bg-white rounded-lg shadow-sm border border-gray-100">
-                        <Paperclip className="w-4 h-4 text-gray-500" />
-                        <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">{attachment.name}</div>
-                          <div className="text-xs text-gray-500">
-                            {(attachment.size / 1024 / 1024).toFixed(1)} MB
+                    {ticket.attachments?.map((attachment: any) => {
+                      // معالجة المرفقات القديمة (من ticket.attachments مباشرة)
+                      const isImage = attachment.mime_type?.startsWith('image/') || attachment.type?.startsWith('image/');
+                      const isPDF = attachment.mime_type === 'application/pdf' || attachment.type === 'application/pdf';
+                      const isText = attachment.mime_type?.startsWith('text/') || attachment.type?.startsWith('text/');
+                      
+                      // محاولة إنشاء رابط - إذا كان attachment.url موجود
+                      const fileUrl = attachment.url || attachment.file_path || attachment.file_url;
+                      const attachmentId = attachment.id;
+                      let downloadUrl = '#';
+                      
+                      if (attachmentId) {
+                        // إذا كان لديه id، استخدم endpoint التحميل
+                        downloadUrl = `${API_BASE_URL}/api/attachments/${attachmentId}/download`;
+                        const token = localStorage.getItem('auth_token');
+                        if (token) {
+                          downloadUrl += `?token=${token}`;
+                        }
+                      } else if (fileUrl) {
+                        // إذا كان لديه رابط مباشر
+                        downloadUrl = fileUrl.startsWith('http') ? fileUrl : `${API_BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+                      }
+
+                      const handleOpenFile = () => {
+                        if (!downloadUrl || downloadUrl === '#') return;
+                        
+                        if (isImage && attachmentId) {
+                          // للصور - فتح Modal داخلي
+                          setViewingImage({ 
+                            id: attachmentId, 
+                            filename: attachment.name || attachment.filename || attachment.original_filename || 'صورة' 
+                          });
+                        } else if (isPDF || isText) {
+                          window.open(downloadUrl, '_blank');
+                        } else {
+                          const link = document.createElement('a');
+                          link.href = downloadUrl;
+                          link.download = attachment.name || attachment.filename || attachment.original_filename || 'file';
+                          link.target = '_blank';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }
+                      };
+
+                      return (
+                        <div 
+                          key={attachment.id || attachment.name} 
+                          className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group"
+                          onClick={handleOpenFile}
+                        >
+                          <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+                            {isImage && attachmentId ? (
+                              <AttachmentImagePreview 
+                                attachmentId={attachmentId}
+                                filename={attachment.name || attachment.filename || attachment.original_filename || 'صورة'}
+                                onClick={() => setViewingImage({ 
+                                  id: attachmentId, 
+                                  filename: attachment.name || attachment.filename || attachment.original_filename || 'صورة' 
+                                })}
+                              />
+                            ) : isPDF ? (
+                              <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                            ) : isText ? (
+                              <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                            ) : (
+                              <Paperclip className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors" title={attachment.name || attachment.filename || attachment.original_filename}>
+                                {attachment.name || attachment.filename || attachment.original_filename || 'ملف'}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {attachment.size ? `${(attachment.size / 1024 / 1024).toFixed(1)} MB` : 
+                                 attachment.file_size ? `${(Number(attachment.file_size) / 1024).toFixed(1)} KB` : 'حجم غير معروف'}
+                              </div>
+                            </div>
                           </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenFile();
+                            }}
+                            className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors"
+                            title={isImage || isPDF || isText ? "فتح الملف" : "تحميل"}
+                          >
+                            {isImage || isPDF || isText ? <Eye className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                          </button>
                         </div>
-                        <button className="text-blue-600 hover:text-blue-700 p-1 rounded">
-                          <Download className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                      );
+                    })}
                 
                 {/* عرض المرفقات من API */}
                 {attachmentsLoading ? (
@@ -1672,41 +2140,148 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     <p className="text-xs">جاري تحميل المرفقات...</p>
                   </div>
                 ) : attachments.length > 0 ? (
-                  attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center justify-between p-2 bg-white rounded-lg shadow-sm border border-gray-100">
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <FileText className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{attachment.original_filename}</p>
-                          <p className="text-xs text-gray-500">
-                            {(Number(attachment.file_size) / 1024).toFixed(1)} KB
-                          </p>
+                  attachments.map((attachment) => {
+                    const isImage = attachment.mime_type?.startsWith('image/') || attachment.is_image;
+                    const isPDF = attachment.mime_type === 'application/pdf';
+                    const isText = attachment.mime_type?.startsWith('text/');
+                    const fileUrl = `${API_BASE_URL}/api/attachments/${attachment.id}/download`;
+                    
+                    // إنشاء رابط للتحميل مع التوكن في header
+                    const handleOpenFile = async () => {
+                      try {
+                        const token = localStorage.getItem('auth_token');
+                        
+                        if (isImage) {
+                          // للصور - فتح Modal داخلي
+                          setViewingImage({ id: attachment.id, filename: attachment.original_filename });
+                        } else if (isPDF || isText) {
+                          // للPDF والنصوص - فتح في نافذة جديدة
+                          if (token) {
+                            // إنشاء blob URL للوصول للملف مع التوكن
+                            const response = await fetch(fileUrl, {
+                              headers: {
+                                'Authorization': `Bearer ${token}`
+                              }
+                            });
+                            
+                            if (response.ok) {
+                              const blob = await response.blob();
+                              const blobUrl = URL.createObjectURL(blob);
+                              window.open(blobUrl, '_blank');
+                              // تنظيف blob URL بعد فتحه (اختياري)
+                              setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+                            } else {
+                              console.error('❌ فشل في جلب الملف:', response.status);
+                              notifications.showError('خطأ في فتح الملف', 'فشل في جلب الملف من الخادم');
+                            }
+                          } else {
+                            // بدون توكن - محاولة فتح مباشرة
+                            window.open(fileUrl, '_blank');
+                          }
+                        } else {
+                          // للملفات الأخرى - تحميل مباشر
+                          const link = document.createElement('a');
+                          link.href = fileUrl;
+                          link.download = attachment.original_filename;
+                          link.target = '_blank';
+                          
+                          // إضافة التوكن إذا كان متوفراً (عبر fetch ثم blob)
+                          if (token) {
+                            try {
+                              const response = await fetch(fileUrl, {
+                                headers: {
+                                  'Authorization': `Bearer ${token}`
+                                }
+                              });
+                              
+                              if (response.ok) {
+                                const blob = await response.blob();
+                                const blobUrl = URL.createObjectURL(blob);
+                                link.href = blobUrl;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+                                return;
+                              }
+                            } catch (error) {
+                              console.error('❌ خطأ في تحميل الملف:', error);
+                            }
+                          }
+                          
+                          // Fallback - تحميل مباشر
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }
+                      } catch (error) {
+                        console.error('❌ خطأ في فتح الملف:', error);
+                        notifications.showError('خطأ في فتح الملف', error instanceof Error ? error.message : 'فشل في فتح الملف');
+                      }
+                    };
+
+                    return (
+                      <div 
+                        key={attachment.id} 
+                        className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group"
+                        onClick={handleOpenFile}
+                      >
+                        <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+                          {isImage ? (
+                            <AttachmentImagePreview 
+                              attachmentId={attachment.id}
+                              filename={attachment.original_filename}
+                              onClick={() => setViewingImage({ id: attachment.id, filename: attachment.original_filename })}
+                            />
+                          ) : isPDF ? (
+                            <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                          ) : isText ? (
+                            <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                          ) : (
+                            <FileText className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors" title={attachment.original_filename}>
+                              {attachment.original_filename}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(Number(attachment.file_size) / 1024).toFixed(1)} KB
+                              {attachment.uploaded_by_name && ` • ${attachment.uploaded_by_name}`}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2 space-x-reverse" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenFile();
+                            }}
+                            className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors" 
+                            title={isImage || isPDF || isText ? "فتح الملف" : "تحميل"}
+                          >
+                            {isImage || isPDF || isText ? <Eye className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAttachmentToDelete(attachment.id);
+                              setShowDeleteAttachmentConfirm(true);
+                            }}
+                            disabled={isDeletingAttachment}
+                            className={`text-red-600 hover:text-red-700 p-1 rounded transition-colors ${
+                              isDeletingAttachment ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                            title="حذف المرفق"
+                          >
+                            {isDeletingAttachment && attachmentToDelete === attachment.id ? (
+                              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <button className="text-blue-600 hover:text-blue-700 p-1 rounded" title="تحميل">
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setAttachmentToDelete(attachment.id);
-                            setShowDeleteAttachmentConfirm(true);
-                          }}
-                          disabled={isDeletingAttachment}
-                          className={`text-red-600 hover:text-red-700 p-1 rounded transition-colors ${
-                            isDeletingAttachment ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          title="حذف المرفق"
-                        >
-                          {isDeletingAttachment && attachmentToDelete === attachment.id ? (
-                            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-4 text-gray-400">
                     <Paperclip className="w-8 h-8 mx-auto mb-2" />
@@ -2195,6 +2770,72 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         </div>
       )}
 
+      {/* Image Viewer Modal */}
+      {viewingImage && (
+        <ImageViewerModal
+          isOpen={!!viewingImage}
+          onClose={() => setViewingImage(null)}
+          imageUrl={null}
+          filename={viewingImage.filename}
+          onLoadImage={async () => {
+            const token = localStorage.getItem('auth_token');
+            const fileUrl = `${API_BASE_URL}/api/attachments/${viewingImage.id}/download`;
+            
+            console.log('🔄 [ImageViewerModal] جلب الصورة:', fileUrl);
+            console.log('🔑 [ImageViewerModal] التوكن موجود:', !!token);
+            
+            try {
+              const response = await fetch(fileUrl, {
+                method: 'GET',
+                headers: token ? {
+                  'Authorization': `Bearer ${token}`,
+                  'Accept': 'image/*, application/pdf, text/*'
+                } : {
+                  'Accept': 'image/*, application/pdf, text/*'
+                }
+              });
+              
+              console.log('📡 [ImageViewerModal] استجابة API:', response.status, response.statusText);
+              console.log('📋 [ImageViewerModal] Content-Type:', response.headers.get('content-type'));
+              console.log('📋 [ImageViewerModal] Content-Length:', response.headers.get('content-length'));
+              
+              if (!response.ok) {
+                let errorText = '';
+                try {
+                  errorText = await response.text();
+                } catch (e) {
+                  errorText = response.statusText;
+                }
+                console.error('❌ [ImageViewerModal] فشل في جلب الصورة:', response.status, errorText);
+                throw new Error(`فشل في تحميل الصورة: ${response.status} - ${errorText.substring(0, 100)}`);
+              }
+              
+              const blob = await response.blob();
+              console.log('📦 [ImageViewerModal] تم تحميل Blob:', {
+                size: blob.size,
+                type: blob.type,
+                isEmpty: blob.size === 0
+              });
+              
+              if (blob.size === 0) {
+                throw new Error('الصورة فارغة أو غير موجودة');
+              }
+              
+              const blobUrl = URL.createObjectURL(blob);
+              console.log('✅ [ImageViewerModal] تم إنشاء Blob URL:', blobUrl);
+              console.log('🖼️ [ImageViewerModal] جاهز لعرض الصورة');
+              
+              return blobUrl;
+            } catch (error) {
+              console.error('❌ [ImageViewerModal] خطأ في تحميل الصورة:', error);
+              if (error instanceof Error) {
+                throw new Error(error.message);
+              }
+              throw new Error('حدث خطأ غير متوقع أثناء تحميل الصورة');
+            }
+          }}
+        />
+      )}
 
       {/* Process Selector Modal */}
       {showProcessSelector && (

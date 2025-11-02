@@ -225,8 +225,17 @@ class AttachmentController {
       // تسجيل نشاط التحميل (اختياري)
       // يمكن إضافة تسجيل نشاط التحميل هنا إذا لزم الأمر
       
-      res.setHeader('Content-Disposition', `attachment; filename="${attachment.original_filename}"`);
-      res.setHeader('Content-Type', attachment.mime_type);
+      // تحديد Content-Disposition بناءً على نوع الملف
+      // للصور وPDF والنصوص - عرض مباشر (inline)، للملفات الأخرى - تحميل (attachment)
+      const isInline = attachment.mime_type?.startsWith('image/') || 
+                       attachment.mime_type === 'application/pdf' || 
+                       attachment.mime_type?.startsWith('text/');
+      
+      res.setHeader('Content-Disposition', isInline 
+        ? `inline; filename="${encodeURIComponent(attachment.original_filename)}"`
+        : `attachment; filename="${encodeURIComponent(attachment.original_filename)}"`);
+      res.setHeader('Content-Type', attachment.mime_type || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'private, max-age=3600'); // تخزين مؤقت لساعة واحدة
       res.sendFile(path.resolve(attachment.file_path));
       
     } catch (error) {
