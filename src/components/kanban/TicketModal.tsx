@@ -12,6 +12,7 @@ import ticketReviewerService, { TicketReviewer } from '../../services/ticketRevi
 import ticketService from '../../services/ticketService';
 import userService from '../../services/userService';
 import commentService from '../../services/commentService';
+import notificationService from '../../services/notificationService';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { useQuickNotifications } from '../ui/NotificationSystem';
 import { 
@@ -1477,6 +1478,84 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       } catch (error) {
         console.error('❌ خطأ في إضافة التعليق التلقائي:', error);
         // نستمر في العملية حتى لو فشل التعليق
+      }
+
+      // إرسال إشعارات للمستخدمين المسندين والمراجعين
+      try {
+        console.log('📢 إرسال إشعارات للمستخدمين المعنيين...');
+        
+        // جمع جميع المستخدمين المعنيين
+        const userIds: string[] = [];
+        
+        // إضافة المستخدم المسند الأساسي
+        if (ticket.assigned_to) {
+          userIds.push(ticket.assigned_to);
+        }
+        
+        // إضافة المستخدمين المسندين من assignments
+        assignments.forEach(assignment => {
+          if (assignment.user_id && !userIds.includes(assignment.user_id)) {
+            userIds.push(assignment.user_id);
+          }
+        });
+        
+        // إضافة المراجعين
+        reviewers.forEach(reviewer => {
+          if (reviewer.reviewer_id && !userIds.includes(reviewer.reviewer_id)) {
+            userIds.push(reviewer.reviewer_id);
+          }
+        });
+        
+        // إضافة المراجعين الجدد من formData إذا تم تحديثهم
+        if (formData.data) {
+          const reviewersField = ticket.custom_fields?.find(f => 
+            (f.field_type === 'ticket_reviewer' || f.type === 'ticket_reviewer') && 
+            formData.data[f.id]
+          );
+          
+          if (reviewersField && formData.data[reviewersField.id]) {
+            const newReviewerIds = Array.isArray(formData.data[reviewersField.id])
+              ? formData.data[reviewersField.id]
+              : [formData.data[reviewersField.id]];
+            
+            newReviewerIds.forEach((reviewerId: string) => {
+              if (reviewerId && !userIds.includes(reviewerId)) {
+                userIds.push(reviewerId);
+              }
+            });
+          }
+        }
+        
+        // إرسال الإشعارات فقط إذا كان هناك مستخدمين
+        if (userIds.length > 0) {
+          const changes = generateChangeComment();
+          const notificationMessage = changes 
+            ? `تم تحديث التذكرة "${formData.title || ticket.title}":\n${changes}`
+            : `تم تحديث التذكرة "${formData.title || ticket.title}"`;
+          
+          await notificationService.sendBulkNotification({
+            user_ids: userIds,
+            title: `تحديث التذكرة: ${formData.title || ticket.title}`,
+            message: notificationMessage,
+            notification_type: 'ticket_updated',
+            action_url: `/tickets/${ticket.id}`,
+            data: {
+              ticket_id: ticket.id,
+              ticket_title: formData.title || ticket.title,
+              changes: formData,
+              updated_fields: Object.keys(updateData).filter(key => 
+                updateData[key as keyof typeof updateData] !== undefined
+              )
+            }
+          });
+          
+          console.log(`✅ تم إرسال إشعارات لـ ${userIds.length} مستخدم`);
+        } else {
+          console.log('ℹ️ لا يوجد مستخدمين لإرسال إشعارات لهم');
+        }
+      } catch (error) {
+        console.error('❌ خطأ في إرسال الإشعارات:', error);
+        // نستمر في العملية حتى لو فشل إرسال الإشعارات
       }
 
       // تحديث البيانات المحلية فوراً
