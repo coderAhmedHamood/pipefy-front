@@ -1136,12 +1136,15 @@ router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.
         console.log(`📧 إرسال إشعارات لـ ${uniqueUserIds.length} مستخدم`);
         
         // إنشاء إشعارات لجميع المستخدمين
+        const NotificationController = require('../controllers/NotificationController');
+        
         for (const userId of uniqueUserIds) {
-          await pool.query(`
+          const notificationResult = await pool.query(`
             INSERT INTO notifications (
               user_id, title, message, notification_type, 
               action_url, created_at
             ) VALUES ($1, $2, $3, $4, $5, NOW())
+            RETURNING *
           `, [
             userId,
             `تم تحريك التذكرة: ${ticket.title}`,
@@ -1149,6 +1152,22 @@ router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.
             'ticket_moved',
             `/tickets/${ticketId}`
           ]);
+          
+          // إرسال الإيميل (في الخلفية)
+          NotificationController.sendNotificationEmail({
+            userIds: [userId],
+            title: `تم تحريك التذكرة: ${ticket.title}`,
+            message: `قام ${userName} بنقل التذكرة من "${ticket.current_stage_name}" إلى "${targetStage.name}"`,
+            notificationType: 'ticket_moved',
+            actionUrl: `/tickets/${ticketId}`,
+            data: {
+              ticket_id: ticketId,
+              ticket_title: ticket.title,
+              from_stage: ticket.current_stage_name,
+              to_stage: targetStage.name,
+              moved_by: userName
+            }
+          }).catch(err => console.error('⚠️ خطأ في إرسال إيميل الإشعار:', err));
         }
         
         console.log('✅ تم إرسال الإشعارات بنجاح');

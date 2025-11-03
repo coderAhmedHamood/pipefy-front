@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const { pool } = require('../config/database');
+const NotificationController = require('../controllers/NotificationController');
 
 class NotificationHelper {
   /**
@@ -66,6 +67,16 @@ class NotificationHelper {
         action_url: `/tickets/${ticketId}`,
         url: `/tickets/${ticketId}`
       });
+
+      // إرسال الإيميل (في الخلفية)
+      NotificationController.sendNotificationEmail({
+        userIds: [assignedUserId],
+        title: title,
+        message: message,
+        notificationType: 'ticket_assigned',
+        actionUrl: `/tickets/${ticketId}`,
+        data: notification.data
+      }).catch(err => console.error('⚠️ خطأ في إرسال إيميل الإشعار:', err));
 
       console.log(`✅ تم إرسال إشعار الإسناد للمستخدم: ${assignedUserName}`);
       return notification;
@@ -140,6 +151,16 @@ class NotificationHelper {
         action_url: `/tickets/${ticketId}`,
         url: `/tickets/${ticketId}`
       });
+
+      // إرسال الإيميل (في الخلفية)
+      NotificationController.sendNotificationEmail({
+        userIds: [reviewerId],
+        title: title,
+        message: message,
+        notificationType: 'ticket_review_assigned',
+        actionUrl: `/tickets/${ticketId}`,
+        data: notification.data
+      }).catch(err => console.error('⚠️ خطأ في إرسال إيميل الإشعار:', err));
 
       console.log(`✅ تم إرسال إشعار المراجعة للمستخدم: ${reviewerName}`);
       return notification;
@@ -220,6 +241,16 @@ class NotificationHelper {
             action_url: `/tickets/${ticketId}`,
             url: `/tickets/${ticketId}`
           });
+          
+          // إرسال الإيميل (في الخلفية)
+          NotificationController.sendNotificationEmail({
+            userIds: [userId],
+            title: title,
+            message: message,
+            notificationType: 'ticket_review_updated',
+            actionUrl: `/tickets/${ticketId}`,
+            data: notification.data
+          }).catch(err => console.error(`⚠️ خطأ في إرسال إيميل الإشعار للمستخدم ${userId}:`, err));
           
           notifications.push(notification);
         } catch (error) {
