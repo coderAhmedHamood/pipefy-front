@@ -1,5 +1,7 @@
 const Notification = require('../models/Notification');
 const { pool } = require('../config/database');
+const Settings = require('../models/Settings');
+const EmailService = require('../services/EmailService');
 
 class NotificationController {
   // 1. جلب جميع الإشعارات (مع الفلاتر)
@@ -336,6 +338,18 @@ class NotificationController {
         JSON.stringify(data), action_url, url, expires_at
       ]);
       
+      // إرسال الإيميل (في الخلفية)
+      if (notification_type) {
+        NotificationController.sendNotificationEmail({
+          userIds: [user_id],
+          title,
+          message,
+          notificationType: notification_type,
+          actionUrl: action_url || url,
+          data
+        }).catch(err => console.error('⚠️ خطأ في إرسال الإيميل:', err));
+      }
+      
       res.status(201).json({
         success: true,
         message: 'تم إنشاء الإشعار بنجاح',
@@ -450,6 +464,18 @@ class NotificationController {
         RETURNING *
       `, params);
       
+      // إرسال الإيميل (في الخلفية)
+      if (notification_type) {
+        NotificationController.sendNotificationEmail({
+          userIds: user_ids,
+          title,
+          message,
+          notificationType: notification_type,
+          actionUrl: action_url || url,
+          data
+        }).catch(err => console.error('⚠️ خطأ في إرسال الإيميل:', err));
+      }
+      
       res.status(201).json({
         success: true,
         message: `تم إرسال الإشعار إلى ${user_ids.length} مستخدم`,
@@ -465,6 +491,102 @@ class NotificationController {
         message: 'خطأ في إرسال الإشعارات المتعددة',
         error: error.message
       });
+    }
+  }
+
+  // دالة مساعدة لإرسال الإيميل
+  static async sendNotificationEmail({ userIds, title, message, notificationType, actionUrl, data }) {
+    try {
+      // خريطة أنواع الإشعارات مع حقول الإعدادات
+      const settingsMap = {
+        'ticket_created': 'integrations_email_send_on_creation',
+        'ticket_assigned': 'integrations_email_send_on_assignment',
+        'ticket_updated': 'integrations_email_send_on_update',
+        'ticket_moved': 'integrations_email_send_on_move',
+        'ticket_completed': 'integrations_email_send_on_completion',
+        'ticket_overdue': 'integrations_email_send_delayed_tickets',
+        'ticket_review_assigned': 'integrations_email_send_on_review_assigned',
+        'ticket_review_updated': 'integrations_email_send_on_review_updated',
+        'comment_added': 'integrations_email_send_on_comment',
+        'mention': 'integrations_email_send_on_comment'
+      };
+
+      // جلب الإعدادات
+      const settings = await Settings.getSettings();
+
+      // التحقق من تفعيل البريد الإلكتروني
+      if (!settings.integrations_email_enabled) {
+        return;
+      }
+
+      // التحقق من تفعيل نوع الإشعار المحدد
+      const settingField = settingsMap[notificationType];
+      
+      // إذا كان النوع موجود في الخريطة، نتحقق من تفعيله
+      // إذا لم يكن موجود، نرسل الإيميل مباشرة (لجميع أنواع الإشعارات)
+      if (settingField && !settings[settingField]) {
+        console.log(`⚠️ إرسال الإيميل معطل لنوع: ${notificationType} في الإعدادات`);
+        return;
+      }
+
+      // جلب إيميلات المستخدمين
+      const userIdsArray = Array.isArray(userIds) ? userIds : [userIds];
+      const userQuery = `
+        SELECT email FROM users 
+        WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL AND email IS NOT NULL
+      `;
+      const userResult = await pool.query(userQuery, [userIdsArray]);
+      
+      if (userResult.rows.length === 0) {
+        return;
+      }
+
+      const emails = userResult.rows.map(row => row.email).filter(email => email);
+
+      if (emails.length === 0) {
+        return;
+      }
+
+      // إعداد محتوى الإيميل
+      let emailContent = `<p>${message.replace(/\n/g, '<br>')}</p>`;
+      if (Object.keys(data).length > 0) {
+        emailContent += `<div style="margin-top: 20px;"><h4>تفاصيل إضافية:</h4><ul>`;
+        for (const key in data) {
+          if (data[key] !== null && data[key] !== undefined) {
+            emailContent += `<li><strong>${key}:</strong> ${typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]}</li>`;
+          }
+        }
+        emailContent += `</ul></div>`;
+      }
+
+      // تحديد نص الزر
+      const buttonTexts = {
+        'ticket_created': 'فتح التذكرة',
+        'ticket_assigned': 'عرض التذكرة',
+        'ticket_updated': 'عرض التحديثات',
+        'ticket_moved': 'عرض التذكرة',
+        'ticket_completed': 'عرض التذكرة',
+        'ticket_overdue': 'عرض التذكرة',
+        'ticket_review_assigned': 'عرض المراجعة',
+        'ticket_review_updated': 'عرض المراجعة',
+        'comment_added': 'عرض التعليق',
+        'mention': 'عرض التعليق'
+      };
+
+      // إرسال الإيميل
+      await EmailService.sendTemplatedEmail({
+        to: emails,
+        subject: title,
+        title: title,
+        content: emailContent,
+        buttonText: buttonTexts[notificationType] || 'عرض التفاصيل',
+        buttonUrl: actionUrl || '/',
+        footer: 'هذه رسالة تلقائية من نظام إدارة المهام'
+      });
+
+      console.log(`✅ تم إرسال إيميل لنوع: ${notificationType} إلى ${emails.length} مستخدم`);
+    } catch (error) {
+      console.error('❌ خطأ في إرسال إيميل الإشعار:', error);
     }
   }
 }
