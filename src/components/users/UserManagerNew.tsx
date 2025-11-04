@@ -2556,130 +2556,147 @@ export const UserManagerNew: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {/* الصلاحيات المفعلة */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span>الصلاحيات المفعلة ({activePermissions.length})</span>
-                    </h3>
-                    {activePermissions.length === 0 ? (
-                      <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-gray-600">لا توجد صلاحيات مفعلة</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {activePermissions.map((permission: any) => (
-                          <div
-                            key={permission.id}
-                            className="p-4 bg-white border border-green-200 rounded-lg hover:border-green-300 hover:shadow-md transition-all"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2 space-x-reverse mb-2 flex-wrap">
-                                  <h4 className="font-semibold text-gray-900">{permission.name}</h4>
-                                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                                    {permission.resource}
-                                  </span>
-                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                                    {permission.action}
-                                  </span>
-                                  {permission.source && (
-                                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                      permission.source === 'role' 
-                                        ? 'bg-blue-100 text-blue-700' 
-                                        : 'bg-orange-100 text-orange-700'
-                                    }`}>
-                                      {permission.source === 'role' ? 'من الدور' : 'مباشرة'}
-                                    </span>
-                                  )}
-                                </div>
-                                {permission.description && (
-                                  <p className="text-sm text-gray-600 mt-1">{permission.description}</p>
-                                )}
-                                {permission.expires_at && (
-                                  <p className="text-xs text-orange-600 mt-2">
-                                    تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
-                                  </p>
-                                )}
-                              </div>
-                              {permission.source === 'direct' && (
-                                <button
-                                  onClick={() => handleRemovePermission(permission.id)}
-                                  disabled={processingPermission === permission.id}
-                                  className="mr-4 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="إلغاء الصلاحية"
-                                >
-                                  {processingPermission === permission.id ? (
-                                    <Loader className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <Trash2 className="w-4 h-4" />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* الصلاحيات غير المفعلة */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* الصلاحيات غير المفعلة - العمود الأول */}
+                  <div className="flex flex-col">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse sticky top-0 bg-white pb-2 z-10">
                       <AlertCircle className="w-5 h-5 text-red-600" />
                       <span>الصلاحيات غير المفعلة ({inactivePermissions.length})</span>
                     </h3>
-                    {inactivePermissions.length === 0 ? (
-                      <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                        <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                        <p className="text-gray-600">جميع الصلاحيات مفعلة</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {inactivePermissions.map((permission: any) => (
-                          <div
-                            key={permission.id}
-                            className="p-4 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-md transition-all"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center space-x-2 space-x-reverse mb-2 flex-wrap">
-                                  <h4 className="font-semibold text-gray-900">{permission.name}</h4>
-                                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                                    {permission.resource}
-                                  </span>
-                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                                    {permission.action}
-                                  </span>
+                    <div className="flex-1 overflow-y-auto pr-2">
+                      {inactivePermissions.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                          <p className="text-gray-600">جميع الصلاحيات مفعلة</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {inactivePermissions.map((permission: any) => (
+                            <div
+                              key={permission.id}
+                              className="p-4 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-md transition-all"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center space-x-2 space-x-reverse mb-2 flex-wrap">
+                                    <h4 className="font-semibold text-gray-900 break-words">{permission.name}</h4>
+                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium whitespace-nowrap">
+                                      {permission.resource}
+                                    </span>
+                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium whitespace-nowrap">
+                                      {permission.action}
+                                    </span>
+                                  </div>
+                                  {permission.description && (
+                                    <p className="text-sm text-gray-600 mt-1 break-words">{permission.description}</p>
+                                  )}
                                 </div>
-                                {permission.description && (
-                                  <p className="text-sm text-gray-600 mt-1">{permission.description}</p>
-                                )}
+                                <button
+                                  onClick={() => handleAddPermission(permission.id)}
+                                  disabled={processingPermission === permission.id}
+                                  className="mr-2 ml-2 flex-shrink-0 p-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 space-x-reverse"
+                                  title="إضافة الصلاحية"
+                                >
+                                  {processingPermission === permission.id ? (
+                                    <>
+                                      <Loader className="w-4 h-4 animate-spin" />
+                                      <span className="text-xs hidden sm:inline">جاري...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Plus className="w-4 h-4" />
+                                      <span className="text-xs hidden sm:inline">إضافة</span>
+                                    </>
+                                  )}
+                                </button>
                               </div>
-                              <button
-                                onClick={() => handleAddPermission(permission.id)}
-                                disabled={processingPermission === permission.id}
-                                className="mr-4 p-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 space-x-reverse"
-                                title="إضافة الصلاحية"
-                              >
-                                {processingPermission === permission.id ? (
-                                  <>
-                                    <Loader className="w-4 h-4 animate-spin" />
-                                    <span className="text-xs">جاري...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Plus className="w-4 h-4" />
-                                    <span className="text-xs">إضافة</span>
-                                  </>
-                                )}
-                              </button>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* الصلاحيات المفعلة - العمود الثاني */}
+                  <div className="flex flex-col">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse sticky top-0 bg-white pb-2 z-10">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>الصلاحيات المفعلة ({activePermissions.length})</span>
+                    </h3>
+                    <div className="flex-1 overflow-y-auto pr-2">
+                      {activePermissions.length === 0 ? (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-gray-600">لا توجد صلاحيات مفعلة</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {/* ترتيب الصلاحيات: المباشرة أولاً (التي لها زر حذف) */}
+                          {activePermissions
+                            .sort((a, b) => {
+                              // الصلاحيات المباشرة (direct) أولاً
+                              if (a.source === 'direct' && b.source !== 'direct') return -1;
+                              if (a.source !== 'direct' && b.source === 'direct') return 1;
+                              // إذا كانت نفس المصدر، ترتيب أبجدي
+                              return a.name.localeCompare(b.name, 'ar');
+                            })
+                            .map((permission: any) => (
+                              <div
+                                key={permission.id}
+                                className={`p-4 bg-white border rounded-lg hover:shadow-md transition-all ${
+                                  permission.source === 'direct' 
+                                    ? 'border-orange-300 hover:border-orange-400' 
+                                    : 'border-green-200 hover:border-green-300'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center space-x-2 space-x-reverse mb-2 flex-wrap">
+                                      <h4 className="font-semibold text-gray-900 break-words">{permission.name}</h4>
+                                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium whitespace-nowrap">
+                                        {permission.resource}
+                                      </span>
+                                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium whitespace-nowrap">
+                                        {permission.action}
+                                      </span>
+                                      {permission.source && (
+                                        <span className={`px-2 py-1 text-xs rounded-full font-medium whitespace-nowrap ${
+                                          permission.source === 'role' 
+                                            ? 'bg-blue-100 text-blue-700' 
+                                            : 'bg-orange-100 text-orange-700'
+                                        }`}>
+                                          {permission.source === 'role' ? 'من الدور' : 'مباشرة'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {permission.description && (
+                                      <p className="text-sm text-gray-600 mt-1 break-words">{permission.description}</p>
+                                    )}
+                                    {permission.expires_at && (
+                                      <p className="text-xs text-orange-600 mt-2">
+                                        تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
+                                      </p>
+                                    )}
+                                  </div>
+                                  {permission.source === 'direct' && (
+                                    <button
+                                      onClick={() => handleRemovePermission(permission.id)}
+                                      disabled={processingPermission === permission.id}
+                                      className="mr-2 ml-2 flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="إلغاء الصلاحية"
+                                    >
+                                      {processingPermission === permission.id ? (
+                                        <Loader className="w-4 h-4 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="w-4 h-4" />
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
