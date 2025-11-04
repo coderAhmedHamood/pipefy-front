@@ -535,10 +535,10 @@ class NotificationController {
         console.log(`✅ إرسال إيميل لنوع: ${notificationType} (لا يوجد إعداد محدد)`);
       }
 
-      // جلب إيميلات المستخدمين
+      // جلب بيانات المستخدمين (الإيميلات والأسماء)
       const userIdsArray = Array.isArray(userIds) ? userIds : [userIds];
       const userQuery = `
-        SELECT email FROM users 
+        SELECT id, email, name FROM users 
         WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL AND email IS NOT NULL
       `;
       const userResult = await pool.query(userQuery, [userIdsArray]);
@@ -547,22 +547,139 @@ class NotificationController {
         return;
       }
 
-      const emails = userResult.rows.map(row => row.email).filter(email => email);
+      // خريطة لترجمة الحقول الإنجليزية إلى العربية
+      const fieldTranslations = {
+        'ticket_id': 'رقم التذكرة',
+        'ticket_title': 'عنوان التذكرة',
+        'ticket_number': 'رقم التذكرة',
+        'from_stage': 'من المرحلة',
+        'to_stage': 'إلى المرحلة',
+        'moved_by': 'تم النقل بواسطة',
+        'assigned_by': 'تم الإسناد بواسطة',
+        'assigned_by_name': 'تم الإسناد بواسطة',
+        'added_by': 'تمت الإضافة بواسطة',
+        'added_by_name': 'تمت الإضافة بواسطة',
+        'reviewer_name': 'اسم المراجع',
+        'reviewer_id': 'معرف المراجع',
+        'review_status': 'حالة المراجعة',
+        'review_notes': 'ملاحظات المراجعة',
+        'rate': 'التقييم',
+        'title': 'العنوان',
+        'description': 'الوصف',
+        'priority': 'الأولوية',
+        'due_date': 'تاريخ الاستحقاق',
+        'assigned_to': 'المسند إلى',
+        'status': 'الحالة',
+        'role': 'الدور'
+      };
 
-      if (emails.length === 0) {
-        return;
-      }
-
-      // إعداد محتوى الإيميل
-      let emailContent = `<p>${message.replace(/\n/g, '<br>')}</p>`;
-      if (Object.keys(data).length > 0) {
-        emailContent += `<div style="margin-top: 20px;"><h4>تفاصيل إضافية:</h4><ul>`;
-        for (const key in data) {
-          if (data[key] !== null && data[key] !== undefined) {
-            emailContent += `<li><strong>${key}:</strong> ${typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]}</li>`;
+      // دالة لتحويل قيمة الحقل إلى نص عربي مفهوم
+      const formatFieldValue = (value) => {
+        if (value === null || value === undefined) {
+          return 'غير محدد';
+        }
+        if (typeof value === 'boolean') {
+          return value ? 'نعم' : 'لا';
+        }
+        if (typeof value === 'object') {
+          // إذا كان كائن، نحاول استخراج معلومات مفيدة
+          if (Array.isArray(value)) {
+            return value.map(v => formatFieldValue(v)).join('، ');
+          }
+          // إذا كان كائن عادي، نحاول عرضه بشكل أفضل
+          const keys = Object.keys(value);
+          if (keys.length === 0) {
+            return 'لا توجد بيانات';
+          }
+          // عرض أول 3 مفاتيح فقط لتجنب التعقيد
+          return keys.slice(0, 3).map(key => {
+            const translatedKey = fieldTranslations[key] || key;
+            return `${translatedKey}: ${formatFieldValue(value[key])}`;
+          }).join(' | ');
+        }
+        // تحويل الأولوية إلى عربي
+        if (value === 'urgent') return 'عاجل';
+        if (value === 'high') return 'عالي';
+        if (value === 'medium') return 'متوسط';
+        if (value === 'low') return 'منخفض';
+        // تحويل التاريخ إلى تنسيق أفضل
+        if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+          try {
+            const date = new Date(value);
+            return date.toLocaleDateString('ar-SA', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          } catch (e) {
+            return value;
           }
         }
-        emailContent += `</ul></div>`;
+        return value;
+      };
+
+      // دالة لإنشاء محتوى تفاصيل إضافية محسّن
+      const createAdditionalDetails = (dataObj) => {
+        if (!dataObj || Object.keys(dataObj).length === 0) {
+          return '';
+        }
+
+        // تصفية الحقول المهمة فقط (استبعاد UUIDs والأشياء غير المفيدة)
+        const importantFields = Object.keys(dataObj).filter(key => {
+          const value = dataObj[key];
+          // استبعاد UUIDs الطويلة
+          if (typeof value === 'string' && value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+            return false;
+          }
+          // استبعاد القيم الفارغة
+          if (value === null || value === undefined || value === '') {
+            return false;
+          }
+          return true;
+        });
+
+        if (importantFields.length === 0) {
+          return '';
+        }
+
+        let detailsHtml = '<div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 5px; direction: rtl; text-align: right;">';
+        detailsHtml += '<h4 style="margin-bottom: 15px; color: #333; font-size: 16px; font-weight: 600;">تفاصيل إضافية:</h4>';
+        detailsHtml += '<ul style="list-style-type: none; padding: 0; margin: 0; direction: rtl; text-align: right;">';
+        
+        importantFields.forEach(key => {
+          const translatedKey = fieldTranslations[key] || key.replace(/_/g, ' ');
+          const value = formatFieldValue(dataObj[key]);
+          detailsHtml += `<li style="margin-bottom: 10px; padding: 8px; background-color: #fff; border-right: 3px solid ${settings.system_primary_color || '#007bff'}; padding-right: 12px;">`;
+          detailsHtml += `<strong style="color: #555;">${translatedKey}:</strong> `;
+          detailsHtml += `<span style="color: #333;">${value}</span>`;
+          detailsHtml += `</li>`;
+        });
+        
+        detailsHtml += '</ul></div>';
+        return detailsHtml;
+      };
+
+      // إعداد محتوى الإيميل لكل مستخدم بشكل شخصي
+      const emails = [];
+      const emailContents = [];
+      
+      for (const user of userResult.rows) {
+        emails.push(user.email);
+        
+        // التحية الشخصية
+        const userName = user.name || user.email.split('@')[0] || 'الموظف';
+        const greeting = `<p style="font-size: 16px; margin-bottom: 15px; color: #333;"><strong>الموظف المحترم ${userName}</strong>،</p>`;
+        
+        // المحتوى الرئيسي
+        const mainContent = `<p style="font-size: 15px; line-height: 1.8; color: #555; margin-bottom: 15px;">${message.replace(/\n/g, '<br>')}</p>`;
+        
+        // التفاصيل الإضافية (إذا كانت موجودة)
+        const additionalDetails = createAdditionalDetails(data);
+        
+        // دمج المحتوى
+        emailContents.push(greeting + mainContent + additionalDetails);
       }
 
       // تحديد نص الزر
@@ -579,16 +696,18 @@ class NotificationController {
         'mention': 'عرض التعليق'
       };
 
-      // إرسال الإيميل
-      await EmailService.sendTemplatedEmail({
-        to: emails,
-        subject: title,
-        title: title,
-        content: emailContent,
-        buttonText: buttonTexts[notificationType] || 'عرض التفاصيل',
-        buttonUrl: actionUrl || '/',
-        footer: 'هذه رسالة تلقائية من نظام إدارة المهام'
-      });
+      // إرسال الإيميل لكل مستخدم بشكل منفصل (للتخصيص)
+      for (let i = 0; i < emails.length; i++) {
+        await EmailService.sendTemplatedEmail({
+          to: emails[i],
+          subject: title,
+          title: title,
+          content: emailContents[i],
+          buttonText: buttonTexts[notificationType] || 'عرض التفاصيل',
+          buttonUrl: actionUrl || '/',
+          footer: 'هذه رسالة تلقائية من نظام إدارة المهام'
+        });
+      }
 
       console.log(`✅ تم إرسال إيميل لنوع: ${notificationType} إلى ${emails.length} مستخدم`);
     } catch (error) {
