@@ -1,0 +1,298 @@
+const PermissionService = require('../services/PermissionService');
+const User = require('../models/User');
+const { pool } = require('../config/database');
+
+class UserPermissionController {
+  // منح صلاحية لمستخدم
+  static async grantPermission(req, res) {
+    try {
+      const { userId } = req.params;
+      const { permission_id, expires_at } = req.body;
+      const grantedBy = req.user.id;
+      
+      if (!permission_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف الصلاحية مطلوب'
+        });
+      }
+      
+      // التحقق من وجود المستخدم
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستخدم غير موجود'
+        });
+      }
+      
+      const result = await PermissionService.grantUserPermission(
+        userId,
+        permission_id,
+        grantedBy,
+        expires_at || null
+      );
+      
+      res.json({
+        success: true,
+        message: result.message,
+        data: result.user_permission
+      });
+    } catch (error) {
+      console.error('خطأ في منح الصلاحية:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'خطأ في منح الصلاحية'
+      });
+    }
+  }
+  
+  // إلغاء صلاحية من مستخدم
+  static async revokePermission(req, res) {
+    try {
+      const { userId, permissionId } = req.params;
+      
+      // التحقق من وجود المستخدم
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستخدم غير موجود'
+        });
+      }
+      
+      const result = await PermissionService.revokeUserPermission(userId, permissionId);
+      
+      res.json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      console.error('خطأ في إلغاء الصلاحية:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'خطأ في إلغاء الصلاحية'
+      });
+    }
+  }
+  
+  // جلب الصلاحيات المباشرة لمستخدم
+  static async getUserPermissions(req, res) {
+    try {
+      const { userId } = req.params;
+      
+      // التحقق من وجود المستخدم
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستخدم غير موجود'
+        });
+      }
+      
+      const permissions = await PermissionService.getUserAdditionalPermissions(userId);
+      
+      res.json({
+        success: true,
+        data: permissions,
+        message: 'تم جلب الصلاحيات المباشرة بنجاح'
+      });
+    } catch (error) {
+      console.error('خطأ في جلب الصلاحيات:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'خطأ في جلب الصلاحيات'
+      });
+    }
+  }
+  
+  // جلب جميع الصلاحيات مع معرفة أيها مفعلة للمستخدم
+  static async getAllPermissionsWithUserStatus(req, res) {
+    try {
+      const { userId } = req.params;
+      
+      // التحقق من وجود المستخدم
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستخدم غير موجود'
+        });
+      }
+      
+      // جلب جميع الصلاحيات
+      const allPermissions = await PermissionService.getAllPermissions();
+      
+      // جلب صلاحيات المستخدم (من الدور + المباشرة)
+      const userPermissions = await user.getPermissions();
+      const userPermissionIds = new Set(userPermissions.map(p => p.id));
+      
+      // جلب الصلاحيات المباشرة فقط (للمعرفة من أين جاءت)
+      const directUserPermissions = await PermissionService.getUserAdditionalPermissions(userId);
+      const directPermissionIds = new Set(directUserPermissions.map(p => p.id));
+      
+      // جلب صلاحيات الدور
+      const rolePermissionsResult = await pool.query(
+        'SELECT permission_id FROM role_permissions WHERE role_id = $1',
+        [user.role_id]
+      );
+      const rolePermissionIds = new Set(rolePermissionsResult.rows.map(r => r.permission_id));
+      
+      // تحويل الصلاحيات إلى كائنات بسيطة إذا كانت instances من Permission
+      const permissionsArray = Array.isArray(allPermissions) 
+        ? allPermissions.map(p => {
+            if (p && typeof p === 'object' && p.id) {
+              return {
+                id: p.id,
+                name: p.name,
+                resource: p.resource,
+                action: p.action,
+                description: p.description,
+                roles_count: p.roles_count || 0,
+                users_count: p.users_count || 0
+              };
+            }
+            return p;
+          })
+        : [];
+      
+      // إعداد النتيجة مع حالة كل صلاحية
+      const permissionsWithStatus = permissionsArray.map(permission => {
+        const permissionId = permission.id || permission.permission_id;
+        const isActive = userPermissionIds.has(permissionId);
+        const source = isActive 
+          ? (directPermissionIds.has(permissionId) ? 'direct' : 'role')
+          : 'none';
+        
+        const directPermission = directUserPermissions.find(p => p.id === permissionId || p.permission_id === permissionId);
+        
+        return {
+          id: permissionId,
+          name: permission.name,
+          resource: permission.resource,
+          action: permission.action,
+          description: permission.description,
+          is_active: isActive,
+          source: source, // 'role', 'direct', or 'none'
+          granted_at: directPermission?.granted_at || null,
+          expires_at: directPermission?.expires_at || null
+        };
+      });
+      
+      // إحصائيات
+      const stats = {
+        total: permissionsWithStatus.length,
+        active: permissionsWithStatus.filter(p => p.is_active).length,
+        inactive: permissionsWithStatus.filter(p => !p.is_active).length,
+        from_role: permissionsWithStatus.filter(p => p.source === 'role').length,
+        from_direct: permissionsWithStatus.filter(p => p.source === 'direct').length
+      };
+      
+      // جلب معلومات الدور
+      const roleQuery = await pool.query(
+        'SELECT id, name, description, is_system_role FROM roles WHERE id = $1',
+        [user.role_id]
+      );
+      const roleInfo = roleQuery.rows[0] || null;
+      
+      res.json({
+        success: true,
+        data: {
+          permissions: permissionsWithStatus,
+          stats: stats,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: roleInfo ? {
+              id: roleInfo.id,
+              name: roleInfo.name,
+              description: roleInfo.description,
+              is_system_role: roleInfo.is_system_role
+            } : null
+          }
+        },
+        message: 'تم جلب الصلاحيات بنجاح'
+      });
+    } catch (error) {
+      console.error('خطأ في جلب الصلاحيات مع الحالة:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'خطأ في جلب الصلاحيات'
+      });
+    }
+  }
+  
+  // منح عدة صلاحيات لمستخدم
+  static async grantMultiplePermissions(req, res) {
+    try {
+      const { userId } = req.params;
+      const { permission_ids, expires_at } = req.body;
+      const grantedBy = req.user.id;
+      
+      if (!Array.isArray(permission_ids) || permission_ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'قائمة معرفات الصلاحيات مطلوبة'
+        });
+      }
+      
+      // التحقق من وجود المستخدم
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستخدم غير موجود'
+        });
+      }
+      
+      const results = [];
+      for (const permissionId of permission_ids) {
+        try {
+          const result = await PermissionService.grantUserPermission(
+            userId,
+            permissionId,
+            grantedBy,
+            expires_at || null
+          );
+          results.push({ 
+            success: true, 
+            permission_id: permissionId, 
+            message: result.message 
+          });
+        } catch (error) {
+          results.push({ 
+            success: false, 
+            permission_id: permissionId, 
+            error: error.message 
+          });
+        }
+      }
+      
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+      
+      res.json({
+        success: true,
+        message: `تم منح ${successCount} صلاحية بنجاح${failureCount > 0 ? `، فشل ${failureCount}` : ''}`,
+        data: {
+          results: results,
+          summary: {
+            total: permission_ids.length,
+            success: successCount,
+            failed: failureCount
+          }
+        }
+      });
+    } catch (error) {
+      console.error('خطأ في منح الصلاحيات المتعددة:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'خطأ في منح الصلاحيات'
+      });
+    }
+  }
+}
+
+module.exports = UserPermissionController;
+

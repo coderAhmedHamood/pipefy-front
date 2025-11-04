@@ -560,4 +560,272 @@ router.patch('/:id/toggle-status',
 const UserProcessController = require('../controllers/UserProcessController');
 router.get('/:id/processes', authenticateToken, UserProcessController.getProcessesForUser);
 
+// إدارة صلاحيات المستخدمين
+const UserPermissionController = require('../controllers/UserPermissionController');
+
+/**
+ * @swagger
+ * /api/users/{userId}/permissions:
+ *   get:
+ *     summary: جلب جميع الصلاحيات مع حالة تفعيلها للمستخدم
+ *     description: يجلب جميع الصلاحيات في النظام مع معرفة أيها مفعلة للمستخدم (من الدور أو مباشرة) وأيها غير مفعلة
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *     responses:
+ *       200:
+ *         description: تم جلب الصلاحيات بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     permissions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           resource:
+ *                             type: string
+ *                           action:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           is_active:
+ *                             type: boolean
+ *                             description: هل الصلاحية مفعلة للمستخدم
+ *                           source:
+ *                             type: string
+ *                             enum: [role, direct, none]
+ *                             description: مصدر الصلاحية (role = من الدور، direct = مباشرة، none = غير مفعلة)
+ *                           granted_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: تاريخ منح الصلاحية (إذا كانت مباشرة)
+ *                           expires_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: تاريخ انتهاء الصلاحية (إذا كانت مباشرة)
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                         active:
+ *                           type: integer
+ *                         inactive:
+ *                           type: integer
+ *                         from_role:
+ *                           type: integer
+ *                         from_direct:
+ *                           type: integer
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         role:
+ *                           type: object
+ *       404:
+ *         description: المستخدم غير موجود
+ */
+router.get('/:userId/permissions/all',
+  authenticateToken,
+  requirePermission('users', 'view'),
+  validateUUID('userId'),
+  UserPermissionController.getAllPermissionsWithUserStatus
+);
+
+/**
+ * @swagger
+ * /api/users/{userId}/permissions:
+ *   get:
+ *     summary: جلب الصلاحيات المباشرة للمستخدم فقط
+ *     description: يجلب فقط الصلاحيات الممنوحة مباشرة للمستخدم (وليس من الدور)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *     responses:
+ *       200:
+ *         description: تم جلب الصلاحيات المباشرة بنجاح
+ */
+router.get('/:userId/permissions',
+  authenticateToken,
+  requirePermission('users', 'view'),
+  validateUUID('userId'),
+  UserPermissionController.getUserPermissions
+);
+
+/**
+ * @swagger
+ * /api/users/{userId}/permissions:
+ *   post:
+ *     summary: منح صلاحية مباشرة لمستخدم
+ *     description: يمنح صلاحية مباشرة للمستخدم (بالإضافة إلى صلاحيات الدور)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - permission_id
+ *             properties:
+ *               permission_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: معرف الصلاحية
+ *                 example: "2eb6e1ba-b804-4164-ade9-539f46a5a531"
+ *               expires_at:
+ *                 type: string
+ *                 format: date-time
+ *                 nullable: true
+ *                 description: تاريخ انتهاء الصلاحية (اختياري)
+ *                 example: "2025-12-31T23:59:59.000Z"
+ *     responses:
+ *       200:
+ *         description: تم منح الصلاحية بنجاح
+ *       400:
+ *         description: بيانات غير صحيحة
+ *       404:
+ *         description: المستخدم أو الصلاحية غير موجودة
+ */
+router.post('/:userId/permissions',
+  authenticateToken,
+  requirePermission('users', 'manage'),
+  validateUUID('userId'),
+  UserPermissionController.grantPermission
+);
+
+/**
+ * @swagger
+ * /api/users/{userId}/permissions/bulk:
+ *   post:
+ *     summary: منح عدة صلاحيات لمستخدم
+ *     description: يمنح عدة صلاحيات مباشرة للمستخدم في عملية واحدة
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - permission_ids
+ *             properties:
+ *               permission_ids:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: uuid
+ *                 description: قائمة معرفات الصلاحيات
+ *                 example: ["2eb6e1ba-b804-4164-ade9-539f46a5a531", "35c1b245-2c4f-4be1-a443-c825e512bbbc"]
+ *               expires_at:
+ *                 type: string
+ *                 format: date-time
+ *                 nullable: true
+ *                 description: تاريخ انتهاء الصلاحيات (اختياري)
+ *     responses:
+ *       200:
+ *         description: تم منح الصلاحيات بنجاح
+ */
+router.post('/:userId/permissions/bulk',
+  authenticateToken,
+  requirePermission('users', 'manage'),
+  validateUUID('userId'),
+  UserPermissionController.grantMultiplePermissions
+);
+
+/**
+ * @swagger
+ * /api/users/{userId}/permissions/{permissionId}:
+ *   delete:
+ *     summary: إلغاء صلاحية مباشرة من مستخدم
+ *     description: يلغي صلاحية مباشرة من مستخدم (لا يؤثر على صلاحيات الدور)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *       - in: path
+ *         name: permissionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف الصلاحية
+ *     responses:
+ *       200:
+ *         description: تم إلغاء الصلاحية بنجاح
+ *       404:
+ *         description: المستخدم أو الصلاحية غير موجودة
+ */
+router.delete('/:userId/permissions/:permissionId',
+  authenticateToken,
+  requirePermission('users', 'manage'),
+  validateUUID('userId'),
+  validateUUID('permissionId'),
+  UserPermissionController.revokePermission
+);
+
 module.exports = router;
