@@ -189,6 +189,22 @@ class Settings {
       // تحديث جميع الحقول الممررة (حتى لو كانت undefined سيتم تحديثها إلى NULL)
       allFields.forEach(field => {
         if (settingsData.hasOwnProperty(field)) {
+          // معالجة خاصة لكلمة المرور - التحقق قبل إضافة الحقل
+          if (field === 'integrations_email_smtp_password') {
+            const passwordValue = settingsData[field];
+            // إذا كانت `***` أو فارغة، نحتفظ بالقيمة القديمة (لا نحدثها)
+            if (passwordValue === null || passwordValue === undefined || passwordValue === '' || passwordValue === '***') {
+              console.log('🔒 الاحتفاظ بكلمة المرور القديمة (لم يتم تحديثها)');
+              return; // تخطي هذا الحقل، لا نحدثه
+            }
+            // كلمة مرور جديدة، قم بإضافتها للتحديث
+            updateFields.push(`${field} = $${paramCount}`);
+            values.push(String(passwordValue));
+            paramCount++;
+            return;
+          }
+          
+          // باقي الحقول
           updateFields.push(`${field} = $${paramCount}`);
           // معالجة المصفوفات والكائنات (مثل allowed_file_types)
           if (field === 'allowed_file_types') {
@@ -232,15 +248,6 @@ class Settings {
               values.push(null);
             } else {
               values.push(null);
-            }
-          } else if (field === 'integrations_email_smtp_password') {
-            // معالجة خاصة لكلمة المرور - السماح بالقيم الفارغة والنصوص
-            // إذا كانت null أو undefined، يتم تعيينها إلى null
-            // إذا كانت نصاً (حتى لو فارغاً)، يتم الاحتفاظ بها
-            if (settingsData[field] === null || settingsData[field] === undefined) {
-              values.push(null);
-            } else {
-              values.push(String(settingsData[field]));
             }
           } else {
             values.push(settingsData[field] === '' ? null : settingsData[field]);

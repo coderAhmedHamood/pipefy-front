@@ -497,17 +497,13 @@ class NotificationController {
   // دالة مساعدة لإرسال الإيميل
   static async sendNotificationEmail({ userIds, title, message, notificationType, actionUrl, data }) {
     try {
-      // الأنواع التي يتم إرسالها تلقائياً بدون قيد أو شرط
-      const alwaysSendTypes = [
-        'ticket_assigned',      // الإسناد
-        'comment_added',        // إضافة تعليق
-        'ticket_moved',         // نقل التذكرة
-        'ticket_created',      // إنشاء التذكرة
-        'ticket_review_assigned' // مراجع للتذكرة
-      ];
-
-      // خريطة أنواع الإشعارات مع حقول الإعدادات (للأنواع الأخرى)
+      // خريطة أنواع الإشعارات مع حقول الإعدادات المقابلة
       const settingsMap = {
+        'ticket_assigned': 'integrations_email_send_on_assignment',
+        'comment_added': 'integrations_email_send_on_comment',
+        'ticket_moved': 'integrations_email_send_on_move',
+        'ticket_created': 'integrations_email_send_on_creation',
+        'ticket_review_assigned': 'integrations_email_send_on_review_assigned',
         'ticket_updated': 'integrations_email_send_on_update',
         'ticket_completed': 'integrations_email_send_on_completion',
         'ticket_overdue': 'integrations_email_send_delayed_tickets',
@@ -515,27 +511,28 @@ class NotificationController {
         'mention': 'integrations_email_send_on_comment'
       };
 
-      // جلب الإعدادات
+      // جلب الإعدادات من النظام
       const settings = await Settings.getSettings();
 
-      // التحقق من تفعيل البريد الإلكتروني
+      // التحقق من تفعيل البريد الإلكتروني بشكل عام
       if (!settings.integrations_email_enabled) {
+        console.log('⚠️ إرسال الإيميلات معطل في إعدادات النظام');
         return;
       }
 
-      // إذا كان النوع من الأنواع المطلوب إرسالها دائماً، نرسل مباشرة
-      // إذا لم يكن، نتحقق من الإعدادات المحددة
-      if (!alwaysSendTypes.includes(notificationType)) {
-        const settingField = settingsMap[notificationType];
-        
+      // التحقق من الإعداد المحدد لنوع الإشعار
+      const settingField = settingsMap[notificationType];
+      
+      if (settingField) {
         // إذا كان النوع موجود في الخريطة، نتحقق من تفعيله
-        // إذا لم يكن موجود، نرسل الإيميل مباشرة (لجميع أنواع الإشعارات)
-        if (settingField && !settings[settingField]) {
-          console.log(`⚠️ إرسال الإيميل معطل لنوع: ${notificationType} في الإعدادات`);
+        if (!settings[settingField]) {
+          console.log(`⚠️ إرسال الإيميل معطل لنوع: ${notificationType} (الإعداد: ${settingField} = false)`);
           return;
         }
+        console.log(`✅ إرسال إيميل مفعل لنوع: ${notificationType} (الإعداد: ${settingField} = true)`);
       } else {
-        console.log(`✅ إرسال إيميل تلقائي لنوع: ${notificationType} (بدون قيد أو شرط)`);
+        // إذا لم يكن النوع موجود في الخريطة، نتحقق من الإعداد العام فقط
+        console.log(`✅ إرسال إيميل لنوع: ${notificationType} (لا يوجد إعداد محدد)`);
       }
 
       // جلب إيميلات المستخدمين
