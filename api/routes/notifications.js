@@ -516,13 +516,14 @@ router.patch('/:id/read', authenticateToken, NotificationController.markAsRead);
  * @swagger
  * /api/notifications/mark-all-read:
  *   patch:
- *     summary: تحديد جميع الإشعارات كمقروءة
+ *     summary: تحديد جميع إشعارات المستخدم الحالي كمقروءة
+ *     description: يتم تحديد جميع الإشعارات غير المقروءة للمستخدم المسجل دخوله فقط (بناءً على التوكن)
  *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: تم تحديد جميع الإشعارات كمقروءة
+ *         description: تم تحديد جميع إشعارات المستخدم كمقروءة
  *         content:
  *           application/json:
  *             schema:
@@ -530,13 +531,23 @@ router.patch('/:id/read', authenticateToken, NotificationController.markAsRead);
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
+ *                   example: "تم تحديد جميع إشعاراتك كمقروءة"
  *                 data:
  *                   type: object
  *                   properties:
  *                     updated_count:
  *                       type: integer
+ *                       description: عدد الإشعارات التي تم تحديثها
+ *                       example: 5
+ *                     user_id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: معرف المستخدم الذي تم تحديث إشعاراته
+ *       401:
+ *         description: يجب تسجيل الدخول أولاً
  */
 router.patch('/mark-all-read', authenticateToken, NotificationController.markAllAsRead);
 

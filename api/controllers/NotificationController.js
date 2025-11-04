@@ -284,23 +284,32 @@ class NotificationController {
     }
   }
   
-  // تحديد جميع الإشعارات كمقروءة
+  // تحديد جميع الإشعارات كمقروءة للمستخدم الحالي فقط
   static async markAllAsRead(req, res) {
     try {
+      // استخدام معرف المستخدم من التوكن (المستخدم المسجل دخوله)
       const userId = req.user.id;
       
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'يجب تسجيل الدخول أولاً'
+        });
+      }
+      
+      // تحديث جميع الإشعارات غير المقروءة للمستخدم الحالي فقط
       const result = await pool.query(`
         UPDATE notifications 
         SET is_read = true, read_at = NOW()
         WHERE user_id = $1 AND is_read = false
-        RETURNING COUNT(*) as updated_count
       `, [userId]);
       
       res.json({
         success: true,
-        message: 'تم تحديد جميع الإشعارات كمقروءة',
+        message: 'تم تحديد جميع إشعاراتك كمقروءة',
         data: {
-          updated_count: result.rowCount
+          updated_count: result.rowCount,
+          user_id: userId
         }
       });
     } catch (error) {

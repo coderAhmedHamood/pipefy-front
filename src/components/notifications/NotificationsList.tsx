@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Clock, ChevronRight, Info, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Bell, Clock, ChevronRight, Info, CheckCircle, AlertTriangle, AlertCircle, CheckCheck } from 'lucide-react';
 import apiClient from '../../lib/api';
+import notificationService from '../../services/notificationService';
+import { useQuickNotifications } from '../ui/NotificationSystem';
 
 interface RelatedUser {
   id: string;
@@ -33,17 +35,22 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
 }) => {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMarkingAllAsRead, setIsMarkingAllAsRead] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastNotificationRef = useRef<HTMLDivElement | null>(null);
+  const notificationsHook = useQuickNotifications();
   const limit = 20;
 
   // جلب الإشعارات
-  const fetchNotifications = async (currentOffset: number) => {
-    if (isLoading) return;
+  const fetchNotifications = async (currentOffset: number, skipLoading = false) => {
+    if (isLoading && !skipLoading) return;
 
+    if (!skipLoading) {
+      setIsLoading(true);
+    }
     console.log('🔔 بدء جلب الإشعارات...', { limit, offset: currentOffset });
     try {
       const response = await apiClient.get(`/notifications/with-users?limit=${limit}&offset=${currentOffset}`);
@@ -152,6 +159,56 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
     return date.toLocaleDateString('ar-SA');
   };
 
+  // تحديد جميع الإشعارات كمقروءة
+  const handleMarkAllAsRead = async () => {
+    if (isMarkingAllAsRead) return;
+    
+    setIsMarkingAllAsRead(true);
+    try {
+      console.log('📢 بدء تحديد جميع الإشعارات كمقروءة...');
+      const response = await notificationService.markAllAsRead();
+      console.log('📥 استجابة markAllAsRead:', response);
+      
+      if (response.success) {
+        const updatedCount = response.data?.updated_count || 0;
+        console.log(`✅ تم تحديد ${updatedCount} إشعار كمقروء`);
+        
+        // تحديث جميع الإشعارات في القائمة لتكون مقروءة
+        setNotifications(prev => prev.map(notification => ({
+          ...notification,
+          is_read: true,
+          unread_count: 0,
+          related_users: notification.related_users.map(user => ({
+            ...user,
+            is_read: true
+          }))
+        })));
+        
+        notificationsHook.showSuccess(
+          'تم التحديد', 
+          `تم تحديد ${updatedCount > 0 ? updatedCount : 'جميع'} إشعاراتك كمقروءة بنجاح`
+        );
+        
+        // إعادة جلب الإشعارات لتحديث البيانات من الخادم
+        setOffset(0);
+        await fetchNotifications(0, true);
+      } else {
+        notificationsHook.showError('فشل التحديد', response.message || 'فشل في تحديد جميع الإشعارات كمقروءة');
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في تحديد جميع الإشعارات كمقروءة:', error);
+      notificationsHook.showError(
+        'خطأ في التحديد', 
+        error.response?.data?.message || error.message || 'حدث خطأ أثناء تحديد جميع الإشعارات كمقروءة'
+      );
+    } finally {
+      setIsMarkingAllAsRead(false);
+    }
+  };
+
+  // حساب عدد الإشعارات غير المقروءة
+  const unreadCount = notifications.reduce((sum, notification) => sum + notification.unread_count, 0);
+
   // الحصول على أيقونة ولون النوع
   const getTypeConfig = (type: string) => {
     switch (type) {
@@ -197,9 +254,40 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">الإشعارات</h3>
-              <p className="text-xs text-gray-500">إجمالي: {totalCount} إشعار</p>
+              <p className="text-xs text-gray-500">
+                إجمالي: {totalCount} إشعار
+                {unreadCount > 0 && (
+                  <span className="text-red-600 font-medium mr-2">• {unreadCount} غير مقروء</span>
+                )}
+              </p>
             </div>
           </div>
+          
+          {/* زر تحديد الكل كمقروء */}
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              disabled={isMarkingAllAsRead}
+              className={`flex items-center space-x-2 space-x-reverse px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isMarkingAllAsRead
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'
+              }`}
+              title="تحديد جميع الإشعارات كمقروءة"
+            >
+              {isMarkingAllAsRead ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  <span>جاري التحديد...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCheck className="w-4 h-4" />
+                  <span>تحديد الكل كمقروء</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
