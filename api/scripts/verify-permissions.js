@@ -1,84 +1,111 @@
-const { Pool } = require('pg');
+const { pool } = require('../config/database');
 require('dotenv').config();
 
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_DATABASE,
-  user: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-});
-
 async function verifyPermissions() {
-  const client = await pool.connect();
-  
   try {
-    console.log('\n=== VERIFICATION REPORT ===\n');
+    console.log('═══════════════════════════════════════════════════════════════════');
+    console.log('🔍 التحقق من الصلاحيات الجديدة');
+    console.log('═══════════════════════════════════════════════════════════════════\n');
     
-    // 1. Total permissions
-    const permsCount = await client.query('SELECT COUNT(*) as count FROM permissions');
-    console.log(`Total Permissions: ${permsCount.rows[0].count}`);
+    // الصلاحيات المطلوبة
+    const requiredPermissions = [
+      { resource: 'tickets', action: 'view_own', name: 'عرض التذاكر الخاصة' },
+      { resource: 'ticket_reviewers', action: 'view', name: 'عرض المراجعين وتقييم المراجعين' },
+      { resource: 'ticket_reviewers', action: 'create', name: 'إضافة مراجعين إلى التذكرة' },
+      { resource: 'ticket_assignees', action: 'create', name: 'إضافة مسندين إلى التذكرة' }
+    ];
     
-    // 2. Permissions by resource
-    const permsByResource = await client.query(`
-      SELECT resource, COUNT(*) as count
-      FROM permissions
-      GROUP BY resource
-      ORDER BY resource
-    `);
+    console.log('📋 التحقق من الصلاحيات المطلوبة:\n');
     
-    console.log('\nPermissions by Resource:');
-    for (const row of permsByResource.rows) {
-      console.log(`  ${row.resource}: ${row.count}`);
+    let allFound = true;
+    for (const perm of requiredPermissions) {
+      const result = await pool.query(
+        'SELECT id, name FROM permissions WHERE resource = $1 AND action = $2',
+        [perm.resource, perm.action]
+      );
+      
+      if (result.rows.length > 0) {
+        console.log(`✅ ${perm.name} (${perm.resource}.${perm.action}) - ID: ${result.rows[0].id}`);
+      } else {
+        console.log(`❌ ${perm.name} (${perm.resource}.${perm.action}) - غير موجود`);
+        allFound = false;
+      }
     }
     
-    // 3. Admin role permissions
-    const adminPerms = await client.query(`
-      SELECT COUNT(*) as count
-      FROM role_permissions rp
-      JOIN roles r ON r.id = rp.role_id
-      WHERE r.name = 'admin'
-    `);
-    console.log(`\nAdmin Role Permissions: ${adminPerms.rows[0].count}`);
+    // التحقق من ربط الصلاحيات بدور admin
+    console.log('\n🔗 التحقق من ربط الصلاحيات بدور admin:\n');
     
-    // 4. List all permissions
-    const allPerms = await client.query(`
-      SELECT resource, action, name
-      FROM permissions
-      ORDER BY resource, action
-    `);
+    const adminRoleResult = await pool.query(
+      "SELECT id, name FROM roles WHERE name ILIKE '%admin%' ORDER BY is_system_role DESC LIMIT 1"
+    );
     
-    console.log('\nAll Permissions:');
-    for (const perm of allPerms.rows) {
-      console.log(`  ${perm.resource}.${perm.action} - ${perm.name}`);
+    if (adminRoleResult.rows.length === 0) {
+      console.log('❌ لم يتم العثور على دور admin');
+      await pool.end();
+      return;
     }
     
-    // 5. Users with their permission counts
-    const users = await client.query(`
-      SELECT 
-        u.name,
-        u.email,
-        r.name as role_name,
-        COUNT(rp.permission_id) as perm_count
-      FROM users u
-      LEFT JOIN roles r ON u.role_id = r.id
-      LEFT JOIN role_permissions rp ON r.id = rp.role_id
-      GROUP BY u.id, u.name, u.email, r.name
-    `);
+    const adminRole = adminRoleResult.rows[0];
+    console.log(`✅ تم العثور على دور: ${adminRole.name} (${adminRole.id})\n`);
     
-    console.log('\nUsers and their permissions:');
-    for (const user of users.rows) {
-      console.log(`  ${user.name} (${user.email}) - Role: ${user.role_name} - Permissions: ${user.perm_count}`);
+    let allLinked = true;
+    for (const perm of requiredPermissions) {
+      const permissionResult = await pool.query(
+        'SELECT id FROM permissions WHERE resource = $1 AND action = $2',
+        [perm.resource, perm.action]
+      );
+      
+      if (permissionResult.rows.length > 0) {
+        const permissionId = permissionResult.rows[0].id;
+        const linkResult = await pool.query(
+          'SELECT id FROM role_permissions WHERE role_id = $1 AND permission_id = $2',
+          [adminRole.id, permissionId]
+        );
+        
+        if (linkResult.rows.length > 0) {
+          console.log(`✅ ${perm.name} - مربوطة بدور admin`);
+        } else {
+          console.log(`❌ ${perm.name} - غير مربوطة بدور admin`);
+          allLinked = false;
+        }
+      }
     }
     
-    console.log('\n=== END REPORT ===\n');
+    // عرض إحصائيات
+    console.log('\n📊 الإحصائيات:\n');
+    
+    const totalPermissions = await pool.query('SELECT COUNT(*) as count FROM permissions');
+    const adminPermissions = await pool.query(
+      'SELECT COUNT(*) as count FROM role_permissions WHERE role_id = $1',
+      [adminRole.id]
+    );
+    
+    console.log(`   إجمالي الصلاحيات في النظام: ${totalPermissions.rows[0].count}`);
+    console.log(`   صلاحيات دور admin: ${adminPermissions.rows[0].count}`);
+    
+    console.log('\n═══════════════════════════════════════════════════════════════════');
+    
+    if (allFound && allLinked) {
+      console.log('✅ جميع الصلاحيات موجودة ومربوطة بدور admin بنجاح!');
+      console.log('═══════════════════════════════════════════════════════════════════\n');
+    } else {
+      console.log('⚠️  بعض الصلاحيات غير موجودة أو غير مربوطة');
+      console.log('═══════════════════════════════════════════════════════════════════\n');
+    }
+    
+    await pool.end();
     
   } catch (error) {
-    console.error('Error:', error.message);
-  } finally {
-    client.release();
+    console.error('❌ خطأ في التحقق:', error.message);
     await pool.end();
+    process.exit(1);
   }
 }
 
-verifyPermissions();
+if (require.main === module) {
+  verifyPermissions()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
+
+module.exports = { verifyPermissions };

@@ -8,7 +8,7 @@ INSERT INTO roles (id, name, description, is_system_role) VALUES
   ('550e8400-e29b-41d4-a716-446655440003', 'guest', 'ضيف', TRUE)
 ON CONFLICT (name) DO NOTHING;
 
--- إدراج الصلاحيات الأساسية الكاملة (34 صلاحية)
+-- إدراج الصلاحيات الأساسية الكاملة (37 صلاحية)
 INSERT INTO permissions (name, resource, action, description) VALUES
   -- صلاحيات Fields (الحقول) - 4 صلاحيات
   ('إنشاء الحقول', 'fields', 'create', 'إنشاء حقول جديدة'),
@@ -39,6 +39,13 @@ INSERT INTO permissions (name, resource, action, description) VALUES
   ('تحديث التذاكر', 'tickets', 'update', 'تحديث التذاكر الموجودة'),
   ('عرض جميع التذاكر', 'tickets', 'view_all', 'عرض جميع التذاكر في النظام'),
   ('عرض التذاكر الخاصة', 'tickets', 'view_own', 'عرض التذاكر الخاصة بالمستخدم فقط'),
+  
+  -- صلاحيات Ticket Reviewers (المراجعين) - 2 صلاحيات
+  ('عرض المراجعين وتقييم المراجعين', 'ticket_reviewers', 'view', 'عرض المراجعين وتقييم المراجعين للتذاكر'),
+  ('إضافة مراجعين إلى التذكرة', 'ticket_reviewers', 'create', 'إضافة مراجعين إلى التذاكر'),
+  
+  -- صلاحيات Ticket Assignees (المسندين) - 1 صلاحية
+  ('إضافة مسندين إلى التذكرة', 'ticket_assignees', 'create', 'إضافة مستخدمين مسندين إلى التذاكر'),
   
   -- صلاحيات Users (المستخدمين) - 5 صلاحيات
   ('إنشاء المستخدمين', 'users', 'create', 'إنشاء مستخدمين جدد'),

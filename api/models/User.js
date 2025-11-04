@@ -188,14 +188,26 @@ class User {
     return this;
   }
 
-  // جلب صلاحيات المستخدم
+  // جلب صلاحيات المستخدم (من الدور + الصلاحيات المباشرة)
   async getPermissions() {
     const query = `
       SELECT DISTINCT p.id, p.name, p.resource, p.action, p.description
       FROM permissions p
-      LEFT JOIN role_permissions rp ON p.id = rp.permission_id
-      LEFT JOIN user_permissions up ON p.id = up.permission_id
-      WHERE (rp.role_id = $1 OR (up.user_id = $2 AND (up.expires_at IS NULL OR up.expires_at > NOW())))
+      WHERE p.id IN (
+        -- صلاحيات من الدور
+        SELECT rp.permission_id
+        FROM role_permissions rp
+        WHERE rp.role_id = $1
+        
+        UNION
+        
+        -- صلاحيات مباشرة للمستخدم
+        SELECT up.permission_id
+        FROM user_permissions up
+        WHERE up.user_id = $2
+          AND (up.expires_at IS NULL OR up.expires_at > NOW())
+      )
+      ORDER BY p.resource, p.action
     `;
     
     const { rows } = await pool.query(query, [this.role_id, this.id]);
