@@ -101,12 +101,14 @@ export const UserManagerNew: React.FC = () => {
   const [expandedUserProcesses, setExpandedUserProcesses] = useState<Array<{ id: string; process_id: string; role?: string; is_active?: boolean; process_name?: string }>>([]);
   const [loadingUserProcesses, setLoadingUserProcesses] = useState(false);
 
-  // Modal الصلاحيات غير المفعلة
+  // Modal الصلاحيات
   const [showInactivePermissionsModal, setShowInactivePermissionsModal] = useState(false);
   const [selectedUserForPermissions, setSelectedUserForPermissions] = useState<any>(null);
   const [inactivePermissions, setInactivePermissions] = useState<any[]>([]);
+  const [activePermissions, setActivePermissions] = useState<any[]>([]);
   const [permissionsStats, setPermissionsStats] = useState<any>(null);
   const [loadingInactivePermissions, setLoadingInactivePermissions] = useState(false);
+  const [processingPermission, setProcessingPermission] = useState<string | null>(null);
 
   // تحميل البيانات الأولية
   useEffect(() => {
@@ -673,16 +675,15 @@ export const UserManagerNew: React.FC = () => {
     }
   };
 
-  // فتح Modal الصلاحيات غير المفعلة
-  const handleOpenInactivePermissions = async (user: any) => {
-    setSelectedUserForPermissions(user);
-    setShowInactivePermissionsModal(true);
+  // جلب الصلاحيات (المفعلة وغير المفعلة)
+  const fetchUserPermissions = async (userId: string) => {
     setLoadingInactivePermissions(true);
     setInactivePermissions([]);
+    setActivePermissions([]);
     setPermissionsStats(null);
 
     try {
-      const url = `${API_BASE_URL}/api/users/${user.id}/permissions/inactive`;
+      const url = `${API_BASE_URL}/api/users/${userId}/permissions/inactive`;
       const headers = getAuthHeaders();
       
       const response = await fetch(url, {
@@ -704,29 +705,143 @@ export const UserManagerNew: React.FC = () => {
       }
 
       if (data && data.success && data.data) {
-        setInactivePermissions(data.data.permissions || []);
+        // تحديث البيانات حسب الشكل الجديد
+        setInactivePermissions(data.data.inactive_permissions || []);
+        setActivePermissions(data.data.active_permissions || []);
         setPermissionsStats(data.data.stats || null);
-        console.log('✅ تم جلب الصلاحيات غير المفعلة:', data.data);
+        console.log('✅ تم جلب الصلاحيات:', data.data);
       } else {
         throw new Error('صيغة بيانات غير متوقعة من الخادم');
       }
     } catch (error: any) {
-      console.error('❌ خطأ في جلب الصلاحيات غير المفعلة:', error);
+      console.error('❌ خطأ في جلب الصلاحيات:', error);
       setState(prev => ({
         ...prev,
-        error: error.message || 'فشل في جلب الصلاحيات غير المفعلة'
+        error: error.message || 'فشل في جلب الصلاحيات'
       }));
     } finally {
       setLoadingInactivePermissions(false);
     }
   };
 
-  // إغلاق Modal الصلاحيات غير المفعلة
+  // فتح Modal الصلاحيات
+  const handleOpenInactivePermissions = async (user: any) => {
+    setSelectedUserForPermissions(user);
+    setShowInactivePermissionsModal(true);
+    await fetchUserPermissions(user.id);
+  };
+
+  // إغلاق Modal الصلاحيات
   const handleCloseInactivePermissionsModal = () => {
     setShowInactivePermissionsModal(false);
     setSelectedUserForPermissions(null);
     setInactivePermissions([]);
+    setActivePermissions([]);
     setPermissionsStats(null);
+  };
+
+  // إضافة صلاحية لمستخدم
+  const handleAddPermission = async (permissionId: string) => {
+    if (!selectedUserForPermissions || processingPermission) return;
+
+    setProcessingPermission(permissionId);
+    try {
+      const url = `${API_BASE_URL}/api/users/${selectedUserForPermissions.id}/permissions`;
+      const headers = getAuthHeaders();
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ permission_id: permissionId })
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success) {
+        setState(prev => ({
+          ...prev,
+          success: 'تم منح الصلاحية بنجاح'
+        }));
+        // إعادة جلب الصلاحيات لتحديث البيانات
+        await fetchUserPermissions(selectedUserForPermissions.id);
+      } else {
+        throw new Error(data?.message || 'فشل في منح الصلاحية');
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في منح الصلاحية:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'فشل في منح الصلاحية'
+      }));
+    } finally {
+      setProcessingPermission(null);
+    }
+  };
+
+  // حذف صلاحية من مستخدم
+  const handleRemovePermission = async (permissionId: string) => {
+    if (!selectedUserForPermissions || processingPermission) return;
+
+    if (!confirm('هل أنت متأكد من إلغاء هذه الصلاحية من المستخدم؟')) {
+      return;
+    }
+
+    setProcessingPermission(permissionId);
+    try {
+      const url = `${API_BASE_URL}/api/users/${selectedUserForPermissions.id}/permissions/${permissionId}`;
+      const headers = getAuthHeaders();
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success) {
+        setState(prev => ({
+          ...prev,
+          success: 'تم إلغاء الصلاحية بنجاح'
+        }));
+        // إعادة جلب الصلاحيات لتحديث البيانات
+        await fetchUserPermissions(selectedUserForPermissions.id);
+      } else {
+        throw new Error(data?.message || 'فشل في إلغاء الصلاحية');
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في إلغاء الصلاحية:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'فشل في إلغاء الصلاحية'
+      }));
+    } finally {
+      setProcessingPermission(null);
+    }
   };
 
   // حذف ربط عملية من مستخدم
@@ -2385,7 +2500,7 @@ export const UserManagerNew: React.FC = () => {
                     <Key className="w-6 h-6 text-purple-600" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">الصلاحيات غير المفعلة</h2>
+                    <h2 className="text-xl font-bold text-gray-900">إدارة الصلاحيات</h2>
                     {selectedUserForPermissions && (
                       <p className="text-sm text-gray-600 mt-1">
                         المستخدم: <span className="font-medium">{selectedUserForPermissions.name}</span> ({selectedUserForPermissions.email})
@@ -2406,7 +2521,7 @@ export const UserManagerNew: React.FC = () => {
             {/* Statistics */}
             {permissionsStats && (
               <div className="p-4 bg-gray-50 border-b border-gray-200">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="text-center p-3 bg-white rounded-lg border border-gray-200">
                     <div className="text-2xl font-bold text-gray-900">{permissionsStats.total}</div>
                     <div className="text-sm text-gray-600 mt-1">إجمالي الصلاحيات</div>
@@ -2418,6 +2533,14 @@ export const UserManagerNew: React.FC = () => {
                   <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
                     <div className="text-2xl font-bold text-red-700">{permissionsStats.inactive}</div>
                     <div className="text-sm text-red-600 mt-1">صلاحيات غير مفعلة</div>
+                  </div>
+                  <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-2xl font-bold text-blue-700">{permissionsStats.from_role || 0}</div>
+                    <div className="text-sm text-blue-600 mt-1">من الدور</div>
+                  </div>
+                  <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
+                    <div className="text-2xl font-bold text-purple-700">{permissionsStats.from_direct || 0}</div>
+                    <div className="text-sm text-purple-600 mt-1">مباشرة</div>
                   </div>
                 </div>
               </div>
@@ -2432,37 +2555,132 @@ export const UserManagerNew: React.FC = () => {
                     <p className="text-gray-600">جاري جلب الصلاحيات...</p>
                   </div>
                 </div>
-              ) : inactivePermissions.length === 0 ? (
-                <div className="text-center py-12">
-                  <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                  <p className="text-lg font-medium text-gray-900 mb-2">جميع الصلاحيات مفعلة</p>
-                  <p className="text-gray-600">لا توجد صلاحيات غير مفعلة لهذا المستخدم</p>
-                </div>
               ) : (
-                <div className="space-y-3">
-                  {inactivePermissions.map((permission: any) => (
-                    <div
-                      key={permission.id}
-                      className="p-4 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-md transition-all"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 space-x-reverse mb-2">
-                            <h4 className="font-semibold text-gray-900">{permission.name}</h4>
-                            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
-                              {permission.resource}
-                            </span>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                              {permission.action}
-                            </span>
-                          </div>
-                          {permission.description && (
-                            <p className="text-sm text-gray-600 mt-1">{permission.description}</p>
-                          )}
-                        </div>
+                <div className="space-y-6">
+                  {/* الصلاحيات المفعلة */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <span>الصلاحيات المفعلة ({activePermissions.length})</span>
+                    </h3>
+                    {activePermissions.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-gray-600">لا توجد صلاحيات مفعلة</p>
                       </div>
-                    </div>
-                  ))}
+                    ) : (
+                      <div className="space-y-3">
+                        {activePermissions.map((permission: any) => (
+                          <div
+                            key={permission.id}
+                            className="p-4 bg-white border border-green-200 rounded-lg hover:border-green-300 hover:shadow-md transition-all"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2 space-x-reverse mb-2 flex-wrap">
+                                  <h4 className="font-semibold text-gray-900">{permission.name}</h4>
+                                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                                    {permission.resource}
+                                  </span>
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                                    {permission.action}
+                                  </span>
+                                  {permission.source && (
+                                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                      permission.source === 'role' 
+                                        ? 'bg-blue-100 text-blue-700' 
+                                        : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      {permission.source === 'role' ? 'من الدور' : 'مباشرة'}
+                                    </span>
+                                  )}
+                                </div>
+                                {permission.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{permission.description}</p>
+                                )}
+                                {permission.expires_at && (
+                                  <p className="text-xs text-orange-600 mt-2">
+                                    تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
+                                  </p>
+                                )}
+                              </div>
+                              {permission.source === 'direct' && (
+                                <button
+                                  onClick={() => handleRemovePermission(permission.id)}
+                                  disabled={processingPermission === permission.id}
+                                  className="mr-4 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="إلغاء الصلاحية"
+                                >
+                                  {processingPermission === permission.id ? (
+                                    <Loader className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* الصلاحيات غير المفعلة */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                      <AlertCircle className="w-5 h-5 text-red-600" />
+                      <span>الصلاحيات غير المفعلة ({inactivePermissions.length})</span>
+                    </h3>
+                    {inactivePermissions.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                        <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
+                        <p className="text-gray-600">جميع الصلاحيات مفعلة</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {inactivePermissions.map((permission: any) => (
+                          <div
+                            key={permission.id}
+                            className="p-4 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-md transition-all"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2 space-x-reverse mb-2 flex-wrap">
+                                  <h4 className="font-semibold text-gray-900">{permission.name}</h4>
+                                  <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                                    {permission.resource}
+                                  </span>
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                                    {permission.action}
+                                  </span>
+                                </div>
+                                {permission.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{permission.description}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handleAddPermission(permission.id)}
+                                disabled={processingPermission === permission.id}
+                                className="mr-4 p-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 space-x-reverse"
+                                title="إضافة الصلاحية"
+                              >
+                                {processingPermission === permission.id ? (
+                                  <>
+                                    <Loader className="w-4 h-4 animate-spin" />
+                                    <span className="text-xs">جاري...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-4 h-4" />
+                                    <span className="text-xs">إضافة</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
