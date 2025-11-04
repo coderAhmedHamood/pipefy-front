@@ -292,6 +292,77 @@ class UserPermissionController {
       });
     }
   }
+  
+  // جلب الصلاحيات غير المفعلة للمستخدم (الصلاحيات التي لا يملكها)
+  static async getInactivePermissions(req, res) {
+    try {
+      const { userId } = req.params;
+      
+      // التحقق من وجود المستخدم
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستخدم غير موجود'
+        });
+      }
+      
+      // جلب جميع الصلاحيات
+      const allPermissions = await PermissionService.getAllPermissions();
+      
+      // جلب صلاحيات المستخدم (من الدور + المباشرة)
+      const userPermissions = await user.getPermissions();
+      const userPermissionIds = new Set(userPermissions.map(p => p.id));
+      
+      // تصفية الصلاحيات غير المفعلة
+      const permissionsArray = Array.isArray(allPermissions) 
+        ? allPermissions.map(p => {
+            if (p && typeof p === 'object' && p.id) {
+              return {
+                id: p.id,
+                name: p.name,
+                resource: p.resource,
+                action: p.action,
+                description: p.description
+              };
+            }
+            return p;
+          })
+        : [];
+      
+      const inactivePermissions = permissionsArray.filter(permission => {
+        const permissionId = permission.id || permission.permission_id;
+        return !userPermissionIds.has(permissionId);
+      });
+      
+      // إحصائيات
+      const stats = {
+        total: permissionsArray.length,
+        inactive: inactivePermissions.length,
+        active: userPermissions.length
+      };
+      
+      res.json({
+        success: true,
+        data: {
+          permissions: inactivePermissions,
+          stats: stats,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email
+          }
+        },
+        message: 'تم جلب الصلاحيات غير المفعلة بنجاح'
+      });
+    } catch (error) {
+      console.error('خطأ في جلب الصلاحيات غير المفعلة:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'خطأ في جلب الصلاحيات غير المفعلة'
+      });
+    }
+  }
 }
 
 module.exports = UserPermissionController;

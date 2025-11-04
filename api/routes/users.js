@@ -828,4 +828,85 @@ router.delete('/:userId/permissions/:permissionId',
   UserPermissionController.revokePermission
 );
 
+/**
+ * @swagger
+ * /api/users/{userId}/permissions/inactive:
+ *   get:
+ *     summary: جلب الصلاحيات غير المفعلة للمستخدم
+ *     description: يجلب فقط الصلاحيات التي لا يملكها المستخدم (غير مفعلة) - مفيدة لإضافة صلاحيات جديدة للمستخدم
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *     responses:
+ *       200:
+ *         description: تم جلب الصلاحيات غير المفعلة بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     permissions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           resource:
+ *                             type: string
+ *                           action:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           description: إجمالي الصلاحيات في النظام
+ *                         inactive:
+ *                           type: integer
+ *                           description: عدد الصلاحيات غير المفعلة
+ *                         active:
+ *                           type: integer
+ *                           description: عدد الصلاحيات المفعلة
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                 message:
+ *                   type: string
+ *                   example: "تم جلب الصلاحيات غير المفعلة بنجاح"
+ *       404:
+ *         description: المستخدم غير موجود
+ */
+router.get('/:userId/permissions/inactive',
+  authenticateToken,
+  requirePermission('users', 'view'),
+  validateUUID('userId'),
+  UserPermissionController.getInactivePermissions
+);
+
 module.exports = router;
