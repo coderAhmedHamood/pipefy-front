@@ -293,7 +293,7 @@ class UserPermissionController {
     }
   }
   
-  // جلب الصلاحيات غير المفعلة للمستخدم (الصلاحيات التي لا يملكها)
+  // جلب الصلاحيات غير المفعلة والمفعلة للمستخدم
   static async getInactivePermissions(req, res) {
     try {
       const { userId } = req.params;
@@ -314,7 +314,18 @@ class UserPermissionController {
       const userPermissions = await user.getPermissions();
       const userPermissionIds = new Set(userPermissions.map(p => p.id));
       
-      // تصفية الصلاحيات غير المفعلة
+      // جلب الصلاحيات المباشرة فقط (للمعرفة من أين جاءت)
+      const directUserPermissions = await PermissionService.getUserAdditionalPermissions(userId);
+      const directPermissionIds = new Set(directUserPermissions.map(p => p.id));
+      
+      // جلب صلاحيات الدور
+      const rolePermissionsResult = await pool.query(
+        'SELECT permission_id FROM role_permissions WHERE role_id = $1',
+        [user.role_id]
+      );
+      const rolePermissionIds = new Set(rolePermissionsResult.rows.map(r => r.permission_id));
+      
+      // تحويل الصلاحيات إلى كائنات بسيطة
       const permissionsArray = Array.isArray(allPermissions) 
         ? allPermissions.map(p => {
             if (p && typeof p === 'object' && p.id) {
@@ -330,22 +341,53 @@ class UserPermissionController {
           })
         : [];
       
-      const inactivePermissions = permissionsArray.filter(permission => {
+      // تصنيف الصلاحيات إلى مفعلة وغير مفعلة
+      const activePermissions = [];
+      const inactivePermissions = [];
+      
+      permissionsArray.forEach(permission => {
         const permissionId = permission.id || permission.permission_id;
-        return !userPermissionIds.has(permissionId);
+        const isActive = userPermissionIds.has(permissionId);
+        
+        const permissionData = {
+          id: permissionId,
+          name: permission.name,
+          resource: permission.resource,
+          action: permission.action,
+          description: permission.description
+        };
+        
+        if (isActive) {
+          // إضافة معلومات المصدر للصلاحيات المفعلة
+          permissionData.source = directPermissionIds.has(permissionId) ? 'direct' : 'role';
+          
+          // إضافة معلومات الصلاحيات المباشرة
+          if (directPermissionIds.has(permissionId)) {
+            const directPerm = directUserPermissions.find(p => p.id === permissionId || p.permission_id === permissionId);
+            permissionData.granted_at = directPerm?.granted_at || null;
+            permissionData.expires_at = directPerm?.expires_at || null;
+          }
+          
+          activePermissions.push(permissionData);
+        } else {
+          inactivePermissions.push(permissionData);
+        }
       });
       
       // إحصائيات
       const stats = {
         total: permissionsArray.length,
+        active: activePermissions.length,
         inactive: inactivePermissions.length,
-        active: userPermissions.length
+        from_role: activePermissions.filter(p => p.source === 'role').length,
+        from_direct: activePermissions.filter(p => p.source === 'direct').length
       };
       
       res.json({
         success: true,
         data: {
-          permissions: inactivePermissions,
+          inactive_permissions: inactivePermissions,
+          active_permissions: activePermissions,
           stats: stats,
           user: {
             id: user.id,
@@ -353,13 +395,13 @@ class UserPermissionController {
             email: user.email
           }
         },
-        message: 'تم جلب الصلاحيات غير المفعلة بنجاح'
+        message: 'تم جلب الصلاحيات بنجاح'
       });
     } catch (error) {
-      console.error('خطأ في جلب الصلاحيات غير المفعلة:', error);
+      console.error('خطأ في جلب الصلاحيات:', error);
       res.status(500).json({
         success: false,
-        message: error.message || 'خطأ في جلب الصلاحيات غير المفعلة'
+        message: error.message || 'خطأ في جلب الصلاحيات'
       });
     }
   }

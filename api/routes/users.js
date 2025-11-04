@@ -832,8 +832,8 @@ router.delete('/:userId/permissions/:permissionId',
  * @swagger
  * /api/users/{userId}/permissions/inactive:
  *   get:
- *     summary: جلب الصلاحيات غير المفعلة للمستخدم
- *     description: يجلب فقط الصلاحيات التي لا يملكها المستخدم (غير مفعلة) - مفيدة لإضافة صلاحيات جديدة للمستخدم
+ *     summary: جلب الصلاحيات المفعلة وغير المفعلة للمستخدم
+ *     description: يجلب جميع الصلاحيات في النظام مقسمة إلى صلاحيات مفعلة (موجودة عند المستخدم) وصلاحيات غير مفعلة (غير موجودة عند المستخدم)
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -847,7 +847,7 @@ router.delete('/:userId/permissions/:permissionId',
  *         description: معرف المستخدم
  *     responses:
  *       200:
- *         description: تم جلب الصلاحيات غير المفعلة بنجاح
+ *         description: تم جلب الصلاحيات بنجاح
  *         content:
  *           application/json:
  *             schema:
@@ -859,8 +859,9 @@ router.delete('/:userId/permissions/:permissionId',
  *                 data:
  *                   type: object
  *                   properties:
- *                     permissions:
+ *                     inactive_permissions:
  *                       type: array
+ *                       description: الصلاحيات غير المفعلة (غير موجودة عند المستخدم)
  *                       items:
  *                         type: object
  *                         properties:
@@ -875,18 +876,55 @@ router.delete('/:userId/permissions/:permissionId',
  *                             type: string
  *                           description:
  *                             type: string
+ *                     active_permissions:
+ *                       type: array
+ *                       description: الصلاحيات المفعلة (موجودة عند المستخدم)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           resource:
+ *                             type: string
+ *                           action:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           source:
+ *                             type: string
+ *                             enum: [role, direct]
+ *                             description: مصدر الصلاحية (role = من الدور، direct = مباشرة)
+ *                           granted_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: تاريخ منح الصلاحية (إذا كانت مباشرة)
+ *                           expires_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: تاريخ انتهاء الصلاحية (إذا كانت مباشرة)
  *                     stats:
  *                       type: object
  *                       properties:
  *                         total:
  *                           type: integer
  *                           description: إجمالي الصلاحيات في النظام
- *                         inactive:
- *                           type: integer
- *                           description: عدد الصلاحيات غير المفعلة
  *                         active:
  *                           type: integer
  *                           description: عدد الصلاحيات المفعلة
+ *                         inactive:
+ *                           type: integer
+ *                           description: عدد الصلاحيات غير المفعلة
+ *                         from_role:
+ *                           type: integer
+ *                           description: عدد الصلاحيات من الدور
+ *                         from_direct:
+ *                           type: integer
+ *                           description: عدد الصلاحيات المباشرة
  *                     user:
  *                       type: object
  *                       properties:
@@ -898,7 +936,7 @@ router.delete('/:userId/permissions/:permissionId',
  *                           type: string
  *                 message:
  *                   type: string
- *                   example: "تم جلب الصلاحيات غير المفعلة بنجاح"
+ *                   example: "تم جلب الصلاحيات بنجاح"
  *       404:
  *         description: المستخدم غير موجود
  */
