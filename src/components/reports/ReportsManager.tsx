@@ -796,58 +796,90 @@ export const ReportsManager: React.FC = () => {
                     </div>
 
 
-                    {/* توزيع التذاكر حسب المرحلة */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                        <Target className="w-5 h-5 text-blue-500" />
-                        <span>توزيع التذاكر حسب المرحلة</span>
-                      </h3>
-                      
-                      <div className="space-y-3">
-                        {processReport.stage_distribution.map((stage, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3 space-x-reverse flex-1">
-                              <div 
-                                className="w-4 h-4 rounded"
-                                style={{
-                                  backgroundColor: `hsl(${(index * 360) / processReport.stage_distribution.length}, 70%, 50%)`
-                                }}
-                              ></div>
-                              <span className="text-sm font-medium text-gray-900">{stage.stage_name}</span>
-                            </div>
-                            <div className="flex items-center space-x-4 space-x-reverse">
-                              <span className="text-sm font-bold text-gray-900">{stage.ticket_count.toString()}</span>
-                              <span className="text-xs text-gray-500">({Number(parseFloat(String(stage.percentage || 0))).toFixed(1)}%)</span>
-                              <div className="w-32 bg-gray-200 rounded-full h-2">
+                    {/* توزيع المراحل والأولويات جنباً إلى جنب */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* توزيع التذاكر حسب المرحلة - اليمين */}
+                      <div className="bg-white rounded-lg shadow-sm p-4">
+                        <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse">
+                          <Target className="w-4 h-4 text-blue-500" />
+                          <span>توزيع التذاكر حسب المرحلة</span>
+                        </h3>
+                        
+                        <div className="space-y-2">
+                          {processReport.stage_distribution.map((stage, index) => (
+                            <div key={index} className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3 space-x-reverse flex-1">
                                 <div 
-                                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                  style={{ width: `${Number(parseFloat(String(stage.percentage || 0)))}%` }}
+                                  className="w-3 h-3 rounded flex-shrink-0"
+                                  style={{
+                                    backgroundColor: `hsl(${(index * 360) / processReport.stage_distribution.length}, 70%, 50%)`
+                                  }}
                                 ></div>
+                                <span className="text-xs font-medium text-gray-900 truncate">{stage.stage_name}</span>
+                              </div>
+                              <div className="flex items-center space-x-3 space-x-reverse">
+                                <span className="text-xs font-bold text-gray-900 whitespace-nowrap">{stage.ticket_count.toString()}</span>
+                                <span className="text-xs text-gray-500 whitespace-nowrap">({Number(parseFloat(String(stage.percentage || 0))).toFixed(1)}%)</span>
+                                <div className="w-24 bg-gray-200 rounded-full h-1.5">
+                                  <div 
+                                    className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                                    style={{ width: `${Number(parseFloat(String(stage.percentage || 0)))}%` }}
+                                  ></div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
 
-                    {/* توزيع حسب الأولوية */}
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                        <AlertTriangle className="w-5 h-5 text-orange-500" />
-                        <span>توزيع التذاكر حسب الأولوية</span>
-                      </h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {processReport.priority_distribution.map((priority, index) => (
-                          <div key={index} className="flex items-center space-x-3 space-x-reverse p-4 bg-gray-50 rounded-lg">
-                            <div className={`w-3 h-3 ${getPriorityColor(priority.priority)} rounded-full`}></div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">{getPriorityLabel(priority.priority)}</p>
-                              <p className="text-xs text-gray-500">{priority.count.toString()} تذكرة ({Number(parseFloat(priority.percentage.toString()) || 0).toFixed(1)}%)</p>
-                            </div>
+                      {/* توزيع حسب الأولوية - اليسار (نسخة من تقارير المستخدمين) */}
+                      {processReport.priority_distribution && processReport.priority_distribution.length > 0 && (
+                        <div className="bg-white rounded-lg shadow-sm p-2.5">
+                          <h3 className="text-xs font-bold text-gray-900 mb-2 flex items-center space-x-1.5 space-x-reverse">
+                            <AlertTriangle className="w-3 h-3 text-orange-500" />
+                            <span>توزيع التذاكر حسب الأولوية</span>
+                          </h3>
+                          
+                          {/* عرض بصري محسّن ومصغّر جداً */}
+                          <div className="space-y-1">
+                            {processReport.priority_distribution.map((item, index) => {
+                              const priorityColors: { [key: string]: { bg: string; text: string; border: string; progress: string } } = {
+                                'urgent': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', progress: 'bg-red-500' },
+                                'high': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', progress: 'bg-orange-500' },
+                                'medium': { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', progress: 'bg-yellow-500' },
+                                'low': { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', progress: 'bg-green-500' }
+                              };
+                              const colors = priorityColors[item.priority] || priorityColors['medium'];
+                              const percentage = Number(parseFloat(String(item.percentage || 0)));
+                              
+                              return (
+                                <div key={index} className={`p-1.5 rounded border ${colors.bg} ${colors.border} hover:shadow-sm transition-all`}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center space-x-1.5 space-x-reverse">
+                                      <div className={`w-7 h-7 ${getPriorityColor(item.priority)} rounded-full flex items-center justify-center flex-shrink-0`}>
+                                        <span className="text-white font-bold text-xs leading-none">{item.count}</span>
+                                      </div>
+                                      <div>
+                                        <h4 className={`text-xs font-semibold ${colors.text} leading-tight`}>{getPriorityLabel(item.priority)}</h4>
+                                        <p className="text-xs text-gray-600 mt-0.5 leading-tight">{item.count} تذكرة</p>
+                                      </div>
+                                    </div>
+                                    <div className="text-left">
+                                      <span className={`text-sm font-bold ${colors.text}`}>{percentage.toFixed(1)}%</span>
+                                    </div>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
+                                    <div 
+                                      className={`h-full ${colors.progress} rounded-full transition-all duration-500 ease-out`}
+                                      style={{ width: `${percentage}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* تفاصيل التذاكر المكتملة */}
@@ -1251,16 +1283,16 @@ export const ReportsManager: React.FC = () => {
                         </div>
                       )}
 
-                      {/* توزيع الأولويات - اليسار */}
+                      {/* توزيع الأولويات - اليسار (مصغّر جداً) */}
                       {userReport.priority_distribution && userReport.priority_distribution.length > 0 && (
-                        <div className="bg-white rounded-lg shadow-sm p-4">
-                          <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse">
-                            <AlertTriangle className="w-4 h-4 text-orange-500" />
+                        <div className="bg-white rounded-lg shadow-sm p-2.5">
+                          <h3 className="text-xs font-bold text-gray-900 mb-2 flex items-center space-x-1.5 space-x-reverse">
+                            <AlertTriangle className="w-3 h-3 text-orange-500" />
                             <span>توزيع التذاكر حسب الأولوية</span>
                           </h3>
                           
-                          {/* عرض بصري محسّن ومصغّر */}
-                          <div className="space-y-2.5">
+                          {/* عرض بصري محسّن ومصغّر جداً */}
+                          <div className="space-y-1">
                             {userReport.priority_distribution.map((item, index) => {
                               const priorityColors: { [key: string]: { bg: string; text: string; border: string; progress: string } } = {
                                 'urgent': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', progress: 'bg-red-500' },
@@ -1272,22 +1304,22 @@ export const ReportsManager: React.FC = () => {
                               const percentage = Number(parseFloat(String(item.percentage || 0)));
                               
                               return (
-                                <div key={index} className={`p-3 rounded-lg border-2 ${colors.bg} ${colors.border} hover:shadow-md transition-all`}>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center space-x-2 space-x-reverse">
-                                      <div className={`w-10 h-10 ${getPriorityColor(item.priority)} rounded-full flex items-center justify-center flex-shrink-0`}>
-                                        <span className="text-white font-bold text-sm">{item.count}</span>
+                                <div key={index} className={`p-1.5 rounded border ${colors.bg} ${colors.border} hover:shadow-sm transition-all`}>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center space-x-1.5 space-x-reverse">
+                                      <div className={`w-7 h-7 ${getPriorityColor(item.priority)} rounded-full flex items-center justify-center flex-shrink-0`}>
+                                        <span className="text-white font-bold text-xs leading-none">{item.count}</span>
                                       </div>
                                       <div>
-                                        <h4 className={`text-sm font-semibold ${colors.text}`}>{getPriorityLabel(item.priority)}</h4>
-                                        <p className="text-xs text-gray-600 mt-0.5">{item.count} تذكرة</p>
+                                        <h4 className={`text-xs font-semibold ${colors.text} leading-tight`}>{getPriorityLabel(item.priority)}</h4>
+                                        <p className="text-xs text-gray-600 mt-0.5 leading-tight">{item.count} تذكرة</p>
                                       </div>
                                     </div>
                                     <div className="text-left">
-                                      <span className={`text-xl font-bold ${colors.text}`}>{percentage.toFixed(1)}%</span>
+                                      <span className={`text-sm font-bold ${colors.text}`}>{percentage.toFixed(1)}%</span>
                                     </div>
                                   </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                  <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
                                     <div 
                                       className={`h-full ${colors.progress} rounded-full transition-all duration-500 ease-out`}
                                       style={{ width: `${percentage}%` }}
