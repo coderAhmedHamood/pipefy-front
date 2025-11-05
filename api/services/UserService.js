@@ -209,13 +209,19 @@ class UserService {
         throw new Error('المستخدم غير موجود');
       }
 
+      // جلب إعدادات الأمان من قاعدة البيانات
+      const Settings = require('../models/Settings');
+      const settings = await Settings.getSettings();
+      const loginAttemptsLimit = parseInt(settings.security_login_attempts_limit) || 5;
+      const lockoutDuration = parseInt(settings.security_lockout_duration) || 30;
+
       const newAttempts = (user.login_attempts || 0) + 1;
       const updateData = { login_attempts: newAttempts };
       
-      // قفل الحساب بعد 5 محاولات فاشلة
-      if (newAttempts >= 5) {
+      // قفل الحساب بعد عدد المحاولات المحدد في الإعدادات
+      if (newAttempts >= loginAttemptsLimit) {
         const lockUntil = new Date();
-        lockUntil.setMinutes(lockUntil.getMinutes() + 30); // قفل لمدة 30 دقيقة
+        lockUntil.setMinutes(lockUntil.getMinutes() + lockoutDuration);
         updateData.locked_until = lockUntil;
       }
 

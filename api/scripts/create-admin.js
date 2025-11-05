@@ -50,11 +50,13 @@ async function createAdmin() {
         id, name, email, password_hash,
         role_id, is_active, email_verified,
         timezone, language,
+        login_attempts, locked_until,
         created_at, updated_at
       ) VALUES (
         uuid_generate_v4(), $1, $2, $3,
         $4, true, true,
         'Asia/Riyadh', 'ar',
+        0, NULL,
         NOW(), NOW()
       ) RETURNING id, name, email
     `, [

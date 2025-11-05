@@ -5,26 +5,61 @@ class TicketReviewer {
   static async ensureTable() {
     const client = await pool.connect();
     try {
-      // إنشاء الجدول فقط إذا لم يكن موجوداً
+      // التحقق من بنية الجدول الحالية أولاً
+      const tableInfo = await client.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'ticket_reviewers' 
+        AND column_name IN ('user_id', 'reviewer_id')
+      `);
+      
+      const hasUserId = tableInfo.rows.some(row => row.column_name === 'user_id');
+      const hasReviewerId = tableInfo.rows.some(row => row.column_name === 'reviewer_id');
+      
+      // إذا كان الجدول موجوداً بالفعل من migration، لا نعيد إنشاؤه
+      if (tableInfo.rows.length > 0) {
+        // إضافة حقل rate إذا لم يكن موجوداً
+        await client.query(`
+          ALTER TABLE ticket_reviewers 
+          ADD COLUMN IF NOT EXISTS rate VARCHAR(20) 
+          CHECK (rate IN ('ضعيف', 'جيد', 'جيد جدا', 'ممتاز'))
+        `);
+        
+        // إضافة فهرس rate إذا لم يكن موجوداً
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_rate ON ticket_reviewers(rate);`);
+        
+        // إضافة حقول إضافية إذا لم تكن موجودة (من ensureTable)
+        await client.query(`
+          ALTER TABLE ticket_reviewers 
+          ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
+          ADD COLUMN IF NOT EXISTS review_notes TEXT,
+          ADD COLUMN IF NOT EXISTS review_status VARCHAR(50) DEFAULT 'pending'
+        `);
+        
+        return; // الجدول موجود، لا نعيد إنشاؤه
+      }
+      
+      // إنشاء الجدول فقط إذا لم يكن موجوداً (استخدام user_id للتوافق مع migration)
       await client.query(`
         CREATE TABLE IF NOT EXISTS ticket_reviewers (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-          reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          added_by UUID REFERENCES users(id),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          assigned_by UUID REFERENCES users(id),
           review_status VARCHAR(50) DEFAULT 'pending',
           review_notes TEXT,
           rate VARCHAR(20) CHECK (rate IN ('ضعيف', 'جيد', 'جيد جدا', 'ممتاز')),
           reviewed_at TIMESTAMPTZ,
           is_active BOOLEAN DEFAULT TRUE,
-          added_at TIMESTAMPTZ DEFAULT NOW(),
+          assigned_at TIMESTAMPTZ DEFAULT NOW(),
+          created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW(),
-          UNIQUE(ticket_id, reviewer_id)
+          UNIQUE(ticket_id, user_id)
         );
       `);
       
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_ticket ON ticket_reviewers(ticket_id);`);
-      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_reviewer ON ticket_reviewers(reviewer_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_user ON ticket_reviewers(user_id);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_status ON ticket_reviewers(review_status);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_active ON ticket_reviewers(is_active);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_rate ON ticket_reviewers(rate);`);
@@ -43,11 +78,17 @@ class TicketReviewer {
   static async create(reviewerData) {
     const {
       ticket_id,
-      reviewer_id,
+      reviewer_id, // يمكن قبول reviewer_id كاسم بديل
+      user_id,     // أو user_id مباشرة
       added_by,
+      assigned_by, // يمكن قبول assigned_by كاسم بديل
       review_notes,
       rate
     } = reviewerData;
+
+    // استخدام user_id إذا كان موجوداً، وإلا reviewer_id
+    const userId = user_id || reviewer_id;
+    const assignedBy = assigned_by || added_by;
 
     // التحقق من صحة التقييم
     if (rate && !this.validateRate(rate)) {
@@ -56,15 +97,18 @@ class TicketReviewer {
 
     const query = `
       INSERT INTO ticket_reviewers 
-      (ticket_id, reviewer_id, added_by, review_notes, rate)
+      (ticket_id, user_id, assigned_by, review_notes, rate)
       VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (ticket_id, user_id) DO UPDATE SET
+        is_active = TRUE,
+        updated_at = NOW()
       RETURNING *
     `;
 
     const result = await pool.query(query, [
       ticket_id,
-      reviewer_id,
-      added_by,
+      userId,
+      assignedBy,
       review_notes,
       rate
     ]);
@@ -82,10 +126,10 @@ class TicketReviewer {
         u.avatar_url as reviewer_avatar,
         ab.name as added_by_name
       FROM ticket_reviewers tr
-      LEFT JOIN users u ON tr.reviewer_id = u.id
-      LEFT JOIN users ab ON tr.added_by = ab.id
+      LEFT JOIN users u ON tr.user_id = u.id
+      LEFT JOIN users ab ON tr.assigned_by = ab.id
       WHERE tr.ticket_id = $1 AND tr.is_active = true
-      ORDER BY tr.added_at DESC
+      ORDER BY tr.assigned_at DESC
     `;
 
     const result = await pool.query(query, [ticketId]);
@@ -112,7 +156,7 @@ class TicketReviewer {
       FROM ticket_reviewers tr
       LEFT JOIN tickets t ON tr.ticket_id = t.id
       LEFT JOIN processes p ON t.process_id = p.id
-      WHERE tr.reviewer_id = $1
+      WHERE tr.user_id = $1
     `;
 
     const params = [reviewerId];
@@ -284,7 +328,7 @@ class TicketReviewer {
     const query = `
       SELECT EXISTS(
         SELECT 1 FROM ticket_reviewers 
-        WHERE ticket_id = $1 AND reviewer_id = $2 AND is_active = true
+        WHERE ticket_id = $1 AND user_id = $2 AND is_active = true
       ) as exists
     `;
 
@@ -296,7 +340,7 @@ class TicketReviewer {
   static async findExisting(ticketId, reviewerId) {
     const query = `
       SELECT * FROM ticket_reviewers 
-      WHERE ticket_id = $1 AND reviewer_id = $2
+      WHERE ticket_id = $1 AND user_id = $2
       LIMIT 1
     `;
 
@@ -306,7 +350,8 @@ class TicketReviewer {
 
   // إعادة تفعيل مراجع محذوف
   static async reactivate(id, updateData = {}) {
-    const { added_by, review_notes, rate } = updateData;
+    const { added_by, assigned_by, review_notes, rate } = updateData;
+    const assignedBy = assigned_by || added_by;
 
     // التحقق من صحة التقييم
     if (rate && !this.validateRate(rate)) {
@@ -317,9 +362,9 @@ class TicketReviewer {
     const values = [];
     let paramIndex = 1;
 
-    if (added_by) {
-      updates.push(`added_by = $${paramIndex}`);
-      values.push(added_by);
+    if (assignedBy) {
+      updates.push(`assigned_by = $${paramIndex}`);
+      values.push(assignedBy);
       paramIndex++;
     }
 
@@ -335,7 +380,7 @@ class TicketReviewer {
       paramIndex++;
     }
 
-    updates.push(`added_at = NOW()`, `updated_at = NOW()`);
+    updates.push(`assigned_at = NOW()`, `updated_at = NOW()`);
     values.push(id);
 
     const query = `
@@ -377,7 +422,7 @@ class TicketReviewer {
         COUNT(*) FILTER (WHERE review_status = 'completed') as completed,
         COUNT(*) FILTER (WHERE review_status = 'skipped') as skipped
       FROM ticket_reviewers
-      WHERE reviewer_id = $1 AND is_active = true
+      WHERE user_id = $1 AND is_active = true
     `;
 
     const result = await pool.query(query, [reviewerId]);
@@ -389,7 +434,7 @@ class TicketReviewer {
     const query = `
       UPDATE ticket_reviewers 
       SET review_status = 'in_progress', updated_at = NOW()
-      WHERE id = $1 AND reviewer_id = $2
+      WHERE id = $1 AND user_id = $2
       RETURNING *
     `;
 
@@ -406,7 +451,7 @@ class TicketReviewer {
         reviewed_at = NOW(),
         review_notes = COALESCE($3, review_notes),
         updated_at = NOW()
-      WHERE id = $1 AND reviewer_id = $2
+      WHERE id = $1 AND user_id = $2
       RETURNING *
     `;
 
@@ -422,7 +467,7 @@ class TicketReviewer {
         review_status = 'skipped',
         review_notes = COALESCE($3, review_notes),
         updated_at = NOW()
-      WHERE id = $1 AND reviewer_id = $2
+      WHERE id = $1 AND user_id = $2
       RETURNING *
     `;
 
