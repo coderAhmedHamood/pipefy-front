@@ -681,6 +681,12 @@ class TicketController {
         order_direction = 'DESC'
       } = req.query;
 
+      // جلب صلاحيات المستخدم والتحقق من وجود tickets.view_scope
+      const userPermissions = await req.user.getPermissions();
+      const hasViewScopePermission = userPermissions.some(
+        perm => perm.resource === 'tickets' && perm.action === 'view_scope'
+      );
+
       const options = {
         assigned_to,
         priority,
@@ -691,7 +697,9 @@ class TicketController {
         limit: parseInt(limit),
         offset: parseInt(offset),
         order_by,
-        order_direction
+        order_direction,
+        // إضافة معرف المستخدم الحالي للتحقق من المشاركة في التذاكر
+        restrict_to_user: hasViewScopePermission ? req.user.id : null
       };
 
       // جلب التذاكر مجمعة حسب المراحل

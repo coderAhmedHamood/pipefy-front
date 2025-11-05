@@ -1279,7 +1279,8 @@ class Ticket {
         limit = 25, // حد لكل مرحلة (افتراضي 25)
         offset = 0, // نقطة البداية (افتراضي 0)
         order_by = 'created_at',
-        order_direction = 'DESC'
+        order_direction = 'DESC',
+        restrict_to_user = null // إذا كان موجوداً، نقتصر على التذاكر التي المستخدم مشارك فيها
       } = options;
 
       // التحقق من المعاملات المطلوبة
@@ -1309,8 +1310,11 @@ class Ticket {
 
       // جلب التذاكر لكل مرحلة على حدة مع حد محدد
       for (const stageId of stageIds) {
+        const params = [processId, stageId];
+        let paramIndex = 3;
+        
         let query = `
-          SELECT t.*,
+          SELECT DISTINCT t.*,
                  p.name as process_name,
                  p.color as process_color,
                  p.icon as process_icon,
@@ -1329,10 +1333,32 @@ class Ticket {
           LEFT JOIN users u2 ON t.created_by = u2.id
           WHERE t.process_id = $1
           AND t.current_stage_id = $2
+          AND t.deleted_at IS NULL
         `;
-
-        const params = [processId, stageId];
-        let paramIndex = 3;
+        
+        // إذا كان restrict_to_user موجوداً، نقتصر على التذاكر التي المستخدم مشارك فيها
+        if (restrict_to_user) {
+          query += `
+            AND (
+              t.assigned_to = $${paramIndex} OR
+              t.created_by = $${paramIndex} OR
+              EXISTS (
+                SELECT 1 FROM ticket_assignments ta 
+                WHERE ta.ticket_id = t.id 
+                AND ta.user_id = $${paramIndex} 
+                AND (ta.is_active = true OR ta.is_active IS NULL)
+              ) OR
+              EXISTS (
+                SELECT 1 FROM ticket_reviewers tr 
+                WHERE tr.ticket_id = t.id 
+                AND tr.reviewer_id = $${paramIndex}
+                AND (tr.is_active = true OR tr.is_active IS NULL)
+              )
+            )
+          `;
+          params.push(restrict_to_user);
+          paramIndex++;
+        }
 
         // إضافة فلاتر إضافية
         if (assigned_to) {
