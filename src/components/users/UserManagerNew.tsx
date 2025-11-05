@@ -1240,13 +1240,7 @@ export const UserManagerNew: React.FC = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-2 space-x-reverse">
                             {/* زر عرض/إخفاء صلاحيات العمليات */}
-                            <button
-                              onClick={() => toggleUserProcesses(user.id)}
-                              className={`p-2 rounded-lg border ${expandedUserId === user.id ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50 border-gray-300'}`}
-                              title={expandedUserId === user.id ? 'إخفاء صلاحيات العمليات' : 'عرض صلاحيات العمليات'}
-                            >
-                              <Shield className="w-4 h-4 text-gray-600" />
-                            </button>
+                         
 
                             {/* زر الصلاحيات غير المفعلة */}
                             <button
