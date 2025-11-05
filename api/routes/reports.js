@@ -566,6 +566,106 @@ router.get('/process/:process_id', authenticateToken, ReportController.getProces
  *     responses:
  *       200:
  *         description: تم جلب تقرير الموظف بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     period:
+ *                       type: object
+ *                       properties:
+ *                         from:
+ *                           type: string
+ *                           format: date-time
+ *                         to:
+ *                           type: string
+ *                           format: date-time
+ *                     basic_stats:
+ *                       type: object
+ *                       description: الإحصائيات الأساسية للتذاكر
+ *                     stage_distribution:
+ *                       type: array
+ *                       description: توزيع التذاكر على المراحل
+ *                     overdue_by_stage:
+ *                       type: array
+ *                       description: التذاكر المتأخرة في كل مرحلة
+ *                     priority_distribution:
+ *                       type: array
+ *                       description: توزيع التذاكر حسب الأولوية
+ *                     completion_rate:
+ *                       type: object
+ *                       description: معدل الإنجاز
+ *                     top_performers:
+ *                       type: array
+ *                       description: معلومات الموظف
+ *                     recent_tickets:
+ *                       type: array
+ *                       description: أحدث التذاكر
+ *                     performance_metrics:
+ *                       type: object
+ *                       description: مؤشرات الأداء
+ *                     completed_tickets_details:
+ *                       type: array
+ *                       description: تفاصيل التذاكر المنتهية
+ *                     evaluation_stats:
+ *                       type: object
+ *                       description: إحصائيات التقييمات للتذاكر المنتهية
+ *                       properties:
+ *                         excellent:
+ *                           type: object
+ *                           properties:
+ *                             label:
+ *                               type: string
+ *                               example: "ممتاز"
+ *                             count:
+ *                               type: integer
+ *                               description: عدد التذاكر بتقييم ممتاز
+ *                             percentage:
+ *                               type: number
+ *                               format: float
+ *                               description: النسبة المئوية لتقييم ممتاز
+ *                         very_good:
+ *                           type: object
+ *                           properties:
+ *                             label:
+ *                               type: string
+ *                               example: "جيد جدا"
+ *                             count:
+ *                               type: integer
+ *                             percentage:
+ *                               type: number
+ *                               format: float
+ *                         good:
+ *                           type: object
+ *                           properties:
+ *                             label:
+ *                               type: string
+ *                               example: "جيد"
+ *                             count:
+ *                               type: integer
+ *                             percentage:
+ *                               type: number
+ *                               format: float
+ *                         weak:
+ *                           type: object
+ *                           properties:
+ *                             label:
+ *                               type: string
+ *                               example: "ضعيف"
+ *                             count:
+ *                               type: integer
+ *                             percentage:
+ *                               type: number
+ *                               format: float
+ *                         total_rated_tickets:
+ *                           type: integer
+ *                           description: إجمالي التذاكر المنتهية التي لها تقييمات
  *       404:
  *         description: الموظف غير موجود
  */

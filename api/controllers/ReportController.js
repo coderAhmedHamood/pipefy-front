@@ -1075,13 +1075,14 @@ class ReportController {
       const basicStats = await pool.query(`
         SELECT 
           COUNT(DISTINCT t.id) as total_tickets,
-          COUNT(DISTINCT CASE WHEN t.status = 'active' THEN t.id END) as active_tickets,
-          COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END) as completed_tickets,
+          COUNT(DISTINCT CASE WHEN t.status = 'active' AND (s.is_final IS NULL OR s.is_final = false) THEN t.id END) as active_tickets,
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' OR s.is_final = true THEN t.id END) as completed_tickets,
           COUNT(DISTINCT CASE WHEN t.status = 'cancelled' THEN t.id END) as cancelled_tickets,
           COUNT(DISTINCT CASE WHEN t.status = 'archived' THEN t.id END) as archived_tickets,
-          COUNT(DISTINCT CASE WHEN t.due_date < NOW() AND t.status = 'active' THEN t.id END) as overdue_tickets,
+          COUNT(DISTINCT CASE WHEN t.due_date < NOW() AND t.status = 'active' AND (s.is_final IS NULL OR s.is_final = false) THEN t.id END) as overdue_tickets,
           COUNT(DISTINCT t.assigned_to) as unique_assignees
         FROM tickets t
+        LEFT JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
         WHERE (t.assigned_to = $1 OR ta.user_id = $1)
           AND t.created_at BETWEEN $2 AND $3
@@ -1193,22 +1194,23 @@ class ReportController {
       // 5. معدل الإنجاز
       const completionRate = await pool.query(`
         SELECT 
-          COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END) as completed_count,
-          COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.completed_at <= t.due_date THEN t.id END) as on_time_count,
-          COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.completed_at > t.due_date THEN t.id END) as late_count,
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' OR s.is_final = true THEN t.id END) as completed_count,
+          COUNT(DISTINCT CASE WHEN (t.status = 'completed' OR s.is_final = true) AND COALESCE(t.completed_at, t.updated_at) <= t.due_date THEN t.id END) as on_time_count,
+          COUNT(DISTINCT CASE WHEN (t.status = 'completed' OR s.is_final = true) AND COALESCE(t.completed_at, t.updated_at) > t.due_date THEN t.id END) as late_count,
           ROUND(
             AVG(
               CASE 
-                WHEN t.status = 'completed' AND t.completed_at IS NOT NULL AND t.created_at IS NOT NULL
-                THEN EXTRACT(EPOCH FROM (t.completed_at - t.created_at)) / 86400
+                WHEN (t.status = 'completed' OR s.is_final = true) AND COALESCE(t.completed_at, t.updated_at) IS NOT NULL AND t.created_at IS NOT NULL
+                THEN EXTRACT(EPOCH FROM (COALESCE(t.completed_at, t.updated_at) - t.created_at)) / 86400
               END
             ), 2
           ) as avg_completion_days,
           ROUND(
-            (COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.completed_at <= t.due_date THEN t.id END)::DECIMAL / 
-             NULLIF(COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END), 0)) * 100, 2
+            (COUNT(DISTINCT CASE WHEN (t.status = 'completed' OR s.is_final = true) AND COALESCE(t.completed_at, t.updated_at) <= t.due_date THEN t.id END)::DECIMAL / 
+             NULLIF(COUNT(DISTINCT CASE WHEN t.status = 'completed' OR s.is_final = true THEN t.id END), 0)) * 100, 2
           ) as on_time_percentage
         FROM tickets t
+        LEFT JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
         WHERE (t.assigned_to = $1 OR ta.user_id = $1)
           AND t.created_at BETWEEN $2 AND $3
@@ -1222,20 +1224,22 @@ class ReportController {
           u.name,
           u.email,
           COUNT(DISTINCT t.id) as total_tickets,
-          COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END) as completed_tickets,
+          COUNT(DISTINCT CASE WHEN t.status = 'completed' OR s.is_final = true THEN t.id END) as completed_tickets,
           ROUND(
-            (COUNT(DISTINCT CASE WHEN t.status = 'completed' THEN t.id END)::DECIMAL / 
+            (COUNT(DISTINCT CASE WHEN t.status = 'completed' OR s.is_final = true THEN t.id END)::DECIMAL / 
              NULLIF(COUNT(DISTINCT t.id), 0)) * 100, 2
           ) as completion_rate,
-          COUNT(DISTINCT CASE WHEN t.status = 'completed' AND t.completed_at <= t.due_date THEN t.id END) as on_time_tickets
+          COUNT(DISTINCT CASE WHEN (t.status = 'completed' OR s.is_final = true) AND COALESCE(t.completed_at, t.updated_at) <= t.due_date THEN t.id END) as on_time_tickets
         FROM users u
         LEFT JOIN tickets t ON t.assigned_to = u.id 
           AND t.created_at BETWEEN $2 AND $3
           AND t.deleted_at IS NULL
+        LEFT JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN ticket_assignments ta ON ta.user_id = u.id AND ta.is_active = true
         LEFT JOIN tickets t2 ON ta.ticket_id = t2.id
           AND t2.created_at BETWEEN $2 AND $3
           AND t2.deleted_at IS NULL
+        LEFT JOIN stages s2 ON t2.current_stage_id = s2.id
         WHERE u.id = $1
         GROUP BY u.id, u.name, u.email
       `, [user_id, date_from, date_to]);
@@ -1281,7 +1285,7 @@ class ReportController {
         SELECT 
           ROUND(
             SUM(
-              EXTRACT(EPOCH FROM (t.due_date - t.completed_at)) / 3600
+              EXTRACT(EPOCH FROM (t.due_date - COALESCE(t.completed_at, t.updated_at))) / 3600
             )::DECIMAL, 
             2
           ) as net_performance_hours
@@ -1289,7 +1293,7 @@ class ReportController {
         JOIN stages s ON t.current_stage_id = s.id
         LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
         WHERE (t.assigned_to = $1 OR ta.user_id = $1)
-          AND t.completed_at IS NOT NULL
+          AND (t.completed_at IS NOT NULL OR s.is_final = true)
           AND t.due_date IS NOT NULL
           AND t.created_at BETWEEN $2 AND $3
           AND t.deleted_at IS NULL
@@ -1342,6 +1346,99 @@ class ReportController {
         LIMIT 50
       `, [user_id, date_from, date_to]);
 
+      // 10. إحصائيات التقييمات للتذاكر المنتهية
+      // نحسب جميع التقييمات بشكل منفصل - إذا كانت التذكرة لديها أكثر من مراجع، نحسب كل تقييم بشكل منفصل
+      // نعتبر التذكرة منتهية إذا كانت status = 'completed' أو في مرحلة نهائية (is_final = true)
+      const evaluationStats = await pool.query(`
+        WITH completed_tickets AS (
+          SELECT DISTINCT t.id as ticket_id
+          FROM tickets t
+          LEFT JOIN stages s ON t.current_stage_id = s.id
+          LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id AND ta.is_active = true
+          WHERE (t.assigned_to = $1 OR ta.user_id = $1)
+            AND (t.status = 'completed' OR s.is_final = true)
+            AND t.created_at BETWEEN $2 AND $3
+            AND t.deleted_at IS NULL
+        ),
+        all_ratings AS (
+          SELECT tr.rate
+          FROM completed_tickets ct
+          INNER JOIN ticket_reviewers tr ON ct.ticket_id = tr.ticket_id
+          WHERE tr.rate IS NOT NULL
+        ),
+        rate_counts AS (
+          SELECT 
+            rate,
+            COUNT(*) as count
+          FROM all_ratings
+          GROUP BY rate
+        ),
+        total_ratings_count AS (
+          SELECT COUNT(*) as total FROM all_ratings
+        )
+        SELECT 
+          COALESCE(SUM(CASE WHEN rc.rate = 'ممتاز' THEN rc.count ELSE 0 END), 0) as excellent_count,
+          COALESCE(SUM(CASE WHEN rc.rate = 'جيد جدا' THEN rc.count ELSE 0 END), 0) as very_good_count,
+          COALESCE(SUM(CASE WHEN rc.rate = 'جيد' THEN rc.count ELSE 0 END), 0) as good_count,
+          COALESCE(SUM(CASE WHEN rc.rate = 'ضعيف' THEN rc.count ELSE 0 END), 0) as weak_count,
+          COALESCE((SELECT total FROM total_ratings_count), 0) as total_rated_tickets
+        FROM rate_counts rc
+      `, [user_id, date_from, date_to]);
+
+      // حساب النسب المئوية للتقييمات
+      // total_rated_tickets هنا يمثل إجمالي عدد التقييمات (وليس عدد التذاكر)
+      const evaluationData = evaluationStats.rows[0];
+      const totalRatings = parseInt(evaluationData.total_rated_tickets) || 0;
+      
+      const calculatePercentage = (count) => {
+        if (totalRatings === 0) return 0;
+        return parseFloat((count / totalRatings * 100).toFixed(2));
+      };
+
+      const excellentCount = parseInt(evaluationData.excellent_count) || 0;
+      const veryGoodCount = parseInt(evaluationData.very_good_count) || 0;
+      const goodCount = parseInt(evaluationData.good_count) || 0;
+      const weakCount = parseInt(evaluationData.weak_count) || 0;
+
+      const evaluationDistribution = {
+        excellent: {
+          label: 'ممتاز',
+          count: excellentCount,
+          percentage: calculatePercentage(excellentCount)
+        },
+        very_good: {
+          label: 'جيد جدا',
+          count: veryGoodCount,
+          percentage: calculatePercentage(veryGoodCount)
+        },
+        good: {
+          label: 'جيد',
+          count: goodCount,
+          percentage: calculatePercentage(goodCount)
+        },
+        weak: {
+          label: 'ضعيف',
+          count: weakCount,
+          percentage: calculatePercentage(weakCount)
+        },
+        total_rated_tickets: totalRatings
+      };
+
+      // التحقق من أن مجموع النسب لا يتجاوز 100% (مع تقريب بسيط)
+      const totalPercentage = evaluationDistribution.excellent.percentage + 
+                             evaluationDistribution.very_good.percentage + 
+                             evaluationDistribution.good.percentage + 
+                             evaluationDistribution.weak.percentage;
+      
+      if (totalPercentage > 100.01) {
+        // إعادة حساب النسب بشكل متناسب لتجنب تجاوز 100%
+        const scaleFactor = 100 / totalPercentage;
+        evaluationDistribution.excellent.percentage = parseFloat((evaluationDistribution.excellent.percentage * scaleFactor).toFixed(2));
+        evaluationDistribution.very_good.percentage = parseFloat((evaluationDistribution.very_good.percentage * scaleFactor).toFixed(2));
+        evaluationDistribution.good.percentage = parseFloat((evaluationDistribution.good.percentage * scaleFactor).toFixed(2));
+        evaluationDistribution.weak.percentage = parseFloat((evaluationDistribution.weak.percentage * scaleFactor).toFixed(2));
+      }
+
       res.json({
         success: true,
         data: {
@@ -1357,7 +1454,8 @@ class ReportController {
           top_performers: topPerformers.rows,
           recent_tickets: recentTickets.rows,
           performance_metrics: performanceMetrics.rows[0],
-          completed_tickets_details: completedTicketsDetails.rows
+          completed_tickets_details: completedTicketsDetails.rows,
+          evaluation_stats: evaluationDistribution
         }
       });
     } catch (error) {
