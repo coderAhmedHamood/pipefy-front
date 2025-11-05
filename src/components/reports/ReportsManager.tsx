@@ -175,6 +175,29 @@ interface UserReport {
     completion_rate: string;
     on_time_tickets: string;
   }>;
+  evaluation_stats?: {
+    excellent: {
+      label: string;
+      count: number;
+      percentage: number;
+    };
+    very_good: {
+      label: string;
+      count: number;
+      percentage: number;
+    };
+    good: {
+      label: string;
+      count: number;
+      percentage: number;
+    };
+    weak: {
+      label: string;
+      count: number;
+      percentage: number;
+    };
+    total_rated_tickets: number;
+  };
 }
 
 type TabType = 'users' | 'processes' | 'development';
@@ -1197,49 +1220,210 @@ export const ReportsManager: React.FC = () => {
 
                    
 
-                    {/* توزيع التذاكر حسب المراحل */}
-                    {userReport.stage_distribution && userReport.stage_distribution.length > 0 && (
-                      <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">توزيع التذاكر حسب المراحل</h3>
-                        <div className="space-y-3">
-                          {userReport.stage_distribution.map((item, index) => (
-                            <div key={index} className="flex items-center space-x-3 space-x-reverse">
-                              <div className="flex-1">
-                                <div className="flex justify-between mb-1">
-                                  <div className="flex items-center space-x-2 space-x-reverse">
-                                    <div className={`w-3 h-3 rounded-full ${item.stage_color}`}></div>
-                                    <span className="text-sm font-medium text-gray-700">{item.stage_name}</span>
-                                    <span className="text-xs text-gray-500">({item.process_name})</span>
+                    {/* توزيع المراحل والأولويات جنباً إلى جنب */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* توزيع التذاكر حسب المراحل - اليمين */}
+                      {userReport.stage_distribution && userReport.stage_distribution.length > 0 && (
+                        <div className="bg-white rounded-lg shadow-sm p-4">
+                          <h3 className="text-base font-bold text-gray-900 mb-3">توزيع التذاكر حسب المراحل</h3>
+                          <div className="space-y-2">
+                            {userReport.stage_distribution.map((item, index) => (
+                              <div key={index} className="flex items-center space-x-3 space-x-reverse">
+                                <div className="flex-1">
+                                  <div className="flex justify-between mb-1">
+                                    <div className="flex items-center space-x-2 space-x-reverse">
+                                      <div className={`w-2.5 h-2.5 rounded-full ${item.stage_color}`}></div>
+                                      <span className="text-xs font-medium text-gray-700 truncate">{item.stage_name}</span>
+                                      <span className="text-xs text-gray-500 truncate">({item.process_name})</span>
+                                    </div>
+                                    <span className="text-xs text-gray-600 whitespace-nowrap mr-2">{item.ticket_count} ({Number(parseFloat(String(item.percentage || 0))).toFixed(1)}%)</span>
                                   </div>
-                                  <span className="text-sm text-gray-600">{item.ticket_count} ({Number(parseFloat(String(item.percentage || 0))).toFixed(1)}%)</span>
-                                </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="bg-gradient-to-r from-green-500 to-teal-600 h-2 rounded-full"
-                                    style={{ width: `${item.percentage || 0}%` }}
-                                  ></div>
+                                  <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                    <div 
+                                      className="bg-gradient-to-r from-green-500 to-teal-600 h-1.5 rounded-full"
+                                      style={{ width: `${item.percentage || 0}%` }}
+                                    ></div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* توزيع الأولويات */}
-                    {userReport.priority_distribution && userReport.priority_distribution.length > 0 && (
-                      <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-4">توزيع التذاكر حسب الأولوية</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {userReport.priority_distribution.map((item, index) => (
-                            <div key={index} className="text-center p-4 bg-gray-50 rounded-lg">
-                              <div className={`w-12 h-12 ${getPriorityColor(item.priority)} rounded-full flex items-center justify-center mx-auto mb-2`}>
-                                <span className="text-white font-bold">{item.count}</span>
+                      {/* توزيع الأولويات - اليسار */}
+                      {userReport.priority_distribution && userReport.priority_distribution.length > 0 && (
+                        <div className="bg-white rounded-lg shadow-sm p-4">
+                          <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse">
+                            <AlertTriangle className="w-4 h-4 text-orange-500" />
+                            <span>توزيع التذاكر حسب الأولوية</span>
+                          </h3>
+                          
+                          {/* عرض بصري محسّن ومصغّر */}
+                          <div className="space-y-2.5">
+                            {userReport.priority_distribution.map((item, index) => {
+                              const priorityColors: { [key: string]: { bg: string; text: string; border: string; progress: string } } = {
+                                'urgent': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', progress: 'bg-red-500' },
+                                'high': { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', progress: 'bg-orange-500' },
+                                'medium': { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', progress: 'bg-yellow-500' },
+                                'low': { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', progress: 'bg-green-500' }
+                              };
+                              const colors = priorityColors[item.priority] || priorityColors['medium'];
+                              const percentage = Number(parseFloat(String(item.percentage || 0)));
+                              
+                              return (
+                                <div key={index} className={`p-3 rounded-lg border-2 ${colors.bg} ${colors.border} hover:shadow-md transition-all`}>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2 space-x-reverse">
+                                      <div className={`w-10 h-10 ${getPriorityColor(item.priority)} rounded-full flex items-center justify-center flex-shrink-0`}>
+                                        <span className="text-white font-bold text-sm">{item.count}</span>
+                                      </div>
+                                      <div>
+                                        <h4 className={`text-sm font-semibold ${colors.text}`}>{getPriorityLabel(item.priority)}</h4>
+                                        <p className="text-xs text-gray-600 mt-0.5">{item.count} تذكرة</p>
+                                      </div>
+                                    </div>
+                                    <div className="text-left">
+                                      <span className={`text-xl font-bold ${colors.text}`}>{percentage.toFixed(1)}%</span>
+                                    </div>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                    <div 
+                                      className={`h-full ${colors.progress} rounded-full transition-all duration-500 ease-out`}
+                                      style={{ width: `${percentage}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* إحصائيات التقييم - مصغّر */}
+                    {userReport.evaluation_stats && userReport.evaluation_stats.total_rated_tickets > 0 && (
+                      <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg shadow-sm p-4 border border-purple-200">
+                        <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                          <Award className="w-4 h-4 text-purple-600" />
+                          <span>إحصائيات التقييم</span>
+                          <span className="text-xs font-normal text-gray-600 mr-2">
+                            ({userReport.evaluation_stats.total_rated_tickets} تذكرة مقيمة)
+                          </span>
+                        </h3>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {/* ممتاز */}
+                          <div className="bg-white rounded-lg p-3 border-2 border-green-300 shadow-sm hover:shadow-md transition-all">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                                <span className="text-white font-bold text-base">
+                                  {userReport.evaluation_stats.excellent.count}
+                                </span>
                               </div>
-                              <p className="text-sm font-medium text-gray-900">{getPriorityLabel(item.priority)}</p>
-                              <p className="text-xs text-gray-500">{Number(parseFloat(String(item.percentage || 0))).toFixed(1)}%</p>
+                              <div className="text-left">
+                                <span className="text-lg font-bold text-green-700">
+                                  {userReport.evaluation_stats.excellent.percentage.toFixed(1)}%
+                                </span>
+                              </div>
                             </div>
-                          ))}
+                            <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                              {userReport.evaluation_stats.excellent.label}
+                            </h4>
+                            <p className="text-xs text-gray-600 mb-2">
+                              {userReport.evaluation_stats.excellent.count} تقييم
+                            </p>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div 
+                                className="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500"
+                                style={{ width: `${userReport.evaluation_stats.excellent.percentage}%` }}
+                              ></div>
+                            </div>
+                          </div>
+
+                          {/* جيد جداً */}
+                          <div className="bg-white rounded-lg p-3 border-2 border-blue-300 shadow-sm hover:shadow-md transition-all">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-full flex items-center justify-center">
+                                <span className="text-white font-bold text-base">
+                                  {userReport.evaluation_stats.very_good.count}
+                                </span>
+                              </div>
+                              <div className="text-left">
+                                <span className="text-lg font-bold text-blue-700">
+                                  {userReport.evaluation_stats.very_good.percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                            <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                              {userReport.evaluation_stats.very_good.label}
+                            </h4>
+                            <p className="text-xs text-gray-600 mb-2">
+                              {userReport.evaluation_stats.very_good.count} تقييم
+                            </p>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div 
+                                className="bg-gradient-to-r from-blue-500 to-cyan-600 h-1.5 rounded-full transition-all duration-500"
+                                style={{ width: `${userReport.evaluation_stats.very_good.percentage}%` }}
+                              ></div>
+                            </div>
+                          </div>
+
+                          {/* جيد */}
+                          <div className="bg-white rounded-lg p-3 border-2 border-yellow-300 shadow-sm hover:shadow-md transition-all">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                                <span className="text-white font-bold text-base">
+                                  {userReport.evaluation_stats.good.count}
+                                </span>
+                              </div>
+                              <div className="text-left">
+                                <span className="text-lg font-bold text-yellow-700">
+                                  {userReport.evaluation_stats.good.percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                            <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                              {userReport.evaluation_stats.good.label}
+                            </h4>
+                            <p className="text-xs text-gray-600 mb-2">
+                              {userReport.evaluation_stats.good.count} تقييم
+                            </p>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div 
+                                className="bg-gradient-to-r from-yellow-500 to-orange-500 h-1.5 rounded-full transition-all duration-500"
+                                style={{ width: `${userReport.evaluation_stats.good.percentage}%` }}
+                              ></div>
+                            </div>
+                          </div>
+
+                          {/* ضعيف */}
+                          <div className="bg-white rounded-lg p-3 border-2 border-red-300 shadow-sm hover:shadow-md transition-all">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center">
+                                <span className="text-white font-bold text-base">
+                                  {userReport.evaluation_stats.weak.count}
+                                </span>
+                              </div>
+                              <div className="text-left">
+                                <span className="text-lg font-bold text-red-700">
+                                  {userReport.evaluation_stats.weak.percentage.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                            <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                              {userReport.evaluation_stats.weak.label}
+                            </h4>
+                            <p className="text-xs text-gray-600 mb-2">
+                              {userReport.evaluation_stats.weak.count} تقييم
+                            </p>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div 
+                                className="bg-gradient-to-r from-red-500 to-rose-600 h-1.5 rounded-full transition-all duration-500"
+                                style={{ width: `${userReport.evaluation_stats.weak.percentage}%` }}
+                              ></div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
