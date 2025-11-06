@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/config';
 import { useWorkflow } from '../../contexts/WorkflowContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Process, Stage, ProcessField, FieldType } from '../../types/workflow';
 import { useToast, ToastContainer } from '../ui/Toast';
 import {
@@ -32,6 +33,7 @@ import {
 export const ProcessManager: React.FC = () => {
   const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, updateFieldInProcess, removeFieldFromProcess, addStageToProcess, updateStageInProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
   const { toasts, showSuccess, showError, removeToast } = useToast();
+  const { hasPermission } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
@@ -936,13 +938,15 @@ export const ProcessManager: React.FC = () => {
             <p className="text-gray-600">إنشاء وتعديل العمليات والمراحل والحقول</p>
           </div>
           
-          <button
-            onClick={() => setIsCreating(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
-          >
-            <Plus className="w-4 h-4" />
-            <span>عملية جديدة</span>
-          </button>
+          {hasPermission('processes', 'create') && (
+            <button
+              onClick={() => setIsCreating(true)}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
+            >
+              <Plus className="w-4 h-4" />
+              <span>عملية جديدة</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1008,18 +1012,22 @@ export const ProcessManager: React.FC = () => {
                     <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
                       <Copy className="w-4 h-4 text-gray-500" />
                     </button>
-                    <button
-                      onClick={() => handleStartEdit(selectedProcess)}
-                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                      <Edit className="w-4 h-4 text-gray-500" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteProcess(selectedProcess.id)}
-                      className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
+                    {hasPermission('processes', 'update') && (
+                      <button
+                        onClick={() => handleStartEdit(selectedProcess)}
+                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                      >
+                        <Edit className="w-4 h-4 text-gray-500" />
+                      </button>
+                    )}
+                    {hasPermission('processes', 'delete') && (
+                      <button
+                        onClick={() => handleDeleteProcess(selectedProcess.id)}
+                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

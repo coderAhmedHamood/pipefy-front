@@ -49,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onViewChange
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const location = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -135,6 +135,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPath === item.id;
+
+            // التحقق من الصلاحيات للعناصر المحددة
+            if (item.id === 'processes' && !hasPermission('processes', 'manage')) {
+              return null;
+            }
 
             return (
               <li key={item.id}>
