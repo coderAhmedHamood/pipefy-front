@@ -33,7 +33,22 @@ import {
 export const ProcessManager: React.FC = () => {
   const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, updateFieldInProcess, removeFieldFromProcess, addStageToProcess, updateStageInProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
+  
+  // تسجيل تشخيصي للصلاحيات عند تحميل المكون
+  useEffect(() => {
+    console.log('🔍 ProcessManager - تحميل الصلاحيات:');
+    console.log('   المستخدم:', user?.name || user?.email);
+    console.log('   الصلاحيات:', user?.permissions?.map(p => `${p.resource}.${p.action}`) || 'لا توجد');
+    console.log('   fields.create:', hasPermission('fields', 'create'));
+    console.log('   fields.update:', hasPermission('fields', 'update'));
+    console.log('   fields.delete:', hasPermission('fields', 'delete'));
+    console.log('   fields.read:', hasPermission('fields', 'read'));
+    console.log('   stages.create:', hasPermission('stages', 'create'));
+    console.log('   stages.update:', hasPermission('stages', 'update'));
+    console.log('   stages.delete:', hasPermission('stages', 'delete'));
+    console.log('   stages.read:', hasPermission('stages', 'read'));
+  }, [user, hasPermission]);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingStage, setEditingStage] = useState<Stage | null>(null);
@@ -1064,47 +1079,49 @@ export const ProcessManager: React.FC = () => {
                     <span>المراحل ({selectedProcess.stages.length})</span>
                   </h3>
                   
-                  <button
-                    onClick={() => {
-                      const maxPriority = selectedProcess.stages.length > 0
-                        ? Math.max(...selectedProcess.stages.map(s => s.priority || 0))
-                        : 0;
+                  {hasPermission('stages', 'create') && (
+                    <button
+                      onClick={() => {
+                        const maxPriority = selectedProcess.stages.length > 0
+                          ? Math.max(...selectedProcess.stages.map(s => s.priority || 0))
+                          : 0;
 
-                      // إعداد حالة المرحلة الجديدة
-                      setEditingStage({
-                        id: '',
-                        name: '',
-                        description: '',
-                        color: 'bg-gray-500',
-                        order: selectedProcess.stages.length + 1,
-                        priority: maxPriority + 1,
-                        allowed_transitions: [],
-                        is_initial: false,
-                        is_final: false,
-                        sla_hours: null,
-                        fields: [],
-                        transition_rules: [],
-                        automation_rules: []
-                      });
+                        // إعداد حالة المرحلة الجديدة
+                        setEditingStage({
+                          id: '',
+                          name: '',
+                          description: '',
+                          color: 'bg-gray-500',
+                          order: selectedProcess.stages.length + 1,
+                          priority: maxPriority + 1,
+                          allowed_transitions: [],
+                          is_initial: false,
+                          is_final: false,
+                          sla_hours: null,
+                          fields: [],
+                          transition_rules: [],
+                          automation_rules: []
+                        });
 
-                      // إعداد نموذج المرحلة الجديدة
-                      setStageForm({
-                        name: '',
-                        description: '',
-                        color: 'bg-gray-500',
-                        order: selectedProcess.stages.length + 1,
-                        priority: maxPriority + 1,
-                        allowed_transitions: [],
-                        is_initial: false,
-                        is_final: false,
-                        sla_hours: undefined
-                      });
-                    }}
-                    className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse text-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>إضافة مرحلة</span>
-                  </button>
+                        // إعداد نموذج المرحلة الجديدة
+                        setStageForm({
+                          name: '',
+                          description: '',
+                          color: 'bg-gray-500',
+                          order: selectedProcess.stages.length + 1,
+                          priority: maxPriority + 1,
+                          allowed_transitions: [],
+                          is_initial: false,
+                          is_final: false,
+                          sla_hours: undefined
+                        });
+                      }}
+                      className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>إضافة مرحلة</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -1134,38 +1151,40 @@ export const ProcessManager: React.FC = () => {
                       )}
                       
                       <div className="flex items-center space-x-2 space-x-reverse">
-                        <button
-                          onClick={() => {
-                            console.log('🔍 فتح نموذج تعديل المرحلة:', stage);
-                            console.log('   - is_initial:', stage.is_initial, '(نوع:', typeof stage.is_initial, ')');
-                            console.log('   - is_final:', stage.is_final, '(نوع:', typeof stage.is_final, ')');
+                        {hasPermission('stages', 'update') && (
+                          <button
+                            onClick={() => {
+                              console.log('🔍 فتح نموذج تعديل المرحلة:', stage);
+                              console.log('   - is_initial:', stage.is_initial, '(نوع:', typeof stage.is_initial, ')');
+                              console.log('   - is_final:', stage.is_final, '(نوع:', typeof stage.is_final, ')');
 
-                            // إعداد حالة المرحلة للتحرير
-                            setEditingStage(stage);
+                              // إعداد حالة المرحلة للتحرير
+                              setEditingStage(stage);
 
-                            // ملء النموذج بالبيانات الحالية للمرحلة
-                            // ✅ إصلاح: استخدام === true بدلاً من || false للحفاظ على القيم الصحيحة
-                            setStageForm({
-                              name: stage.name || '',
-                              description: stage.description || '',
-                              color: stage.color || 'bg-gray-500',
-                              order: stage.order || 1,
-                              priority: stage.priority || 1,
-                              allowed_transitions: stage.allowed_transitions || ((stage as any).transitions ? (stage as any).transitions.map((t: any) => t.to_stage_id) : []),
-                              is_initial: stage.is_initial === true,
-                              is_final: stage.is_final === true,
-                              sla_hours: stage.sla_hours || undefined
-                            });
+                              // ملء النموذج بالبيانات الحالية للمرحلة
+                              // ✅ إصلاح: استخدام === true بدلاً من || false للحفاظ على القيم الصحيحة
+                              setStageForm({
+                                name: stage.name || '',
+                                description: stage.description || '',
+                                color: stage.color || 'bg-gray-500',
+                                order: stage.order || 1,
+                                priority: stage.priority || 1,
+                                allowed_transitions: stage.allowed_transitions || ((stage as any).transitions ? (stage as any).transitions.map((t: any) => t.to_stage_id) : []),
+                                is_initial: stage.is_initial === true,
+                                is_final: stage.is_final === true,
+                                sla_hours: stage.sla_hours || undefined
+                              });
 
-                            console.log('📝 النموذج بعد الملء:');
-                            console.log('   - is_initial:', stage.is_initial === true);
-                            console.log('   - is_final:', stage.is_final === true);
-                          }}
-                          className="p-1 rounded hover:bg-gray-100"
-                        >
-                          <Edit className="w-4 h-4 text-gray-500" />
-                        </button>
-                        {selectedProcess.stages.length > 1 && (
+                              console.log('📝 النموذج بعد الملء:');
+                              console.log('   - is_initial:', stage.is_initial === true);
+                              console.log('   - is_final:', stage.is_final === true);
+                            }}
+                            className="p-1 rounded hover:bg-gray-100"
+                          >
+                            <Edit className="w-4 h-4 text-gray-500" />
+                          </button>
+                        )}
+                        {selectedProcess.stages.length > 1 && hasPermission('stages', 'delete') && (
                             <>
                               <div className="text-gray-400 font-medium">#{stage.priority}</div>
                               <button
@@ -1180,6 +1199,9 @@ export const ProcessManager: React.FC = () => {
                                 )}
                               </button>
                             </>
+                        )}
+                        {selectedProcess.stages.length > 1 && !hasPermission('stages', 'delete') && (
+                          <div className="text-gray-400 font-medium">#{stage.priority}</div>
                         )}
                         <div className="flex items-center space-x-2 space-x-reverse mt-1">
                           {stage.is_initial && (
@@ -1209,13 +1231,15 @@ export const ProcessManager: React.FC = () => {
                     <span>الحقول المخصصة ({selectedProcess.fields.length})</span>
                   </h3>
                   
-                  <button
-                    onClick={() => setEditingField({ id: '', name: '', type: 'text', is_required: false, is_system_field: false })}
-                    className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse text-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>إضافة حقل</span>
-                  </button>
+                  {hasPermission('fields', 'create') && (
+                    <button
+                      onClick={() => setEditingField({ id: '', name: '', type: 'text', is_required: false, is_system_field: false })}
+                      className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>إضافة حقل</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -1232,31 +1256,35 @@ export const ProcessManager: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center space-x-2 space-x-reverse">
-                        <button
-                          onClick={() => {
-                            console.log('🖱️ النقر على تحرير الحقل:', field);
-                            console.log('🔍 نوع البيانات:', typeof field);
-                            console.log('🔍 خصائص الحقل:', Object.keys(field));
-                            console.log('🔍 field.field_type:', (field as any).field_type);
-                            console.log('🔍 field.type:', (field as any).type);
-                            console.log('🔍 البيانات الكاملة:', JSON.stringify(field, null, 2));
-                            setEditingField(field);
-                          }}
-                          className="p-1 rounded hover:bg-gray-100"
-                        >
-                          <Edit className="w-4 h-4 text-gray-500" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteField(field.id)}
-                          disabled={isDeletingField === field.id}
-                          className="p-1 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                        >
-                          {isDeletingField === field.id ? (
-                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          )}
-                        </button>
+                        {hasPermission('fields', 'update') && (
+                          <button
+                            onClick={() => {
+                              console.log('🖱️ النقر على تحرير الحقل:', field);
+                              console.log('🔍 نوع البيانات:', typeof field);
+                              console.log('🔍 خصائص الحقل:', Object.keys(field));
+                              console.log('🔍 field.field_type:', (field as any).field_type);
+                              console.log('🔍 field.type:', (field as any).type);
+                              console.log('🔍 البيانات الكاملة:', JSON.stringify(field, null, 2));
+                              setEditingField(field);
+                            }}
+                            className="p-1 rounded hover:bg-gray-100"
+                          >
+                            <Edit className="w-4 h-4 text-gray-500" />
+                          </button>
+                        )}
+                        {hasPermission('fields', 'delete') && (
+                          <button
+                            onClick={() => handleDeleteField(field.id)}
+                            disabled={isDeletingField === field.id}
+                            className="p-1 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                          >
+                            {isDeletingField === field.id ? (
+                              <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
