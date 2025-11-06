@@ -1016,7 +1016,7 @@ export const UserManagerNew: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-3 space-x-reverse">
-            {selectedTab === 'users' && hasPermission('users', 'manage') && (
+            {selectedTab === 'users' && hasPermission('users', 'create') && (
               <button
                 onClick={() => setIsCreatingUser(true)}
                 className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
@@ -1080,29 +1080,33 @@ export const UserManagerNew: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex space-x-1 space-x-reverse bg-gray-100 rounded-lg p-1">
-          <button
-            onClick={() => setSelectedTab('users')}
-            className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              selectedTab === 'users'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>المستخدمين ({state.users.length})</span>
-          </button>
+          {hasPermission('users', 'view') && (
+            <button
+              onClick={() => setSelectedTab('users')}
+              className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                selectedTab === 'users'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>المستخدمين ({state.users.length})</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setSelectedTab('roles')}
-            className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              selectedTab === 'roles'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Shield className="w-4 h-4" />
-            <span>الأدوار ({state.roles.length})</span>
-          </button>
+          {hasPermission('roles', 'view') && (
+            <button
+              onClick={() => setSelectedTab('roles')}
+              className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                selectedTab === 'roles'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              <span>الأدوار ({state.roles.length})</span>
+            </button>
+          )}
 
           <button
             onClick={() => setSelectedTab('permissions')}
@@ -1141,7 +1145,7 @@ export const UserManagerNew: React.FC = () => {
           </div>
         )}
 
-        {!state.loading && selectedTab === 'users' && (
+        {!state.loading && selectedTab === 'users' && hasPermission('users', 'view') && (
           <div className="bg-white rounded-lg shadow-sm">
             {/* Search and Filter */}
             <div className="p-4 border-b border-gray-200">
@@ -1236,35 +1240,41 @@ export const UserManagerNew: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {new Date(user.created_at).toLocaleDateString('ar-SA')}
                       </td>
-                      {hasPermission('users', 'manage') && (
+                      {(hasPermission('permissions', 'manage') || hasPermission('users', 'edit') || hasPermission('users', 'delete')) && (
                         <td className="px-6 py-4">
                           <div className="flex items-center space-x-2 space-x-reverse">
-                            {/* زر عرض/إخفاء صلاحيات العمليات */}
-                         
-
                             {/* زر الصلاحيات غير المفعلة */}
-                            <button
-                              onClick={() => handleOpenInactivePermissions(user)}
-                              className="p-2 rounded-lg hover:bg-purple-50 transition-colors"
-                              title="عرض الصلاحيات غير المفعلة"
-                            >
-                              <Key className="w-4 h-4 text-purple-600" />
-                            </button>
+                            {hasPermission('permissions', 'manage') && (
+                              <button
+                                onClick={() => handleOpenInactivePermissions(user)}
+                                className="p-2 rounded-lg hover:bg-purple-50 transition-colors"
+                                title="عرض الصلاحيات غير المفعلة"
+                              >
+                                <Key className="w-4 h-4 text-purple-600" />
+                              </button>
+                            )}
 
-                            <button
-                              onClick={() => openEditUserModal(user)}
-                              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                              title="تعديل المستخدم"
-                            >
-                              <Edit className="w-4 h-4 text-gray-500" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                              title="حذف المستخدم"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </button>
+                            {/* زر تعديل المستخدم */}
+                            {hasPermission('users', 'edit') && (
+                              <button
+                                onClick={() => openEditUserModal(user)}
+                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                title="تعديل المستخدم"
+                              >
+                                <Edit className="w-4 h-4 text-gray-500" />
+                              </button>
+                            )}
+
+                            {/* زر حذف المستخدم */}
+                            {hasPermission('users', 'delete') && (
+                              <button
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                title="حذف المستخدم"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-500" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}
@@ -1371,7 +1381,7 @@ export const UserManagerNew: React.FC = () => {
         )}
 
         {/* Roles Tab */}
-        {!state.loading && selectedTab === 'roles' && (
+        {!state.loading && selectedTab === 'roles' && hasPermission('roles', 'view') && (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {state.roles.map((role) => (
               <div key={role.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
