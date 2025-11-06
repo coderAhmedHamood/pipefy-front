@@ -146,6 +146,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return null;
             }
 
+            // إخفاء تبويبة لوحة المعلومات إذا لم يكن لديه صلاحية العرض
+            if (item.id === 'dashboard' && !hasPermission('reports', 'dashboard')) {
+              return null;
+            }
+
+            // إخفاء تبويبة الأتمتة إذا لم يكن لديه صلاحية الإدارة
+            if (item.id === 'automation' && !hasPermission('integrations', 'manage')) {
+              return null;
+            }
+
+            // إخفاء تبويبة التذاكر المتكررة إذا لم يكن لديه صلاحية الإدارة
+            if (item.id === 'recurring' && !hasPermission('tickets', 'recurring')) {
+              return null;
+            }
+
+            // إخفاء تبويبة التقارير إذا لم يكن لديه صلاحية العرض
+            if (item.id === 'reports' && !hasPermission('reports', 'view')) {
+              return null;
+            }
+
+            // إخفاء تبويبة توثيق API إذا لم يكن لديه صلاحية الوصول
+            if (item.id === 'api' && !hasPermission('api', 'documentation')) {
+              return null;
+            }
+
+            // إخفاء تبويبة الإعدادات إذا لم يكن لديه صلاحية الإعدادات
+            if (item.id === 'settings' && !hasPermission('system', 'settings')) {
+              return null;
+            }
+
             return (
               <li key={item.id}>
                 <Link
