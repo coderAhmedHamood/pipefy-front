@@ -1038,7 +1038,7 @@ export const UserManagerNew: React.FC = () => {
               </button>
             )}
 
-            {selectedTab === 'process-permissions' && hasPermission('users', 'manage') && (
+            {selectedTab === 'process-permissions' && hasPermission('processes', 'manage_user_permissions') && (
               <button
                 onClick={() => setIsAssigningProcesses(true)}
                 className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
@@ -1108,29 +1108,33 @@ export const UserManagerNew: React.FC = () => {
             </button>
           )}
 
-          <button
-            onClick={() => setSelectedTab('permissions')}
-            className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              selectedTab === 'permissions'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Key className="w-4 h-4" />
-            <span>الصلاحيات ({state.permissions.length})</span>
-          </button>
+          {hasPermission('permissions', 'manage') && (
+            <button
+              onClick={() => setSelectedTab('permissions')}
+              className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                selectedTab === 'permissions'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Key className="w-4 h-4" />
+              <span>الصلاحيات ({state.permissions.length})</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setSelectedTab('process-permissions')}
-            className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-              selectedTab === 'process-permissions'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Shield className="w-4 h-4" />
-            <span>صلاحيات العمليات ({state.processes.length})</span>
-          </button>
+          {hasPermission('processes', 'manage_user_permissions') && (
+            <button
+              onClick={() => setSelectedTab('process-permissions')}
+              className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                selectedTab === 'process-permissions'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              <span>صلاحيات العمليات ({state.processes.length})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1437,7 +1441,7 @@ export const UserManagerNew: React.FC = () => {
         )}
 
         {/* Permissions Tab */}
-        {!state.loading && selectedTab === 'permissions' && (
+        {!state.loading && selectedTab === 'permissions' && hasPermission('permissions', 'manage') && (
           <div className="bg-white rounded-lg shadow-sm">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">الصلاحيات المتاحة</h3>
@@ -1465,7 +1469,7 @@ export const UserManagerNew: React.FC = () => {
         )}
 
         {/* Process Permissions Tab */}
-        {!state.loading && selectedTab === 'process-permissions' && (
+        {!state.loading && selectedTab === 'process-permissions' && hasPermission('processes', 'manage_user_permissions') && (
           <div className="bg-white rounded-lg shadow-sm">
             <div className="p-6">
              
@@ -1674,9 +1678,7 @@ export const UserManagerNew: React.FC = () => {
                               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 الحالة
                               </th>
-                              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                الإجراءات
-                              </th>
+                              
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
@@ -1729,6 +1731,9 @@ export const UserManagerNew: React.FC = () => {
                                     </span>
                                   </div>
                                 </td>
+
+
+                              {selectedTab === 'process-permissions' && hasPermission('processes', 'manage_user_permissions') && (
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <button
                                     onClick={() => toggleUserProcesses(user.id)}
@@ -1739,6 +1744,11 @@ export const UserManagerNew: React.FC = () => {
                                     <span>الصلاحيات</span>
                                   </button>
                                 </td>
+                              )}
+                                
+
+
+
                               </tr>
                               {expandedUserId === user.id && (
                                 <tr>

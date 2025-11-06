@@ -141,6 +141,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return null;
             }
 
+            // إخفاء تبويبة المستخدمين إذا لم يكن لديه صلاحية العرض
+            if (item.id === 'users' && !hasPermission('users', 'manage')) {
+              return null;
+            }
+
             return (
               <li key={item.id}>
                 <Link
