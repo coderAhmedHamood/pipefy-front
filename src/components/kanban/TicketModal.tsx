@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../../config/config';
 import { Ticket, Process, Stage, Activity, Priority } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useSimpleMove } from '../../hooks/useSimpleMove';
 import { useSimpleDelete } from '../../hooks/useSimpleDelete';
 import { useSimpleUpdate } from '../../hooks/useSimpleUpdate';
@@ -842,6 +843,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   onDelete
 }) => {
   const { getProcessUsers, processes } = useWorkflow();
+  const { hasPermission } = useAuth();
   const notifications = useQuickNotifications();
   const { moveTicket, isMoving } = useSimpleMove();
   const { deleteTicket, isDeleting } = useSimpleDelete();
@@ -1712,7 +1714,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     }`}
                   >
                     <Save className="w-4 h-4" />
-                    <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ التغييرات'}</span>
+                    <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ'}</span>
                   </button>
                   
                   <button
@@ -1725,17 +1727,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium"
-                  >
-                    <Edit className="w-4 h-4" />
-                    <span>تعديل التذكرة</span>
-                  </button>
-                  
-                   
-                  
-                 
+                  {( hasPermission('tickets', 'update')) && (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium"
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span>تعديل التذكرة</span>
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -1744,27 +1744,31 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
 
 
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-colors"
-              >
-                <Edit className="w-5 h-5" />
-              </button>
+              {( hasPermission('tickets', 'update')) && (
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-colors"
+                >
+                  <Edit className="w-5 h-5" />
+                </button>
+              )}
 
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                disabled={isDeleting}
-                className={`bg-red-500 bg-opacity-80 hover:bg-opacity-100 text-white p-2 rounded-lg transition-colors ${
-                  isDeleting ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                title="حذف التذكرة"
-              >
-                {isDeleting ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Trash2 className="w-5 h-5" />
-                )}
-              </button>
+              {hasPermission('tickets', 'delete') && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={isDeleting}
+                  className={`bg-red-500 bg-opacity-80 hover:bg-opacity-100 text-white p-2 rounded-lg transition-colors ${
+                    isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  title="حذف التذكرة"
+                >
+                  {isDeleting ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 className="w-5 h-5" />
+                  )}
+                </button>
+              )}
 
               <button
                 onClick={onClose}

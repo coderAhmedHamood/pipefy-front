@@ -8,7 +8,7 @@ INSERT INTO roles (id, name, description, is_system_role) VALUES
   ('550e8400-e29b-41d4-a716-446655440003', 'guest', 'ضيف', TRUE)
 ON CONFLICT (name) DO NOTHING;
 
--- إدراج الصلاحيات الأساسية الكاملة (42 صلاحية)
+-- إدراج الصلاحيات الأساسية الكاملة (41 صلاحية)
 INSERT INTO permissions (name, resource, action, description) VALUES
   -- صلاحيات Fields (الحقول) - 4 صلاحيات
   ('إنشاء الحقول', 'fields', 'create', 'إنشاء حقول جديدة'),
@@ -31,13 +31,12 @@ INSERT INTO permissions (name, resource, action, description) VALUES
   ('عرض المراحل', 'stages', 'read', 'عرض المراحل'),
   ('تعديل المراحل', 'stages', 'update', 'تعديل المراحل الموجودة'),
   
-  -- صلاحيات Tickets (التذاكر) - 10 صلاحيات
+  -- صلاحيات Tickets (التذاكر) - 9 صلاحيات
   ('إنشاء التذاكر', 'tickets', 'create', 'إنشاء تذاكر جديدة'),
   ('حذف التذاكر', 'tickets', 'delete', 'حذف التذاكر'),
-  ('تعديل التذاكر', 'tickets', 'edit', 'تعديل التذاكر الموجودة'),
   ('إدارة التذاكر', 'tickets', 'manage', 'إدارة كاملة للتذاكر'),
   ('عرض التذاكر', 'tickets', 'read', 'عرض التذاكر'),
-  ('تحديث التذاكر', 'tickets', 'update', 'تحديث التذاكر الموجودة'),
+  ('تعديل التذاكر', 'tickets', 'update', 'تعديل التذاكر الموجودة'),
   ('عرض جميع التذاكر', 'tickets', 'view_all', 'عرض جميع التذاكر في النظام'),
   ('عرض التذاكر الخاصة', 'tickets', 'view_own', 'عرض التذاكر الخاصة بالمستخدم فقط'),
   ('التحكم في نطاق عرض التذاكر', 'tickets', 'view_scope', 'التحكم في ما إذا كان المستخدم يرى تذاكر الجميع أو تذاكره الخاصة فقط'),

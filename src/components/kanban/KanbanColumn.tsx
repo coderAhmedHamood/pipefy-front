@@ -4,6 +4,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { KanbanCard } from './KanbanCard';
 import { Stage, Ticket } from '../../types/workflow';
 import { Plus, MoreVertical, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface KanbanColumnProps {
   stage: Stage;
@@ -28,6 +29,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   loadingMore,
   onLoadMore
 }) => {
+  const { hasPermission } = useAuth();
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id
   });
@@ -121,13 +123,15 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
             </span>
           )}
         </div>
-        <button
-          onClick={onCreateTicket}
-          className="w-full flex items-center justify-center space-x-2 space-x-reverse p-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-700"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="text-sm font-medium">إضافة تذكرة</span>
-        </button>
+        {hasPermission('tickets', 'create') && (
+          <button
+            onClick={onCreateTicket}
+            className="w-full flex items-center justify-center space-x-2 space-x-reverse p-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-700"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="text-sm font-medium">إضافة تذكرة</span>
+          </button>
+        )}
       </div>
 
       {/* Column Content */}

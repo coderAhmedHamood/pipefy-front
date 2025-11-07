@@ -5,6 +5,7 @@ import { KanbanColumn } from './KanbanColumn';
 import { TicketModal } from './TicketModal';
 import { CreateTicketModal } from './CreateTicketModal';
 import { useWorkflow } from '../../contexts/WorkflowContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Ticket, Process } from '../../types/workflow';
 import { Plus, Search, LayoutGrid, List, RefreshCw, AlertCircle, Settings, HelpCircle, Filter } from 'lucide-react';
 import { getPriorityColor, getPriorityLabel } from '../../utils/priorityUtils';
@@ -18,6 +19,7 @@ interface KanbanBoardProps {
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const { } = useWorkflow();
+  const { hasPermission } = useAuth();
   const { showSuccess, showError } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -520,14 +522,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                 </button>
               </div>
               
-              <button
-                type="button"
-                onClick={() => setIsCreatingTicket(true)}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
-              >
-                <Plus className="w-4 h-4" />
-                <span>تذكرة جديدة</span>
-              </button>
+              {hasPermission('tickets', 'create') && (
+                <button
+                  type="button"
+                  onClick={() => setIsCreatingTicket(true)}
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>تذكرة جديدة</span>
+                </button>
+              )}
 
               <button
                 type="button"
@@ -716,13 +720,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
               </button>
             </div>
             
-            <button
+             {hasPermission('tickets', 'create') && (
+               <button
               onClick={handleCreateTicketFromHeader}
               className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
             >
               <Plus className="w-4 h-4" />
               <span>تذكرة جديدة</span>
             </button>
+              )}
+
+            
           </div>
         </div>
 
