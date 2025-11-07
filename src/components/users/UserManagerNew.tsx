@@ -129,7 +129,7 @@ export const UserManagerNew: React.FC = () => {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
       const [usersResponse, rolesResponse, permissionsResponse, processesResponse] = await Promise.all([
-        userService.getAllUsers({ page: 1, per_page: 20 }),
+        userService.getAllUsers({ page: 1, per_page: 20, is_active: false }),
         roleService.getAllRoles({ include_permissions: true }),
         permissionService.getAllPermissions(),
         processService.getProcesses()
@@ -162,7 +162,7 @@ export const UserManagerNew: React.FC = () => {
         per_page: state.pagination.per_page,
         search: searchQuery || undefined,
         role_id: filters.role_id || undefined,
-        is_active: filters.is_active
+        is_active: false
       };
 
       const response = await userService.getAllUsers(params);
