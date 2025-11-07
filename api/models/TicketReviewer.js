@@ -97,9 +97,9 @@ class TicketReviewer {
 
     const query = `
       INSERT INTO ticket_reviewers 
-      (ticket_id, user_id, assigned_by, review_notes, rate)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (ticket_id, user_id) DO UPDATE SET
+      (ticket_id, reviewer_id, added_by, review_notes, rate, is_active)
+      VALUES ($1, $2, $3, $4, $5, TRUE)
+      ON CONFLICT (ticket_id, reviewer_id) DO UPDATE SET
         is_active = TRUE,
         updated_at = NOW()
       RETURNING *
@@ -124,12 +124,14 @@ class TicketReviewer {
         u.name as reviewer_name,
         u.email as reviewer_email,
         u.avatar_url as reviewer_avatar,
-        ab.name as added_by_name
+        ab.name as added_by_name,
+        ab.email as added_by_email
       FROM ticket_reviewers tr
-      LEFT JOIN users u ON tr.user_id = u.id
-      LEFT JOIN users ab ON tr.assigned_by = ab.id
-      WHERE tr.ticket_id = $1 AND tr.is_active = true
-      ORDER BY tr.assigned_at DESC
+      LEFT JOIN users u ON tr.reviewer_id = u.id
+      LEFT JOIN users ab ON tr.added_by = ab.id
+      WHERE tr.ticket_id = $1 
+        AND (tr.is_active = true OR tr.is_active IS NULL)
+      ORDER BY tr.added_at DESC
     `;
 
     const result = await pool.query(query, [ticketId]);
@@ -156,7 +158,7 @@ class TicketReviewer {
       FROM ticket_reviewers tr
       LEFT JOIN tickets t ON tr.ticket_id = t.id
       LEFT JOIN processes p ON t.process_id = p.id
-      WHERE tr.user_id = $1
+      WHERE tr.reviewer_id = $1
     `;
 
     const params = [reviewerId];
@@ -169,7 +171,7 @@ class TicketReviewer {
     }
 
     if (is_active !== null) {
-      query += ` AND tr.is_active = $${paramIndex}`;
+      query += ` AND (tr.is_active = $${paramIndex} OR tr.is_active IS NULL)`;
       params.push(is_active);
       paramIndex++;
     }
@@ -328,7 +330,7 @@ class TicketReviewer {
     const query = `
       SELECT EXISTS(
         SELECT 1 FROM ticket_reviewers 
-        WHERE ticket_id = $1 AND user_id = $2 AND is_active = true
+        WHERE ticket_id = $1 AND reviewer_id = $2 AND (is_active = true OR is_active IS NULL)
       ) as exists
     `;
 
@@ -340,7 +342,7 @@ class TicketReviewer {
   static async findExisting(ticketId, reviewerId) {
     const query = `
       SELECT * FROM ticket_reviewers 
-      WHERE ticket_id = $1 AND user_id = $2
+      WHERE ticket_id = $1 AND reviewer_id = $2
       LIMIT 1
     `;
 
@@ -351,7 +353,7 @@ class TicketReviewer {
   // إعادة تفعيل مراجع محذوف
   static async reactivate(id, updateData = {}) {
     const { added_by, assigned_by, review_notes, rate } = updateData;
-    const assignedBy = assigned_by || added_by;
+    const addedBy = added_by || assigned_by;
 
     // التحقق من صحة التقييم
     if (rate && !this.validateRate(rate)) {
@@ -362,9 +364,9 @@ class TicketReviewer {
     const values = [];
     let paramIndex = 1;
 
-    if (assignedBy) {
-      updates.push(`assigned_by = $${paramIndex}`);
-      values.push(assignedBy);
+    if (addedBy) {
+      updates.push(`added_by = $${paramIndex}`);
+      values.push(addedBy);
       paramIndex++;
     }
 
@@ -380,7 +382,7 @@ class TicketReviewer {
       paramIndex++;
     }
 
-    updates.push(`assigned_at = NOW()`, `updated_at = NOW()`);
+    updates.push(`added_at = NOW()`, `updated_at = NOW()`);
     values.push(id);
 
     const query = `
@@ -404,7 +406,7 @@ class TicketReviewer {
         COUNT(*) FILTER (WHERE review_status = 'completed') as completed_reviews,
         COUNT(*) FILTER (WHERE review_status = 'skipped') as skipped_reviews
       FROM ticket_reviewers
-      WHERE ticket_id = $1 AND is_active = true
+      WHERE ticket_id = $1 AND (is_active = true OR is_active IS NULL)
     `;
 
     const result = await pool.query(query, [ticketId]);
@@ -422,7 +424,7 @@ class TicketReviewer {
         COUNT(*) FILTER (WHERE review_status = 'completed') as completed,
         COUNT(*) FILTER (WHERE review_status = 'skipped') as skipped
       FROM ticket_reviewers
-      WHERE user_id = $1 AND is_active = true
+      WHERE reviewer_id = $1 AND (is_active = true OR is_active IS NULL)
     `;
 
     const result = await pool.query(query, [reviewerId]);
@@ -434,7 +436,7 @@ class TicketReviewer {
     const query = `
       UPDATE ticket_reviewers 
       SET review_status = 'in_progress', updated_at = NOW()
-      WHERE id = $1 AND user_id = $2
+      WHERE id = $1 AND reviewer_id = $2
       RETURNING *
     `;
 
@@ -451,7 +453,7 @@ class TicketReviewer {
         reviewed_at = NOW(),
         review_notes = COALESCE($3, review_notes),
         updated_at = NOW()
-      WHERE id = $1 AND user_id = $2
+      WHERE id = $1 AND reviewer_id = $2
       RETURNING *
     `;
 
@@ -467,7 +469,7 @@ class TicketReviewer {
         review_status = 'skipped',
         review_notes = COALESCE($3, review_notes),
         updated_at = NOW()
-      WHERE id = $1 AND user_id = $2
+      WHERE id = $1 AND reviewer_id = $2
       RETURNING *
     `;
 

@@ -2238,13 +2238,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       <Users className="w-5 h-5 text-blue-500" />
                       <span>المستخدمين المُسندين ({assignments.length})</span>
                     </h3>
-                    <button
-                      onClick={() => setShowAddAssignment(true)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="إضافة مستخدم"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    {hasPermission('ticket_assignees', 'create') && (
+                      <button
+                        onClick={() => setShowAddAssignment(true)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="إضافة مستخدم"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -2288,20 +2290,23 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
 
                 {/* المراجعين */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
-                      <Shield className="w-5 h-5 text-green-500" />
-                      <span>المراجعين ({reviewers.length})</span>
-                    </h3>
-                    <button
-                      onClick={() => setShowAddReviewer(true)}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="إضافة مراجع"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
+                {hasPermission('ticket_reviewers', 'view') && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
+                        <Shield className="w-5 h-5 text-green-500" />
+                        <span>المراجعين ({reviewers.length})</span>
+                      </h3>
+                      {hasPermission('ticket_reviewers', 'create') && (
+                        <button
+                          onClick={() => setShowAddReviewer(true)}
+                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="إضافة مراجع"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
 
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {isLoadingReviewers ? (
@@ -2433,7 +2438,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
+                  </div>
+                )}
               </div>
             </div>
 
