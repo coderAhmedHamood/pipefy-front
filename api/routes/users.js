@@ -149,6 +149,21 @@ router.get('/stats',
  * /api/users:
  *   get:
  *     summary: جلب جميع المستخدمين
+ *     description: |
+ *       يجلب جميع المستخدمين.
+ *       
+ *       **السلوك الافتراضي:**
+ *       - بدون أي بارامتر → يجلب المستخدمين المفعلين فقط (is_active: true)
+ *       - بدون بارامتر `include_deleted` → يجلب المستخدمين النشطين فقط (غير المحذوفين)
+ *       
+ *       **معامل is_active:**
+ *       - غير محدد (افتراضي) → المفعلين فقط (is_active: true)
+ *       - `is_active=true` → المفعلين فقط
+ *       - `is_active=false` → الجميع (المفعلين وغير المفعلين)
+ *       
+ *       **معامل include_deleted:**
+ *       - `include_deleted=true` → يجلب جميع المستخدمين بما فيهم المحذوفين
+ *       - `include_deleted=false` أو غير محدد → يجلب المستخدمين النشطين فقط
  *     tags: [Users]
  *     parameters:
  *       - in: query
@@ -164,16 +179,30 @@ router.get('/stats',
  *           default: 20
  *         description: عدد العناصر في الصفحة
  *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *         description: |
+ *           تصفية حسب حالة التفعيل:
+ *           - غير محدد (افتراضي) → يجلب المفعلين فقط (is_active: true)
+ *           - `true` → يجلب المفعلين فقط
+ *           - `false` → يجلب الجميع (المفعلين وغير المفعلين)
+ *         example: true
+ *       - in: query
+ *         name: include_deleted
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: |
+ *           إذا كان `true`، يجلب جميع المستخدمين بما فيهم المحذوفين.
+ *           إذا كان `false` (الافتراضي)، يجلب المستخدمين النشطين فقط (deleted_at IS NULL).
+ *         example: false
+ *       - in: query
  *         name: role_id
  *         schema:
  *           type: string
  *           format: uuid
  *         description: تصفية حسب الدور
- *       - in: query
- *         name: is_active
- *         schema:
- *           type: boolean
- *         description: تصفية حسب حالة التفعيل
  *       - in: query
  *         name: search
  *         schema:

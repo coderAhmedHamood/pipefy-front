@@ -8,17 +8,38 @@ class UserService {
       const users = await User.findAll(options);
       
       // حساب العدد الإجمالي للترقيم
-      const totalQuery = `
-        SELECT COUNT(*) as total 
-        FROM users u 
-        WHERE u.deleted_at IS NULL
-        ${options.role_id ? 'AND u.role_id = $1' : ''}
-        ${options.is_active !== undefined ? `AND u.is_active = ${options.is_active}` : ''}
-        ${options.search ? `AND (u.name ILIKE '%${options.search}%' OR u.email ILIKE '%${options.search}%')` : ''}
-      `;
-      
       const { pool } = require('../config/database');
-      const params = options.role_id ? [options.role_id] : [];
+      const params = [];
+      let paramIndex = 1;
+      
+      let totalQuery = `SELECT COUNT(*) as total FROM users u WHERE 1=1`;
+      
+      // إضافة شرط deleted_at بناءً على include_deleted
+      if (!options.include_deleted) {
+        totalQuery += ` AND u.deleted_at IS NULL`;
+      }
+      
+      // إضافة فلتر role_id
+      if (options.role_id) {
+        totalQuery += ` AND u.role_id = $${paramIndex}`;
+        params.push(options.role_id);
+        paramIndex++;
+      }
+      
+      // إضافة فلتر is_active (إذا كان محدد)
+      if (options.is_active !== undefined) {
+        totalQuery += ` AND u.is_active = $${paramIndex}`;
+        params.push(options.is_active);
+        paramIndex++;
+      }
+      
+      // إضافة فلتر البحث
+      if (options.search) {
+        totalQuery += ` AND (u.name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+        params.push(`%${options.search}%`);
+        paramIndex++;
+      }
+      
       const { rows } = await pool.query(totalQuery, params);
       const total = parseInt(rows[0].total);
       

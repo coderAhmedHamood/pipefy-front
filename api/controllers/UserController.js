@@ -4,12 +4,29 @@ class UserController {
   // جلب جميع المستخدمين
   static async getAllUsers(req, res) {
     try {
+      // منطق is_active:
+      // - الوضع الافتراضي (غير محدد): is_active=true (المفعلين فقط)
+      // - is_active=true: المفعلين فقط
+      // - is_active=false: الجميع (المفعلين وغير المفعلين) - لا نطبق فلتر is_active
+      let isActiveFilter;
+      if (req.query.is_active === undefined) {
+        // الافتراضي: جلب المفعلين فقط
+        isActiveFilter = true;
+      } else if (req.query.is_active === 'false' || req.query.is_active === false) {
+        // is_active=false يعني جلب الكل (لا نطبق فلتر)
+        isActiveFilter = undefined;
+      } else {
+        // is_active=true أو أي قيمة أخرى → true
+        isActiveFilter = true;
+      }
+
       const options = {
-        page: req.query.page || 1,
-        per_page: req.query.per_page || 20,
+        page: parseInt(req.query.page) || 1,
+        per_page: parseInt(req.query.per_page) || 20,
         role_id: req.query.role_id,
-        is_active: req.query.is_active !== undefined ? req.query.is_active === 'true' : undefined,
-        search: req.query.search
+        is_active: isActiveFilter,
+        search: req.query.search,
+        include_deleted: req.query.include_deleted === 'true' || req.query.include_deleted === true
       };
 
       const result = await UserService.getAllUsers(options);
