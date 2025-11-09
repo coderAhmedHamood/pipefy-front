@@ -1,4 +1,6 @@
 const nodemailer = require('nodemailer');
+const fs = require('fs').promises;
+const path = require('path');
 const Settings = require('../models/Settings');
 
 class EmailService {
@@ -55,31 +57,41 @@ class EmailService {
    * @param {string} data.footer - نص التذييل (اختياري)
    * @param {Object} settings - إعدادات النظام (مطلوب)
    */
-  static createEmailTemplate(data, settings) {
+  static createEmailTemplate(data, settings, useCid = false) {
     // الألوان الافتراضية
     const primaryColor = settings?.system_primary_color || '#FF5722';
     const secondaryColor = settings?.system_secondary_color || '#4CAF50';
     const systemName = settings?.system_name || 'نظام إدارة المهام';
     const systemDescription = settings?.system_description || '';
     
-    // بناء رابط الشعار الكامل للإيميل
-    // إذا كان system_logo_url مسار نسبي، نضيف api_base_url (للصور والملفات الثابتة)
+    // بناء رابط الشعار للإيميل
+    // إذا كان useCid = true، نستخدم CID (Content-ID) لإرفاق الصورة مباشرة
+    // وإلا نستخدم رابط خارجي
     let systemLogo = settings?.system_logo_url || '';
+    let logoImgTag = '';
+    
     if (systemLogo) {
-      // استخدام api_base_url للصور والملفات الثابتة (وليس frontend_url)
-      const apiBaseUrl = settings?.api_base_url || 'http://localhost:3003';
-      const baseUrl = apiBaseUrl.replace(/\/$/, '');
-      
-      // إذا كان الرابط يبدأ بـ / أو uploads، فهو مسار نسبي
-      if (systemLogo.startsWith('/') || systemLogo.startsWith('uploads/')) {
-        // إزالة الشرطة المائلة الأولى إذا كانت موجودة
-        const logoPath = systemLogo.startsWith('/') ? systemLogo : '/' + systemLogo;
-        systemLogo = `${baseUrl}${logoPath}`;
-      } else if (!systemLogo.startsWith('http://') && !systemLogo.startsWith('https://')) {
-        // إذا لم يكن رابط كامل ولا مسار نسبي، نضيف api_base_url
-        systemLogo = `${baseUrl}/${systemLogo}`;
+      if (useCid) {
+        // استخدام CID لإرفاق الصورة مباشرة في الإيميل
+        logoImgTag = `<img src="cid:company-logo" alt="${systemName}" class="email-logo" />`;
+        console.log(`📸 استخدام CID للشعار: company-logo`);
+      } else {
+        // استخدام رابط خارجي
+        const apiBaseUrl = settings?.api_base_url || 'http://localhost:3003';
+        const baseUrl = apiBaseUrl.replace(/\/$/, '');
+        
+        // إذا كان الرابط يبدأ بـ / أو uploads، فهو مسار نسبي
+        if (systemLogo.startsWith('/') || systemLogo.startsWith('uploads/')) {
+          const logoPath = systemLogo.startsWith('/') ? systemLogo : '/' + systemLogo;
+          systemLogo = `${baseUrl}${logoPath}`;
+        } else if (!systemLogo.startsWith('http://') && !systemLogo.startsWith('https://')) {
+          systemLogo = `${baseUrl}/${systemLogo}`;
+        }
+        logoImgTag = `<img src="${systemLogo}" alt="${systemName}" class="email-logo" />`;
+        console.log(`📸 بناء رابط الشعار: ${systemLogo} (من ${settings?.system_logo_url})`);
       }
-      // إذا كان رابط كامل (http:// أو https://)، نستخدمه كما هو
+    } else {
+      console.log('⚠️ لا يوجد شعار في الإعدادات');
     }
 
     // بناء التمبلت
@@ -206,7 +218,7 @@ class EmailService {
 <body>
     <div class="email-container">
         <div class="email-header">
-            ${systemLogo ? `<img src="${systemLogo}" alt="${systemName}" class="email-logo" />` : ''}
+            ${logoImgTag}
             <h1>${systemName}</h1>
             ${systemDescription ? `<p>${systemDescription}</p>` : ''}
         </div>
@@ -263,9 +275,54 @@ class EmailService {
       
       // إذا تم تمرير templateData، استخدم التمبلت
       let htmlContent = options.html;
+      let attachments = options.attachments || [];
+      
       if (options.templateData) {
         const settings = await Settings.getSettings();
-        htmlContent = this.createEmailTemplate(options.templateData, settings);
+        
+        // محاولة إرفاق الشعار مباشرة في الإيميل (CID)
+        const systemLogoUrl = settings?.system_logo_url || '';
+        if (systemLogoUrl) {
+          try {
+            // الحصول على المسار النسبي للشعار
+            let logoPath = systemLogoUrl;
+            if (logoPath.startsWith('http://') || logoPath.startsWith('https://')) {
+              // إذا كان رابط كامل، استخراج المسار
+              const url = new URL(logoPath);
+              logoPath = url.pathname;
+            }
+            
+            // بناء المسار الكامل للملف
+            const fullLogoPath = path.join(__dirname, '..', logoPath);
+            
+            // التحقق من وجود الملف
+            try {
+              await fs.access(fullLogoPath);
+              
+              // إضافة الشعار كمرفق مع CID
+              attachments.push({
+                filename: path.basename(logoPath),
+                path: fullLogoPath,
+                cid: 'company-logo' // Content-ID للاستخدام في HTML
+              });
+              
+              // استخدام CID في التمبلت
+              htmlContent = this.createEmailTemplate(options.templateData, settings, true);
+              console.log(`✅ تم إرفاق الشعار مباشرة في الإيميل: ${fullLogoPath}`);
+            } catch (fileError) {
+              // الملف غير موجود، استخدام رابط خارجي
+              console.warn(`⚠️ الملف غير موجود: ${fullLogoPath}، استخدام رابط خارجي`);
+              htmlContent = this.createEmailTemplate(options.templateData, settings, false);
+            }
+          } catch (error) {
+            // خطأ في معالجة الشعار، استخدام رابط خارجي
+            console.warn(`⚠️ خطأ في إرفاق الشعار: ${error.message}، استخدام رابط خارجي`);
+            htmlContent = this.createEmailTemplate(options.templateData, settings, false);
+          }
+        } else {
+          // لا يوجد شعار، استخدام التمبلت العادي
+          htmlContent = this.createEmailTemplate(options.templateData, settings, false);
+        }
       }
       
       // إعداد خيارات الرسالة
@@ -277,7 +334,7 @@ class EmailService {
         text: options.text || this.stripHTML(htmlContent),
         ...(options.cc && { cc: Array.isArray(options.cc) ? options.cc.join(', ') : options.cc }),
         ...(options.bcc && { bcc: Array.isArray(options.bcc) ? options.bcc.join(', ') : options.bcc }),
-        ...(options.attachments && { attachments: options.attachments })
+        ...(attachments.length > 0 && { attachments: attachments })
       };
       
       // إرسال الرسالة
