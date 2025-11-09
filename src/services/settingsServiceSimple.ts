@@ -77,6 +77,7 @@ export interface ApiSettings {
   auto_assign_tickets?: boolean;
   ticket_numbering_format?: string;
   frontend_url?: string;
+  api_base_url?: string;
   created_at?: string;
   updated_at?: string;
   created_by?: string;
