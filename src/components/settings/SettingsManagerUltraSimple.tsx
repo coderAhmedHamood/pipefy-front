@@ -120,7 +120,7 @@ export const SettingsManager: React.FC = () => {
           integrations_email_send_on_review_updated: response.data.integrations_email_send_on_review_updated,
           integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets,
         });
-        notifications.showSuccess('تم تحميل الإعدادات', `تم جلب ${Object.keys(response.data).length} إعداد من قاعدة البيانات`);
+        // تم إزالة رسالة النجاح عند تحميل الإعدادات
       } else {
         console.warn('⚠️ لا توجد بيانات في الاستجابة - الحقول ستبقى فارغة');
         // إبقاء الحقول فارغة إذا لم ترجع بيانات
