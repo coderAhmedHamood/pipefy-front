@@ -84,6 +84,9 @@ class Settings {
     // رابط الواجهة الأمامية (لروابط الإيميلات)
     this.frontend_url = data.frontend_url || 'http://localhost:8080';
     
+    // رابط API الأساسي (للصور والملفات الثابتة)
+    this.api_base_url = data.api_base_url || 'http://localhost:3003';
+    
     // التواريخ
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
@@ -188,7 +191,9 @@ class Settings {
         // إعدادات التذاكر
         'default_ticket_priority', 'auto_assign_tickets', 'ticket_numbering_format',
         // رابط الواجهة الأمامية
-        'frontend_url'
+        'frontend_url',
+        // رابط API الأساسي
+        'api_base_url'
       ];
       
       // تحديث جميع الحقول الممررة (حتى لو كانت undefined سيتم تحديثها إلى NULL)

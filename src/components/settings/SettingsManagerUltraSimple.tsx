@@ -34,6 +34,7 @@ export const SettingsManager: React.FC = () => {
     system_name: '',
     system_logo_url: '',
     system_description: '',
+    frontend_url: '',
     security_login_attempts_limit: '',
     security_lockout_duration: '',
     integrations_email_smtp_host: '',
@@ -80,6 +81,7 @@ export const SettingsManager: React.FC = () => {
           system_name: response.data.system_name || '',
           system_logo_url: response.data.system_logo_url || '',
           system_description: response.data.system_description || '',
+          frontend_url: response.data.frontend_url || '',
           security_login_attempts_limit: response.data.security_login_attempts_limit || '',
           security_lockout_duration: response.data.security_lockout_duration || '',
           // إعدادات البريد الإلكتروني - SMTP
@@ -123,6 +125,7 @@ export const SettingsManager: React.FC = () => {
           system_name: '',
           system_logo_url: '',
           system_description: '',
+          frontend_url: '',
           security_login_attempts_limit: '',
           security_lockout_duration: '',
           integrations_email_smtp_host: '',
@@ -431,6 +434,17 @@ export const SettingsManager: React.FC = () => {
                   value={settings.system_name}
                   onChange={(e) => updateSetting('system_name', e.target.value)}
                   placeholder="أدخل اسم الشركة"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div className="md:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">رابط الواجهة الأمامية</label>
+                <input
+                  type="url"
+                  value={settings.frontend_url}
+                  onChange={(e) => updateSetting('frontend_url', e.target.value)}
+                  placeholder="http://localhost:8080"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>

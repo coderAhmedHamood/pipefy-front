@@ -203,6 +203,10 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *           type: string
  *           description: رابط الواجهة الأمامية (يستخدم في روابط الإيميلات)
  *           example: "http://localhost:8080"
+ *         api_base_url:
+ *           type: string
+ *           description: رابط API الأساسي (يستخدم في روابط الصور والملفات الثابتة)
+ *           example: "http://localhost:3003"
  *         created_at:
  *           type: string
  *           format: date-time

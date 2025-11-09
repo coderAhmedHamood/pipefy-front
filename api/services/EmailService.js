@@ -60,8 +60,27 @@ class EmailService {
     const primaryColor = settings?.system_primary_color || '#FF5722';
     const secondaryColor = settings?.system_secondary_color || '#4CAF50';
     const systemName = settings?.system_name || 'نظام إدارة المهام';
-    const systemLogo = settings?.system_logo_url || '';
     const systemDescription = settings?.system_description || '';
+    
+    // بناء رابط الشعار الكامل للإيميل
+    // إذا كان system_logo_url مسار نسبي، نضيف api_base_url (للصور والملفات الثابتة)
+    let systemLogo = settings?.system_logo_url || '';
+    if (systemLogo) {
+      // استخدام api_base_url للصور والملفات الثابتة (وليس frontend_url)
+      const apiBaseUrl = settings?.api_base_url || 'http://localhost:3003';
+      const baseUrl = apiBaseUrl.replace(/\/$/, '');
+      
+      // إذا كان الرابط يبدأ بـ / أو uploads، فهو مسار نسبي
+      if (systemLogo.startsWith('/') || systemLogo.startsWith('uploads/')) {
+        // إزالة الشرطة المائلة الأولى إذا كانت موجودة
+        const logoPath = systemLogo.startsWith('/') ? systemLogo : '/' + systemLogo;
+        systemLogo = `${baseUrl}${logoPath}`;
+      } else if (!systemLogo.startsWith('http://') && !systemLogo.startsWith('https://')) {
+        // إذا لم يكن رابط كامل ولا مسار نسبي، نضيف api_base_url
+        systemLogo = `${baseUrl}/${systemLogo}`;
+      }
+      // إذا كان رابط كامل (http:// أو https://)، نستخدمه كما هو
+    }
 
     // بناء التمبلت
     const template = `
@@ -98,10 +117,16 @@ class EmailService {
             color: #ffffff;
         }
         .email-logo {
-            max-width: 120px;
-            max-height: 60px;
+            max-width: 150px;
+            max-height: 80px;
             margin-bottom: 15px;
             border-radius: 4px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            object-fit: contain;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 5px;
         }
         .email-header h1 {
             font-size: 24px;
