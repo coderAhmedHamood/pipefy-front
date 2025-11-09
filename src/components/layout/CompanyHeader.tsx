@@ -104,7 +104,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({
                 e.currentTarget.style.display = 'none';
                 if (parent) {
                   parent.innerHTML = `
-                    <div class="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <div class="w-full h-full bg-[#00B8A9] flex items-center justify-center">
                       <span class="text-white font-bold ${currentSize.logoText}">${companyName ? companyName.charAt(0) : '🏢'}</span>
                     </div>
                   `;
@@ -112,7 +112,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({
               }}
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="w-full h-full bg-[#00B8A9] flex items-center justify-center">
               <span className={`text-white font-bold ${currentSize.logoText}`}>
                 {companyName ? companyName.charAt(0) : '🏢'}
               </span>

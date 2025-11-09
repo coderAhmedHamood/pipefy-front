@@ -91,19 +91,19 @@ export const Login: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-blue-800 flex items-center justify-center p-4" dir="rtl">
+    <div className="min-h-screen bg-[#F0FFFE] flex items-center justify-center p-4" dir="rtl">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-8 text-center">
+        <div className="bg-[#00B8A9] p-8 text-center">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl font-bold text-blue-600">
+            <span className="text-2xl font-bold text-[#00B8A9]">
               {settings.company_name ? settings.company_name.charAt(0) : '🏢'}
             </span>
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">
             {settings.company_name || 'تسجيل الدخول'}
           </h1>
-          <p className="text-blue-100">
+          <p className="text-white opacity-90">
             {settings.company_name ? `نظام إدارة العمليات - ${settings.company_name}` : 'إدارة متقدمة للعمليات والمهام'}
           </p>
         </div>
@@ -119,9 +119,9 @@ export const Login: React.FC = () => {
           )}
 
           {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-3 space-x-reverse">
-              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-              <span className="text-green-700 text-sm">{success}</span>
+            <div className="mb-4 p-4 bg-[#F0FFFE] border border-[#E0F2F1] rounded-lg flex items-center space-x-3 space-x-reverse">
+              <CheckCircle className="w-5 h-5 text-[#00B8A9] flex-shrink-0" />
+              <span className="text-[#1A1A1A] text-sm">{success}</span>
             </div>
           )}
 

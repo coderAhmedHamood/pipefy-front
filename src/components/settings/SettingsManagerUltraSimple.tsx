@@ -389,7 +389,7 @@ export const SettingsManager: React.FC = () => {
                 notifications.showError('فشل الاتصال', 'لا يمكن الاتصال بـ API');
               }
             }}
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
+            className="px-4 py-2 bg-[#00B8A9] text-white rounded-lg hover:bg-[#008A7B] text-sm"
           >
             اختبار الاتصال
           </button>
@@ -657,12 +657,12 @@ export const SettingsManager: React.FC = () => {
             </div>
 
             {/* ملاحظة */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="bg-[#F0FFFE] border border-[#E0F2F1] rounded-lg p-4">
               <div className="flex items-start space-x-3 space-x-reverse">
-                <div className="text-green-600 text-xl">💡</div>
+                <div className="text-[#00B8A9] text-xl">💡</div>
                 <div>
-                  <h4 className="font-medium text-green-900 mb-1">نصيحة</h4>
-                  <p className="text-green-700 text-sm">
+                  <h4 className="font-medium text-[#006D5B] mb-1">نصيحة</h4>
+                  <p className="text-[#1A1A1A] text-sm">
                     يتم حفظ اختيار الثيم تلقائياً في متصفحك. عند إعادة فتح النظام سيتم تحميل الثيم المفضل لديك.
                   </p>
                 </div>

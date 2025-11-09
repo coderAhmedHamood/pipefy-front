@@ -32,46 +32,46 @@
 
 /* الثيم الافتراضي - يستخدم المتغيرات الافتراضية */
 
-/* ثيم كلين لايف - محسن */
+/* ثيم كلين لايف - متوافق مع هوية Clean Life الرسمية من cleanlife.sa */
 .theme-cleanlife {
-  /* الألوان الأساسية - Teal كلون رئيسي */
+  /* الألوان الأساسية - تركوازي/Teal كلون رئيسي (من هوية Clean Life) */
   --color-primary: #00B8A9;
-  --color-primary-dark: #006D5B;
+  --color-primary-dark: #008A7B;
   --color-primary-light: #33C9BC;
-  --color-secondary: #008A7B;
+  --color-secondary: #006D5B;
   --color-accent: #00E6D6;
   
-  /* ألوان الخلفية - نظيفة وبسيطة */
+  /* ألوان الخلفية - نظيفة وخفيفة (من موقع Clean Life) */
   --color-background: #FFFFFF;
-  --color-background-secondary: #F5F5F5;
+  --color-background-secondary: #F8FDFC;
   --color-background-accent: #F0FFFE;
   
-  /* ألوان النصوص - وضوح عالي */
-  --color-text-primary: #4A4A4A;
+  /* ألوان النصوص - رسمية وواضحة */
+  --color-text-primary: #1A1A1A;
   --color-text-secondary: #006D5B;
-  --color-text-muted: #8A8A8A;
+  --color-text-muted: #7A8FA3;
   
-  /* ألوان الحالات - متوازنة ومتناسقة */
+  /* ألوان الحالات - متوازنة مع الهوية */
   --color-success: #00B8A9;
-  --color-warning: #FF9500;
-  --color-error: #FF4757;
+  --color-warning: #FFA726;
+  --color-error: #EF5350;
   --color-info: #00B8A9;
   
   /* ألوان الحدود والظلال */
-  --color-border: #E0E0E0;
-  --color-shadow: rgba(0, 184, 169, 0.15);
+  --color-border: #E0F2F1;
+  --color-shadow: rgba(0, 184, 169, 0.12);
   
   /* تحسينات إضافية للثيم */
   /* ألوان hover للأزرار */
-  --color-primary-hover: #009688;
-  --color-secondary-hover: #00695C;
+  --color-primary-hover: #008A7B;
+  --color-secondary-hover: #006D5B;
   
   /* ألوان focus للنماذج */
-  --color-focus: rgba(0, 184, 169, 0.3);
+  --color-focus: rgba(0, 184, 169, 0.2);
   
   /* ألوان للبطاقات والعناصر التفاعلية */
   --color-card-bg: #FFFFFF;
-  --color-card-border: #E0E0E0;
+  --color-card-border: #E0F2F1;
   --color-card-shadow: rgba(0, 184, 169, 0.08);
   
   /* ألوان للتنقل والقوائم */
@@ -81,8 +81,8 @@
   
   /* ألوان للإشعارات */
   --color-notification-success-bg: rgba(0, 184, 169, 0.1);
-  --color-notification-warning-bg: rgba(255, 149, 0, 0.1);
-  --color-notification-error-bg: rgba(255, 71, 87, 0.1);
+  --color-notification-warning-bg: rgba(255, 167, 38, 0.1);
+  --color-notification-error-bg: rgba(239, 83, 80, 0.1);
   --color-notification-info-bg: rgba(0, 184, 169, 0.1);
 }
 

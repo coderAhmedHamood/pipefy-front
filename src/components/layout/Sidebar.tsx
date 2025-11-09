@@ -185,7 +185,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={`
                     w-full flex items-center p-3 rounded-lg transition-all duration-200 relative
                     ${isActive
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                      ? 'bg-[#00B8A9] text-white shadow-lg'
                       : 'text-gray-700 hover:bg-gray-100'
                     }
                     ${isCollapsed ? 'justify-center' : 'space-x-3 space-x-reverse'}
@@ -194,7 +194,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <div className="relative">
                     <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
                     {item.id === 'notifications' && unreadCount > 0 && (
-                      <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-none text-white bg-red-500 rounded-full border-2 border-white shadow-lg">
+                      <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold leading-none text-white bg-[#EF5350] rounded-full border-2 border-white shadow-lg">
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
@@ -203,7 +203,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="font-medium text-sm flex-1">{item.label}</span>
                   )}
                   {!isCollapsed && item.id === 'notifications' && unreadCount > 0 && (
-                    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold leading-none text-white bg-red-500 rounded-full shadow-lg">
+                    <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold leading-none text-white bg-[#EF5350] rounded-full shadow-lg">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
@@ -225,8 +225,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-4 border-t border-gray-200 flex-shrink-0">
         <button
           onClick={logout}
-          className={`
-            w-full flex items-center p-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors
+            className={`
+            w-full flex items-center p-3 rounded-lg text-[#EF5350] hover:bg-[#F0FFFE] transition-colors
             ${isCollapsed ? 'justify-center' : 'space-x-3 space-x-reverse'}
           `}
         >
