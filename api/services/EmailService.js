@@ -153,27 +153,39 @@ class EmailService {
             padding: 30px 20px;
             color: #333333;
             line-height: 1.6;
+            direction: rtl;
+            text-align: right;
         }
         .email-title {
             font-size: 20px;
             color: ${primaryColor};
             margin-bottom: 20px;
             font-weight: 600;
+            direction: rtl;
+            text-align: right;
         }
         .email-content {
             font-size: 16px;
             color: #555555;
             margin-bottom: 20px;
+            direction: rtl;
+            text-align: right;
         }
         .email-content p {
             margin-bottom: 15px;
+            direction: rtl;
+            text-align: right;
         }
         .email-content ul, .email-content ol {
             margin: 15px 0;
             padding-right: 25px;
+            direction: rtl;
+            text-align: right;
         }
         .email-content li {
             margin-bottom: 8px;
+            direction: rtl;
+            text-align: right;
         }
         .email-button {
             display: inline-block;

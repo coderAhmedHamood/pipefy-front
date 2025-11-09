@@ -21,7 +21,8 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *         system_description:
  *           type: string
  *           description: وصف النظام
- *           example: "نظام شامل ومحدث لإدارة المهام والعمليات التجارية"
+ *           example: "نظام// في routes/settings.js - السطر 24
+*           example: "تنجيز - نظام متكامل لإدارة المهام والعمليات"
  *         system_logo_url:
  *           type: string
  *           nullable: true

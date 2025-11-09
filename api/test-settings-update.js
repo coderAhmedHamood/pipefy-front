@@ -5,7 +5,8 @@ const BASE_URL = 'http://localhost:3003/api';
 // بيانات اختبار تحديث الإعدادات
 const testSettingsUpdate = {
   system_name: 'نظام إدارة المهام المحدث',
-  system_description: 'نظام شامل ومحدث لإدارة المهام والعمليات التجارية',
+  system_description: '// في routes/settings.js - السطر 24
+*           example: 'تنجيز - نظام متكامل لإدارة المهام والعمليات',
   system_primary_color: '#FF5722',
   system_secondary_color: '#4CAF50',
   system_language: 'ar',
