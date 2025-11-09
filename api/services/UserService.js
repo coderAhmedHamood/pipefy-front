@@ -213,7 +213,8 @@ class UserService {
       await user.update({ 
         last_login: new Date(),
         login_attempts: 0,
-        locked_until: null
+        locked_until: null,
+        lockout_count: 0 // إعادة تعيين عدد مرات القفل عند نجاح الدخول
       });
       
       return user;
@@ -230,20 +231,32 @@ class UserService {
         throw new Error('المستخدم غير موجود');
       }
 
-      // جلب إعدادات الأمان من قاعدة البيانات
-      const Settings = require('../models/Settings');
-      const settings = await Settings.getSettings();
-      const loginAttemptsLimit = parseInt(settings.security_login_attempts_limit) || 5;
-      const lockoutDuration = parseInt(settings.security_lockout_duration) || 30;
+      // إعدادات ثابتة: 3 محاولات كحد أقصى، 5 دقائق كحد أدنى
+      const loginAttemptsLimit = 3;
+      const baseLockoutDuration = 5; // 5 دقائق
 
       const newAttempts = (user.login_attempts || 0) + 1;
       const updateData = { login_attempts: newAttempts };
       
-      // قفل الحساب بعد عدد المحاولات المحدد في الإعدادات
+      // قفل الحساب بعد 3 محاولات فاشلة
       if (newAttempts >= loginAttemptsLimit) {
+        // حساب مدة القفل المضاعفة: 5 * (2 ^ lockout_count) دقائق
+        // lockout_count = 0 -> 5 دقائق
+        // lockout_count = 1 -> 10 دقائق
+        // lockout_count = 2 -> 20 دقائق
+        // lockout_count = 3 -> 40 دقائق
+        // وهكذا...
+        const lockoutCount = (user.lockout_count || 0);
+        const lockoutMultiplier = Math.pow(2, lockoutCount);
+        const lockoutDuration = baseLockoutDuration * lockoutMultiplier;
+        
         const lockUntil = new Date();
         lockUntil.setMinutes(lockUntil.getMinutes() + lockoutDuration);
+        
         updateData.locked_until = lockUntil;
+        updateData.lockout_count = lockoutCount + 1; // زيادة عدد مرات القفل
+        
+        console.log(`🔒 قفل الحساب: ${lockoutDuration} دقيقة (المحاولة ${lockoutCount + 1})`);
       }
 
       await user.update(updateData);

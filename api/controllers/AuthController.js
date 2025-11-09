@@ -31,11 +31,17 @@ class AuthController {
 
       // التحقق من قفل الحساب
       if (user.locked_until && new Date(user.locked_until) > new Date()) {
+        const now = new Date();
+        const lockedUntil = new Date(user.locked_until);
+        const remainingMinutes = Math.ceil((lockedUntil - now) / (1000 * 60));
+        
         return res.status(401).json({
           success: false,
-          message: 'الحساب مقفل مؤقتاً',
+          message: `الحساب مقفل مؤقتاً. يرجى المحاولة بعد ${remainingMinutes} دقيقة`,
           error: 'ACCOUNT_LOCKED',
-          locked_until: user.locked_until
+          locked_until: user.locked_until,
+          remaining_minutes: remainingMinutes,
+          lockout_count: user.lockout_count || 0
         });
       }
 
@@ -44,12 +50,35 @@ class AuthController {
       
       if (!isPasswordValid) {
         // زيادة محاولات الدخول الفاشلة
-        await UserService.incrementLoginAttempts(user.id);
+        const updatedUser = await UserService.incrementLoginAttempts(user.id);
         
+        // حساب المحاولات المتبقية
+        const loginAttemptsLimit = 3;
+        const remainingAttempts = Math.max(0, loginAttemptsLimit - (updatedUser.login_attempts || 0));
+        
+        // إذا تم قفل الحساب، إرسال معلومات القفل
+        if (updatedUser.locked_until && new Date(updatedUser.locked_until) > new Date()) {
+          const now = new Date();
+          const lockedUntil = new Date(updatedUser.locked_until);
+          const remainingMinutes = Math.ceil((lockedUntil - now) / (1000 * 60));
+          
+          return res.status(401).json({
+            success: false,
+            message: `تم قفل الحساب بعد 3 محاولات فاشلة. يرجى المحاولة بعد ${remainingMinutes} دقيقة`,
+            error: 'ACCOUNT_LOCKED',
+            locked_until: updatedUser.locked_until,
+            remaining_minutes: remainingMinutes,
+            lockout_count: updatedUser.lockout_count || 0
+          });
+        }
+        
+        // إذا لم يتم قفل الحساب، إرسال عدد المحاولات المتبقية
         return res.status(401).json({
           success: false,
-          message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
-          error: 'INVALID_CREDENTIALS'
+          message: `البريد الإلكتروني أو كلمة المرور غير صحيحة. المحاولات المتبقية: ${remainingAttempts}`,
+          error: 'INVALID_CREDENTIALS',
+          remaining_attempts: remainingAttempts,
+          login_attempts: updatedUser.login_attempts || 0
         });
       }
 
@@ -212,7 +241,8 @@ class AuthController {
 
       await UserService.updateUser(user_id, {
         login_attempts: 0,
-        locked_until: null
+        locked_until: null,
+        lockout_count: 0
       });
 
       res.json({

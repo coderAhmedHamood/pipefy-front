@@ -17,6 +17,7 @@ class User {
     this.last_login = data.last_login;
     this.login_attempts = data.login_attempts;
     this.locked_until = data.locked_until;
+    this.lockout_count = data.lockout_count || 0;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
     this.deleted_at = data.deleted_at;
