@@ -199,6 +199,10 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *           type: string
  *           description: تنسيق ترقيم التذاكر
  *           example: "TKT-{YYYY}-{MM}-{####}"
+ *         frontend_url:
+ *           type: string
+ *           description: رابط الواجهة الأمامية (يستخدم في روابط الإيميلات)
+ *           example: "http://localhost:8080"
  *         created_at:
  *           type: string
  *           format: date-time

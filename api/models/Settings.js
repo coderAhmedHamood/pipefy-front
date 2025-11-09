@@ -81,6 +81,9 @@ class Settings {
     this.auto_assign_tickets = data.auto_assign_tickets;
     this.ticket_numbering_format = data.ticket_numbering_format;
     
+    // رابط الواجهة الأمامية (لروابط الإيميلات)
+    this.frontend_url = data.frontend_url || 'http://localhost:8080';
+    
     // التواريخ
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
@@ -183,7 +186,9 @@ class Settings {
         // إعدادات الملفات
         'max_file_upload_size', 'allowed_file_types',
         // إعدادات التذاكر
-        'default_ticket_priority', 'auto_assign_tickets', 'ticket_numbering_format'
+        'default_ticket_priority', 'auto_assign_tickets', 'ticket_numbering_format',
+        // رابط الواجهة الأمامية
+        'frontend_url'
       ];
       
       // تحديث جميع الحقول الممررة (حتى لو كانت undefined سيتم تحديثها إلى NULL)

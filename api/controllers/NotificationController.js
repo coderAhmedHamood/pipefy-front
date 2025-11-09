@@ -705,6 +705,37 @@ class NotificationController {
         'mention': 'عرض التعليق'
       };
 
+      // بناء الرابط الكامل للزر
+      // الواجهة الأمامية تتوقع query parameter: /kanban?ticket={ticket_id}
+      // وليس مسار: /kanban/tickets/{ticket_id}
+      let fullButtonUrl = actionUrl || '/';
+      const frontendUrl = settings.frontend_url || 'http://localhost:8080';
+      const baseUrl = frontendUrl.replace(/\/$/, '');
+      
+      if (actionUrl && (actionUrl.startsWith('http://') || actionUrl.startsWith('https://'))) {
+        // رابط كامل - نستخدمه كما هو
+        fullButtonUrl = actionUrl;
+      } else if (actionUrl && actionUrl.startsWith('/')) {
+        // مسار نسبي - نحوله إلى query parameter
+        // إذا كان المسار يحتوي على /tickets/{ticket_id}، نستخرج ticket_id
+        const ticketMatch = actionUrl.match(/\/tickets\/([a-f0-9-]+)/i);
+        if (ticketMatch && ticketMatch[1]) {
+          // استخراج ticket_id وتحويله إلى query parameter
+          const ticketId = ticketMatch[1];
+          fullButtonUrl = `${baseUrl}/kanban?ticket=${ticketId}`;
+        } else {
+          // إذا لم يكن مسار تذكرة، نستخدم المسار كما هو مع إضافة /kanban
+          const path = actionUrl.startsWith('/') ? actionUrl : '/' + actionUrl;
+          fullButtonUrl = `${baseUrl}/kanban${path}`;
+        }
+      } else if (actionUrl && !actionUrl.startsWith('http://') && !actionUrl.startsWith('https://')) {
+        // إذا لم يكن مسار نسبي ولا رابط كامل، نضيف frontend_url + /kanban
+        fullButtonUrl = `${baseUrl}/kanban/${actionUrl}`;
+      } else {
+        // إذا لم يكن هناك actionUrl، نستخدم الرابط الافتراضي
+        fullButtonUrl = `${baseUrl}/kanban`;
+      }
+
       // إرسال الإيميل لكل مستخدم بشكل منفصل (للتخصيص)
       for (let i = 0; i < emails.length; i++) {
         await EmailService.sendTemplatedEmail({
@@ -713,7 +744,7 @@ class NotificationController {
           title: title,
           content: emailContents[i],
           buttonText: buttonTexts[notificationType] || 'عرض التفاصيل',
-          buttonUrl: actionUrl || '/',
+          buttonUrl: fullButtonUrl,
           footer: 'هذه رسالة تلقائية من نظام إدارة المهام'
         });
       }
