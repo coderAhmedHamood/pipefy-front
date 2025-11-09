@@ -133,12 +133,9 @@ class SettingsController {
       }
     });
 
-    // التحقق من الثيم
-    if (data.system_theme !== undefined) {
-      const validThemes = ['light', 'dark', 'auto'];
-      if (!validThemes.includes(data.system_theme)) {
-        errors.push('الثيم يجب أن يكون إحدى القيم: light, dark, auto');
-      }
+    // التحقق من الثيم (يقبل أي قيمة نصية)
+    if (data.system_theme !== undefined && typeof data.system_theme !== 'string') {
+      errors.push('الثيم يجب أن يكون نصاً');
     }
 
     return errors.length > 0 ? errors.join(', ') : null;

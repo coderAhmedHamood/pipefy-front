@@ -82,6 +82,7 @@ export const SettingsManager: React.FC = () => {
           system_name: response.data.system_name || '',
           system_logo_url: response.data.system_logo_url || '',
           system_description: response.data.system_description || '',
+          system_theme: response.data.system_theme || 'default',
           frontend_url: response.data.frontend_url || '',
           api_base_url: response.data.api_base_url || '',
           security_login_attempts_limit: response.data.security_login_attempts_limit || '',
@@ -593,12 +594,19 @@ export const SettingsManager: React.FC = () => {
                     key={theme.name}
                     themeName={theme.name}
                     isActive={currentTheme.name === theme.name}
-                    onClick={() => {
-                      setTheme(theme.name);
-                      notifications.showSuccess(
-                        'تم تغيير الثيم', 
-                        `تم تطبيق ${theme.displayName} بنجاح`
-                      );
+                    onClick={async () => {
+                      try {
+                        await setTheme(theme.name);
+                        // تحديث الإعدادات المحلية
+                        updateSetting('system_theme', theme.name);
+                        notifications.showSuccess(
+                          'تم تغيير الثيم', 
+                          `تم تطبيق ${theme.displayName} بنجاح`
+                        );
+                      } catch (error) {
+                        console.error('خطأ في تغيير الثيم:', error);
+                        notifications.showError('خطأ في تغيير الثيم', 'فشل في حفظ الثيم في قاعدة البيانات');
+                      }
                     }}
                   />
                 ))}

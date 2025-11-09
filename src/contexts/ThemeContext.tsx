@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { useSystemSettings } from './SystemSettingsContext';
+import { settingsService } from '../services/settingsServiceSimple';
 
 // تعريف الألوان للثيمات
 export interface ThemeColors {
@@ -110,7 +112,7 @@ export const availableThemes: Theme[] = [defaultTheme, cleanLifeTheme];
 // سياق الثيم
 interface ThemeContextType {
   currentTheme: Theme;
-  setTheme: (themeName: string) => void;
+  setTheme: (themeName: string) => Promise<void>;
   availableThemes: Theme[];
 }
 
@@ -123,17 +125,42 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState<Theme>(defaultTheme);
+  const { settings, loading: settingsLoading } = useSystemSettings();
+  const hasCorrectedTheme = useRef(false); // لتجنب التصحيح المتكرر
 
-  // تحميل الثيم المحفوظ عند بدء التطبيق
+  // تحميل الثيم من قاعدة البيانات أولاً، ثم من localStorage كبديل
   useEffect(() => {
-    const savedTheme = localStorage.getItem('pipefy-theme');
-    if (savedTheme) {
-      const theme = availableThemes.find(t => t.name === savedTheme);
-      if (theme) {
-        setCurrentTheme(theme);
+    if (settingsLoading) return; // انتظار تحميل الإعدادات
+
+    // الأولوية: قاعدة البيانات > localStorage > default
+    const themeName = settings.system_theme || localStorage.getItem('pipefy-theme') || 'default';
+    const theme = availableThemes.find(t => t.name === themeName);
+    
+    if (theme) {
+      setCurrentTheme(theme);
+      // تحديث localStorage أيضاً للتوافق
+      localStorage.setItem('pipefy-theme', themeName);
+      hasCorrectedTheme.current = false; // إعادة تعيين عند العثور على ثيم صحيح
+    } else {
+      // إذا لم يكن الثيم موجوداً، استخدم الثيم الافتراضي
+      setCurrentTheme(defaultTheme);
+      localStorage.setItem('pipefy-theme', 'default');
+      
+      // تصحيح القيمة في قاعدة البيانات إذا كانت غير صحيحة (مرة واحدة فقط)
+      if (settings.system_theme && settings.system_theme !== 'default' && !hasCorrectedTheme.current) {
+        hasCorrectedTheme.current = true; // منع التصحيح المتكرر
+        console.warn(`⚠️ الثيم "${settings.system_theme}" غير موجود، يتم تصحيحه إلى "default"`);
+        settingsService.updateSettings({
+          system_theme: 'default'
+        }).then(() => {
+          console.log('✅ تم تصحيح الثيم في قاعدة البيانات إلى "default"');
+        }).catch((error) => {
+          console.error('❌ خطأ في تصحيح الثيم في قاعدة البيانات:', error);
+          hasCorrectedTheme.current = false; // إعادة تعيين في حالة الخطأ للسماح بالمحاولة مرة أخرى
+        });
       }
     }
-  }, []);
+  }, [settings.system_theme, settingsLoading]);
 
   // تطبيق الثيم على CSS Variables
   useEffect(() => {
@@ -168,11 +195,22 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     document.body.classList.add(`theme-${currentTheme.name}`);
   }, [currentTheme]);
 
-  const setTheme = (themeName: string) => {
+  const setTheme = async (themeName: string) => {
     const theme = availableThemes.find(t => t.name === themeName);
     if (theme) {
       setCurrentTheme(theme);
       localStorage.setItem('pipefy-theme', themeName);
+      
+      // حفظ الثيم في قاعدة البيانات
+      try {
+        await settingsService.updateSettings({
+          system_theme: themeName
+        });
+        console.log('✅ تم حفظ الثيم في قاعدة البيانات:', themeName);
+      } catch (error) {
+        console.error('❌ خطأ في حفظ الثيم في قاعدة البيانات:', error);
+        // لا نوقف العملية، فقط نسجل الخطأ
+      }
     }
   };
 

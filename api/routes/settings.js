@@ -58,7 +58,7 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *           example: "24h"
  *         system_theme:
  *           type: string
- *           description: الثيم (light, dark, auto)
+ *           description: الثيم (أي قيمة نصية)
  *           example: "light"
  *         notifications_enabled:
  *           type: boolean
@@ -267,8 +267,8 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *           description: تنسيق الوقت
  *         system_theme:
  *           type: string
- *           enum: [light, dark, auto]
- *           description: الثيم
+ *           description: الثيم (أي قيمة نصية)
+ *           example: "light"
  *         notifications_enabled:
  *           type: boolean
  *           description: تفعيل الإشعارات

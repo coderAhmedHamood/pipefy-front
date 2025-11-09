@@ -5,6 +5,7 @@ import { settingsService } from '../services/settingsServiceSimple';
 interface SystemSettings {
   company_name: string;
   company_logo: string;
+  system_theme?: string;
   login_attempts_limit?: number;
   lockout_duration_minutes?: number;
   smtp_server?: string;
@@ -66,6 +67,7 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
         setSettings({
           company_name: response.data.system_name || '',
           company_logo: response.data.system_logo_url || '',
+          system_theme: response.data.system_theme || 'default',
           login_attempts_limit: response.data.security_login_attempts_limit,
           lockout_duration_minutes: response.data.security_lockout_duration,
           smtp_server: response.data.integrations_email_smtp_host || '',
