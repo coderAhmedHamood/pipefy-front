@@ -1,7 +1,38 @@
 const bcrypt = require('bcrypt');
 const { User, Role } = require('../models');
 
+let lockoutColumnsEnsured = false;
+
 class UserService {
+  static async ensureLockoutColumns() {
+    if (lockoutColumnsEnsured) {
+      return;
+    }
+
+    const { pool } = require('../config/database');
+    const client = await pool.connect();
+
+    try {
+      await client.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS lockout_count INTEGER DEFAULT 0
+      `);
+
+      await client.query(`
+        UPDATE users
+        SET lockout_count = COALESCE(lockout_count, 0)
+        WHERE lockout_count IS NULL
+      `);
+
+      lockoutColumnsEnsured = true;
+    } catch (error) {
+      console.error('خطأ في تهيئة حقل lockout_count:', error);
+      throw new Error(`خطأ في تهيئة حقل lockout_count: ${error.message}`);
+    } finally {
+      client.release();
+    }
+  }
+
   // جلب جميع المستخدمين مع التصفية والترقيم
   static async getAllUsers(options = {}) {
     try {
@@ -80,7 +111,7 @@ class UserService {
     try {
       const user = await User.findByEmail(email);
       if (!user) {
-        throw new Error('المستخدم غير موجود');
+        return null;
       }
 
       // جلب الصلاحيات
@@ -205,6 +236,8 @@ class UserService {
   // تحديث آخر دخول للمستخدم
   static async updateLastLogin(id) {
     try {
+      await this.ensureLockoutColumns();
+
       const user = await User.findById(id);
       if (!user) {
         throw new Error('المستخدم غير موجود');
@@ -226,6 +259,8 @@ class UserService {
   // زيادة محاولات الدخول الفاشلة
   static async incrementLoginAttempts(id) {
     try {
+      await this.ensureLockoutColumns();
+
       const user = await User.findById(id);
       if (!user) {
         throw new Error('المستخدم غير موجود');
