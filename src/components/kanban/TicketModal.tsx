@@ -1660,7 +1660,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" dir="rtl">
       <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+        <div className="bg-[#00B8A9] text-white p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 space-x-reverse">
               <div className={`w-12 h-12 ${currentStage?.color || 'bg-gray-500'} rounded-xl flex items-center justify-center`}>
@@ -1688,7 +1688,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               {allowedStages.length > 0 && (
                 <button
                   onClick={() => setShowStageSelector(true)}
-                  className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse"
+                  className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
                 >
                   <ArrowRight className="w-4 h-4" />
                   <span>نقل إلى مرحلة</span>
@@ -1697,7 +1697,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               
               <button
                 onClick={() => setShowProcessSelector(true)}
-                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse"
+                className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>نقل إلى عملية</span>
@@ -1747,7 +1747,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               {( hasPermission('tickets', 'update')) && (
                 <button
                   onClick={() => setIsEditing(!isEditing)}
-                  className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-colors"
+                  className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-2 rounded-lg transition-colors shadow-sm"
+                  title={isEditing ? "إلغاء التعديل" : "تعديل التذكرة"}
                 >
                   <Edit className="w-5 h-5" />
                 </button>
@@ -1757,7 +1758,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={isDeleting}
-                  className={`bg-red-500 bg-opacity-80 hover:bg-opacity-100 text-white p-2 rounded-lg transition-colors ${
+                  className={`bg-[#EF5350] bg-opacity-90 hover:bg-opacity-100 text-white p-2 rounded-lg transition-colors shadow-sm ${
                     isDeleting ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                   title="حذف التذكرة"
@@ -1772,7 +1773,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
               <button
                 onClick={onClose}
-                className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-colors"
+                className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-2 rounded-lg transition-colors shadow-sm"
+                title="إغلاق"
               >
                 <X className="w-5 h-5" />
               </button>
