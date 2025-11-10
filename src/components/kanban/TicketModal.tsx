@@ -1702,43 +1702,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 <RefreshCw className="w-4 h-4" />
                 <span>نقل إلى عملية</span>
               </button>
-              
-   <div className="p-6 space-y-3">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={isUpdating}
-                    className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium ${
-                      isUpdating ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ'}</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>إلغاء التعديل</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  {( hasPermission('tickets', 'update')) && (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium"
-                    >
-                      <Edit className="w-4 h-4" />
-                      <span>تعديل التذكرة</span>
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
 
 
 
@@ -2461,44 +2424,37 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               }}
             />
 
-            {/* Activity Log */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                <History className="w-5 h-5 text-indigo-500" />
-                <h3 className="text-lg font-semibold text-gray-900">
-                  سجل الأنشطة ({ticket.activities?.length || 0})
-                </h3>
-              </div>
-              
-              <div className="space-y-3 max-h-64 overflow-y-auto">
-                {ticket.activities?.map((activity) => (
-                  <div key={activity.id} className="flex items-start space-x-3 space-x-reverse p-3 bg-gray-50 rounded-lg">
-                    <div className="mt-1">
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-900">{activity.description}</p>
-                      <div className="flex items-center space-x-3 space-x-reverse mt-1 text-xs text-gray-500">
-                        <span>{activity.user_name}</span>
-                        <span>•</span>
-                        <span>{formatDateTime(activity.created_at)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {(!ticket.activities || ticket.activities.length === 0) && (
-                  <div className="text-center py-8 text-gray-400">
-                    <ActivityIcon className="w-12 h-12 mx-auto mb-2" />
-                    <p className="text-sm">لا توجد أنشطة بعد</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            
           </div>
 
           {/* Right Sidebar - Horizontal Layout */}
-          <div className="w-96 lg:w-[500px] border-r border-gray-200 bg-gray-50 flex flex-col"> 
+          <div className="w-96 lg:w-[500px] border-r border-gray-200 bg-gray-50 flex flex-col">
+            {/* أزرار التعديل - تظهر فقط عند تفعيل وضع التعديل */}
+            {isEditing && (
+              <div className="p-4 border-b border-gray-200 bg-white">
+                <div className="space-y-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={isUpdating}
+                    className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium text-sm ${
+                      isUpdating ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ'}</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse text-sm"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>إلغاء التعديل</span>
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {/* Horizontal Container for Process Path and Attachments */}
             <div className="flex flex-col md:flex-row h-full min-h-[400px]">
             
