@@ -554,27 +554,9 @@ export const SettingsManager: React.FC = () => {
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني للإرسال</label>
-                <input
-                  type="email"
-                  value={settings.integrations_email_from_address || ''}
-                  onChange={(e) => updateSetting('integrations_email_from_address', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="noreply@company.com"
-                />
-              </div>
+             
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم المرسل</label>
-                <input
-                  type="text"
-                  value={settings.integrations_email_from_name || ''}
-                  onChange={(e) => updateSetting('integrations_email_from_name', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="نظام إدارة المهام"
-                />
-              </div>
+              
             </div>
             
             <div className="mt-6 pt-6 border-t border-gray-200">

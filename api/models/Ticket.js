@@ -39,7 +39,7 @@ class Ticket {
         SELECT COALESCE(MAX(
           CASE 
             WHEN ticket_number ~ '^[^-]+-[0-9]+$' THEN
-              CAST(SUBSTRING(ticket_number FROM '[0-9]+$') AS INTEGER)
+              CAST(SUBSTRING(ticket_number FROM '[0-9]+$') AS BIGINT)
             ELSE 0
           END
         ), 0) + 1 as next_counter

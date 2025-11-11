@@ -1,49 +1,90 @@
--- إنشاء جدول إعدادات النظام
--- يحتوي على صف واحد فقط لجميع إعدادات النظام
+-- إنشاء جدول إعدادات النظام (صف واحد فقط)
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
-    -- بيانات الشركة
-    company_name VARCHAR(255) NOT NULL DEFAULT 'كلين لايف',
-    company_logo TEXT NULL,
+    -- معلومات النظام الأساسية
+    system_name VARCHAR(255) NOT NULL DEFAULT 'نظام إدارة المهام',
+    system_description TEXT DEFAULT 'نظام شامل لإدارة المهام والعمليات التجارية',
+    system_logo_url TEXT,
+    system_favicon_url TEXT,
+    system_primary_color VARCHAR(20) DEFAULT '#1F2937',
+    system_secondary_color VARCHAR(20) DEFAULT '#3B82F6',
+    system_language VARCHAR(10) DEFAULT 'ar',
+    system_timezone VARCHAR(50) DEFAULT 'Asia/Riyadh',
+    system_date_format VARCHAR(20) DEFAULT 'DD/MM/YYYY',
+    system_time_format VARCHAR(5) DEFAULT '24h',
+    system_theme VARCHAR(50) DEFAULT 'light',
     
-    -- حماية تسجيل الدخول
-    login_attempts_limit INTEGER DEFAULT 5,
-    lockout_duration_minutes INTEGER DEFAULT 30,
+    -- إعدادات الإشعارات
+    notifications_enabled BOOLEAN DEFAULT TRUE,
+    notifications_email_enabled BOOLEAN DEFAULT TRUE,
+    notifications_browser_enabled BOOLEAN DEFAULT TRUE,
     
-    -- إعدادات البريد الإلكتروني
-    smtp_server VARCHAR(255) DEFAULT 'smtp.gmail.com',
-    smtp_port INTEGER DEFAULT 587,
-    smtp_username VARCHAR(255) NULL,
-    smtp_password VARCHAR(255) NULL,
+    -- إعدادات الأمان
+    security_session_timeout INTEGER DEFAULT 60,
+    security_password_min_length INTEGER DEFAULT 8,
+    security_login_attempts_limit INTEGER DEFAULT 5,
+    security_lockout_duration INTEGER DEFAULT 30,
     
-    -- تواريخ النظام
+    -- إعدادات البريد الإلكتروني / التكاملات
+    integrations_email_smtp_host VARCHAR(255) DEFAULT 'smtp.gmail.com',
+    integrations_email_smtp_port INTEGER DEFAULT 587,
+    integrations_email_smtp_username VARCHAR(255),
+    integrations_email_smtp_password TEXT,
+    integrations_email_from_address VARCHAR(255) DEFAULT 'system@company.com',
+    integrations_email_from_name VARCHAR(255) DEFAULT 'نظام إدارة المهام',
+    integrations_email_enabled BOOLEAN DEFAULT TRUE,
+    integrations_email_send_delayed_tickets BOOLEAN DEFAULT TRUE,
+    integrations_email_send_on_assignment BOOLEAN DEFAULT TRUE,
+    integrations_email_send_on_comment BOOLEAN DEFAULT TRUE,
+    integrations_email_send_on_completion BOOLEAN DEFAULT TRUE,
+    integrations_email_send_on_creation BOOLEAN DEFAULT TRUE,
+    integrations_email_send_on_update BOOLEAN DEFAULT TRUE,
+    integrations_email_send_on_move BOOLEAN DEFAULT TRUE,
+    integrations_email_send_on_review_assigned BOOLEAN DEFAULT TRUE,
+    integrations_email_send_on_review_updated BOOLEAN DEFAULT TRUE,
+    
+    -- إعدادات النسخ الاحتياطي
+    backup_enabled BOOLEAN DEFAULT FALSE,
+    backup_frequency VARCHAR(20) DEFAULT 'daily',
+    backup_retention_days INTEGER DEFAULT 30,
+    
+    -- إعدادات ساعات العمل
+    working_hours_enabled BOOLEAN DEFAULT FALSE,
+    
+    -- إعدادات الصيانة
+    maintenance_mode BOOLEAN DEFAULT FALSE,
+    maintenance_message TEXT DEFAULT 'النظام قيد الصيانة، يرجى المحاولة لاحقاً',
+    
+    -- إعدادات الملفات
+    max_file_upload_size INTEGER DEFAULT 10485760,
+    allowed_file_types TEXT[] DEFAULT ARRAY['pdf','doc','docx','xls','xlsx','jpg','jpeg','png','gif'],
+    
+    -- إعدادات التذاكر
+    default_ticket_priority VARCHAR(20) DEFAULT 'medium',
+    auto_assign_tickets BOOLEAN DEFAULT FALSE,
+    ticket_numbering_format VARCHAR(100) DEFAULT 'TKT-{YYYY}-{MM}-{####}',
+    
+    -- روابط النظام
+    frontend_url TEXT DEFAULT 'http://localhost:8080',
+    api_base_url TEXT DEFAULT 'http://localhost:3003',
+    
+    -- تتبع الإنشاء والتعديل
+    created_by UUID,
+    updated_by UUID,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- إنشاء فهرس للبحث السريع
-CREATE INDEX IF NOT EXISTS idx_settings_company_name ON settings(company_name);
-
--- إضافة الإعدادات الافتراضية (صف واحد فقط)
-INSERT INTO settings (
-    company_name,
-    login_attempts_limit,
-    lockout_duration_minutes,
-    smtp_server,
-    smtp_port
-) 
-SELECT 
-    'كلين لايف',
-    5,
-    30,
-    'smtp.gmail.com',
-    587
+-- التأكد من وجود صف افتراضي واحد فقط
+INSERT INTO settings (system_name, system_description)
+SELECT 'نظام إدارة المهام', 'نظام شامل لإدارة المهام والعمليات التجارية'
 WHERE NOT EXISTS (SELECT 1 FROM settings);
 
--- التأكد من وجود صف واحد فقط
--- إضافة قيد لضمان عدم وجود أكثر من صف واحد
+-- إنشاء دالة وقيد لضمان وجود صف واحد فقط
 CREATE OR REPLACE FUNCTION check_single_settings_row()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -54,7 +95,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- إنشاء trigger لمنع إضافة أكثر من صف
 DROP TRIGGER IF EXISTS trigger_single_settings_row ON settings;
 CREATE TRIGGER trigger_single_settings_row
     BEFORE INSERT ON settings
@@ -66,5 +106,3 @@ SELECT
     'تم إنشاء جدول الإعدادات بنجاح' as message,
     COUNT(*) as settings_count 
 FROM settings;
-
-

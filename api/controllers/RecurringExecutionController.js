@@ -1,5 +1,6 @@
 const { pool } = require('../config/database');
-const axios = require('axios');
+const Ticket = require('../models/Ticket');
+const TicketAssignment = require('../models/TicketAssignment');
 
 class RecurringExecutionController {
   
@@ -31,161 +32,119 @@ class RecurringExecutionController {
       const rule = ruleResult.rows[0];
       console.log(`📋 تم جلب قاعدة التكرار: ${rule.name}`);
       
-      // التحقق من أن العملية لم تنته بعد
-      if (rule.execution_count >= rule.recurrence_interval) {
-        return res.status(400).json({
-          success: false,
-          message: 'تم الوصول للحد الأقصى من التنفيذات لهذه القاعدة'
-        });
+      // 2. تجهيز بيانات التذكرة من القالب
+      const templateData = typeof rule.template_data === 'string'
+        ? safeParseJSON(rule.template_data, {})
+        : (rule.template_data || {});
+      const processedTemplate = processTemplate(templateData);
+
+      const title = processedTemplate.title || rule.name || 'تذكرة متكررة';
+      const description = processedTemplate.description || rule.description || '';
+
+      const stageIdCandidate =
+        processedTemplate.current_stage_id ||
+        processedTemplate.stage_id ||
+        null;
+
+      const stageId = await resolveStageId(rule.process_id, stageIdCandidate);
+
+      if (!stageId) {
+        throw new Error('لا يمكن تحديد مرحلة صالحة لهذه العملية');
       }
-      
-      // 2. إنشاء التذكرة
+
+      const assignedToCandidate =
+        processedTemplate.assigned_to ||
+        processedTemplate.assigned_user ||
+        null;
+
+      const assignedTo = await resolveAssignedUser(assignedToCandidate);
+      const priority = processedTemplate.priority || 'medium';
+      const status = processedTemplate.status || 'active';
+      const dueDate = processedTemplate.due_date
+        ? new Date(processedTemplate.due_date)
+        : null;
+      const dueDateValue = dueDate && !Number.isNaN(dueDate.getTime())
+        ? dueDate.toISOString()
+        : null;
+      const tags = normalizeTags(processedTemplate.tags);
+      const data = processedTemplate.data || {};
+
+      // 3. إنشاء التذكرة مباشرة عبر نموذج التذاكر
       console.log('🎫 إنشاء التذكرة...');
-      const ticketData = {
-        title: rule.title,
-        description: rule.description,
-        process_id: rule.process_id,
-        current_stage_id: rule.current_stage_id,
-        priority: rule.priority || 'medium',
-        status: rule.status || 'active',
-        due_date: rule.due_date,
-        data: rule.data || {},
-        tags: rule.tags || []
-      };
-      
       let createdTicket;
       try {
-        const ticketResponse = await axios.post(`${process.env.API_BASE_URL || 'http://localhost:3003'}/api/tickets`, ticketData, {
-          headers: {
-            'Authorization': req.headers.authorization,
-            'Content-Type': 'application/json'
-          }
+        createdTicket = await Ticket.create({
+          title,
+          description,
+          process_id: rule.process_id,
+          current_stage_id: stageId,
+          assigned_to: assignedTo,
+          priority,
+          status,
+          due_date: dueDateValue,
+          data,
+          tags,
+          created_by: req.user.id
         });
-        
-        createdTicket = ticketResponse.data.data;
         console.log(`✅ تم إنشاء التذكرة: ${createdTicket.ticket_number}`);
       } catch (error) {
-        console.error('❌ خطأ في إنشاء التذكرة:', error.response?.data || error.message);
-        throw new Error(`فشل إنشاء التذكرة: ${error.response?.data?.message || error.message}`);
+        console.error('❌ خطأ في إنشاء التذكرة:', error);
+        throw new Error(`فشل إنشاء التذكرة: ${error.detail || error.message}`);
       }
-      
-      // 3. إسناد المستخدم (إذا كان محدد)
+
+      // 4. إنشاء إسناد إذا كان هناك مستخدم محدد
       let assignmentResult = null;
-      if (rule.assigned_to_id) {
+      if (assignedTo) {
         console.log('👤 إسناد المستخدم...');
-        const assignmentData = {
-          ticket_id: createdTicket.id,
-          user_id: rule.assigned_to_id,
-          role: 'assignee',
-          assigned_by_notes: `تم الإسناد تلقائياً من قاعدة التكرار: ${rule.name}`
-        };
-        
         try {
-          const assignmentResponse = await axios.post(`${process.env.API_BASE_URL || 'http://localhost:3003'}/api/ticket-assignments`, assignmentData, {
-            headers: {
-              'Authorization': req.headers.authorization,
-              'Content-Type': 'application/json'
-            }
+          assignmentResult = await TicketAssignment.create({
+            ticket_id: createdTicket.id,
+            user_id: assignedTo,
+            assigned_by: req.user.id,
+            role: 'assignee',
+            notes: `تم الإسناد تلقائياً من قاعدة التكرار: ${rule.name}`
           });
-          
-          assignmentResult = assignmentResponse.data.data;
-          console.log(`✅ تم إسناد المستخدم: ${rule.assigned_to_name}`);
+          console.log('✅ تم إنشاء إسناد للمستخدم');
         } catch (error) {
-          console.error('⚠️ خطأ في إسناد المستخدم:', error.response?.data || error.message);
-          // لا نوقف العملية، فقط نسجل الخطأ
+          console.error('⚠️ خطأ في إنشاء الإسناد:', error);
         }
       }
       
-      // 4. إرسال الإشعار (إذا كان هناك مستخدم مُسند)
-      let notificationResult = null;
-      if (rule.assigned_to_id) {
-        console.log('🔔 إرسال الإشعار...');
-        const notificationData = {
-          user_ids: [rule.assigned_to_id],
-          title: `تذكرة جديدة من قاعدة التكرار: ${rule.name}`,
-          message: `تم إنشاء تذكرة جديدة "${createdTicket.title}" من قاعدة التكرار`,
-          type: 'ticket_created',
-          priority: 'medium',
-          data: {
-            ticket_id: createdTicket.id,
-            ticket_title: createdTicket.title,
-            ticket_number: createdTicket.ticket_number,
-            recurring_rule_id: rule.id,
-            recurring_rule_name: rule.name,
-            created_from_recurring: true
-          }
-        };
-        
-        try {
-          const notificationResponse = await axios.post(`${process.env.API_BASE_URL || 'http://localhost:3003'}/api/notifications/bulk`, notificationData, {
-            headers: {
-              'Authorization': req.headers.authorization,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          notificationResult = notificationResponse.data;
-          console.log(`✅ تم إرسال الإشعار للمستخدم`);
-        } catch (error) {
-          console.error('⚠️ خطأ في إرسال الإشعار:', error.response?.data || error.message);
-          // لا نوقف العملية، فقط نسجل الخطأ
-        }
-      }
+      // (اختياري) إرسال إشعار عبر النظام الخارجي - يمكن إضافته لاحقاً
+      const notificationResult = null;
       
       // 5. تحديث قاعدة التكرار
       console.log('📊 تحديث قاعدة التكرار...');
       
       const newExecutionCount = rule.execution_count + 1;
-      const isCompleted = newExecutionCount >= rule.recurrence_interval;
+      const nextExecution = calculateNextExecution(
+        rule.schedule_type,
+        rule.schedule_config,
+        rule.timezone
+      );
       
-      // حساب التاريخ التالي للتنفيذ (إذا لم تكتمل العملية)
-      let nextExecutionDate = null;
-      let endDate = null;
-      
-      if (!isCompleted) {
-        nextExecutionDate = RecurringExecutionController.calculateNextExecutionDate(rule);
-      } else {
-        // إذا اكتملت العملية، نضع تاريخ النهاية
-        endDate = new Date();
-      }
-      
-      // تحديث قاعدة التكرار
-      const updateQuery = `
-        UPDATE recurring_rules 
-        SET 
-          execution_count = $1,
-          last_execution_date = NOW(),
-          next_execution_date = $2,
-          end_date = $3,
-          is_active = $4,
-          updated_at = NOW()
-        WHERE id = $5
-        RETURNING *
-      `;
-      
-      const updateResult = await pool.query(updateQuery, [
-        newExecutionCount,
-        nextExecutionDate,
-        endDate,
-        !isCompleted, // إذا اكتملت العملية، تصبح غير نشطة
-        rule.id
-      ]);
+      const updateResult = await pool.query(
+        `UPDATE recurring_rules
+         SET execution_count = $1,
+             last_executed = NOW(),
+             next_execution = $2,
+             updated_at = NOW()
+         WHERE id = $3
+         RETURNING *`,
+        [newExecutionCount, nextExecution, rule.id]
+      );
       
       const updatedRule = updateResult.rows[0];
       
-      console.log(`📈 تم تحديث العداد: ${newExecutionCount}/${rule.recurrence_interval}`);
-      if (isCompleted) {
-        console.log(`🏁 تم إكمال جميع التنفيذات وإنهاء القاعدة`);
-      } else {
-        console.log(`⏰ التنفيذ التالي: ${nextExecutionDate}`);
+      console.log(`📈 تم تحديث العداد: ${newExecutionCount}`);
+      if (nextExecution) {
+        console.log(`⏰ التنفيذ التالي: ${nextExecution}`);
       }
       
       // إرجاع النتيجة
       res.json({
         success: true,
-        message: isCompleted 
-          ? 'تم تنفيذ قاعدة التكرار وإكمال جميع التنفيذات المطلوبة'
-          : 'تم تنفيذ قاعدة التكرار بنجاح',
+        message: 'تم تنفيذ قاعدة التكرار بنجاح',
         data: {
           rule: updatedRule,
           ticket: createdTicket,
@@ -193,10 +152,7 @@ class RecurringExecutionController {
           notification: notificationResult,
           execution_info: {
             current_execution: newExecutionCount,
-            total_executions: rule.recurrence_interval,
-            is_completed: isCompleted,
-            next_execution_date: nextExecutionDate,
-            end_date: endDate
+            next_execution_date: nextExecution
           }
         }
       });
@@ -225,35 +181,6 @@ class RecurringExecutionController {
         error: error.message
       });
     }
-  }
-  
-  // حساب التاريخ التالي للتنفيذ
-  static calculateNextExecutionDate(rule) {
-    const currentDate = new Date(rule.next_execution_date || rule.start_date);
-    
-    switch (rule.recurrence_type) {
-      case 'daily':
-        currentDate.setDate(currentDate.getDate() + 1);
-        break;
-        
-      case 'weekly':
-        currentDate.setDate(currentDate.getDate() + 7);
-        break;
-        
-      case 'monthly':
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        break;
-        
-      case 'yearly':
-        currentDate.setFullYear(currentDate.getFullYear() + 1);
-        break;
-        
-      default:
-        // افتراضي: يومي
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    return currentDate;
   }
   
   // جلب قاعدة التكرار وتنفيذها (endpoint مدمج)
@@ -290,14 +217,6 @@ class RecurringExecutionController {
         });
       }
       
-      if (rule.execution_count >= rule.recurrence_interval) {
-        return res.status(400).json({
-          success: false,
-          message: 'تم الوصول للحد الأقصى من التنفيذات',
-          data: rule
-        });
-      }
-      
       // تنفيذ القاعدة
       req.params.id = id; // للتأكد من وجود المعرف
       return await RecurringExecutionController.executeRule(req, res);
@@ -316,3 +235,176 @@ class RecurringExecutionController {
 }
 
 module.exports = RecurringExecutionController;
+
+function safeParseJSON(value, fallback) {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function processTemplate(templateData) {
+  const now = new Date();
+  const processed = JSON.parse(JSON.stringify(templateData || {}));
+
+  const variables = {
+    '{{current_date}}': now.toLocaleDateString('ar-SA'),
+    '{{current_time}}': now.toLocaleTimeString('ar-SA'),
+    '{{current_month}}': now.toLocaleDateString('ar-SA', { month: 'long' }),
+    '{{current_year}}': now.getFullYear().toString(),
+    '{{week_number}}': getWeekNumber(now).toString()
+  };
+
+  function replaceVariables(obj) {
+    if (typeof obj === 'string') {
+      let result = obj;
+      Object.keys(variables).forEach(key => {
+        result = result.replace(new RegExp(key, 'g'), variables[key]);
+      });
+      return result;
+    } else if (typeof obj === 'object' && obj !== null) {
+      const newObj = {};
+      Object.keys(obj).forEach(key => {
+        newObj[key] = replaceVariables(obj[key]);
+      });
+      return newObj;
+    }
+    return obj;
+  }
+
+  return replaceVariables(processed);
+}
+
+function getWeekNumber(date) {
+  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+  const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+}
+
+function normalizeTags(tags) {
+  if (!tags) {
+    return [];
+  }
+
+  if (Array.isArray(tags)) {
+    return tags;
+  }
+
+  if (typeof tags === 'string') {
+    try {
+      const parsed = JSON.parse(tags);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      // تجاهل الخطأ
+    }
+    return [tags];
+  }
+
+  return [];
+}
+
+async function resolveStageId(processId, candidateStageId) {
+  if (candidateStageId) {
+    const { rows } = await pool.query(
+      `
+        SELECT id
+        FROM stages
+        WHERE id = $1 AND process_id = $2
+        LIMIT 1
+      `,
+      [candidateStageId, processId]
+    );
+
+    if (rows.length > 0) {
+      return rows[0].id;
+    }
+  }
+
+  const { rows: defaultRows } = await pool.query(
+    `
+      SELECT id
+      FROM stages
+      WHERE process_id = $1
+      ORDER BY is_initial DESC, order_index ASC, created_at ASC
+      LIMIT 1
+    `,
+    [processId]
+  );
+
+  return defaultRows[0]?.id || null;
+}
+
+async function resolveAssignedUser(candidateUserId) {
+  if (!candidateUserId) {
+    return null;
+  }
+
+  const { rows } = await pool.query(
+    `
+      SELECT id
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [candidateUserId]
+  );
+
+  return rows.length > 0 ? rows[0].id : null;
+}
+
+function calculateNextExecution(scheduleType, scheduleConfig, timezone) {
+  const now = new Date();
+  const config = typeof scheduleConfig === 'string'
+    ? safeParseJSON(scheduleConfig, {})
+    : (scheduleConfig || {});
+
+  switch (scheduleType) {
+    case 'daily': {
+      const dailyNext = new Date(now);
+      dailyNext.setDate(dailyNext.getDate() + (config.interval || 1));
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        dailyNext.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      }
+      return dailyNext;
+    }
+    case 'weekly': {
+      const weeklyNext = new Date(now);
+      weeklyNext.setDate(weeklyNext.getDate() + 7 * (config.interval || 1));
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        weeklyNext.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      }
+      return weeklyNext;
+    }
+    case 'monthly': {
+      const monthlyNext = new Date(now);
+      monthlyNext.setMonth(monthlyNext.getMonth() + (config.interval || 1));
+      if (config.day_of_month) {
+        monthlyNext.setDate(config.day_of_month);
+      }
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        monthlyNext.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      }
+      return monthlyNext;
+    }
+    case 'yearly': {
+      const yearlyNext = new Date(now);
+      yearlyNext.setFullYear(yearlyNext.getFullYear() + (config.interval || 1));
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        yearlyNext.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      }
+      return yearlyNext;
+    }
+    default: {
+      const defaultNext = new Date(now);
+      defaultNext.setDate(defaultNext.getDate() + 1);
+      return defaultNext;
+    }
+  }
+}

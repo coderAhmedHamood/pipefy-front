@@ -357,27 +357,69 @@ class RecurringController {
         });
       }
       
-      const rule = ruleResult.rows[0];
+      const rule = formatRecurringRule(ruleResult.rows[0]);
       
       // إنشاء تذكرة جديدة من القالب
-      const templateData = rule.template_data;
+      const templateData = typeof rule.template_data === 'string'
+        ? safeParseJSON(rule.template_data, {})
+        : (rule.template_data || {});
       const processedData = processTemplate(templateData);
-      
+
+      const stageIdCandidate =
+        processedData.current_stage_id ||
+        processedData.stage_id ||
+        rule.current_stage_id ||
+        null;
+
+      const stageId = await resolveStageId(rule.process_id, stageIdCandidate);
+
+      if (!stageId) {
+        throw new Error('لا يمكن تحديد مرحلة صالحة لهذه العملية');
+      }
+
+      const assignedToCandidate =
+        processedData.assigned_to ||
+        rule.assigned_to ||
+        null;
+
+      const assignedTo = await resolveAssignedUser(assignedToCandidate);
+
+      const priority = processedData.priority || rule.priority || 'medium';
+      const status = processedData.status || rule.status || 'active';
+      const dueDate = processedData.due_date || rule.due_date || null;
+      const rawTags = processedData.tags || rule.tags || null;
+      const tags = normalizeTags(rawTags);
+
       const ticketResult = await pool.query(`
         INSERT INTO tickets (
-          title, description, process_id, priority, 
-          data, created_by, ticket_number
+          title,
+          description,
+          process_id,
+          current_stage_id,
+          assigned_to,
+          priority,
+          status,
+          due_date,
+          data,
+          tags,
+          created_by,
+          ticket_number
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING *
       `, [
-        processedData.title,
-        processedData.description,
+        processedData.title || rule.name || 'تذكرة متكررة',
+        processedData.description || rule.description || '',
         rule.process_id,
-        processedData.priority || 'medium',
+        stageId,
+        assignedTo,
+        priority,
+        status,
+        dueDate,
         JSON.stringify(processedData.data || {}),
+        tags,
         req.user.id,
-        await generateTicketNumber()
+        await generateTicketNumber(rule.process_id)
       ]);
       
       // تحديث آخر تنفيذ وحساب التنفيذ التالي
@@ -410,7 +452,7 @@ class RecurringController {
       res.status(500).json({
         success: false,
         message: 'خطأ في تشغيل قاعدة التكرار',
-        error: error.message
+        error: error.detail || error.message
       });
     }
   }
@@ -530,14 +572,15 @@ function getWeekNumber(date) {
   return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
 }
 
-async function generateTicketNumber() {
+async function generateTicketNumber(processId) {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
+  const processSegment = processId ? String(processId).slice(0, 4).toUpperCase() : 'REC';
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   
-  return `REC-${year}${month}${day}-${random}`;
+  return `${processSegment}-${year}${month}${day}-${random}`;
 }
 
 function safeParseJSON(value, fallback) {
@@ -569,6 +612,87 @@ function formatRecurringRule(rule) {
   formatted.last_execution_date = formatted.last_execution_date || formatted.last_executed || null;
 
   return formatted;
+}
+
+function normalizeTags(tags) {
+  if (!tags) {
+    return null;
+  }
+
+  if (Array.isArray(tags)) {
+    return tags;
+  }
+
+  if (typeof tags === 'string') {
+    try {
+      const parsed = JSON.parse(tags);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      // تجاهل الخطأ، سيتم إرجاع العلامة كسلسلة واحدة
+    }
+    return [tags];
+  }
+
+  return null;
+}
+
+async function getDefaultStageId(processId) {
+  if (!processId) {
+    return null;
+  }
+
+  const result = await pool.query(
+    `
+      SELECT id
+      FROM stages
+      WHERE process_id = $1
+      ORDER BY order_index ASC NULLS LAST, created_at ASC
+      LIMIT 1
+    `,
+    [processId]
+  );
+
+  return result.rows[0]?.id || null;
+}
+
+async function resolveStageId(processId, candidateStageId) {
+  if (candidateStageId) {
+    const { rows } = await pool.query(
+      `
+        SELECT id
+        FROM stages
+        WHERE id = $1 AND process_id = $2
+        LIMIT 1
+      `,
+      [candidateStageId, processId]
+    );
+
+    if (rows.length > 0) {
+      return rows[0].id;
+    }
+  }
+
+  return await getDefaultStageId(processId);
+}
+
+async function resolveAssignedUser(candidateUserId) {
+  if (!candidateUserId) {
+    return null;
+  }
+
+  const { rows } = await pool.query(
+    `
+      SELECT id
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [candidateUserId]
+  );
+
+  return rows.length > 0 ? rows[0].id : null;
 }
 
 module.exports = RecurringController;
