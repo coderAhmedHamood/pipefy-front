@@ -1,25 +1,48 @@
 /**
  * ملف التكوين المركزي لـ API
  * Central API Configuration File
- * 
+ *
  * يحتوي على جميع إعدادات الروابط والمنافذ
  * Contains all URL and port settings
- * 
+ *
  * لتغيير البورت أو العنوان، قم بتعديل SERVER_CONFIG فقط
  * To change port or URL, modify SERVER_CONFIG only
  */
 
+const os = require('os');
+
+const getLocalIpAddress = () => {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name] || []) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+};
+
 // إعدادات الخادم الأساسية - المكان الوحيد للتغيير
 // Base Server Configuration - THE ONLY PLACE TO CHANGE
+const PROTOCOL = process.env.PROTOCOL || 'http';
+const PORT = Number(process.env.PORT) || 3003;
+const BIND_HOST = process.env.HOST || '0.0.0.0';
+const PUBLIC_HOST =
+  process.env.PUBLIC_HOST || (BIND_HOST === '0.0.0.0' ? getLocalIpAddress() : BIND_HOST);
+
 const SERVER_CONFIG = {
-  HOST: 'localhost',      // العنوان الأساسي
-  PORT: 3003,             // البورت - غير هذا الرقم فقط لتغيير البورت
-  PROTOCOL: 'http'       // البروتوكول
+  PROTOCOL,
+  PORT,
+  HOST: PUBLIC_HOST,      // العنوان المستخدم في الروابط العامة
+  BIND_HOST,              // العنوان الذي سيستمع عليه الخادم
+  PUBLIC_HOST,            // مرادف للوضوح
+  BASE_URL: `${PROTOCOL}://${PUBLIC_HOST}:${PORT}`
 };
 
 // عنوان API الأساسي - يتم بناؤه تلقائياً
 // Base API URL - Built automatically
-const API_BASE_URL = `${SERVER_CONFIG.PROTOCOL}://${SERVER_CONFIG.HOST}:${SERVER_CONFIG.PORT}`;
+const API_BASE_URL = SERVER_CONFIG.BASE_URL;
 
 // نقاط النهاية الرئيسية
 const API_ENDPOINTS = {

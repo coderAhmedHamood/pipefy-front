@@ -22,7 +22,7 @@ const options = {
     },
     servers: [
       {
-        url: `${SERVER_CONFIG.PROTOCOL}://${SERVER_CONFIG.HOST}:${SERVER_CONFIG.PORT}`,
+        url: SERVER_CONFIG.BASE_URL,
         description: 'Development server'
       },
       {

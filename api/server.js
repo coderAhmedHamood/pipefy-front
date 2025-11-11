@@ -1,14 +1,18 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const swaggerUi = require('swagger-ui-express');
 const { testConnection } = require('./config/database');
+const { SERVER_CONFIG } = require('./config/api-config');
 const apiRoutes = require('./routes');
 const swaggerSpecs = require('./config/swagger');
-require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3003;
+const PORT = SERVER_CONFIG.PORT;
+const HOST = SERVER_CONFIG.BIND_HOST;
+const DISPLAY_HOST = SERVER_CONFIG.HOST;
 
 // Middleware
 app.use(cors());
@@ -56,11 +60,11 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     endpoints: {
-      api: '/api',
-      documentation: '/api-docs',
-      database_test: '/test-db'
+      api: `http://${DISPLAY_HOST}:${PORT}/api`,
+      documentation: `http://${DISPLAY_HOST}:${PORT}/api-docs`,
+      database_test: `http://${DISPLAY_HOST}:${PORT}/test-db`
     },
-    swagger_ui: 'http://localhost:3003/api-docs'
+    swagger_ui: `http://${DISPLAY_HOST}:${PORT}/api-docs`
   });
 });
 
@@ -113,11 +117,13 @@ const startServer = async () => {
     await TicketReviewer.ensureTable();
     console.log('✅ ticket_reviewers table ready');
     
-    const server = app.listen(PORT, '127.0.0.1', () => {
+    const server = app.listen(PORT, HOST, () => {
+      const accessHost = DISPLAY_HOST;
       console.log(`🚀 Server is running on port ${PORT}`);
-      console.log(`📍 Server URL: http://localhost:${PORT}`);
-      console.log(`📚 Swagger UI: http://localhost:${PORT}/api-docs`);
-      console.log(`🔗 Test database: http://localhost:${PORT}/test-db`);
+      console.log(`📍 Local URL: http://localhost:${PORT}`);
+      console.log(`🌐 Network URL: http://${accessHost}:${PORT}`);
+      console.log(`📚 Swagger UI: http://${accessHost}:${PORT}/api-docs`);
+      console.log(`🔗 Test database: http://${accessHost}:${PORT}/test-db`);
     });
     
     server.on('error', (error) => {
