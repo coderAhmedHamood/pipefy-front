@@ -3,7 +3,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-const BASE_URL = 'http://localhost:3003/api';
+const BASE_URL = 'http://localhost:3004/api';
 
 async function testSettings() {
   console.log('🧪 اختبار نظام الإعدادات البسيط');

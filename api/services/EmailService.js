@@ -77,7 +77,7 @@ class EmailService {
         console.log(`📸 استخدام CID للشعار: company-logo`);
       } else {
         // استخدام رابط خارجي
-        const apiBaseUrl = settings?.api_base_url || 'http://localhost:3003';
+        const apiBaseUrl = settings?.api_base_url || 'http://localhost:3004';
         const baseUrl = apiBaseUrl.replace(/\/$/, '');
         
         // إذا كان الرابط يبدأ بـ / أو uploads، فهو مسار نسبي

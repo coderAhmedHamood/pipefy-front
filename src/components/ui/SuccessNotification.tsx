@@ -14,7 +14,7 @@ export const SuccessNotification: React.FC<SuccessNotificationProps> = ({
   isVisible,
   onClose,
   autoClose = true,
-  duration = 3003
+  duration = 3004
 }) => {
   useEffect(() => {
     if (isVisible && autoClose) {

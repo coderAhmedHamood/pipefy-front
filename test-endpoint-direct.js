@@ -2,7 +2,7 @@
  * اختبار مباشر للـ endpoint
  */
 
-const API_BASE_URL = 'http://localhost:3003';
+const API_BASE_URL = 'http://localhost:3004';
 const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhMDBhMmY4ZS0yODQzLTQxZGEtODA4MC02ZWI0Y2QwYTcwNmIiLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwicm9sZSI6IjRkOWJlZjgzLWI2NGItNDg0Mi1iNDI4LTMzODFjYWY3YzEyMyIsImlhdCI6MTc1OTQ5Njg5NywiZXhwIjoxNzU5NTgzMjk3fQ._2sJNFRtE5DqkcwrSRvttX9yG6WE3UDtrXdQCD5rOaM';
 
 async function testEndpoint() {
@@ -103,7 +103,7 @@ async function testEndpoint() {
       console.log('\n🚨 الخادم غير متاح!');
       console.log('🔧 تأكد من:');
       console.log('   • تشغيل الخادم: npm start أو node server.js');
-      console.log('   • المنفذ 3003 متاح');
+      console.log('   • المنفذ 3004 متاح');
       console.log('   • لا يوجد firewall يمنع الاتصال');
     }
   }

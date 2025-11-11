@@ -25,7 +25,7 @@ GET /api/notifications/:id
 
 ### 1. تسجيل الدخول والحصول على Token
 ```bash
-curl -X POST "http://localhost:3003/api/auth/login" \
+curl -X POST "http://localhost:3004/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@example.com", "password": "admin123"}'
 ```
@@ -34,19 +34,19 @@ curl -X POST "http://localhost:3003/api/auth/login" \
 
 #### جلب جميع الإشعارات (أول 10)
 ```bash
-curl -X GET "http://localhost:3003/api/notifications/all?limit=10" \
+curl -X GET "http://localhost:3004/api/notifications/all?limit=10" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### جلب إشعارات مستخدم معين
 ```bash
-curl -X GET "http://localhost:3003/api/notifications/user/USER_ID" \
+curl -X GET "http://localhost:3004/api/notifications/user/USER_ID" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 #### جلب إشعار واحد
 ```bash
-curl -X GET "http://localhost:3003/api/notifications/NOTIFICATION_ID" \
+curl -X GET "http://localhost:3004/api/notifications/NOTIFICATION_ID" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -113,7 +113,7 @@ console.log(data.data); // قائمة الإشعارات
 const axios = require('axios');
 
 const api = axios.create({
-  baseURL: 'http://localhost:3003/api',
+  baseURL: 'http://localhost:3004/api',
   headers: { 'Authorization': `Bearer ${token}` }
 });
 
@@ -127,7 +127,7 @@ console.log('غير مقروءة:', userNotifs.data.data.unread_count);
 
 ## 📚 التوثيق الكامل
 
-- **Swagger UI**: http://localhost:3003/api-docs
+- **Swagger UI**: http://localhost:3004/api-docs
 - **توثيق مفصل**: `NOTIFICATION_ENDPOINTS_DOCUMENTATION.md`
 - **ملخص**: `NOTIFICATION_ENDPOINTS_SUMMARY.md`
 

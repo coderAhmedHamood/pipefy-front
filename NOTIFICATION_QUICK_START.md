@@ -138,10 +138,10 @@ Ctrl+Shift+R
 ### 4. اختبر API:
 ```bash
 # جلب الإشعارات
-GET http://localhost:3003/api/notifications
+GET http://localhost:3004/api/notifications
 
 # عدد غير المقروءة
-GET http://localhost:3003/api/notifications/unread-count
+GET http://localhost:3004/api/notifications/unread-count
 ```
 
 ---

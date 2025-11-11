@@ -163,7 +163,7 @@ node quick-test-notifications.js
 ### اختبار شامل:
 ```bash
 # 1. احصل على Token
-curl -X POST "http://localhost:3003/api/auth/login" \
+curl -X POST "http://localhost:3004/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@example.com", "password": "admin123"}'
 
@@ -205,7 +205,7 @@ const axios = require('axios');
 
 async function getUserNotifications(userId, token) {
   const response = await axios.get(
-    `http://localhost:3003/api/notifications/user/${userId}`,
+    `http://localhost:3004/api/notifications/user/${userId}`,
     {
       headers: { 'Authorization': `Bearer ${token}` }
     }
@@ -271,7 +271,7 @@ async function getUserNotifications(userId, token) {
 
 ### Swagger UI:
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 ```
 - توثيق تفاعلي
 - اختبار مباشر للـ endpoints
@@ -322,7 +322,7 @@ node quick-test-notifications.js
 
 ### 2. مراجعة Swagger UI:
 ```
-افتح: http://localhost:3003/api-docs
+افتح: http://localhost:3004/api-docs
 ابحث عن: Notifications
 جرّب الـ endpoints
 ```
@@ -359,8 +359,8 @@ node quick-test-notifications.js
 
 ## 📞 المراجع السريعة
 
-- **Swagger UI**: http://localhost:3003/api-docs
-- **API Docs**: http://localhost:3003/api/docs
+- **Swagger UI**: http://localhost:3004/api-docs
+- **API Docs**: http://localhost:3004/api/docs
 - **اختبار سريع**: `node quick-test-notifications.js`
 - **التوثيق المفصل**: `NOTIFICATION_ENDPOINTS_DOCUMENTATION.md`
 

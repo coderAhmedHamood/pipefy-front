@@ -308,12 +308,12 @@ node test-move-ticket-to-process.js
 
 ```bash
 # تسجيل الدخول
-curl -X POST http://localhost:3003/api/auth/login \
+curl -X POST http://localhost:3004/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"admin123"}'
 
 # نقل التذكرة
-curl -X POST http://localhost:3003/api/tickets/{ticket_id}/move-to-process \
+curl -X POST http://localhost:3004/api/tickets/{ticket_id}/move-to-process \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{"target_process_id":"{process_id}"}'
@@ -323,12 +323,12 @@ curl -X POST http://localhost:3003/api/tickets/{ticket_id}/move-to-process \
 
 1. **تسجيل الدخول:**
    - Method: POST
-   - URL: `http://localhost:3003/api/auth/login`
+   - URL: `http://localhost:3004/api/auth/login`
    - Body: `{"email":"admin@example.com","password":"admin123"}`
 
 2. **نقل التذكرة:**
    - Method: POST
-   - URL: `http://localhost:3003/api/tickets/{ticket_id}/move-to-process`
+   - URL: `http://localhost:3004/api/tickets/{ticket_id}/move-to-process`
    - Headers: `Authorization: Bearer {token}`
    - Body: `{"target_process_id":"{process_id}"}`
 
@@ -481,7 +481,7 @@ INSERT INTO ticket_activities (
 في حالة وجود مشاكل أو استفسارات:
 - راجع ملف الاختبار: `test-move-ticket-to-process.js`
 - تحقق من السجلات (Logs) في الخادم
-- راجع توثيق Swagger: `http://localhost:3003/api-docs`
+- راجع توثيق Swagger: `http://localhost:3004/api-docs`
 
 ---
 

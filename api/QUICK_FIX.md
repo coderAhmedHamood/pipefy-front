@@ -55,7 +55,7 @@ $body = @{
     password = "admin123"
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "http://localhost:3003/api/auth/login" `
+Invoke-RestMethod -Uri "http://localhost:3004/api/auth/login" `
     -Method POST `
     -ContentType "application/json" `
     -Body $body
@@ -64,7 +64,7 @@ Invoke-RestMethod -Uri "http://localhost:3003/api/auth/login" `
 ### من curl:
 
 ```bash
-curl -X POST http://localhost:3003/api/auth/login \
+curl -X POST http://localhost:3004/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@pipefy.com","password":"admin123"}'
 ```
@@ -110,7 +110,7 @@ node scripts/create-admin.js
 npm run dev
 
 # 4. اختبر تسجيل الدخول
-# استخدم Swagger UI: http://localhost:3003/api-docs
+# استخدم Swagger UI: http://localhost:3004/api-docs
 ```
 
 ---

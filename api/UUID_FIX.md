@@ -39,7 +39,7 @@ MIN(n.id) as id,  -- ❌ لا يعمل مع UUID
 
 ### اختبر الآن من Swagger:
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 → GET /api/notifications/with-users
 ```
 

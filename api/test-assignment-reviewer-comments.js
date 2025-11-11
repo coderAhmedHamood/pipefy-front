@@ -12,7 +12,7 @@
 const http = require('http');
 
 const API_BASE_URL = 'localhost';
-const API_PORT = 3003;
+const API_PORT = 3004;
 
 // ألوان للطباعة
 const colors = {
@@ -294,7 +294,7 @@ async function runTests() {
 
 // تشغيل الاختبارات
 log('\n🚀 بدء الاختبار...', 'cyan');
-log('🌐 الخادم: http://localhost:3003', 'cyan');
+log('🌐 الخادم: http://localhost:3004', 'cyan');
 log('📅 التاريخ: ' + new Date().toLocaleString('ar-SA'), 'cyan');
 
 runTests().then(() => {

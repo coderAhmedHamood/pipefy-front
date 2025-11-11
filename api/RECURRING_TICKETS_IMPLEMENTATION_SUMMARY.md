@@ -95,7 +95,7 @@
 ## 📚 التوثيق
 
 ### Swagger UI متاح على:
-`http://localhost:3003/api-docs`
+`http://localhost:3004/api-docs`
 
 ### يتضمن التوثيق:
 - ✅ وصف كامل لجميع نقاط النهاية
@@ -143,8 +143,8 @@ Content-Type: application/json
 - **معدل نجاح الاختبارات**: 100%
 
 ### 🚀 الخادم جاهز على:
-- **API**: http://localhost:3003
-- **Swagger UI**: http://localhost:3003/api-docs
+- **API**: http://localhost:3004
+- **Swagger UI**: http://localhost:3004/api-docs
 - **حالة الخادم**: 🟢 يعمل بشكل طبيعي
 
 ---

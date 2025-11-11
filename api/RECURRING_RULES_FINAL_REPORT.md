@@ -47,7 +47,7 @@
 #### الـ curl الأصلي (مع إضافة process_id):
 ```bash
 curl -X 'POST' \
-  'http://localhost:3003/api/recurring/rules' \
+  'http://localhost:3004/api/recurring/rules' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
@@ -132,7 +132,7 @@ curl -X 'POST' \
 **للاستخدام الفوري:**
 ```bash
 # إنشاء قاعدة جديدة
-curl -X POST "http://localhost:3003/api/recurring/rules" \
+curl -X POST "http://localhost:3004/api/recurring/rules" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -142,7 +142,7 @@ curl -X POST "http://localhost:3003/api/recurring/rules" \
   }'
 
 # تحديث قاعدة موجودة ✅ جديد
-curl -X PUT "http://localhost:3003/api/recurring/rules/{id}" \
+curl -X PUT "http://localhost:3004/api/recurring/rules/{id}" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

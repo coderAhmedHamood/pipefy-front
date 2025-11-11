@@ -92,7 +92,7 @@ npm start
 
 **في المتصفح**:
 ```
-❌ GET http://localhost:3003/api/notifications/unread-count 500
+❌ GET http://localhost:3004/api/notifications/unread-count 500
 ```
 
 **في الخادم**:

@@ -257,8 +257,8 @@ class SettingsController {
       const baseUrl = req.protocol + '://' + req.get('host');
       const fullLogoUrl = `${baseUrl}/uploads/logos/${req.file.filename}`;
       
-      // حفظ الرابط الكامل (بدون http://localhost:3003 فقط)
-      const logoUrlToSave = fullLogoUrl.replace('http://localhost:3003', '');
+      // حفظ الرابط الكامل (بدون http://localhost:3004 فقط)
+      const logoUrlToSave = fullLogoUrl.replace('http://localhost:3004', '');
       const updatedSettings = await Settings.updateSystemLogo(logoUrlToSave);
 
       res.status(200).json({

@@ -124,7 +124,7 @@ async function createAdmin() {
     console.log('─'.repeat(70));
     
     console.log('\n💡 يمكنك الآن تسجيل الدخول باستخدام:');
-    console.log(`   POST http://localhost:3003/api/auth/login`);
+    console.log(`   POST http://localhost:3004/api/auth/login`);
     console.log(`   Body: { "email": "admin@pipefy.com", "password": "admin123" }\n`);
     
     console.log('🎉 النظام جاهز للاستخدام!\n');

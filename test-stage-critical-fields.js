@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 
 // اختبار تحديث الحقول الحرجة للمراحل
 async function testStageCriticalFields() {
-  const baseUrl = 'http://localhost:3003';
+  const baseUrl = 'http://localhost:3004';
   
   // بيانات اختبار (يجب تعديلها حسب البيانات الفعلية)
   const testStageId = '50e26e53-e661-43fb-94ff-5b3103ab5f27'; // معرف مرحلة موجودة

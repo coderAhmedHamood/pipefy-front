@@ -50,7 +50,7 @@
 
 ### 1. افتح الصفحة
 ```
-http://localhost:3003/notifications
+http://localhost:3004/notifications
 ```
 
 ### 2. اضغط على "التقارير"

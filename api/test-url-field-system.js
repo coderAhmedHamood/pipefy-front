@@ -91,7 +91,7 @@ async function testUrlFieldSystem() {
     
     try {
       // محاولة تسجيل الدخول للحصول على token
-      const loginResponse = await axios.post('http://localhost:3003/api/auth/login', {
+      const loginResponse = await axios.post('http://localhost:3004/api/auth/login', {
         email: 'admin@example.com',
         password: 'admin123'
       });
@@ -101,7 +101,7 @@ async function testUrlFieldSystem() {
 
       // اختبار POST /api/notifications مع URL
       const createResponse = await axios.post(
-        'http://localhost:3003/api/notifications',
+        'http://localhost:3004/api/notifications',
         {
           user_id: userId,
           title: 'إشعار API مع URL',
@@ -122,7 +122,7 @@ async function testUrlFieldSystem() {
 
       // اختبار POST /api/notifications/bulk مع URL
       const bulkResponse = await axios.post(
-        'http://localhost:3003/api/notifications/bulk',
+        'http://localhost:3004/api/notifications/bulk',
         {
           user_ids: [userId],
           title: 'إشعار جماعي مع URL',
@@ -146,7 +146,7 @@ async function testUrlFieldSystem() {
 
       // اختبار GET /api/notifications للتأكد من ظهور URL
       const getResponse = await axios.get(
-        'http://localhost:3003/api/notifications',
+        'http://localhost:3004/api/notifications',
         {
           headers: { Authorization: `Bearer ${token}` }
         }

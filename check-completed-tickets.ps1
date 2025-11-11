@@ -8,7 +8,7 @@ Write-Host ""
 
 try {
     $processId = "d6f7574c-d937-4e55-8cb1-0b19269e6061"
-    $response = Invoke-RestMethod -Uri "http://localhost:3003/api/reports/process/$processId" -Method Get -Headers $headers
+    $response = Invoke-RestMethod -Uri "http://localhost:3004/api/reports/process/$processId" -Method Get -Headers $headers
     
     Write-Host "Stage Distribution:" -ForegroundColor Yellow
     $response.data.stage_distribution | ForEach-Object {

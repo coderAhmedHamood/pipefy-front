@@ -1,5 +1,5 @@
 # Test API Script
-$baseUrl = "http://localhost:3003/api"
+$baseUrl = "http://localhost:3004/api"
 
 # Login to get token
 $loginBody = @{

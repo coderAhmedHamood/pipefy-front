@@ -13,7 +13,7 @@ async function testCreateProcess() {
 
   const loginOptions = {
     hostname: 'localhost',
-    port: 3003,
+    port: 3004,
     path: '/api/auth/login',
     method: 'POST',
     headers: {
@@ -145,7 +145,7 @@ async function testCreateProcess() {
   }
 
   console.log('\n🎉 انتهى الاختبار!');
-  console.log('🌐 يمكنك الآن فتح Swagger UI: http://localhost:3003/api-docs');
+  console.log('🌐 يمكنك الآن فتح Swagger UI: http://localhost:3004/api-docs');
   console.log('📋 وتجربة إنشاء العمليات بنفسك');
 }
 
@@ -153,7 +153,7 @@ function makeRequest(method, path, body, token) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'localhost',
-      port: 3003,
+      port: 3004,
       path: path,
       method: method,
       headers: {

@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:3003/api';
+const API_URL = 'http://localhost:3004/api';
 let token = '';
 let testTicketId = '';
 let testUserId = '';

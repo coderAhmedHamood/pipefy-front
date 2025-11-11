@@ -3,7 +3,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-const API_URL = 'http://localhost:3003/api';
+const API_URL = 'http://localhost:3004/api';
 
 async function testLogoUpload() {
   try {
@@ -73,11 +73,11 @@ async function testLogoUpload() {
     const savedLogoUrl = settingsResponse.data.data.system_logo_url;
     console.log('🔗 الرابط المحفوظ في قاعدة البيانات:', savedLogoUrl);
 
-    // التحقق من أن الرابط لا يحتوي على http://localhost:3003
-    if (savedLogoUrl && savedLogoUrl.includes('localhost:3003')) {
-      console.log('❌ خطأ: الرابط المحفوظ يحتوي على localhost:3003');
+    // التحقق من أن الرابط لا يحتوي على http://localhost:3004
+    if (savedLogoUrl && savedLogoUrl.includes('localhost:3004')) {
+      console.log('❌ خطأ: الرابط المحفوظ يحتوي على localhost:3004');
     } else if (savedLogoUrl && savedLogoUrl.startsWith('/uploads/')) {
-      console.log('✅ ممتاز: الرابط المحفوظ صحيح (بدون localhost:3003)');
+      console.log('✅ ممتاز: الرابط المحفوظ صحيح (بدون localhost:3004)');
     } else {
       console.log('⚠️ تحذير: الرابط المحفوظ غير متوقع:', savedLogoUrl);
     }
@@ -85,7 +85,7 @@ async function testLogoUpload() {
     // 5. اختبار الوصول للصورة
     console.log('\n5️⃣ اختبار الوصول للصورة...');
     try {
-      const imageUrl = `http://localhost:3003${savedLogoUrl}`;
+      const imageUrl = `http://localhost:3004${savedLogoUrl}`;
       const imageResponse = await axios.get(imageUrl, {
         responseType: 'arraybuffer'
       });

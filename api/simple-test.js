@@ -6,7 +6,7 @@ async function testBasicEndpoints() {
   try {
     // 1. اختبار health check
     console.log('1. اختبار health check...');
-    const healthResponse = await axios.get('http://localhost:3003/api/health');
+    const healthResponse = await axios.get('http://localhost:3004/api/health');
     console.log('✅ Health check:', healthResponse.data.status);
 
     // 2. اختبار تسجيل الدخول
@@ -14,7 +14,7 @@ async function testBasicEndpoints() {
     let authToken = '';
     
     try {
-      const loginResponse = await axios.post('http://localhost:3003/api/auth/login', {
+      const loginResponse = await axios.post('http://localhost:3004/api/auth/login', {
         email: 'admin@pipefy.com',
         password: 'admin123'
       });
@@ -37,7 +37,7 @@ async function testBasicEndpoints() {
     // 3. اختبار جلب العمليات
     console.log('\n3. اختبار جلب العمليات...');
     try {
-      const processesResponse = await axios.get('http://localhost:3003/api/processes', {
+      const processesResponse = await axios.get('http://localhost:3004/api/processes', {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       
@@ -58,7 +58,7 @@ async function testBasicEndpoints() {
               priority: 'medium'
             };
 
-            const createResponse = await axios.post('http://localhost:3003/api/tickets', ticketData, {
+            const createResponse = await axios.post('http://localhost:3004/api/tickets', ticketData, {
               headers: { 'Authorization': `Bearer ${authToken}` }
             });
 
@@ -74,7 +74,7 @@ async function testBasicEndpoints() {
                   priority: 'high'
                 };
 
-                const updateResponse = await axios.put(`http://localhost:3003/api/tickets/${ticketId}`, updateData, {
+                const updateResponse = await axios.put(`http://localhost:3004/api/tickets/${ticketId}`, updateData, {
                   headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 
@@ -90,7 +90,7 @@ async function testBasicEndpoints() {
               // 6. اختبار حذف التذكرة
               console.log('\n6. اختبار حذف التذكرة...');
               try {
-                const deleteResponse = await axios.delete(`http://localhost:3003/api/tickets/${ticketId}`, {
+                const deleteResponse = await axios.delete(`http://localhost:3004/api/tickets/${ticketId}`, {
                   headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 

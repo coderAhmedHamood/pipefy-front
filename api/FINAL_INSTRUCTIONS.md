@@ -137,7 +137,7 @@ node scripts/show-permissions-summary.js
 npm run dev
 
 # في نافذة أخرى، اختبار تسجيل الدخول
-curl -X POST http://localhost:3003/api/auth/login \
+curl -X POST http://localhost:3004/api/auth/login \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"admin@pipefy.com\",\"password\":\"admin123\"}"
 ```

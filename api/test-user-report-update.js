@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // إعدادات الاختبار
-const BASE_URL = 'http://localhost:3003';
+const BASE_URL = 'http://localhost:3004';
 const API_URL = `${BASE_URL}/api`;
 
 // معرف المستخدم للاختبار (Admin User)

@@ -23,7 +23,7 @@ const fetchUsersFunction = `
     setIsLoadingUsers(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3003/api/users', {
+      const response = await fetch('http://localhost:3004/api/users', {
         headers: {
           'Authorization': \`Bearer \${token}\`
         }

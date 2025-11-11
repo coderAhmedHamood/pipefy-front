@@ -64,7 +64,7 @@ GET    /api/recurring/rules/due       - القواعد المستحقة
 ## 🔗 للتحقق:
 
 ### 1. Swagger UI:
-- اذهب إلى: `http://localhost:3003/api-docs`
+- اذهب إلى: `http://localhost:3004/api-docs`
 - يجب أن ترى قسم "Recurring" فقط
 - لا يجب أن ترى "Recurring Tickets"
 

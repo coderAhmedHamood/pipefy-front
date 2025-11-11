@@ -17,7 +17,7 @@ tags: [Recurring]
 ### 2. إصلاح رقم المنفذ في الـ Controller
 ```javascript
 // قبل الإصلاح
-http://localhost:3003
+http://localhost:3004
 
 // بعد الإصلاح
 http://localhost:3001
@@ -26,7 +26,7 @@ http://localhost:3001
 ### 3. إصلاح ملف الاختبار
 ```javascript
 // قبل الإصلاح
-const API_BASE_URL = 'http://localhost:3003';
+const API_BASE_URL = 'http://localhost:3004';
 
 // بعد الإصلاح
 const API_BASE_URL = 'http://localhost:3001';

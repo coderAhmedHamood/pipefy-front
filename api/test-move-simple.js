@@ -11,7 +11,7 @@ async function testMoveSimple() {
   try {
     // 1. تسجيل الدخول
     console.log('1️⃣ تسجيل الدخول...');
-    const loginCmd = `curl -X POST http://localhost:3003/api/auth/login -H "Content-Type: application/json" -d "{\\"email\\":\\"admin@pipefy.com\\",\\"password\\":\\"admin123\\"}"`;
+    const loginCmd = `curl -X POST http://localhost:3004/api/auth/login -H "Content-Type: application/json" -d "{\\"email\\":\\"admin@pipefy.com\\",\\"password\\":\\"admin123\\"}"`;
     
     const loginResult = await execAsync(loginCmd);
     const loginData = JSON.parse(loginResult.stdout);
@@ -27,7 +27,7 @@ async function testMoveSimple() {
 
     // 2. فحص التذكرة قبل التحريك
     console.log('2️⃣ فحص التذكرة قبل التحريك...');
-    const checkCmd = `curl -X GET http://localhost:3003/api/tickets/${ticketId} -H "Authorization: Bearer ${token}"`;
+    const checkCmd = `curl -X GET http://localhost:3004/api/tickets/${ticketId} -H "Authorization: Bearer ${token}"`;
     
     const checkResult = await execAsync(checkCmd);
     const ticketData = JSON.parse(checkResult.stdout);
@@ -46,7 +46,7 @@ async function testMoveSimple() {
     console.log('🆔 معرف المرحلة:', targetStageId);
     console.log('');
     
-    const moveCmd = `curl -X POST "http://localhost:3003/api/tickets/${ticketId}/move-simple" -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" -d "{\\"target_stage_id\\":\\"${targetStageId}\\"}"`;
+    const moveCmd = `curl -X POST "http://localhost:3004/api/tickets/${ticketId}/move-simple" -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" -d "{\\"target_stage_id\\":\\"${targetStageId}\\"}"`;
     
     const moveResult = await execAsync(moveCmd);
     const moveData = JSON.parse(moveResult.stdout);
@@ -95,7 +95,7 @@ async function testMoveSimple() {
     console.log('   - الـ Endpoint: POST /api/tickets/{id}/move-simple');
     console.log('   - الحالة:', moveData.success ? 'نجح ✅' : 'فشل ❌');
     console.log('');
-    console.log('📖 متاح في Swagger: http://localhost:3003/api-docs/#/Tickets');
+    console.log('📖 متاح في Swagger: http://localhost:3004/api-docs/#/Tickets');
 
   } catch (error) {
     console.error('❌ خطأ عام:', error.message);

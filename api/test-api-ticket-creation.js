@@ -5,7 +5,7 @@ async function testApiTicketCreation() {
     console.log('🔐 تسجيل الدخول للحصول على رمز المصادقة...');
     
     // تسجيل الدخول
-    const loginResponse = await axios.post('http://localhost:3003/api/auth/login', {
+    const loginResponse = await axios.post('http://localhost:3004/api/auth/login', {
       email: 'admin@example.com',
       password: 'admin123'
     });
@@ -21,7 +21,7 @@ async function testApiTicketCreation() {
     
     // جلب العمليات المتاحة
     console.log('\n📋 جلب العمليات المتاحة...');
-    const processesResponse = await axios.get('http://localhost:3003/api/processes', { headers });
+    const processesResponse = await axios.get('http://localhost:3004/api/processes', { headers });
     const processes = processesResponse.data.data;
     
     if (processes.length === 0) {
@@ -54,7 +54,7 @@ async function testApiTicketCreation() {
           }
         };
         
-        const response = await axios.post('http://localhost:3003/api/tickets', ticketData, { headers });
+        const response = await axios.post('http://localhost:3004/api/tickets', ticketData, { headers });
         
         if (response.data.success) {
           const ticket = response.data.data;
@@ -113,7 +113,7 @@ async function testApiTicketCreation() {
         };
         
         simultaneousPromises.push(
-          axios.post('http://localhost:3003/api/tickets', ticketData, { headers })
+          axios.post('http://localhost:3004/api/tickets', ticketData, { headers })
             .then(response => response.data.data)
             .catch(error => ({ error: error.response?.data?.message || error.message }))
         );

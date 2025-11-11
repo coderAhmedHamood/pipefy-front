@@ -13,7 +13,7 @@ async function testLogin() {
 
     const options = {
       hostname: 'localhost',
-      port: 3003,
+      port: 3004,
       path: '/api/auth/login',
       method: 'POST',
       headers: {

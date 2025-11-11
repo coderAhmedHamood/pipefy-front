@@ -26,7 +26,7 @@ const getLocalIpAddress = () => {
 // إعدادات الخادم الأساسية - المكان الوحيد للتغيير
 // Base Server Configuration - THE ONLY PLACE TO CHANGE
 const PROTOCOL = process.env.PROTOCOL || 'http';
-const PORT = Number(process.env.PORT) || 3003;
+const PORT = Number(process.env.PORT) || 3004;
 const BIND_HOST = process.env.HOST || '0.0.0.0';
 const PUBLIC_HOST =
   process.env.PUBLIC_HOST || (BIND_HOST === '0.0.0.0' ? getLocalIpAddress() : BIND_HOST);

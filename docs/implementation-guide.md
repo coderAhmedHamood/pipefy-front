@@ -1134,7 +1134,7 @@ AWS_S3_BUCKET=workflow-attachments
 
 # Application
 NODE_ENV=production
-PORT=3003
+PORT=3004
 API_VERSION=v1
 CORS_ORIGIN=https://app.workflow-system.com
 
@@ -1181,7 +1181,7 @@ RUN adduser -S nodejs -u 1001
 RUN chown -R nodejs:nodejs /app
 USER nodejs
 
-EXPOSE 3003
+EXPOSE 3004
 
 CMD ["npm", "start"]
 ```
@@ -1195,7 +1195,7 @@ services:
   app:
     build: .
     ports:
-      - "3003:3003"
+      - "3004:3004"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://postgres:password@db:5432/workflow_system

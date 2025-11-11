@@ -65,7 +65,7 @@ GET /api/notifications/with-users
 
 ### الطريقة 1: من Swagger UI (موصى بها)
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 ```
 
 1. افتح Swagger UI
@@ -94,14 +94,14 @@ node test-notifications-final.js
 
 #### 1. تسجيل الدخول:
 ```bash
-curl -X POST "http://localhost:3003/api/auth/login" \
+curl -X POST "http://localhost:3004/api/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"admin123"}'
 ```
 
 #### 2. جلب جميع الإشعارات:
 ```bash
-curl -X GET "http://localhost:3003/api/notifications/all?limit=5" \
+curl -X GET "http://localhost:3004/api/notifications/all?limit=5" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -200,7 +200,7 @@ curl -X GET "http://localhost:3003/api/notifications/all?limit=5" \
 
 ### اختبر الآن من Swagger UI:
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 ```
 
 1. افتح الرابط في المتصفح

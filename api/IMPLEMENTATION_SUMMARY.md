@@ -245,8 +245,8 @@ node test-assignment-system.js
 ```
 
 ### 4. الوصول إلى التوثيق:
-- Swagger UI: `http://localhost:3003/api-docs`
-- API Docs: `http://localhost:3003/api/docs`
+- Swagger UI: `http://localhost:3004/api-docs`
+- API Docs: `http://localhost:3004/api/docs`
 
 ---
 

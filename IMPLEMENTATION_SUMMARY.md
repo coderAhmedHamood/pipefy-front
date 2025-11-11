@@ -297,7 +297,7 @@ npm run dev
 
 ### 2. الوصول
 ```
-http://localhost:3003/notifications
+http://localhost:3004/notifications
 ```
 
 ### 3. الاستخدام

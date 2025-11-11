@@ -173,13 +173,13 @@ node test-recurring-execution.js
 
 **جلب قواعد التكرار:**
 ```bash
-curl -X GET "http://localhost:3003/api/recurring/rules" \
+curl -X GET "http://localhost:3004/api/recurring/rules" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 **تنفيذ قاعدة تكرار:**
 ```bash
-curl -X POST "http://localhost:3003/api/recurring/rules/{RULE_ID}/run" \
+curl -X POST "http://localhost:3004/api/recurring/rules/{RULE_ID}/run" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json"
 ```

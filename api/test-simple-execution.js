@@ -5,7 +5,7 @@ async function testSimpleExecution() {
     console.log('🧪 اختبار التنفيذ البسيط...');
     
     // تسجيل الدخول
-    const loginResponse = await axios.post('http://localhost:3003/api/auth/login', {
+    const loginResponse = await axios.post('http://localhost:3004/api/auth/login', {
       email: 'admin@pipefy.com',
       password: 'admin123'
     });
@@ -22,7 +22,7 @@ async function testSimpleExecution() {
     };
     
     // جلب قاعدة تكرار
-    const rulesResponse = await axios.get('http://localhost:3003/api/recurring/rules', { headers });
+    const rulesResponse = await axios.get('http://localhost:3004/api/recurring/rules', { headers });
     
     if (!rulesResponse.data.success || rulesResponse.data.data.length === 0) {
       console.log('❌ لا توجد قواعد تكرار');
@@ -38,7 +38,7 @@ async function testSimpleExecution() {
     
     try {
       const executeResponse = await axios.post(
-        `http://localhost:3003/api/recurring/rules/${rule.id}/run`,
+        `http://localhost:3004/api/recurring/rules/${rule.id}/run`,
         {},
         { headers }
       );

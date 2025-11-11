@@ -1,4 +1,4 @@
-$baseUrl = "http://localhost:3003/api"
+$baseUrl = "http://localhost:3004/api"
 
 $loginBody = @{
     email = "admin@example.com"

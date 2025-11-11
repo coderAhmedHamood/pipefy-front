@@ -10,7 +10,7 @@ import axios from 'axios';
 
 const login = async (email, password) => {
   try {
-    const response = await axios.post('http://localhost:3003/api/auth/login', {
+    const response = await axios.post('http://localhost:3004/api/auth/login', {
       email,
       password
     });
@@ -49,7 +49,7 @@ const getUsers = async () => {
   const token = localStorage.getItem('token');
   
   try {
-    const response = await axios.get('http://localhost:3003/api/users', {
+    const response = await axios.get('http://localhost:3004/api/users', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -80,7 +80,7 @@ const createUser = async (userData) => {
   const token = localStorage.getItem('token');
   
   try {
-    const response = await axios.post('http://localhost:3003/api/users', userData, {
+    const response = await axios.post('http://localhost:3004/api/users', userData, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -140,7 +140,7 @@ const UsersList = () => {
     
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3003/api/users', {
+      const response = await axios.get('http://localhost:3004/api/users', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -158,7 +158,7 @@ const UsersList = () => {
     const token = localStorage.getItem('token');
     
     try {
-      await axios.patch(`http://localhost:3003/api/users/${userId}/toggle-status`, {}, {
+      await axios.patch(`http://localhost:3004/api/users/${userId}/toggle-status`, {}, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -229,7 +229,7 @@ const Login = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:3003/api/auth/login', formData);
+      const response = await axios.post('http://localhost:3004/api/auth/login', formData);
       
       if (response.data.success) {
         // حفظ التوكن والمستخدم
@@ -306,7 +306,7 @@ const useAuth = () => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:3003/api/auth/login', {
+      const response = await axios.post('http://localhost:3004/api/auth/login', {
         email,
         password
       });
@@ -367,7 +367,7 @@ const roleManager = {
   // جلب جميع الأدوار
   async getAllRoles() {
     const token = localStorage.getItem('token');
-    const response = await axios.get('http://localhost:3003/api/roles', {
+    const response = await axios.get('http://localhost:3004/api/roles', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     return response.data.data;
@@ -376,7 +376,7 @@ const roleManager = {
   // إنشاء دور جديد
   async createRole(name, description, permissions = []) {
     const token = localStorage.getItem('token');
-    const response = await axios.post('http://localhost:3003/api/roles', {
+    const response = await axios.post('http://localhost:3004/api/roles', {
       name,
       description,
       permissions
@@ -389,7 +389,7 @@ const roleManager = {
   // تحديث صلاحيات دور
   async updateRolePermissions(roleId, permissions) {
     const token = localStorage.getItem('token');
-    const response = await axios.put(`http://localhost:3003/api/roles/${roleId}/permissions`, {
+    const response = await axios.put(`http://localhost:3004/api/roles/${roleId}/permissions`, {
       permissions
     }, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -419,7 +419,7 @@ const searchUsers = async (searchTerm, filters = {}) => {
   });
 
   try {
-    const response = await axios.get(`http://localhost:3003/api/users?${params}`, {
+    const response = await axios.get(`http://localhost:3004/api/users?${params}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
@@ -454,7 +454,7 @@ const uploadUserAvatar = async (userId, file) => {
 
   try {
     const response = await axios.post(
-      `http://localhost:3003/api/users/${userId}/avatar`, 
+      `http://localhost:3004/api/users/${userId}/avatar`, 
       formData,
       {
         headers: {
@@ -508,10 +508,10 @@ const getDashboardStats = async () => {
   
   try {
     const [userStats, permissionStats] = await Promise.all([
-      axios.get('http://localhost:3003/api/users/stats', {
+      axios.get('http://localhost:3004/api/users/stats', {
         headers: { 'Authorization': `Bearer ${token}` }
       }),
-      axios.get('http://localhost:3003/api/permissions/stats', {
+      axios.get('http://localhost:3004/api/permissions/stats', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
     ]);
@@ -574,7 +574,7 @@ const NotificationSystem = {
     
     setTimeout(() => {
       document.body.removeChild(notification);
-    }, 3003);
+    }, 3004);
   },
 
   success(message) {

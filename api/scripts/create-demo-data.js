@@ -331,7 +331,7 @@ async function createDemoData() {
     console.log('- مراحل وحقول لكل عملية');
     console.log('- 6 تذاكر تجريبية');
     console.log('\n🔗 يمكنك الآن اختبار النظام من خلال:');
-    console.log('- Swagger UI: http://localhost:3003/api-docs');
+    console.log('- Swagger UI: http://localhost:3004/api-docs');
     console.log('- API Endpoints: /api/processes, /api/tickets');
 
   } catch (error) {

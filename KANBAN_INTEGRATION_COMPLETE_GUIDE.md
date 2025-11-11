@@ -27,8 +27,8 @@ npx vite --port 3002
 ### **2. الوصول للنظام**
 
 - **Frontend**: http://localhost:3002
-- **API**: http://localhost:3003
-- **API Docs**: http://localhost:3003/api-docs
+- **API**: http://localhost:3004
+- **API Docs**: http://localhost:3004/api-docs
 
 ### **3. بيانات تسجيل الدخول**
 

@@ -1,7 +1,7 @@
 // اختبار GET /api/settings
 const axios = require('axios');
 
-const API_BASE_URL = 'http://localhost:3003/api';
+const API_BASE_URL = 'http://localhost:3004/api';
 
 // إعداد axios
 const api = axios.create({
@@ -55,7 +55,7 @@ async function testGetSettings() {
     console.error('📍 رسالة النظام:', error.message);
     
     if (error.code === 'ECONNREFUSED') {
-      console.log('💡 تأكد من أن الخادم يعمل على المنفذ 3003');
+      console.log('💡 تأكد من أن الخادم يعمل على المنفذ 3004');
     }
   }
 }

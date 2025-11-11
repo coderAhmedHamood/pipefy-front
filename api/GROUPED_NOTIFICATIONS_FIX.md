@@ -138,7 +138,7 @@ ORDER BY created_at DESC
 
 ### من Swagger UI:
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 ```
 
 1. ابحث عن `GET /api/notifications/with-users`
@@ -210,7 +210,7 @@ http://localhost:3003/api-docs
 
 اختبر الآن من Swagger UI:
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 → GET /api/notifications/with-users
 ```
 

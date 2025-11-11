@@ -83,7 +83,7 @@ console.log('✅ تم إرسال الإشعارات:', response.data);
 
 ### من Swagger:
 
-1. **افتح Swagger**: `http://localhost:3003/api-docs`
+1. **افتح Swagger**: `http://localhost:3004/api-docs`
 2. **اذهب إلى**: `GET /api/notifications`
 3. **اضغط "Try it out"**
 4. **اضغط "Execute"**

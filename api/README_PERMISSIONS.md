@@ -122,14 +122,14 @@ node scripts/show-permissions-summary.js
 
 ### اختبار تسجيل الدخول
 ```bash
-curl -X POST http://localhost:3003/api/auth/login \
+curl -X POST http://localhost:3004/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@pipefy.com","password":"admin123"}'
 ```
 
 ### الوصول إلى Swagger UI
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 ```
 
 ---

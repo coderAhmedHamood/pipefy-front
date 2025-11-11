@@ -9,7 +9,7 @@ Write-Host ""
 try {
     # استبدل بـ process_id الخاص بك
     $processId = "YOUR_PROCESS_ID_HERE"
-    $response = Invoke-RestMethod -Uri "http://localhost:3003/api/reports/process/$processId" -Method Get -Headers $headers
+    $response = Invoke-RestMethod -Uri "http://localhost:3004/api/reports/process/$processId" -Method Get -Headers $headers
     
     Write-Host "✅ Success!" -ForegroundColor Green
     Write-Host ""

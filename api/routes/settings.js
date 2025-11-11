@@ -206,7 +206,7 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *         api_base_url:
  *           type: string
  *           description: رابط API الأساسي (يستخدم في روابط الصور والملفات الثابتة)
- *           example: "http://localhost:3003"
+ *           example: "http://localhost:3004"
  *         created_at:
  *           type: string
  *           format: date-time

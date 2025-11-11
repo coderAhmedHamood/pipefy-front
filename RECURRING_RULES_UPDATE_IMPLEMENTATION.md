@@ -30,7 +30,7 @@ const handleUpdateRule = async () => {
     };
 
     // استدعاء API لتحديث قاعدة التكرار
-    const response = await fetch(`http://localhost:3003/api/recurring/rules/${editingRule.id}`, {
+    const response = await fetch(`http://localhost:3004/api/recurring/rules/${editingRule.id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,

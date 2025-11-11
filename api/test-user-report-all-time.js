@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:3003/api';
+const API_URL = 'http://localhost:3004/api';
 const USER_ID = '588be31f-7130-40f2-92c9-34da41a20142';
 
 async function testUserReport() {

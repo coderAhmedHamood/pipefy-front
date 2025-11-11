@@ -5,7 +5,7 @@
  * لمقارنة البيانات المرسلة من Swagger مع البيانات المرسلة من الواجهة
  */
 
-const API_BASE_URL = 'http://localhost:3003/api';
+const API_BASE_URL = 'http://localhost:3004/api';
 
 // بيانات الاختبار - نفس البيانات المستخدمة في Swagger
 const testUserData = {

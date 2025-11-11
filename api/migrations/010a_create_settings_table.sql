@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS settings (
     
     -- روابط النظام
     frontend_url TEXT DEFAULT 'http://localhost:8080',
-    api_base_url TEXT DEFAULT 'http://localhost:3003',
+    api_base_url TEXT DEFAULT 'http://localhost:3004',
     
     -- تتبع الإنشاء والتعديل
     created_by UUID,

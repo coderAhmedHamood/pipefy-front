@@ -6,7 +6,7 @@ const swaggerSpecs = require('./config/swagger');
 require('dotenv').config();
 
 const app = express();
-const PORT = 3003; // منفذ جديد
+const PORT = 3004; // منفذ جديد
 
 // Middleware
 app.use(cors());

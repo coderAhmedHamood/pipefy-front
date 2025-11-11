@@ -242,7 +242,7 @@ async function runWorkflowMigration() {
     console.log('- دوال مساعدة لتوليد أرقام التذاكر');
     console.log('');
     console.log('🚀 يمكنك الآن استخدام النظام من خلال:');
-    console.log('- Swagger UI: http://localhost:3003/api-docs');
+    console.log('- Swagger UI: http://localhost:3004/api-docs');
     console.log('- API Endpoints: /api/processes, /api/tickets, /api/stages');
     
   } catch (error) {

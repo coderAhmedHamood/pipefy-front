@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const API_URL = 'http://localhost:3003/api';
+const API_URL = 'http://localhost:3004/api';
 
 async function checkNotifications() {
   console.log('🔍 فحص الإشعارات عبر API...\n');
@@ -57,7 +57,7 @@ async function checkNotifications() {
     } else {
       console.log('\n⚠️  لا توجد إشعارات!');
       console.log('\n💡 لإنشاء إشعارات:');
-      console.log('   1. افتح http://localhost:3003/notifications');
+      console.log('   1. افتح http://localhost:3004/notifications');
       console.log('   2. اضغط "إرسال إشعار"');
       console.log('   3. أرسل إشعار لبعض المستخدمين');
     }

@@ -2,7 +2,7 @@
 
 ## ملخص التحسينات المطبقة ✅
 
-تم تحسين endpoint `POST /api/settings/logo` لحفظ الرابط الكامل للصورة باستثناء الجزء `http://localhost:3003` كما طُلب.
+تم تحسين endpoint `POST /api/settings/logo` لحفظ الرابط الكامل للصورة باستثناء الجزء `http://localhost:3004` كما طُلب.
 
 ---
 
@@ -13,7 +13,7 @@
 /uploads/logos/logo-123456789.png
 ```
 
-**المطلوب**: حفظ الرابط الكامل باستثناء `http://localhost:3003` فقط.
+**المطلوب**: حفظ الرابط الكامل باستثناء `http://localhost:3004` فقط.
 
 ---
 
@@ -27,8 +27,8 @@
 const baseUrl = req.protocol + '://' + req.get('host');
 const fullLogoUrl = `${baseUrl}/uploads/logos/${req.file.filename}`;
 
-// حفظ الرابط الكامل (بدون http://localhost:3003 فقط)
-const logoUrlToSave = fullLogoUrl.replace('http://localhost:3003', '');
+// حفظ الرابط الكامل (بدون http://localhost:3004 فقط)
+const logoUrlToSave = fullLogoUrl.replace('http://localhost:3004', '');
 const updatedSettings = await Settings.updateSystemLogo(logoUrlToSave);
 
 res.status(200).json({
@@ -83,9 +83,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 ### 1. **عند رفع شعار جديد**:
 ```javascript
 // الرابط الكامل المُنشأ
-fullLogoUrl = "http://localhost:3003/uploads/logos/logo-123456789.png"
+fullLogoUrl = "http://localhost:3004/uploads/logos/logo-123456789.png"
 
-// الرابط المحفوظ في قاعدة البيانات (بدون localhost:3003)
+// الرابط المحفوظ في قاعدة البيانات (بدون localhost:3004)
 logoUrlToSave = "/uploads/logos/logo-123456789.png"
 ```
 
@@ -94,7 +94,7 @@ logoUrlToSave = "/uploads/logos/logo-123456789.png"
 - يعمل مع الروابط الكاملة والنسبية
 
 ### 3. **الوصول للصورة**:
-- يمكن الوصول للصورة عبر: `http://localhost:3003/uploads/logos/logo-123456789.png`
+- يمكن الوصول للصورة عبر: `http://localhost:3004/uploads/logos/logo-123456789.png`
 - الخادم يخدم الملفات من مجلد `uploads` تلقائياً
 
 ---
@@ -118,7 +118,7 @@ company_logo: [image file]
   "message": "تم رفع شعار الشركة بنجاح",
   "data": {
     "logo_url": "/uploads/logos/logo-1760983637639-617782968.png",
-    "full_url": "http://localhost:3003/uploads/logos/logo-1760983637639-617782968.png",
+    "full_url": "http://localhost:3004/uploads/logos/logo-1760983637639-617782968.png",
     "settings": {
       "system_logo_url": "/uploads/logos/logo-1760983637639-617782968.png",
       // ... باقي الإعدادات
@@ -150,7 +150,7 @@ Authorization: Bearer <token>
 ## الميزات الجديدة ✨
 
 ### 1. **رابط ذكي**
-- يحفظ الرابط الكامل باستثناء `http://localhost:3003`
+- يحفظ الرابط الكامل باستثناء `http://localhost:3004`
 - يعمل مع أي دومين أو بورت
 - مرن للنشر في بيئات مختلفة
 
@@ -197,7 +197,7 @@ Authorization: Bearer <token>
 ### ✅ **اختبار رفع الشعار**
 - رفع صورة PNG بنجاح
 - حفظ الرابط الصحيح: `/uploads/logos/logo-1760983637639-617782968.png`
-- **لا يحتوي على `localhost:3003`** ✅
+- **لا يحتوي على `localhost:3004`** ✅
 
 ### ✅ **اختبار الوصول للصورة**
 - الوصول للصورة عبر الرابط الكامل
@@ -229,12 +229,12 @@ Authorization: Bearer <token>
 ```json
 {
   "logo_url": "/uploads/logos/logo-1760983637639-617782968.png",
-  "full_url": "http://localhost:3003/uploads/logos/logo-1760983637639-617782968.png"
+  "full_url": "http://localhost:3004/uploads/logos/logo-1760983637639-617782968.png"
 }
 ```
 
 **الفرق**:
-- ✅ رابط كامل باستثناء `localhost:3003`
+- ✅ رابط كامل باستثناء `localhost:3004`
 - ✅ مرونة في النشر
 - ✅ معلومات إضافية مفيدة
 - ✅ معالجة محسنة للملفات
@@ -247,7 +247,7 @@ Authorization: Bearer <token>
 
 ### **التطوير المحلي**
 ```
-http://localhost:3003/uploads/logos/logo-123.png
+http://localhost:3004/uploads/logos/logo-123.png
 ↓ يُحفظ كـ
 /uploads/logos/logo-123.png
 ```
@@ -272,7 +272,7 @@ http://test-server:8080/uploads/logos/logo-123.png
 
 تم تحسين نظام رفع شعار الشركة بنجاح مع:
 
-1. **✅ حفظ الرابط الذكي** - كامل باستثناء `localhost:3003`
+1. **✅ حفظ الرابط الذكي** - كامل باستثناء `localhost:3004`
 2. **✅ خدمة الملفات الثابتة** - وصول مباشر للصور
 3. **✅ معالجة محسنة** - للروابط الكاملة والنسبية
 4. **✅ اختبار شامل** - جميع السيناريوهات تعمل

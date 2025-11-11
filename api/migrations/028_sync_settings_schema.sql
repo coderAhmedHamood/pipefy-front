@@ -129,7 +129,7 @@ ALTER TABLE settings
   ADD COLUMN IF NOT EXISTS auto_assign_tickets BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS ticket_numbering_format VARCHAR(100) DEFAULT 'TKT-{YYYY}-{MM}-{####}',
   ADD COLUMN IF NOT EXISTS frontend_url TEXT DEFAULT 'http://localhost:8080',
-  ADD COLUMN IF NOT EXISTS api_base_url TEXT DEFAULT 'http://localhost:3003',
+  ADD COLUMN IF NOT EXISTS api_base_url TEXT DEFAULT 'http://localhost:3004',
   ADD COLUMN IF NOT EXISTS created_by UUID,
   ADD COLUMN IF NOT EXISTS updated_by UUID;
 
@@ -204,7 +204,7 @@ ALTER TABLE settings
   ALTER COLUMN auto_assign_tickets SET DEFAULT FALSE,
   ALTER COLUMN ticket_numbering_format SET DEFAULT 'TKT-{YYYY}-{MM}-{####}',
   ALTER COLUMN frontend_url SET DEFAULT 'http://localhost:8080',
-  ALTER COLUMN api_base_url SET DEFAULT 'http://localhost:3003';
+  ALTER COLUMN api_base_url SET DEFAULT 'http://localhost:3004';
 
 -- تحديث الصف الحالي بالقيم الافتراضية إذا كانت NULL
 UPDATE settings
@@ -251,7 +251,7 @@ SET
   auto_assign_tickets = COALESCE(auto_assign_tickets, FALSE),
   ticket_numbering_format = COALESCE(ticket_numbering_format, 'TKT-{YYYY}-{MM}-{####}'),
   frontend_url = COALESCE(frontend_url, 'http://localhost:8080'),
-  api_base_url = COALESCE(api_base_url, 'http://localhost:3003'),
+  api_base_url = COALESCE(api_base_url, 'http://localhost:3004'),
   updated_at = NOW();
 
 -- إخراج نتيجة المزامنة

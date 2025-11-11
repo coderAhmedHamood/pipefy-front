@@ -47,7 +47,7 @@ const { pool } = require('../config/database');  // ✅ صحيح
 
 ```
 ✅ Database connected successfully!
-🚀 Server is running on port 3003
+🚀 Server is running on port 3004
 ```
 
 **بدون أي أخطاء!** ✅

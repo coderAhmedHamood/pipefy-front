@@ -101,7 +101,7 @@ async function checkAdmin() {
     console.log('═══════════════════════════════════════════════════════════════════\n');
     
     console.log('💡 يمكنك الآن تسجيل الدخول:');
-    console.log('   POST http://localhost:3003/api/auth/login');
+    console.log('   POST http://localhost:3004/api/auth/login');
     console.log('   Body: { "email": "admin@pipefy.com", "password": "admin123" }\n');
     
   } catch (error) {

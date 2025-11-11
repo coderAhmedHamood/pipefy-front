@@ -202,7 +202,7 @@ npm run dev
 ```
 
 **تأكد من:**
-- ✅ السيرفر يعمل على `http://localhost:3003`
+- ✅ السيرفر يعمل على `http://localhost:3004`
 - ✅ لا توجد أخطاء `pool.query is not a function`
 - ✅ قاعدة البيانات متصلة
 
@@ -279,7 +279,7 @@ node test-all-notification-endpoints.js
 3. ✅ تشغيل الاختبار الشامل: `node test-all-notification-endpoints.js`
 
 ### بعد نجاح الاختبارات:
-4. ⏳ مراجعة Swagger UI: `http://localhost:3003/api-docs`
+4. ⏳ مراجعة Swagger UI: `http://localhost:3004/api-docs`
 5. ⏳ اختبار يدوي بـ Postman/Insomnia
 6. ⏳ التكامل مع Frontend
 

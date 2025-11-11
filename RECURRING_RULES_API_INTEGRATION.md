@@ -79,7 +79,7 @@ const handleProcessSelect = (process: Process) => {
 ### طلب API المطبق
 ```bash
 curl -X 'GET' \
-  'http://localhost:3003/api/recurring/rules?page=1&limit=50&process_id=d6f7574c-d937-4e55-8cb1-0b19269e6061' \
+  'http://localhost:3004/api/recurring/rules?page=1&limit=50&process_id=d6f7574c-d937-4e55-8cb1-0b19269e6061' \
   -H 'accept: application/json' \
   -H 'Authorization: Bearer [TOKEN]'
 ```

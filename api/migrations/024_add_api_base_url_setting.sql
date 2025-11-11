@@ -4,11 +4,11 @@
 
 -- إضافة حقل api_base_url
 ALTER TABLE settings 
-ADD COLUMN IF NOT EXISTS api_base_url TEXT DEFAULT 'http://localhost:3003';
+ADD COLUMN IF NOT EXISTS api_base_url TEXT DEFAULT 'http://localhost:3004';
 
 -- تحديث القيم الافتراضية للبيانات الموجودة
 UPDATE settings 
-SET api_base_url = COALESCE(api_base_url, 'http://localhost:3003')
+SET api_base_url = COALESCE(api_base_url, 'http://localhost:3004')
 WHERE api_base_url IS NULL;
 
 -- عرض رسالة نجاح

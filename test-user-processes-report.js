@@ -3,7 +3,7 @@
  * يختبر endpoint: GET /api/user-processes/report/users-with-processes
  */
 
-const API_BASE_URL = 'http://localhost:3003/api';
+const API_BASE_URL = 'http://localhost:3004/api';
 
 // بيانات الاختبار
 const TEST_DATA = {
@@ -253,7 +253,7 @@ async function runAllTests() {
     console.log('⚠️ بعض الاختبارات فشلت. يرجى مراجعة الأخطاء أعلاه.');
   } else {
     console.log('🚨 جميع الاختبارات فشلت. يرجى التحقق من:');
-    console.log('   • تشغيل الخادم على المنفذ 3003');
+    console.log('   • تشغيل الخادم على المنفذ 3004');
     console.log('   • صحة التوكن');
     console.log('   • وجود endpoint التقرير في الخادم');
     console.log('   • اتصال قاعدة البيانات');

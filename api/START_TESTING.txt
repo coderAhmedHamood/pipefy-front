@@ -13,7 +13,7 @@ cd "e:\laravel\xampp old\htdocs\laravel\pipefy-main\project\api"
 npm run dev
 
 تأكد من:
-✅ السيرفر يعمل على http://localhost:3003
+✅ السيرفر يعمل على http://localhost:3004
 ✅ لا توجد أخطاء في console
 ✅ قاعدة البيانات متصلة
 
@@ -83,7 +83,7 @@ Swagger UI
 ═══════════════════════════════════════════════════════════════════
 
 افتح في المتصفح:
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 
 ابحث عن: Notifications
 

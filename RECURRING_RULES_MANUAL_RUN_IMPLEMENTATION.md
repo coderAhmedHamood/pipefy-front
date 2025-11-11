@@ -28,7 +28,7 @@ const handleRunRule = async (ruleId: string, ruleName: string) => {
     }
 
     // استدعاء API لتشغيل القاعدة
-    const response = await fetch(`http://localhost:3003/api/recurring/rules/${ruleId}/run`, {
+    const response = await fetch(`http://localhost:3004/api/recurring/rules/${ruleId}/run`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,

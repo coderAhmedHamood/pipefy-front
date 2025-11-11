@@ -14,7 +14,7 @@ const buildImageUrl = (imagePath: string): string => {
     fullPath = '/' + fullPath;
   }
   
-  return `http://localhost:3003${fullPath}`;
+  return `http://localhost:3004${fullPath}`;
 };
 
 interface CompanyHeaderProps {

@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:3003/api';
+const BASE_URL = 'http://localhost:3004/api';
 
 // بيانات اختبار تحديث الإعدادات
 const testSettingsUpdate = {

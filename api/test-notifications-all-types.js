@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 // الإعدادات
-const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3003';
+const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3004';
 const TEST_USER_ID = '9f76b1d9-1318-4c34-b886-c3d185a1f480';
 
 // بيانات تسجيل الدخول

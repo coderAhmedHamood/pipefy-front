@@ -161,7 +161,7 @@ node create-assignment-tables-v2.js
 ## 🎯 الخطوات التالية
 
 1. ✅ تشغيل السيرفر: `npm start`
-2. ✅ زيارة Swagger: `http://localhost:3003/api-docs`
+2. ✅ زيارة Swagger: `http://localhost:3004/api-docs`
 3. ✅ تجربة Endpoints من خلال Swagger UI
 4. ✅ دمج النظام مع الواجهة الأمامية
 

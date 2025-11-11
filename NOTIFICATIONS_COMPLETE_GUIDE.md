@@ -10,7 +10,7 @@
 
 ### 1️⃣ افتح صفحة الإشعارات
 ```
-http://localhost:3003/notifications
+http://localhost:3004/notifications
 ```
 
 ### 2️⃣ اضغط على زر "التقارير" في الأعلى
@@ -206,7 +206,7 @@ http://localhost:3003/notifications
 #### الطريقة 2: التحقق من Console
 
 ```
-1. افتح الصفحة: http://localhost:3003/notifications
+1. افتح الصفحة: http://localhost:3004/notifications
 2. اضغط F12 لفتح Developer Tools
 3. اذهب إلى تبويب Console
 4. اضغط "التقارير" → "الإشعارات"

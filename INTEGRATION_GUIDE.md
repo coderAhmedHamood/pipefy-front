@@ -18,7 +18,7 @@ cd api
 node server.js
 ```
 
-الخادم سيعمل على: `http://localhost:3003`
+الخادم سيعمل على: `http://localhost:3004`
 
 ### 2. تشغيل المشروع الأمامي (Frontend)
 
@@ -161,7 +161,7 @@ src/
 
 ```typescript
 // src/lib/api.ts
-const API_BASE_URL = 'http://localhost:3003/api';
+const API_BASE_URL = 'http://localhost:3004/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -221,8 +221,8 @@ apiClient.interceptors.response.use(
 ## 🌐 الوصول للنظام
 
 1. **الواجهة الأمامية**: http://localhost:5174
-2. **API Documentation**: http://localhost:3003/api-docs
-3. **API Base URL**: http://localhost:3003/api
+2. **API Documentation**: http://localhost:3004/api-docs
+3. **API Base URL**: http://localhost:3004/api
 
 ## 🔍 اختبار النظام
 

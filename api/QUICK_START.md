@@ -29,7 +29,7 @@ node test-reviewer-assignment-fix.js
 
 ### احصل على Token:
 ```bash
-curl -X POST http://localhost:3003/api/auth/login \
+curl -X POST http://localhost:3004/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"admin123"}'
 ```
@@ -37,7 +37,7 @@ curl -X POST http://localhost:3003/api/auth/login \
 ### اختبر المراجعين:
 ```bash
 # 1. إضافة مراجع
-curl -X POST http://localhost:3003/api/ticket-reviewers \
+curl -X POST http://localhost:3004/api/ticket-reviewers \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -47,11 +47,11 @@ curl -X POST http://localhost:3003/api/ticket-reviewers \
   }'
 
 # 2. احذف المراجع (استبدل REVIEWER_ID)
-curl -X DELETE http://localhost:3003/api/ticket-reviewers/REVIEWER_ID \
+curl -X DELETE http://localhost:3004/api/ticket-reviewers/REVIEWER_ID \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # 3. أعد إضافة نفس المراجع (يجب أن ينجح!)
-curl -X POST http://localhost:3003/api/ticket-reviewers \
+curl -X POST http://localhost:3004/api/ticket-reviewers \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

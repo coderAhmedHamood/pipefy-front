@@ -61,9 +61,9 @@
 ### 3. الاختبارات الشاملة ✅
 
 #### نتائج الاختبار النهائي:
-- ✅ **الخادم**: يعمل بشكل طبيعي على المنفذ 3003
+- ✅ **الخادم**: يعمل بشكل طبيعي على المنفذ 3004
 - ✅ **قاعدة البيانات**: متصلة ومتاحة (pipefy-main)
-- ✅ **Swagger UI**: متاح على http://localhost:3003/api-docs
+- ✅ **Swagger UI**: متاح على http://localhost:3004/api-docs
 - ✅ **المصادقة**: تعمل بشكل صحيح (401 للطلبات غير المصرح بها)
 - ✅ **جميع عمليات CRUD**: تعمل بشكل مثالي
 - ✅ **الفلاتر**: تعمل بشكل صحيح
@@ -82,18 +82,18 @@
 ## 🔗 الروابط المهمة
 
 ### للمطورين:
-- **Swagger UI**: http://localhost:3003/api-docs
-- **API Health**: http://localhost:3003/api/health
-- **Database Test**: http://localhost:3003/test-db
+- **Swagger UI**: http://localhost:3004/api-docs
+- **API Health**: http://localhost:3004/api/health
+- **Database Test**: http://localhost:3004/test-db
 
 ### للاختبار:
 ```bash
 # اختبار بسيط
-curl -X GET "http://localhost:3003/api/recurring-tickets" \
+curl -X GET "http://localhost:3004/api/recurring-tickets" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # إنشاء قاعدة جديدة
-curl -X POST "http://localhost:3003/api/recurring-tickets" \
+curl -X POST "http://localhost:3004/api/recurring-tickets" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

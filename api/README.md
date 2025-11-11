@@ -56,19 +56,19 @@ npm start
 للتحقق من اتصال قاعدة البيانات:
 
 ```bash
-curl http://localhost:3003/test-db
+curl http://localhost:3004/test-db
 ```
 
 للوصول إلى API:
 
 ```bash
-curl http://localhost:3003/api
+curl http://localhost:3004/api
 ```
 
 للوصول إلى توثيق Swagger:
 
 ```bash
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 ```
 
 ## API Endpoints
@@ -140,7 +140,7 @@ express-backend/
 - `DB_DATABASE`: اسم قاعدة البيانات
 - `DB_USERNAME`: اسم المستخدم
 - `DB_PASSWORD`: كلمة المرور
-- `PORT`: منفذ الخادم (افتراضي: 3003)
+- `PORT`: منفذ الخادم (افتراضي: 3004)
 - `JWT_SECRET`: مفتاح تشفير JWT
 - `JWT_EXPIRES_IN`: مدة انتهاء صلاحية التوكن
 
@@ -169,7 +169,7 @@ express-backend/
 
 يمكنك الوصول إلى توثيق Swagger التفاعلي على:
 
-**🔗 [http://localhost:3003/api-docs](http://localhost:3003/api-docs)**
+**🔗 [http://localhost:3004/api-docs](http://localhost:3004/api-docs)**
 
 الميزات المتوفرة في Swagger:
 - توثيق شامل لجميع الـ endpoints

@@ -4,7 +4,7 @@ async function verifyFix() {
   try {
     console.log('🔍 التحقق من صحة الإصلاح...\n');
 
-    const response = await axios.get('http://localhost:3003/api/reports/user/588be31f-7130-40f2-92c9-34da41a20142', {
+    const response = await axios.get('http://localhost:3004/api/reports/user/588be31f-7130-40f2-92c9-34da41a20142', {
       headers: {
         'accept': '*/*',
         'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1ODhiZTMxZi03MTMwLTQwZjItOTJjOS0zNGRhNDFhMjAxNDIiLCJlbWFpbCI6ImFkbWluQHBpcGVmeS5jb20iLCJyb2xlIjoiNGQ5YmVmODMtYjY0Yi00ODQyLWI0MjgtMzM4MWNhZjdjMTIzIiwiaWF0IjoxNzYxNTAwOTcwLCJleHAiOjE3NjE1ODczNzB9.yjEUvM-iA2zNROpX5syd-CVI9YCYYKsfqfAMi6nSLRo'
@@ -90,7 +90,7 @@ async function verifyFix() {
     console.error('❌ خطأ في الاختبار:', error.response?.data || error.message);
     
     if (error.code === 'ECONNREFUSED') {
-      console.log('🔧 تأكد من أن الخادم يعمل على البورت 3003');
+      console.log('🔧 تأكد من أن الخادم يعمل على البورت 3004');
     }
   }
 }

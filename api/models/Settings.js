@@ -85,7 +85,7 @@ class Settings {
     this.frontend_url = data.frontend_url || 'http://localhost:8080';
     
     // رابط API الأساسي (للصور والملفات الثابتة)
-    this.api_base_url = data.api_base_url || 'http://localhost:3003';
+    this.api_base_url = data.api_base_url || 'http://localhost:3004';
     
     // التواريخ
     this.created_at = data.created_at;

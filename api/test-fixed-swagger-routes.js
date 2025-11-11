@@ -75,7 +75,7 @@ async function testFixedSwaggerRoutes() {
     console.log(`\n⚠️  ${totalCount - successCount} روابط تحتاج مراجعة`);
   }
 
-  console.log('\n🌐 الآن افتح Swagger UI: http://localhost:3003/api-docs');
+  console.log('\n🌐 الآن افتح Swagger UI: http://localhost:3004/api-docs');
   console.log('📋 ستجد أن جميع الروابط تبدأ بـ /api/');
   console.log('✅ مثال: POST /api/auth/login بدلاً من POST /auth/login');
 }
@@ -84,7 +84,7 @@ function makeRequest(method, path, body = null, token = null) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'localhost',
-      port: 3003,
+      port: 3004,
       path: path,
       method: method,
       headers: {

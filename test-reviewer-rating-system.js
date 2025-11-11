@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // إعدادات الاختبار
-const API_BASE_URL = 'http://localhost:3003/api';
+const API_BASE_URL = 'http://localhost:3004/api';
 const TEST_CONFIG = {
   // بيانات تسجيل الدخول (استخدم بيانات admin موجودة)
   email: 'admin@example.com',

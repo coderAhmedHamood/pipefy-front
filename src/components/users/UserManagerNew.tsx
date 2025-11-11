@@ -238,7 +238,7 @@ export const UserManagerNew: React.FC = () => {
       // إخفاء رسالة النجاح بعد 3 ثوان
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
-      }, 3003);
+      }, 3004);
       
     } catch (error: any) {
       console.error('❌ خطأ في إنشاء المستخدم:', error);
@@ -312,7 +312,7 @@ export const UserManagerNew: React.FC = () => {
 
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
-      }, 3003);
+      }, 3004);
 
     } catch (error: any) {
       setState(prev => ({
@@ -343,7 +343,7 @@ export const UserManagerNew: React.FC = () => {
       
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
-      }, 3003);
+      }, 3004);
       
     } catch (error: any) {
       setState(prev => ({
@@ -370,7 +370,7 @@ export const UserManagerNew: React.FC = () => {
       
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
-      }, 3003);
+      }, 3004);
       
     } catch (error: any) {
       setState(prev => ({
@@ -408,7 +408,7 @@ export const UserManagerNew: React.FC = () => {
       
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
-      }, 3003);
+      }, 3004);
       
     } catch (error: any) {
       setState(prev => ({
@@ -462,7 +462,7 @@ export const UserManagerNew: React.FC = () => {
 
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
-      }, 3003);
+      }, 3004);
 
     } catch (error: any) {
       setState(prev => ({
@@ -495,7 +495,7 @@ export const UserManagerNew: React.FC = () => {
 
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
-      }, 3003);
+      }, 3004);
 
     } catch (error: any) {
       setState(prev => ({
@@ -612,7 +612,7 @@ export const UserManagerNew: React.FC = () => {
       let userFriendlyMessage = error.message;
       
       if (error.message.includes('Failed to fetch') || error.message.includes('ECONNREFUSED')) {
-        userFriendlyMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم على المنفذ 3003.';
+        userFriendlyMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم على المنفذ 3004.';
       } else if (error.message.includes('NetworkError')) {
         userFriendlyMessage = 'خطأ في الشبكة. تحقق من اتصال الإنترنت.';
       } else if (error.message.includes('401')) {
@@ -963,7 +963,7 @@ export const UserManagerNew: React.FC = () => {
 
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));
-      }, 3003);
+      }, 3004);
 
     } catch (error: any) {
       console.error('❌ خطأ في إضافة العمليات:', error);
@@ -1586,7 +1586,7 @@ export const UserManagerNew: React.FC = () => {
                       <p>💡 جرب الحلول التالية:</p>
                       <ul className="list-disc list-inside space-y-1">
                         <li>اضغط زر "تشخيص" للمزيد من المعلومات</li>
-                        <li>تأكد من تشغيل الخادم على المنفذ 3003</li>
+                        <li>تأكد من تشغيل الخادم على المنفذ 3004</li>
                         <li>تحقق من صحة رمز المصادقة</li>
                         <li>أعد تحميل الصفحة وحاول مرة أخرى</li>
                       </ul>

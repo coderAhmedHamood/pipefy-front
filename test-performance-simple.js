@@ -3,7 +3,7 @@ const userId = 'a00a2f8e-2843-41da-8080-6eb4cd0a706b';
 
 async function testEndpoint() {
   try {
-    const response = await fetch(`http://localhost:3003/api/reports/user/${userId}`, {
+    const response = await fetch(`http://localhost:3004/api/reports/user/${userId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

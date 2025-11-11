@@ -150,11 +150,11 @@ async function getSimpleReport() {
 ### cURL
 ```bash
 # التقرير الشامل
-curl -X GET "http://localhost:3003/api/user-processes/report/users-with-processes" \
+curl -X GET "http://localhost:3004/api/user-processes/report/users-with-processes" \
   -H "Authorization: Bearer <token>"
 
 # التقرير المبسط  
-curl -X GET "http://localhost:3003/api/user-processes/report/simple" \
+curl -X GET "http://localhost:3004/api/user-processes/report/simple" \
   -H "Authorization: Bearer <token>"
 ```
 
@@ -212,7 +212,7 @@ node test-user-process-reports.js
 ```
 
 ### اختبار في Swagger UI
-1. افتح `http://localhost:3003/api-docs`
+1. افتح `http://localhost:3004/api-docs`
 2. ابحث عن تاج `UserProcesses`
 3. جرب endpoints التقارير الجديدة
 

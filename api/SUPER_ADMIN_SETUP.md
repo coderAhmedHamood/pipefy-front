@@ -126,7 +126,7 @@ node scripts/create-admin.js
 ──────────────────────────────────────────────────────────────────
 
 💡 يمكنك الآن تسجيل الدخول باستخدام:
-   POST http://localhost:3003/api/auth/login
+   POST http://localhost:3004/api/auth/login
    Body: { "email": "admin@pipefy.com", "password": "admin123" }
 
 🎉 النظام جاهز للاستخدام!
@@ -140,7 +140,7 @@ node scripts/create-admin.js
 
 ```bash
 curl -X 'POST' \
-  'http://localhost:3003/api/auth/login' \
+  'http://localhost:3004/api/auth/login' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{

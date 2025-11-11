@@ -89,14 +89,14 @@ async function finalSwaggerTest() {
   console.log('\n' + '=' .repeat(60));
   console.log('🎯 النتيجة النهائية:');
   console.log('');
-  console.log('✅ الرابط الصحيح: http://localhost:3003/api/auth/login');
-  console.log('❌ الرابط الخطأ: http://localhost:3003/auth/login (404)');
+  console.log('✅ الرابط الصحيح: http://localhost:3004/api/auth/login');
+  console.log('❌ الرابط الخطأ: http://localhost:3004/auth/login (404)');
   console.log('');
   console.log('🌐 في Swagger UI:');
   console.log('   📍 يجب أن تجد: POST /api/auth/login');
   console.log('   📍 وليس: POST /auth/login');
   console.log('');
-  console.log('🔗 افتح Swagger الآن: http://localhost:3003/api-docs');
+  console.log('🔗 افتح Swagger الآن: http://localhost:3004/api-docs');
   console.log('🔍 ابحث عن "Authentication" وتحقق من الروابط');
 }
 
@@ -104,7 +104,7 @@ function makeRequest(method, path, body = null, token = null) {
   return new Promise((resolve, reject) => {
     const options = {
       hostname: 'localhost',
-      port: 3003,
+      port: 3004,
       path: path,
       method: method,
       headers: {

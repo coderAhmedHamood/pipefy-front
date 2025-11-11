@@ -18,7 +18,7 @@ All API URLs have been centralized in one place for each side of the application
 ```typescript
 // إعدادات الخادم الأساسية
 const SERVER_HOST = 'localhost';      // ← غير العنوان هنا
-const SERVER_PORT = 3003;             // ← غير البورت هنا
+const SERVER_PORT = 3004;             // ← غير البورت هنا
 const SERVER_PROTOCOL = 'http';       // ← غير البروتوكول هنا
 
 // سيتم بناء الرابط تلقائياً
@@ -29,7 +29,7 @@ export const API_BASE_URL = `${SERVER_PROTOCOL}://${SERVER_HOST}:${SERVER_PORT}`
 ```typescript
 // إعدادات الخادم الأساسية
 const SERVER_HOST = 'localhost';      // ← غير العنوان هنا
-const SERVER_PORT = 3003;             // ← غير البورت هنا
+const SERVER_PORT = 3004;             // ← غير البورت هنا
 const SERVER_PROTOCOL = 'http';       // ← غير البروتوكول هنا
 
 // سيتم بناء الرابط تلقائياً
@@ -47,7 +47,7 @@ export const API_BASE_URL = `${SERVER_PROTOCOL}://${SERVER_HOST}:${SERVER_PORT}`
 // إعدادات الخادم الأساسية - المكان الوحيد للتغيير
 const SERVER_CONFIG = {
   HOST: 'localhost',      // ← غير العنوان هنا
-  PORT: 3003,             // ← غير البورت هنا
+  PORT: 3004,             // ← غير البورت هنا
   PROTOCOL: 'http'        // ← غير البروتوكول هنا
 };
 
@@ -77,10 +77,10 @@ const API_BASE_URL = `${SERVER_CONFIG.PROTOCOL}://${SERVER_CONFIG.HOST}:${SERVER
 
 ## 🔄 أمثلة على التغييرات | Change Examples
 
-### مثال 1: تغيير البورت من 3003 إلى 4000
+### مثال 1: تغيير البورت من 3004 إلى 4000
 ```javascript
 // قبل | Before
-PORT: 3003
+PORT: 3004
 
 // بعد | After
 PORT: 4000
@@ -135,7 +135,7 @@ PROTOCOL: 'https'
 **Frontend (.env.development)**
 ```env
 REACT_APP_API_HOST=localhost
-REACT_APP_API_PORT=3003
+REACT_APP_API_PORT=3004
 REACT_APP_API_PROTOCOL=http
 ```
 
@@ -149,7 +149,7 @@ REACT_APP_API_PROTOCOL=https
 **Backend (.env)**
 ```env
 SERVER_HOST=localhost
-SERVER_PORT=3003
+SERVER_PORT=3004
 SERVER_PROTOCOL=http
 ```
 
@@ -158,7 +158,7 @@ SERVER_PROTOCOL=http
 ```javascript
 const SERVER_CONFIG = {
   HOST: process.env.SERVER_HOST || 'localhost',
-  PORT: process.env.SERVER_PORT || 3003,
+  PORT: process.env.SERVER_PORT || 3004,
   PROTOCOL: process.env.SERVER_PROTOCOL || 'http'
 };
 ```

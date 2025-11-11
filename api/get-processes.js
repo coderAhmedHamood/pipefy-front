@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:3003';
+const BASE_URL = 'http://localhost:3004';
 const API_URL = `${BASE_URL}/api`;
 
 async function getProcesses() {

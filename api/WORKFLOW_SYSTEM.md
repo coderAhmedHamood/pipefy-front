@@ -302,7 +302,7 @@ GET /api/processes/{id}/performance?date_from=2024-01-01&date_to=2024-12-31
 
 ### 1. **إنشاء عملية من قالب:**
 ```bash
-curl -X POST http://localhost:3003/api/processes/from-template \
+curl -X POST http://localhost:3004/api/processes/from-template \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -315,7 +315,7 @@ curl -X POST http://localhost:3003/api/processes/from-template \
 
 ### 2. **إنشاء تذكرة جديدة:**
 ```bash
-curl -X POST http://localhost:3003/api/tickets \
+curl -X POST http://localhost:3004/api/tickets \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -332,7 +332,7 @@ curl -X POST http://localhost:3003/api/tickets \
 
 ### 3. **تغيير مرحلة التذكرة:**
 ```bash
-curl -X POST http://localhost:3003/api/tickets/TICKET_ID/change-stage \
+curl -X POST http://localhost:3004/api/tickets/TICKET_ID/change-stage \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -356,4 +356,4 @@ curl -X POST http://localhost:3003/api/tickets/TICKET_ID/change-stage \
 ✅ **واجهة Swagger** تفاعلية للاختبار  
 ✅ **بيانات تجريبية** جاهزة للاختبار  
 
-**🔗 ابدأ الاستخدام الآن:** [http://localhost:3003/api-docs](http://localhost:3003/api-docs)
+**🔗 ابدأ الاستخدام الآن:** [http://localhost:3004/api-docs](http://localhost:3004/api-docs)

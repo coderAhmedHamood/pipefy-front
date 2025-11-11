@@ -7,7 +7,7 @@ Write-Host "Testing User Report API..." -ForegroundColor Cyan
 Write-Host ""
 
 try {
-    $response = Invoke-RestMethod -Uri 'http://localhost:3003/api/reports/user/588be31f-7130-40f2-92c9-34da41a20142' -Method Get -Headers $headers
+    $response = Invoke-RestMethod -Uri 'http://localhost:3004/api/reports/user/588be31f-7130-40f2-92c9-34da41a20142' -Method Get -Headers $headers
     
     Write-Host "✅ Success!" -ForegroundColor Green
     Write-Host ""

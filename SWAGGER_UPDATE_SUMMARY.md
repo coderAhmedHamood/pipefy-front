@@ -1,5 +1,5 @@
-# تحديث Swagger إلى البورت 3003
-# Swagger Update to Port 3003
+# تحديث Swagger إلى البورت 3004
+# Swagger Update to Port 3004
 
 ## ✅ التحديثات المنفذة | Updates Applied
 
@@ -10,7 +10,7 @@
 ```javascript
 servers: [
   {
-    url: 'http://localhost:3003',
+    url: 'http://localhost:3004',
     description: 'Development server'
   }
 ]
@@ -28,7 +28,7 @@ servers: [
 ]
 ```
 
-**النتيجة:** الآن Swagger يستخدم البورت **3003** تلقائياً! 🎉
+**النتيجة:** الآن Swagger يستخدم البورت **3004** تلقائياً! 🎉
 
 ---
 
@@ -42,13 +42,13 @@ node server.js
 
 ### 2. افتح Swagger UI
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 ```
 
 ### 3. تحقق من Server URL
 في أعلى صفحة Swagger، يجب أن ترى:
 ```
-Servers: http://localhost:3003
+Servers: http://localhost:3004
 ```
 
 ---
@@ -76,7 +76,7 @@ Servers: http://localhost:3003
 ```javascript
 const SERVER_CONFIG = {
   HOST: 'localhost',
-  PORT: 3003,  // ← غير هذا الرقم فقط!
+  PORT: 3004,  // ← غير هذا الرقم فقط!
   PROTOCOL: 'http'
 };
 ```
@@ -98,8 +98,8 @@ const SERVER_CONFIG = {
 const { TEST_CONFIG } = require('./test-config');
 
 // استخدم في ملفات الاختبار
-const BASE_URL = TEST_CONFIG.BASE_URL;  // http://localhost:3003/api
-const SWAGGER_URL = TEST_CONFIG.URLS.SWAGGER;  // http://localhost:3003/api-docs
+const BASE_URL = TEST_CONFIG.BASE_URL;  // http://localhost:3004/api
+const SWAGGER_URL = TEST_CONFIG.URLS.SWAGGER;  // http://localhost:3004/api-docs
 ```
 
 ### ملفات الاختبار المحدثة:
@@ -112,24 +112,24 @@ const SWAGGER_URL = TEST_CONFIG.URLS.SWAGGER;  // http://localhost:3003/api-docs
 
 ### ❌ قبل (مشكلة)
 ```
-Swagger UI: http://localhost:3003/api-docs
-Server URL: http://localhost:3003
-Frontend: http://localhost:3003
+Swagger UI: http://localhost:3004/api-docs
+Server URL: http://localhost:3004
+Frontend: http://localhost:3004
 
 ❌ عدم تطابق البورت!
-❌ Swagger يشير إلى 3003
-❌ Frontend يتصل بـ 3003
+❌ Swagger يشير إلى 3004
+❌ Frontend يتصل بـ 3004
 ```
 
 ### ✅ بعد (تم الحل)
 ```
-Swagger UI: http://localhost:3003/api-docs
-Server URL: http://localhost:3003
-Frontend: http://localhost:3003
+Swagger UI: http://localhost:3004/api-docs
+Server URL: http://localhost:3004
+Frontend: http://localhost:3004
 
 ✅ جميع الروابط موحدة!
-✅ Swagger يشير إلى 3003
-✅ Frontend يتصل بـ 3003
+✅ Swagger يشير إلى 3004
+✅ Frontend يتصل بـ 3004
 ```
 
 ---
@@ -142,7 +142,7 @@ Frontend: http://localhost:3003
 
 ```javascript
 // قديم
-const BASE_URL = 'http://localhost:3003/api';
+const BASE_URL = 'http://localhost:3004/api';
 
 // جديد
 const { TEST_CONFIG } = require('./test-config');
@@ -178,8 +178,8 @@ node server.js
 تأكد أن الخادم يعمل على البورت الصحيح:
 ```bash
 # يجب أن ترى
-Server is running on http://localhost:3003
-Swagger UI available at http://localhost:3003/api-docs
+Server is running on http://localhost:3004
+Swagger UI available at http://localhost:3004/api-docs
 ```
 
 ---
@@ -190,7 +190,7 @@ Swagger UI available at http://localhost:3003/api-docs
 
 1. **افتح Swagger UI:**
    ```
-   http://localhost:3003/api-docs
+   http://localhost:3004/api-docs
    ```
 
 2. **جرب endpoint تسجيل الدخول:**
@@ -208,9 +208,9 @@ Swagger UI available at http://localhost:3003/api-docs
 3. **تحقق من الرابط المستخدم:**
    يجب أن يكون:
    ```
-   Request URL: http://localhost:3003/api/auth/login
+   Request URL: http://localhost:3004/api/auth/login
    ```
-   ✅ ليس `http://localhost:3003/api/auth/login`
+   ✅ ليس `http://localhost:3004/api/auth/login`
 
 ---
 
@@ -218,8 +218,8 @@ Swagger UI available at http://localhost:3003/api-docs
 
 | العنصر | قبل | بعد |
 |--------|-----|-----|
-| Swagger Server URL | `http://localhost:3003` | `http://localhost:3003` |
-| Swagger UI URL | `http://localhost:3003/api-docs` | `http://localhost:3003/api-docs` |
+| Swagger Server URL | `http://localhost:3004` | `http://localhost:3004` |
+| Swagger UI URL | `http://localhost:3004/api-docs` | `http://localhost:3004/api-docs` |
 | API Base URL | مكرر في كل ملف | مركزي في `api-config.js` |
 | Test Files | روابط ثابتة | يستخدم `test-config.js` |
 | Frontend | مكرر في كل ملف | مركزي في `config.ts` |
@@ -228,7 +228,7 @@ Swagger UI available at http://localhost:3003/api-docs
 
 ## ✅ الحالة النهائية | Final Status
 
-- ✅ Swagger يعمل على البورت 3003
+- ✅ Swagger يعمل على البورت 3004
 - ✅ جميع الروابط موحدة
 - ✅ سهولة التغيير في المستقبل
 - ✅ لا تعارض بين Frontend و Backend

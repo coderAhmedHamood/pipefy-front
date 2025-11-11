@@ -4,7 +4,7 @@
 
 // إعدادات الخادم الأساسية
 const SERVER_HOST = 'localhost';
-const SERVER_PORT = 3003;
+const SERVER_PORT = 3004;
 const SERVER_PROTOCOL = 'http';
 
 // عنوان الخادم الأساسي

@@ -34,7 +34,7 @@
 4. **انتظر حتى ترى:**
    ```
    ✅ Database connected successfully!
-   Server running on port 3003
+   Server running on port 3004
    ```
 5. **جرّب الـ endpoint مرة أخرى**
 
@@ -45,8 +45,8 @@
 إذا لم تجد terminal السيرفر:
 
 ```bash
-# 1. أوقف أي عملية على المنفذ 3003
-Get-Process -Id (Get-NetTCPConnection -LocalPort 3003).OwningProcess | Stop-Process -Force
+# 1. أوقف أي عملية على المنفذ 3004
+Get-Process -Id (Get-NetTCPConnection -LocalPort 3004).OwningProcess | Stop-Process -Force
 
 # 2. شغّل السيرفر
 cd "e:\laravel\xampp old\htdocs\laravel\pipefy-main\project\api"
@@ -129,7 +129,7 @@ const { pool } = require('../config/database');  // ✅ صحيح
 
 ### 1. تأكد من إيقاف السيرفر القديم تماماً:
 ```powershell
-Get-Process -Id (Get-NetTCPConnection -LocalPort 3003).OwningProcess | Stop-Process -Force
+Get-Process -Id (Get-NetTCPConnection -LocalPort 3004).OwningProcess | Stop-Process -Force
 ```
 
 ### 2. تأكد من أن الملف محفوظ:

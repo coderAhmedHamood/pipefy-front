@@ -459,7 +459,7 @@ export const SettingsManager: React.FC = () => {
                   type="url"
                   value={settings.api_base_url}
                   onChange={(e) => updateSetting('api_base_url', e.target.value)}
-                  placeholder="http://localhost:3003"
+                  placeholder="http://localhost:3004"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>

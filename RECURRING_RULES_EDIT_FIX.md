@@ -13,7 +13,7 @@
 const fetchRuleDetails = async (ruleId: string) => {
   setLoadingRuleDetails(true);
   try {
-    const response = await fetch(`http://localhost:3003/api/recurring/rules/${ruleId}`, {
+    const response = await fetch(`http://localhost:3004/api/recurring/rules/${ruleId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
         'Content-Type': 'application/json'

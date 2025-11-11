@@ -81,7 +81,7 @@ const getTimeAgo = (dateString: string): string => {
 ### 2. اختبر API:
 ```bash
 # جلب عدد الإشعارات
-GET http://localhost:3003/api/notifications/unread-count
+GET http://localhost:3004/api/notifications/unread-count
 
 # يجب أن يعود:
 {
@@ -94,7 +94,7 @@ GET http://localhost:3003/api/notifications/unread-count
 
 ### 3. إنشاء إشعار تجريبي:
 ```bash
-POST http://localhost:3003/api/notifications
+POST http://localhost:3004/api/notifications
 {
   "user_id": "your-user-id",
   "title": "إشعار تجريبي",

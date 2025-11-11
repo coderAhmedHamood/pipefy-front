@@ -127,7 +127,7 @@ const data = await response.json();
 
 ### cURL:
 ```bash
-curl -X GET "http://localhost:3003/api/notifications/all?limit=10" \
+curl -X GET "http://localhost:3004/api/notifications/all?limit=10" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -174,6 +174,6 @@ curl -X GET "http://localhost:3003/api/notifications/all?limit=10" \
 
 ## 📞 المراجع
 
-- **Swagger UI**: http://localhost:3003/api-docs
+- **Swagger UI**: http://localhost:3004/api-docs
 - **التوثيق المفصل**: `NOTIFICATION_ENDPOINTS_DOCUMENTATION.md`
 - **ملف الاختبار**: `test-notification-endpoints.js`

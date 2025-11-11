@@ -10,7 +10,7 @@
 │  📁 src/config/                                             │
 │  ├── 📄 config.ts                                           │
 │  │   └── const SERVER_HOST = 'localhost'                   │
-│  │       const SERVER_PORT = 3003                           │
+│  │       const SERVER_PORT = 3004                           │
 │  │       const SERVER_PROTOCOL = 'http'                     │
 │  │       ↓                                                  │
 │  │       export const API_BASE_URL =                        │
@@ -18,7 +18,7 @@
 │  │                                                          │
 │  └── 📄 api.ts                                              │
 │      └── const SERVER_HOST = 'localhost'                    │
-│          const SERVER_PORT = 3003                           │
+│          const SERVER_PORT = 3004                           │
 │          const SERVER_PROTOCOL = 'http'                     │
 │          ↓                                                  │
 │          export const API_BASE_URL =                        │
@@ -47,7 +47,7 @@
 │  └── 📄 api-config.js                                       │
 │      └── const SERVER_CONFIG = {                            │
 │            HOST: 'localhost',                               │
-│            PORT: 3003,                                      │
+│            PORT: 3004,                                      │
 │            PROTOCOL: 'http'                                 │
 │          }                                                  │
 │          ↓                                                  │
@@ -104,13 +104,13 @@ api/config/api-config.js
 // Different URL in every file!
 
 // File 1
-fetch('http://localhost:3003/api/users')
+fetch('http://localhost:3004/api/users')
 
 // File 2
-fetch('http://localhost:3003/api/processes')
+fetch('http://localhost:3004/api/processes')
 
 // File 3
-fetch('http://localhost:3003/api/tickets')  // خطأ!
+fetch('http://localhost:3004/api/tickets')  // خطأ!
 
 // File 4
 fetch('http://localhost:4000/api/stages')   // خطأ!
@@ -130,7 +130,7 @@ fetch('http://localhost:4000/api/stages')   // خطأ!
 // In config file only
 
 const SERVER_HOST = 'localhost';
-const SERVER_PORT = 3003;
+const SERVER_PORT = 3004;
 const SERVER_PROTOCOL = 'http';
 
 export const API_BASE_URL = `${SERVER_PROTOCOL}://${SERVER_HOST}:${SERVER_PORT}`;
@@ -158,7 +158,7 @@ fetch(`${API_BASE_URL}/api/stages`)
 
 ## 🔄 مثال عملي للتغيير | Practical Change Example
 
-### السيناريو: تغيير البورت من 3003 إلى 8080
+### السيناريو: تغيير البورت من 3004 إلى 8080
 
 #### الطريقة القديمة (قبل التوحيد) ❌
 ```
@@ -212,7 +212,7 @@ PORT: 8080,  // ← تغيير واحد فقط!
                     │  SERVER_CONFIG  │
                     │                 │
                     │  HOST: localhost│
-                    │  PORT: 3003     │
+                    │  PORT: 3004     │
                     │  PROTOCOL: http │
                     └────────┬────────┘
                              │
@@ -220,7 +220,7 @@ PORT: 8080,  // ← تغيير واحد فقط!
                     │  API_BASE_URL   │
                     │                 │
                     │ http://localhost│
-                    │      :3003      │
+                    │      :3004      │
                     └────────┬────────┘
                              │
         ┌────────────────────┼────────────────────┐
@@ -245,7 +245,7 @@ PORT: 8080,  // ← تغيير واحد فقط!
 ```javascript
 // .env.development
 REACT_APP_API_HOST=localhost
-REACT_APP_API_PORT=3003
+REACT_APP_API_PORT=3004
 REACT_APP_API_PROTOCOL=http
 
 // .env.production
@@ -255,7 +255,7 @@ REACT_APP_API_PROTOCOL=https
 
 // config.ts
 const SERVER_HOST = process.env.REACT_APP_API_HOST || 'localhost';
-const SERVER_PORT = process.env.REACT_APP_API_PORT || 3003;
+const SERVER_PORT = process.env.REACT_APP_API_PORT || 3004;
 const SERVER_PROTOCOL = process.env.REACT_APP_API_PROTOCOL || 'http';
 ```
 

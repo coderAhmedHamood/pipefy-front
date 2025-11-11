@@ -233,7 +233,7 @@ POST /api/auth/login
 
 ### للتوثيق:
 - `4_NOTIFICATION_ENDPOINTS_GUIDE.md` - دليل تفصيلي
-- Swagger UI: `http://localhost:3003/api-docs`
+- Swagger UI: `http://localhost:3004/api-docs`
 
 ---
 

@@ -35,7 +35,7 @@ DB_USERNAME=postgres
 DB_PASSWORD=your_password
 
 JWT_SECRET=your_secret_key
-PORT=3003
+PORT=3004
 ```
 
 ---
@@ -94,23 +94,23 @@ npm start
 
 ### 1. التحقق من اتصال قاعدة البيانات:
 ```bash
-curl http://localhost:3003/test-db
+curl http://localhost:3004/test-db
 ```
 
 ### 2. الوصول إلى API:
 ```bash
-curl http://localhost:3003/api
+curl http://localhost:3004/api
 ```
 
 ### 3. توثيق Swagger:
 ```
-http://localhost:3003/api-docs
+http://localhost:3004/api-docs
 ```
 
 ### 4. تسجيل الدخول:
 ```bash
 curl -X 'POST' \
-  'http://localhost:3003/api/auth/login' \
+  'http://localhost:3004/api/auth/login' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
@@ -187,8 +187,8 @@ node scripts/create-admin.js
 npm run dev
 
 # الاختبار
-curl http://localhost:3003/test-db
-curl http://localhost:3003/api-docs
+curl http://localhost:3004/test-db
+curl http://localhost:3004/api-docs
 ```
 
 ---
@@ -237,9 +237,9 @@ npm run create-db
 
 ## 📚 الموارد
 
-- **Swagger UI:** `http://localhost:3003/api-docs`
-- **Test DB:** `http://localhost:3003/test-db`
-- **API Base:** `http://localhost:3003/api`
+- **Swagger UI:** `http://localhost:3004/api-docs`
+- **Test DB:** `http://localhost:3004/test-db`
+- **API Base:** `http://localhost:3004/api`
 
 ---
 
@@ -260,7 +260,7 @@ npm run create-db
 ## 🎉 النتيجة
 
 بعد إكمال جميع الخطوات:
-- ✅ النظام يعمل على `http://localhost:3003`
+- ✅ النظام يعمل على `http://localhost:3004`
 - ✅ مستخدم Super Admin جاهز
 - ✅ جميع الصلاحيات مُمنوحة (34+ صلاحية)
 - ✅ يمكنك إدارة كل شيء في النظام

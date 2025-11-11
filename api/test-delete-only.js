@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // إعدادات الاختبار
-const BASE_URL = 'http://localhost:3003/api';
+const BASE_URL = 'http://localhost:3004/api';
 const TEST_CONFIG = {
   email: 'admin@example.com',
   password: 'admin123'
