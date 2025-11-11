@@ -7,7 +7,7 @@ async function testLogin() {
     console.log('🔄 Testing login...');
 
     const postData = JSON.stringify({
-      email: 'admin@example.com',
+      email: 'admin@pipefy.com',
       password: 'admin123'
     });
 

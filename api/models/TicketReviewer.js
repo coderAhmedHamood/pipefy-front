@@ -9,57 +9,92 @@ class TicketReviewer {
       const tableInfo = await client.query(`
         SELECT column_name 
         FROM information_schema.columns 
-        WHERE table_name = 'ticket_reviewers' 
-        AND column_name IN ('user_id', 'reviewer_id')
+        WHERE table_name = 'ticket_reviewers'
       `);
       
-      const hasUserId = tableInfo.rows.some(row => row.column_name === 'user_id');
-      const hasReviewerId = tableInfo.rows.some(row => row.column_name === 'reviewer_id');
-      
-      // إذا كان الجدول موجوداً بالفعل من migration، لا نعيد إنشاؤه
-      if (tableInfo.rows.length > 0) {
-        // إضافة حقل rate إذا لم يكن موجوداً
+      const hasTable = tableInfo.rows.length > 0;
+
+      if (hasTable) {
+        const hasUserId = tableInfo.rows.some(row => row.column_name === 'user_id');
+        const hasReviewerId = tableInfo.rows.some(row => row.column_name === 'reviewer_id');
+        const hasAssignedBy = tableInfo.rows.some(row => row.column_name === 'assigned_by');
+        const hasAddedBy = tableInfo.rows.some(row => row.column_name === 'added_by');
+        const hasAssignedAt = tableInfo.rows.some(row => row.column_name === 'assigned_at');
+        const hasAddedAt = tableInfo.rows.some(row => row.column_name === 'added_at');
+        const hasStatus = tableInfo.rows.some(row => row.column_name === 'status');
+        const hasReviewStatus = tableInfo.rows.some(row => row.column_name === 'review_status');
+        const hasNotes = tableInfo.rows.some(row => row.column_name === 'notes');
+        const hasReviewNotes = tableInfo.rows.some(row => row.column_name === 'review_notes');
+
+        // إعادة تسمية الأعمدة القديمة لضمان التوافق مع الكود الحالي
+        if (hasUserId && !hasReviewerId) {
+          await client.query(`ALTER TABLE ticket_reviewers RENAME COLUMN user_id TO reviewer_id;`);
+        }
+
+        if (hasAssignedBy && !hasAddedBy) {
+          await client.query(`ALTER TABLE ticket_reviewers RENAME COLUMN assigned_by TO added_by;`);
+        }
+
+        if (hasAssignedAt && !hasAddedAt) {
+          await client.query(`ALTER TABLE ticket_reviewers RENAME COLUMN assigned_at TO added_at;`);
+        }
+
+        if (hasStatus && !hasReviewStatus) {
+          await client.query(`ALTER TABLE ticket_reviewers RENAME COLUMN status TO review_status;`);
+        }
+
+        if (hasNotes && !hasReviewNotes) {
+          await client.query(`ALTER TABLE ticket_reviewers RENAME COLUMN notes TO review_notes;`);
+        }
+
+        // إضافة الحقول الجديدة إذا لم تكن موجودة
         await client.query(`
           ALTER TABLE ticket_reviewers 
-          ADD COLUMN IF NOT EXISTS rate VARCHAR(20) 
-          CHECK (rate IN ('ضعيف', 'جيد', 'جيد جدا', 'ممتاز'))
-        `);
-        
-        // إضافة فهرس rate إذا لم يكن موجوداً
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_rate ON ticket_reviewers(rate);`);
-        
-        // إضافة حقول إضافية إذا لم تكن موجودة (من ensureTable)
-        await client.query(`
-          ALTER TABLE ticket_reviewers 
-          ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
+          ADD COLUMN IF NOT EXISTS added_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          ADD COLUMN IF NOT EXISTS added_at TIMESTAMPTZ DEFAULT NOW(),
+          ADD COLUMN IF NOT EXISTS review_status VARCHAR(50) DEFAULT 'pending',
           ADD COLUMN IF NOT EXISTS review_notes TEXT,
-          ADD COLUMN IF NOT EXISTS review_status VARCHAR(50) DEFAULT 'pending'
+          ADD COLUMN IF NOT EXISTS rate VARCHAR(20) CHECK (rate IN ('ضعيف', 'جيد', 'جيد جدا', 'ممتاز')),
+          ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE
         `);
-        
-        return; // الجدول موجود، لا نعيد إنشاؤه
+
+        // تحديث القيم الافتراضية للحالات القديمة
+        await client.query(`
+          UPDATE ticket_reviewers
+          SET review_status = COALESCE(review_status, 'pending')
+        `);
+
+        // إنشاء الفهارس المطلوبة
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_ticket ON ticket_reviewers(ticket_id);`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_reviewer ON ticket_reviewers(reviewer_id);`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_status ON ticket_reviewers(review_status);`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_active ON ticket_reviewers(is_active);`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_rate ON ticket_reviewers(rate);`);
+
+        return;
       }
       
-      // إنشاء الجدول فقط إذا لم يكن موجوداً (استخدام user_id للتوافق مع migration)
+      // إنشاء الجدول إذا لم يكن موجوداً
       await client.query(`
         CREATE TABLE IF NOT EXISTS ticket_reviewers (
           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
           ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          assigned_by UUID REFERENCES users(id),
+          reviewer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          added_by UUID REFERENCES users(id) ON DELETE SET NULL,
+          added_at TIMESTAMPTZ DEFAULT NOW(),
           review_status VARCHAR(50) DEFAULT 'pending',
           review_notes TEXT,
           rate VARCHAR(20) CHECK (rate IN ('ضعيف', 'جيد', 'جيد جدا', 'ممتاز')),
           reviewed_at TIMESTAMPTZ,
           is_active BOOLEAN DEFAULT TRUE,
-          assigned_at TIMESTAMPTZ DEFAULT NOW(),
           created_at TIMESTAMPTZ DEFAULT NOW(),
           updated_at TIMESTAMPTZ DEFAULT NOW(),
-          UNIQUE(ticket_id, user_id)
+          UNIQUE(ticket_id, reviewer_id)
         );
       `);
       
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_ticket ON ticket_reviewers(ticket_id);`);
-      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_user ON ticket_reviewers(user_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_reviewer ON ticket_reviewers(reviewer_id);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_status ON ticket_reviewers(review_status);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_active ON ticket_reviewers(is_active);`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_ticket_reviewers_rate ON ticket_reviewers(rate);`);

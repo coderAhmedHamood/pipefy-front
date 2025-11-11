@@ -66,3 +66,5 @@ SELECT
     'تم إنشاء جدول الإعدادات بنجاح' as message,
     COUNT(*) as settings_count 
 FROM settings;
+
+
