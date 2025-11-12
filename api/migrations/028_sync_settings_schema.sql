@@ -261,3 +261,4 @@ SELECT
 FROM settings
 LIMIT 1;
 
+

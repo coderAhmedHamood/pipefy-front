@@ -54,7 +54,6 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
       setLoading(true);
       setError(null);
       console.log('🔄 [SystemSettings] جلب إعدادات النظام من GET /api/settings...');
-      console.log('📍 [SystemSettings] URL:', 'http://localhost:3004/api/settings');
       
       const response = await settingsService.getSettings();
       console.log('📦 [SystemSettings] استجابة كاملة:', response);

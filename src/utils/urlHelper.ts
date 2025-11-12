@@ -1,3 +1,5 @@
+import { FRONTEND_BASE_URL } from '../config/config';
+
 /**
  * دالة للحصول على الرابط الأساسي للتطبيق
  */
@@ -5,13 +7,13 @@ export const getBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
     return `${window.location.protocol}//${window.location.host}`;
   }
-  return 'http://localhost:8080'; // fallback
+  return FRONTEND_BASE_URL; // fallback from central config
 };
 
 /**
  * تحويل رابط التذكرة من action_url إلى رابط kanban
  * @param actionUrl - الرابط من الإشعار مثل "/tickets/ticket-id"
- * @returns الرابط الكامل للكانبان مثل "http://localhost:8080/kanban?ticket=ticket-id"
+ * @returns الرابط الكامل للكانبان مثل "{FRONTEND_BASE_URL}/kanban?ticket=ticket-id"
  */
 export const convertToKanbanUrl = (actionUrl: string): string => {
   if (!actionUrl) return '';

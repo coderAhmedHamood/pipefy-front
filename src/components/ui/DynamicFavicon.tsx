@@ -1,19 +1,10 @@
 import { useEffect } from 'react';
 import { useCompanyInfo } from '../../contexts/SystemSettingsContext';
+import { buildAssetUrl } from '../../config/config';
 
-// دالة لبناء URL الصور
+// دالة لبناء URL الصور - تستخدم التكوين المركزي
 const buildImageUrl = (imagePath: string): string => {
-  if (!imagePath) return '';
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
-  }
-  
-  let fullPath = imagePath;
-  if (!fullPath.startsWith('/')) {
-    fullPath = '/' + fullPath;
-  }
-  
-  return `http://localhost:3004${fullPath}`;
+  return buildAssetUrl(imagePath);
 };
 
 // دالة لتحديث favicon

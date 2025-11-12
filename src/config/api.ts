@@ -1,99 +1,99 @@
 /**
  * إعدادات API للتطبيق
+ * API Configuration
+ * 
+ * ⚠️ هذا الملف يستورد الروابط من config.ts المركزي
+ * This file imports URLs from central config.ts
  */
 
-// إعدادات الخادم الأساسية
-const SERVER_HOST = 'localhost';
-const SERVER_PORT = 3004;
-const SERVER_PROTOCOL = 'http';
-
-// عنوان الخادم الأساسي
-export const API_BASE_URL = `${SERVER_PROTOCOL}://${SERVER_HOST}:${SERVER_PORT}`;
+// استيراد الروابط من ملف التكوين المركزي
+import { API_BASE_URL, API_REST_URL, buildApiUrl } from './config';
 
 // نقاط النهاية الرئيسية
+// Main API Endpoints
 export const API_ENDPOINTS = {
   // المصادقة
   AUTH: {
-    LOGIN: `${API_BASE_URL}/api/auth/login`,
-    LOGOUT: `${API_BASE_URL}/api/auth/logout`,
-    VERIFY: `${API_BASE_URL}/api/auth/verify`,
-    REFRESH: `${API_BASE_URL}/api/auth/refresh`,
+    LOGIN: buildApiUrl('/auth/login'),
+    LOGOUT: buildApiUrl('/auth/logout'),
+    VERIFY: buildApiUrl('/auth/verify'),
+    REFRESH: buildApiUrl('/auth/refresh'),
   },
   
   // المستخدمين
   USERS: {
-    LIST: `${API_BASE_URL}/api/users`,
-    CREATE: `${API_BASE_URL}/api/users`,
-    GET_BY_ID: (id: string) => `${API_BASE_URL}/api/users/${id}`,
-    UPDATE: (id: string) => `${API_BASE_URL}/api/users/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/api/users/${id}`,
-    STATS: `${API_BASE_URL}/api/users/stats`,
-    ME: `${API_BASE_URL}/api/users/me`,
+    LIST: buildApiUrl('/users'),
+    CREATE: buildApiUrl('/users'),
+    GET_BY_ID: (id: string) => buildApiUrl(`/users/${id}`),
+    UPDATE: (id: string) => buildApiUrl(`/users/${id}`),
+    DELETE: (id: string) => buildApiUrl(`/users/${id}`),
+    STATS: buildApiUrl('/users/stats'),
+    ME: buildApiUrl('/users/me'),
   },
   
   // الأدوار
   ROLES: {
-    LIST: `${API_BASE_URL}/api/roles`,
-    CREATE: `${API_BASE_URL}/api/roles`,
-    GET_BY_ID: (id: string) => `${API_BASE_URL}/api/roles/${id}`,
-    UPDATE: (id: string) => `${API_BASE_URL}/api/roles/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/api/roles/${id}`,
-    STATS: `${API_BASE_URL}/api/roles/stats`,
+    LIST: buildApiUrl('/roles'),
+    CREATE: buildApiUrl('/roles'),
+    GET_BY_ID: (id: string) => buildApiUrl(`/roles/${id}`),
+    UPDATE: (id: string) => buildApiUrl(`/roles/${id}`),
+    DELETE: (id: string) => buildApiUrl(`/roles/${id}`),
+    STATS: buildApiUrl('/roles/stats'),
   },
   
   // الصلاحيات
   PERMISSIONS: {
-    LIST: `${API_BASE_URL}/api/permissions`,
-    CREATE: `${API_BASE_URL}/api/permissions`,
-    GET_BY_ID: (id: string) => `${API_BASE_URL}/api/permissions/${id}`,
-    UPDATE: (id: string) => `${API_BASE_URL}/api/permissions/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/api/permissions/${id}`,
-    BY_RESOURCE: `${API_BASE_URL}/api/permissions/by-resource`,
+    LIST: buildApiUrl('/permissions'),
+    CREATE: buildApiUrl('/permissions'),
+    GET_BY_ID: (id: string) => buildApiUrl(`/permissions/${id}`),
+    UPDATE: (id: string) => buildApiUrl(`/permissions/${id}`),
+    DELETE: (id: string) => buildApiUrl(`/permissions/${id}`),
+    BY_RESOURCE: buildApiUrl('/permissions/by-resource'),
   },
   
   // العمليات
   PROCESSES: {
-    LIST: `${API_BASE_URL}/api/processes`,
-    CREATE: `${API_BASE_URL}/api/processes`,
-    GET_BY_ID: (id: string) => `${API_BASE_URL}/api/processes/${id}`,
-    UPDATE: (id: string) => `${API_BASE_URL}/api/processes/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/api/processes/${id}`,
+    LIST: buildApiUrl('/processes'),
+    CREATE: buildApiUrl('/processes'),
+    GET_BY_ID: (id: string) => buildApiUrl(`/processes/${id}`),
+    UPDATE: (id: string) => buildApiUrl(`/processes/${id}`),
+    DELETE: (id: string) => buildApiUrl(`/processes/${id}`),
   },
   
   // صلاحيات العمليات
   USER_PROCESSES: {
-    LIST: `${API_BASE_URL}/api/user-processes`,
-    CREATE: `${API_BASE_URL}/api/user-processes`,
-    GET_BY_ID: (id: string) => `${API_BASE_URL}/api/user-processes/${id}`,
-    UPDATE: (id: string) => `${API_BASE_URL}/api/user-processes/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/api/user-processes/${id}`,
+    LIST: buildApiUrl('/user-processes'),
+    CREATE: buildApiUrl('/user-processes'),
+    GET_BY_ID: (id: string) => buildApiUrl(`/user-processes/${id}`),
+    UPDATE: (id: string) => buildApiUrl(`/user-processes/${id}`),
+    DELETE: (id: string) => buildApiUrl(`/user-processes/${id}`),
     
     // التقارير
     REPORTS: {
-      USERS_WITH_PROCESSES: `${API_BASE_URL}/api/user-processes/report/users-with-processes`,
-      SIMPLE: `${API_BASE_URL}/api/user-processes/report/simple`,
+      USERS_WITH_PROCESSES: buildApiUrl('/user-processes/report/users-with-processes'),
+      SIMPLE: buildApiUrl('/user-processes/report/simple'),
     }
   },
   
   // التذاكر
   TICKETS: {
-    LIST: `${API_BASE_URL}/api/tickets`,
-    CREATE: `${API_BASE_URL}/api/tickets`,
-    GET_BY_ID: (id: string) => `${API_BASE_URL}/api/tickets/${id}`,
-    UPDATE: (id: string) => `${API_BASE_URL}/api/tickets/${id}`,
-    DELETE: (id: string) => `${API_BASE_URL}/api/tickets/${id}`,
-    MOVE_SIMPLE: (id: string) => `${API_BASE_URL}/api/tickets/${id}/move-simple`,
-    COMMENTS: (id: string) => `${API_BASE_URL}/api/tickets/${id}/comments`,
+    LIST: buildApiUrl('/tickets'),
+    CREATE: buildApiUrl('/tickets'),
+    GET_BY_ID: (id: string) => buildApiUrl(`/tickets/${id}`),
+    UPDATE: (id: string) => buildApiUrl(`/tickets/${id}`),
+    DELETE: (id: string) => buildApiUrl(`/tickets/${id}`),
+    MOVE_SIMPLE: (id: string) => buildApiUrl(`/tickets/${id}/move-simple`),
+    COMMENTS: (id: string) => buildApiUrl(`/tickets/${id}/comments`),
   },
   
   // التذاكر المتكررة
   RECURRING: {
-    RULES: `${API_BASE_URL}/api/recurring/rules`,
-    CREATE_RULE: `${API_BASE_URL}/api/recurring/rules`,
-    GET_RULE: (id: string) => `${API_BASE_URL}/api/recurring/rules/${id}`,
-    UPDATE_RULE: (id: string) => `${API_BASE_URL}/api/recurring/rules/${id}`,
-    DELETE_RULE: (id: string) => `${API_BASE_URL}/api/recurring/rules/${id}`,
-    TOGGLE_RULE: (id: string) => `${API_BASE_URL}/api/recurring/rules/${id}/toggle`,
+    RULES: buildApiUrl('/recurring/rules'),
+    CREATE_RULE: buildApiUrl('/recurring/rules'),
+    GET_RULE: (id: string) => buildApiUrl(`/recurring/rules/${id}`),
+    UPDATE_RULE: (id: string) => buildApiUrl(`/recurring/rules/${id}`),
+    DELETE_RULE: (id: string) => buildApiUrl(`/recurring/rules/${id}`),
+    TOGGLE_RULE: (id: string) => buildApiUrl(`/recurring/rules/${id}/toggle`),
   }
 };
 

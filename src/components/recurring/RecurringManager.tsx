@@ -3,6 +3,7 @@ import { useWorkflow } from '../../contexts/WorkflowContext';
 import { RecurringRule, RecurringSchedule, Process } from '../../types/workflow';
 import { API_ENDPOINTS, apiRequest } from '../../config/api';
 import { useQuickNotifications } from '../ui/NotificationSystem';
+import { buildApiUrl } from '../../config/config';
 import { 
   RefreshCw, 
   Plus, 
@@ -248,7 +249,7 @@ export const RecurringManager: React.FC = () => {
   const fetchRuleDetails = async (ruleId: string) => {
     setLoadingRuleDetails(true);
     try {
-      const response = await fetch(`http://localhost:3004/api/recurring/rules/${ruleId}`, {
+      const response = await fetch(buildApiUrl(`/recurring/rules/${ruleId}`), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -631,7 +632,7 @@ export const RecurringManager: React.FC = () => {
       }
 
       // استدعاء API لتشغيل القاعدة
-      const response = await fetch(`http://localhost:3004/api/recurring/rules/${rule.id}/run`, {
+      const response = await fetch(buildApiUrl(`/recurring/rules/${rule.id}/run`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
@@ -667,7 +668,7 @@ export const RecurringManager: React.FC = () => {
           if (allowIncrease) {
             const currentExec = (rule as any).execution_count || 0;
             const newLimit = Math.max(((rule as any).recurrence_interval || currentExec), currentExec) + 1;
-            const updateRes = await fetch(`http://localhost:3004/api/recurring/rules/${rule.id}`, {
+            const updateRes = await fetch(buildApiUrl(`/recurring/rules/${rule.id}`), {
               method: 'PUT',
               headers: {
                 'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,

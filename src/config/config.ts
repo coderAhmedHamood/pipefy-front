@@ -5,78 +5,223 @@
  * يحتوي على جميع الإعدادات العامة للتطبيق
  * Contains all general application settings
  * 
- * لتغيير عنوان API، قم بتعديل API_BASE_URL فقط
- * To change API URL, modify API_BASE_URL only
+ * ⚠️ مهم: النظام يأخذ IP الجهاز تلقائياً من المتصفح
+ * Important: System automatically gets device IP from browser
+ * 
+ * كيفية التخصيص / How to customize:
+ * 
+ * 1. تلقائياً (موصى به): النظام يستخدم IP و Port الحالي من المتصفح
+ *    Automatic (Recommended): System uses current IP and Port from browser
+ * 
+ * 2. عبر متغيرات البيئة (.env): أضف في ملف .env:
+ *    Via Environment Variables (.env): Add in .env file:
+ *    - VITE_FRONTEND_HOST=192.168.56.1
+ *    - VITE_FRONTEND_PORT=8080
+ *    - VITE_API_HOST=192.168.56.1
+ *    - VITE_API_PORT=3004
+ * 
+ * 3. تعديل مباشر في الكود: غير القيم في FRONTEND_HOST_OVERRIDE و API_HOST_OVERRIDE
+ *    Direct code modification: Change values in FRONTEND_HOST_OVERRIDE and API_HOST_OVERRIDE
  */
 
-// إعدادات الخادم الأساسية
-// Base Server Configuration
-const SERVER_HOST = 'localhost';
-const SERVER_PORT = 3004;
-const SERVER_PROTOCOL = 'http';
+// ============================================
+// إعدادات الروابط الأساسية - قم بتعديلها هنا فقط
+// Base URL Configuration - Modify here only
+// ============================================
 
-// عنوان API الأساسي
-// Base API URL
-export const API_BASE_URL = `${SERVER_PROTOCOL}://${SERVER_HOST}:${SERVER_PORT}`;
+/**
+ * دالة للحصول على IP/Host الحالي تلقائياً من المتصفح
+ * Get current IP/Host automatically from browser
+ */
+const getCurrentHost = (): string => {
+  // في المتصفح، استخدم hostname الحالي (IP أو localhost)
+  if (typeof window !== 'undefined') {
+    return window.location.hostname;
+  }
+  // في Node.js أو SSR، استخدم القيمة الافتراضية
+  return 'localhost';
+};
 
+/**
+ * دالة للحصول على Port الحالي تلقائياً من المتصفح
+ * Get current Port automatically from browser
+ */
+const getCurrentPort = (defaultPort: number): number => {
+  // في المتصفح، استخدم port الحالي
+  if (typeof window !== 'undefined' && window.location.port) {
+    const port = parseInt(window.location.port, 10);
+    if (!isNaN(port)) {
+      return port;
+    }
+  }
+  // في Node.js أو SSR، استخدم القيمة الافتراضية
+  return defaultPort;
+};
+
+// ============================================
+// إعدادات الواجهة الأمامية (Frontend)
+// Frontend Configuration
+// ============================================
+
+// ⚙️ يمكنك تعيين IP ثابت هنا مباشرة (اتركه null للاستخدام التلقائي)
+// ⚙️ You can set a fixed IP here directly (leave null for automatic)
+const FRONTEND_HOST_FIXED: string | null = null; // مثال: '192.168.56.1' أو null
+
+// ⚙️ يمكنك تعيين Port ثابت هنا مباشرة (اتركه null للاستخدام التلقائي)
+// ⚙️ You can set a fixed Port here directly (leave null for automatic)
+const FRONTEND_PORT_FIXED: number | null = null; // مثال: 8080 أو null
+
+// أولوية: Fixed > Environment Variable > Automatic
+const FRONTEND_HOST_OVERRIDE = FRONTEND_HOST_FIXED || import.meta.env.VITE_FRONTEND_HOST || null;
+const FRONTEND_PORT_OVERRIDE = FRONTEND_PORT_FIXED || (import.meta.env.VITE_FRONTEND_PORT 
+  ? parseInt(import.meta.env.VITE_FRONTEND_PORT, 10) 
+  : null);
+
+const FRONTEND_HOST = FRONTEND_HOST_OVERRIDE || getCurrentHost();
+const FRONTEND_PORT = FRONTEND_PORT_OVERRIDE || getCurrentPort(8080);
+const FRONTEND_PROTOCOL = import.meta.env.VITE_FRONTEND_PROTOCOL || 
+  (typeof window !== 'undefined' ? window.location.protocol.replace(':', '') : 'http');
+
+export const FRONTEND_BASE_URL = `${FRONTEND_PROTOCOL}://${FRONTEND_HOST}:${FRONTEND_PORT}`;
+
+// ============================================
+// إعدادات الخادم الخلفي (Backend API)
+// Backend API Configuration
+// ============================================
+
+// ⚙️ يمكنك تعيين IP ثابت هنا مباشرة (اتركه null للاستخدام التلقائي - سيستخدم نفس IP الواجهة)
+// ⚙️ You can set a fixed IP here directly (leave null for automatic - will use same IP as frontend)
+const API_HOST_FIXED: string | null = null; // مثال: '192.168.56.1' أو null
+
+// ⚙️ يمكنك تعيين Port ثابت هنا مباشرة (اتركه null للاستخدام التلقائي)
+// ⚙️ You can set a fixed Port here directly (leave null for automatic)
+const API_PORT_FIXED: number | null = null; // مثال: 3004 أو null
+
+// أولوية: Fixed > Environment Variable > Automatic (same as frontend)
+const API_HOST_OVERRIDE = API_HOST_FIXED || import.meta.env.VITE_API_HOST || null;
+const API_PORT_OVERRIDE = API_PORT_FIXED || (import.meta.env.VITE_API_PORT 
+  ? parseInt(import.meta.env.VITE_API_PORT, 10) 
+  : null);
+
+// إذا لم يتم تعيين API_HOST، استخدم نفس IP الواجهة الأمامية
+// If API_HOST is not set, use the same IP as frontend
+const API_HOST = API_HOST_OVERRIDE || FRONTEND_HOST;
+const API_PORT = API_PORT_OVERRIDE || 3004;
+const API_PROTOCOL = import.meta.env.VITE_API_PROTOCOL || FRONTEND_PROTOCOL;
+
+export const API_BASE_URL = `${API_PROTOCOL}://${API_HOST}:${API_PORT}`;
+
+// رابط API الكامل مع المسار /api
+// Full API URL with /api path
+export const API_REST_URL = `${API_BASE_URL}/api`;
+
+// ============================================
+// معلومات التشخيص (Development Only)
+// Diagnostic Information (Development Only)
+// ============================================
+
+if (import.meta.env.DEV) {
+  console.log('🔧 [Config] إعدادات الروابط:', {
+    FRONTEND: FRONTEND_BASE_URL,
+    API: API_BASE_URL,
+    API_REST: API_REST_URL,
+    FRONTEND_HOST,
+    FRONTEND_PORT,
+    API_HOST,
+    API_PORT,
+  });
+}
+
+// ============================================
+// دوال مساعدة لبناء الروابط
+// Helper Functions for Building URLs
+// ============================================
+
+/**
+ * بناء رابط كامل لملف أو صورة من الخادم
+ * Build full URL for asset (image/file) from server
+ */
+export const buildAssetUrl = (path: string): string => {
+  if (!path) return '';
+  // إذا كان الرابط كامل بالفعل، إرجاعه كما هو
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  // إضافة المسار النسبي للخادم
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+};
+
+/**
+ * بناء رابط API كامل
+ * Build full API endpoint URL
+ */
+export const buildApiUrl = (endpoint: string): string => {
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${API_REST_URL}${normalizedEndpoint}`;
+};
+
+// ============================================
 // نقاط النهاية الكاملة
 // Full API Endpoints
+// ============================================
+
 export const API_ENDPOINTS = {
   // المصادقة - Authentication
-  LOGIN: `${API_BASE_URL}/api/auth/login`,
-  REGISTER: `${API_BASE_URL}/api/auth/register`,
-  LOGOUT: `${API_BASE_URL}/api/auth/logout`,
+  LOGIN: buildApiUrl('/auth/login'),
+  REGISTER: buildApiUrl('/auth/register'),
+  LOGOUT: buildApiUrl('/auth/logout'),
   
   // المستخدمين - Users
-  USERS: `${API_BASE_URL}/api/users`,
-  USER_BY_ID: (id: string) => `${API_BASE_URL}/api/users/${id}`,
+  USERS: buildApiUrl('/users'),
+  USER_BY_ID: (id: string) => buildApiUrl(`/users/${id}`),
   
   // العمليات - Processes
-  PROCESSES: `${API_BASE_URL}/api/processes`,
-  PROCESS_BY_ID: (id: string) => `${API_BASE_URL}/api/processes/${id}`,
+  PROCESSES: buildApiUrl('/processes'),
+  PROCESS_BY_ID: (id: string) => buildApiUrl(`/processes/${id}`),
   
   // المراحل - Stages
-  STAGES: `${API_BASE_URL}/api/stages`,
-  STAGE_BY_ID: (id: string) => `${API_BASE_URL}/api/stages/${id}`,
-  PROCESS_STAGES: (processId: string) => `${API_BASE_URL}/api/processes/${processId}/stages`,
+  STAGES: buildApiUrl('/stages'),
+  STAGE_BY_ID: (id: string) => buildApiUrl(`/stages/${id}`),
+  PROCESS_STAGES: (processId: string) => buildApiUrl(`/processes/${processId}/stages`),
   
   // التذاكر - Tickets
-  TICKETS: `${API_BASE_URL}/api/tickets`,
-  TICKET_BY_ID: (id: string) => `${API_BASE_URL}/api/tickets/${id}`,
-  TICKET_MOVE: (id: string) => `${API_BASE_URL}/api/tickets/${id}/move`,
-  TICKET_MOVE_SIMPLE: (id: string) => `${API_BASE_URL}/api/tickets/${id}/move-simple`,
-  TICKET_COMMENTS: (id: string) => `${API_BASE_URL}/api/tickets/${id}/comments`,
-  TICKET_ATTACHMENTS: (id: string) => `${API_BASE_URL}/api/tickets/${id}/attachments`,
+  TICKETS: buildApiUrl('/tickets'),
+  TICKET_BY_ID: (id: string) => buildApiUrl(`/tickets/${id}`),
+  TICKET_MOVE: (id: string) => buildApiUrl(`/tickets/${id}/move`),
+  TICKET_MOVE_SIMPLE: (id: string) => buildApiUrl(`/tickets/${id}/move-simple`),
+  TICKET_COMMENTS: (id: string) => buildApiUrl(`/tickets/${id}/comments`),
+  TICKET_ATTACHMENTS: (id: string) => buildApiUrl(`/tickets/${id}/attachments`),
   
   // التعليقات - Comments
-  COMMENTS: `${API_BASE_URL}/api/comments`,
-  COMMENT_BY_ID: (id: string) => `${API_BASE_URL}/api/comments/${id}`,
+  COMMENTS: buildApiUrl('/comments'),
+  COMMENT_BY_ID: (id: string) => buildApiUrl(`/comments/${id}`),
   
   // الإشعارات - Notifications
-  NOTIFICATIONS: `${API_BASE_URL}/api/notifications`,
-  NOTIFICATION_BY_ID: (id: string) => `${API_BASE_URL}/api/notifications/${id}`,
-  MARK_NOTIFICATION_READ: (id: string) => `${API_BASE_URL}/api/notifications/${id}/read`,
-  MARK_ALL_NOTIFICATIONS_READ: `${API_BASE_URL}/api/notifications/mark-all-read`,
+  NOTIFICATIONS: buildApiUrl('/notifications'),
+  NOTIFICATION_BY_ID: (id: string) => buildApiUrl(`/notifications/${id}`),
+  MARK_NOTIFICATION_READ: (id: string) => buildApiUrl(`/notifications/${id}/read`),
+  MARK_ALL_NOTIFICATIONS_READ: buildApiUrl('/notifications/mark-all-read'),
   
   // الإسنادات - Assignments
-  ASSIGNMENTS: `${API_BASE_URL}/api/assignments`,
-  TICKET_ASSIGNMENTS: (ticketId: string) => `${API_BASE_URL}/api/tickets/${ticketId}/assignments`,
+  ASSIGNMENTS: buildApiUrl('/assignments'),
+  TICKET_ASSIGNMENTS: (ticketId: string) => buildApiUrl(`/tickets/${ticketId}/assignments`),
   
   // المراجعين - Reviewers
-  REVIEWERS: `${API_BASE_URL}/api/reviewers`,
-  TICKET_REVIEWERS: (ticketId: string) => `${API_BASE_URL}/api/tickets/${ticketId}/reviewers`,
+  REVIEWERS: buildApiUrl('/reviewers'),
+  TICKET_REVIEWERS: (ticketId: string) => buildApiUrl(`/tickets/${ticketId}/reviewers`),
   
   // التقارير - Reports
-  REPORTS: `${API_BASE_URL}/api/reports`,
-  REPORT_TICKETS_BY_STATUS: `${API_BASE_URL}/api/reports/tickets-by-status`,
-  REPORT_TICKETS_BY_STAGE: `${API_BASE_URL}/api/reports/tickets-by-stage`,
-  REPORT_TICKETS_BY_USER: `${API_BASE_URL}/api/reports/tickets-by-user`,
+  REPORTS: buildApiUrl('/reports'),
+  REPORT_TICKETS_BY_STATUS: buildApiUrl('/reports/tickets-by-status'),
+  REPORT_TICKETS_BY_STAGE: buildApiUrl('/reports/tickets-by-stage'),
+  REPORT_TICKETS_BY_USER: buildApiUrl('/reports/tickets-by-user'),
   
   // ربط المستخدمين بالعمليات - User Processes
-  USER_PROCESSES: `${API_BASE_URL}/api/user-processes`,
-  USER_PROCESSES_BY_ID: (id: string) => `${API_BASE_URL}/api/user-processes/${id}`,
-  USER_PROCESSES_BY_USER: (userId: string) => `${API_BASE_URL}/api/users/${userId}/processes`,
-  USER_PROCESSES_BY_PROCESS: (processId: string) => `${API_BASE_URL}/api/processes/${processId}/users`,
+  USER_PROCESSES: buildApiUrl('/user-processes'),
+  USER_PROCESSES_BY_ID: (id: string) => buildApiUrl(`/user-processes/${id}`),
+  USER_PROCESSES_BY_USER: (userId: string) => buildApiUrl(`/users/${userId}/processes`),
+  USER_PROCESSES_BY_PROCESS: (processId: string) => buildApiUrl(`/processes/${processId}/users`),
 };
 
 // إعدادات التطبيق
@@ -125,9 +270,13 @@ export const COLORS = {
 };
 
 export default {
+  FRONTEND_BASE_URL,
   API_BASE_URL,
+  API_REST_URL,
   API_ENDPOINTS,
   APP_CONFIG,
   STORAGE_KEYS,
   COLORS,
+  buildAssetUrl,
+  buildApiUrl,
 };

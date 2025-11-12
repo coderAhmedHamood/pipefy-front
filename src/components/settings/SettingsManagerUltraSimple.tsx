@@ -16,6 +16,7 @@ import { useQuickNotifications } from '../ui/NotificationSystem';
 import { useSystemSettings } from '../../contexts/SystemSettingsContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ThemePreview } from '../ui/ThemeToggle';
+import { FRONTEND_BASE_URL, API_BASE_URL } from '../../config/config';
 
 export const SettingsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -448,7 +449,7 @@ export const SettingsManager: React.FC = () => {
                   type="url"
                   value={settings.frontend_url}
                   onChange={(e) => updateSetting('frontend_url', e.target.value)}
-                  placeholder="http://localhost:8080"
+                  placeholder={FRONTEND_BASE_URL}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -459,7 +460,7 @@ export const SettingsManager: React.FC = () => {
                   type="url"
                   value={settings.api_base_url}
                   onChange={(e) => updateSetting('api_base_url', e.target.value)}
-                  placeholder="http://localhost:3004"
+                  placeholder={API_BASE_URL}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>

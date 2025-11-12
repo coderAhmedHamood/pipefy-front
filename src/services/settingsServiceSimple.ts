@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_REST_URL } from '../config/config';
 
-const API_BASE_URL = 'http://localhost:3004/api';
+const API_BASE_URL = API_REST_URL;
 
 // تكوين axios
 const api = axios.create({

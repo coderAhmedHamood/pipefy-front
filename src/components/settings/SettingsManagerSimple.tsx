@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { settingsService, ApiSettings as SettingsType } from '../../services/settingsServiceSimple';
 import { useQuickNotifications } from '../ui/NotificationSystem';
+import { buildAssetUrl } from '../../config/config';
 
 export const SettingsManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'security' | 'integrations' | 'notifications' | 'backup' | 'tickets'>('general');
@@ -363,7 +364,7 @@ export const SettingsManager: React.FC = () => {
                   {settings.system_logo_url && (
                     <div className="w-16 h-16 border border-gray-300 rounded-lg overflow-hidden">
                       <img 
-                        src={settings.system_logo_url.startsWith('http') ? settings.system_logo_url : `http://localhost:3004${settings.system_logo_url}`}
+                        src={buildAssetUrl(settings.system_logo_url)}
                         alt="شعار النظام" 
                         className="w-full h-full object-cover"
                       />
@@ -409,7 +410,7 @@ export const SettingsManager: React.FC = () => {
                   {settings.system_favicon_url && (
                     <div className="w-12 h-12 border border-gray-300 rounded-lg overflow-hidden">
                       <img 
-                        src={settings.system_favicon_url.startsWith('http') ? settings.system_favicon_url : `http://localhost:3004${settings.system_favicon_url}`}
+                        src={buildAssetUrl(settings.system_favicon_url)}
                         alt="أيقونة الموقع" 
                         className="w-full h-full object-cover"
                       />
