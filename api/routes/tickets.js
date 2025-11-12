@@ -1133,7 +1133,6 @@ router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.
       
       // إرسال إشعارات فقط إذا كان هناك مستخدمين
       if (uniqueUserIds.length > 0) {
-        console.log(`📧 إرسال إشعارات لـ ${uniqueUserIds.length} مستخدم`);
         
         // إنشاء إشعارات لجميع المستخدمين
         const NotificationController = require('../controllers/NotificationController');
@@ -1169,10 +1168,6 @@ router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.
             }
           }).catch(err => console.error('⚠️ خطأ في إرسال إيميل الإشعار:', err));
         }
-        
-        console.log('✅ تم إرسال الإشعارات بنجاح');
-      } else {
-        console.log('ℹ️ لا يوجد مستخدمين لإرسال إشعارات إليهم');
       }
     } catch (notificationError) {
       console.error('❌ خطأ في إرسال الإشعارات:', notificationError);

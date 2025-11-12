@@ -984,13 +984,6 @@ class Ticket {
 
       // ✅ التحقق من أن المرحلة المستهدفة هي مرحلة نهائية
       const isFinalStage = targetStage.is_final === true;
-      
-      console.log('🔍 فحص المرحلة المستهدفة:', {
-        stage_id: targetStageId,
-        stage_name: targetStage.name,
-        is_final: targetStage.is_final,
-        will_complete: isFinalStage
-      });
 
       // تحديث التذكرة - إذا كانت المرحلة نهائية، نضع completed_at
       const updateQuery = `
@@ -1011,14 +1004,6 @@ class Ticket {
       `;
       const updateResult = await client.query(updateQuery, [targetStageId, ticketId, isFinalStage]);
       const updatedTicket = updateResult.rows[0];
-
-      console.log('✅ تم تحديث التذكرة:', {
-        ticket_id: ticketId,
-        new_stage: targetStage.name,
-        is_final: isFinalStage,
-        completed_at: updatedTicket.completed_at,
-        status: updatedTicket.status
-      });
 
       // إضافة نشاط تغيير المرحلة
       await this.addActivity(client, {
@@ -1048,8 +1033,6 @@ class Ticket {
             status: 'completed'
           }
         });
-        
-        console.log('✅ تم إضافة نشاط إكمال التذكرة');
       }
 
       // إضافة تعليق إذا تم تقديمه

@@ -404,10 +404,7 @@ class ReportController {
    */
   static async getUserDetailedReport(req, res) {
     try {
-      console.log('🚨 DEBUG: بداية تنفيذ getUserDetailedReport');
-      console.log('🚨 DEBUG: req.params:', req.params);
       const { user_id } = req.params;
-      console.log('🚨 DEBUG: user_id المستخرج:', user_id);
       const {
         date_from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
         date_to = new Date().toISOString()
@@ -575,9 +572,6 @@ class ReportController {
       `, [user_id, date_from, date_to]);
 
       // 7. التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة فقط)
-      console.log('🚨 DEBUG: تنفيذ استعلام recent_tickets للمستخدم:', user_id);
-      console.log('🚨 DEBUG: استبعاد المراحل المكتملة (is_final = true)');
-      console.log('🚨 DEBUG: الاستعلام سيتم تنفيذه الآن...');
       const recentTickets = await pool.query(`
         SELECT 
           t.id,
@@ -617,12 +611,6 @@ class ReportController {
           t.due_date ASC
         LIMIT 20
       `, [user_id]);
-      console.log('🚨 DEBUG: انتهى تنفيذ استعلام recent_tickets');
-      console.log('🚨 DEBUG: عدد النتائج:', recentTickets.rows.length);
-      console.log('🚨 DEBUG: أول 3 نتائج:');
-      recentTickets.rows.slice(0, 3).forEach((ticket, index) => {
-        console.log(`  ${index + 1}. ${ticket.title} - المرحلة: ${ticket.stage_name} (is_final: ${ticket.is_final})`);
-      });
 
       // 8. مؤشر الأداء (صافي الفارق بالساعات)
       const performanceMetrics = await pool.query(`
@@ -644,7 +632,6 @@ class ReportController {
       `, [user_id, date_from, date_to]);
 
       // 9. تفاصيل التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة)
-      console.log('🚨 DEBUG: تنفيذ استعلام completed_tickets_details للمستخدم:', user_id);
       const completedTicketsDetails = await pool.query(`
         SELECT 
           t.id,
@@ -693,12 +680,6 @@ class ReportController {
           t.due_date ASC
         LIMIT 50
       `, [user_id]);
-      console.log('🚨 DEBUG: انتهى تنفيذ استعلام completed_tickets_details');
-      console.log('🚨 DEBUG: عدد النتائج:', completedTicketsDetails.rows.length);
-      console.log('🚨 DEBUG: أول 3 نتائج:');
-      completedTicketsDetails.rows.slice(0, 3).forEach((ticket, index) => {
-        console.log(`  ${index + 1}. ${ticket.title} - المرحلة: ${ticket.stage_name} (is_final: ${ticket.is_final})`);
-      });
 
       // تنسيق بيانات المستخدم
       const user = userInfo.rows[0];
@@ -1245,7 +1226,6 @@ class ReportController {
       `, [user_id, date_from, date_to]);
 
       // 7. أحدث التذاكر (من المراحل غير المكتملة فقط)
-      console.log('🚨 DEBUG: تنفيذ استعلام recent_tickets في getUserReport للمستخدم:', user_id);
       const recentTickets = await pool.query(`
         SELECT DISTINCT
           t.id,
@@ -1301,7 +1281,6 @@ class ReportController {
       `, [user_id, date_from, date_to]);
 
       // 9. تفاصيل التذاكر المتأخرة والقريبة من الانتهاء (من المراحل غير المكتملة فقط)
-      console.log('🚨 DEBUG: تنفيذ استعلام completed_tickets_details في getUserReport للمستخدم:', user_id);
       const completedTicketsDetails = await pool.query(`
         SELECT DISTINCT
           t.id,

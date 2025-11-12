@@ -290,8 +290,6 @@ class UserService {
         
         updateData.locked_until = lockUntil;
         updateData.lockout_count = lockoutCount + 1; // زيادة عدد مرات القفل
-        
-        console.log(`🔒 قفل الحساب: ${lockoutDuration} دقيقة (المحاولة ${lockoutCount + 1})`);
       }
 
       await user.update(updateData);

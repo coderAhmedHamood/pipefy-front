@@ -65,7 +65,6 @@ export const DynamicFavicon: React.FC = () => {
           updateFavicon(logoUrl);
         };
         img.onerror = () => {
-          console.warn('⚠️ فشل في تحميل شعار الشركة للـ favicon، سيتم استخدام الافتراضي');
           // الاحتفاظ بـ favicon الافتراضي
         };
         img.src = logoUrl;

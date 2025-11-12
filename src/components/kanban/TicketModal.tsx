@@ -181,7 +181,6 @@ const ImageViewerModal: React.FC<{
     if (!isOpen) {
       // تنظيف blob URL عند إغلاق Modal
       if (currentImageUrl && currentImageUrl.startsWith('blob:')) {
-        console.log('🧹 [ImageViewerModal] تنظيف Blob URL');
         URL.revokeObjectURL(currentImageUrl);
       }
       setCurrentImageUrl(null);
@@ -202,8 +201,6 @@ const ImageViewerModal: React.FC<{
         setError(false);
         setCurrentImageUrl(null);
         
-        console.log('🖼️ [ImageViewerModal] بدء تحميل الصورة...');
-        
         try {
           const url = await onLoadImageRef.current();
           
@@ -213,8 +210,6 @@ const ImageViewerModal: React.FC<{
             }
             return;
           }
-          
-          console.log('✅ [ImageViewerModal] تم تحميل الصورة بنجاح:', url ? 'URL موجود' : 'URL فارغ');
           
           if (url) {
             blobUrlToClean = url;
@@ -232,11 +227,9 @@ const ImageViewerModal: React.FC<{
           setLoading(false);
         }
       } else if (imageUrlRef.current) {
-        console.log('📷 [ImageViewerModal] استخدام imageUrl مباشرة');
         setCurrentImageUrl(imageUrlRef.current);
         setLoading(false);
       } else {
-        console.warn('⚠️ [ImageViewerModal] لا يوجد onLoadImage أو imageUrl');
         setLoading(false);
       }
     };
@@ -247,7 +240,6 @@ const ImageViewerModal: React.FC<{
     return () => {
       isCancelled = true;
       if (blobUrlToClean && blobUrlToClean.startsWith('blob:')) {
-        console.log('🧹 [ImageViewerModal] تنظيف Blob URL في cleanup');
         URL.revokeObjectURL(blobUrlToClean);
       }
     };
@@ -438,7 +430,6 @@ const ImageViewerModal: React.FC<{
                 className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl select-none"
                 draggable={false}
                 onLoad={() => {
-                  console.log('✅ [ImageViewerModal] تم تحميل الصورة بنجاح في <img>');
                 }}
                 onError={(e) => {
                   console.error('❌ [ImageViewerModal] فشل تحميل الصورة في <img>:', e);
@@ -489,7 +480,6 @@ const VideoViewerModal: React.FC<{
     if (!isOpen) {
       // تنظيف blob URL عند إغلاق Modal
       if (currentVideoUrl && currentVideoUrl.startsWith('blob:')) {
-        console.log('🧹 [VideoViewerModal] تنظيف Blob URL');
         URL.revokeObjectURL(currentVideoUrl);
       }
       setCurrentVideoUrl(null);
@@ -515,8 +505,6 @@ const VideoViewerModal: React.FC<{
         setError(false);
         setCurrentVideoUrl(null);
         
-        console.log('🎬 [VideoViewerModal] بدء تحميل الفيديو...');
-        
         try {
           const url = await onLoadVideoRef.current();
           
@@ -526,8 +514,6 @@ const VideoViewerModal: React.FC<{
             }
             return;
           }
-          
-          console.log('✅ [VideoViewerModal] تم تحميل الفيديو بنجاح:', url ? 'URL موجود' : 'URL فارغ');
           
           if (url) {
             blobUrlToClean = url;
@@ -545,11 +531,9 @@ const VideoViewerModal: React.FC<{
           setLoading(false);
         }
       } else if (videoUrlRef.current) {
-        console.log('🎥 [VideoViewerModal] استخدام videoUrl مباشرة');
         setCurrentVideoUrl(videoUrlRef.current);
         setLoading(false);
       } else {
-        console.warn('⚠️ [VideoViewerModal] لا يوجد onLoadVideo أو videoUrl');
         setLoading(false);
       }
     };
@@ -560,7 +544,6 @@ const VideoViewerModal: React.FC<{
     return () => {
       isCancelled = true;
       if (blobUrlToClean && blobUrlToClean.startsWith('blob:')) {
-        console.log('🧹 [VideoViewerModal] تنظيف Blob URL في cleanup');
         URL.revokeObjectURL(blobUrlToClean);
       }
     };
@@ -573,7 +556,6 @@ const VideoViewerModal: React.FC<{
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
-      console.log('📹 [VideoViewerModal] مدة الفيديو:', video.duration);
     };
 
     const handleTimeUpdate = () => {
@@ -905,7 +887,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   // جلب المستخدمين عند فتح Modal إضافة مستخدم أو مراجع
   useEffect(() => {
     if (showAddAssignment || showAddReviewer) {
-      console.log('🔓 تم فتح Modal - جلب المستخدمين...');
       loadAllUsers();
     }
   }, [showAddAssignment, showAddReviewer]);
@@ -913,7 +894,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   // جلب العمليات عند فتح Modal نقل إلى عملية
   useEffect(() => {
     if (showProcessSelector) {
-      console.log('🔓 تم فتح Modal نقل إلى عملية - جلب العمليات...');
       loadAllProcesses();
     }
   }, [showProcessSelector]);
@@ -923,16 +903,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const loadAllUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      console.log('🔍 جاري جلب المستخدمين من API...');
-      
       const response = await userService.getAllUsers({ per_page: 100 });
-      
-      console.log('📡 استجابة API:', response);
       
       if (response.success && response.data) {
         const users = response.data;
-        console.log('👥 عدد المستخدمين:', users.length);
-        console.log('👥 المستخدمين:', users);
         setAllUsers(users);
       } else {
         console.error('❌ فشل في جلب المستخدمين');
@@ -949,11 +923,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const loadAllProcesses = async () => {
     setIsLoadingProcesses(true);
     try {
-      console.log('🔍 جاري جلب العمليات من WorkflowContext...');
-      
       // استخدام processes من WorkflowContext (متوفر بالفعل)
       if (processes && processes.length > 0) {
-        console.log('👥 عدد العمليات:', processes.length);
         setAllProcesses(processes);
       } else {
         console.error('❌ لا توجد عمليات');
@@ -1106,12 +1077,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     
     try {
       setIsMovingToProcess(true);
-      console.log(`🔄 نقل التذكرة ${ticket.id} إلى العملية ${selectedProcessId}`);
       
       const response = await ticketService.moveTicketToProcess(ticket.id, selectedProcessId);
       
       if (response.success) {
-        console.log('✅ تم نقل التذكرة بنجاح');
         alert('تم نقل التذكرة إلى العملية الجديدة بنجاح!');
         setShowProcessSelector(false);
         setSelectedProcessId('');
@@ -1149,23 +1118,14 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const handleDelete = async () => {
     if (isDeleting) return;
 
-    console.log(`🗑️ بدء حذف التذكرة: ${ticket.title}`);
-    console.log(`📋 معرف التذكرة: ${ticket.id}`);
-    console.log(`📍 المرحلة الحالية: ${ticket.current_stage_id}`);
-    console.log(`🔗 onDelete callback متوفر: ${onDelete ? 'نعم' : 'لا'}`);
-
     const success = await deleteTicket(ticket.id);
-    console.log(`📡 نتيجة API: ${success ? 'نجح' : 'فشل'}`);
 
     if (success) {
-      console.log('✅ نجح حذف التذكرة من API - بدء تحديث الواجهة...');
 
       // إشعار المكون الأب (KanbanBoard) بالحذف لتحديث الواجهة فوراً
       if (onDelete) {
-        console.log('📡 استدعاء onDelete callback...');
         try {
           onDelete();
-          console.log('✅ تم استدعاء onDelete بنجاح');
         } catch (error) {
           console.error('❌ خطأ في استدعاء onDelete:', error);
         }
@@ -1175,8 +1135,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
       // إغلاق مربع التأكيد
       setShowDeleteConfirm(false);
-
-      console.log('🎊 تم إنجاز عملية الحذف بنجاح');
     } else {
       console.error('❌ فشل في حذف التذكرة من API');
       setShowDeleteConfirm(false);
@@ -1186,25 +1144,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const handleDeleteAttachment = async (attachmentId: string) => {
     if (isDeletingAttachment) return;
 
-    console.log(`🗑️ محاولة حذف المرفق: ${attachmentId}`);
-
     setIsDeletingAttachment(true);
 
     try {
       const token = localStorage.getItem('auth_token');
-      console.log(`🔑 التوكن: ${token ? 'موجود' : 'غير موجود'}`);
-      console.log(`🔑 التوكن الكامل: ${token}`);
-
-      // طباعة معلومات المستخدم الحالي
-      const userData = localStorage.getItem('user_data');
-      if (userData) {
-        const user = JSON.parse(userData);
-        console.log(`👤 المستخدم الحالي: ${user.email}`);
-        console.log(`🔐 دور المستخدم: ${user.role?.name || user.role_name || 'غير محدد'}`);
-        console.log(`📋 معرف المستخدم: ${user.id}`);
-      }
-
-      console.log(`🗑️ محاولة حذف المرفق: ${attachmentId}`);
 
       const response = await fetch(`${API_BASE_URL}/api/attachments/${attachmentId}`, {
         method: 'DELETE',
@@ -1214,11 +1157,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         },
       });
 
-      console.log(`📡 استجابة الخادم: ${response.status} ${response.statusText}`);
-
       if (response.ok) {
         const result = await response.json();
-        console.log(`✅ تم حذف المرفق بنجاح:`, result);
 
         // إعادة تحميل المرفقات لتحديث القائمة
         await refreshAttachments();
@@ -1227,7 +1167,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         setAttachmentToDelete(null);
       } else {
         const errorData = await response.json();
-        console.log(`❌ فشل الحذف:`, errorData);
 
         // رسالة خطأ مفصلة
         let errorMessage = errorData.message || 'خطأ غير معروف';
@@ -1248,7 +1187,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const handleUploadAttachment = async (files: FileList) => {
     if (isUploadingAttachment || files.length === 0) return;
 
-    console.log(`📎 محاولة رفع ${files.length} مرفق للتذكرة: ${ticket.id}`);
 
     setIsUploadingAttachment(true);
     setUploadProgress(0);
@@ -1298,7 +1236,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const result = JSON.parse(xhr.responseText);
-            console.log(`✅ تم رفع المرفقات بنجاح:`, result);
 
             // تحديث حالة جميع الملفات إلى نجاح
             setUploadingFiles(prev => prev.map(file => ({ ...file, progress: 100, status: 'success' as const })));
@@ -1337,8 +1274,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           } catch (e) {
             errorMessage = xhr.statusText || `خطأ ${xhr.status}`;
           }
-
-          console.log(`❌ فشل الرفع:`, errorMessage);
 
           // تحديث حالة جميع الملفات إلى خطأ
           setUploadingFiles(prev => prev.map(file => ({ ...file, status: 'error' as const })));
@@ -1445,9 +1380,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const handleUpdate = async () => {
     if (isUpdating) return;
 
-    console.log(`📝 بدء تحديث التذكرة: ${ticket.title}`);
-    console.log(`📋 معرف التذكرة: ${ticket.id}`);
-    console.log('📋 البيانات الجديدة:', formData);
 
     // إعداد البيانات للتحديث
     const updateData = {
@@ -1459,23 +1391,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     };
 
     const success = await updateTicket(ticket.id, updateData);
-    console.log(`📡 نتيجة API: ${success ? 'نجح' : 'فشل'}`);
-
     if (success) {
-      console.log('✅ نجح تحديث التذكرة من API - بدء تحديث الواجهة...');
 
       // إنشاء تعليق تلقائي يوضح التغييرات
       try {
         const commentContent = generateChangeComment();
         if (commentContent) {
-          console.log('💬 إنشاء تعليق تلقائي للتغييرات...');
           await commentService.createComment(ticket.id, {
             content: commentContent,
             is_internal: false
           });
-          console.log('✅ تم إضافة التعليق التلقائي بنجاح');
-        } else {
-          console.log('ℹ️ لا توجد تغييرات لإضافة تعليق عنها');
         }
       } catch (error) {
         console.error('❌ خطأ في إضافة التعليق التلقائي:', error);
@@ -1484,8 +1409,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
       // إرسال إشعارات للمستخدمين المسندين والمراجعين
       try {
-        console.log('📢 إرسال إشعارات للمستخدمين المعنيين...');
-        
         // جمع جميع المستخدمين المعنيين
         const userIds: string[] = [];
         
@@ -1551,9 +1474,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             }
           });
           
-          console.log(`✅ تم إرسال إشعارات لـ ${userIds.length} مستخدم`);
-        } else {
-          console.log('ℹ️ لا يوجد مستخدمين لإرسال إشعارات لهم');
         }
       } catch (error) {
         console.error('❌ خطأ في إرسال الإشعارات:', error);
@@ -1567,7 +1487,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       onSave(formData);
       setIsEditing(false);
 
-      console.log('🎊 تم تحديث التذكرة بنجاح - الواجهة محدثة فوراً');
     } else {
       console.error('❌ فشل في تحديث التذكرة من API');
     }
@@ -2419,7 +2338,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               ]}
               reviewerUserIds={reviewers.map(r => r.reviewer_id).filter(Boolean)}
               onCommentAdded={(comment) => {
-                console.log('تم إضافة تعليق جديد:', comment);
                 // يمكن إضافة منطق إضافي هنا إذا لزم الأمر
               }}
             />
@@ -3404,9 +3322,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             const token = localStorage.getItem('auth_token');
             const fileUrl = `${API_BASE_URL}/api/attachments/${viewingImage.id}/download`;
             
-            console.log('🔄 [ImageViewerModal] جلب الصورة:', fileUrl);
-            console.log('🔑 [ImageViewerModal] التوكن موجود:', !!token);
-            
             try {
               const response = await fetch(fileUrl, {
                 method: 'GET',
@@ -3417,10 +3332,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   'Accept': 'image/*, application/pdf, text/*'
                 }
               });
-              
-              console.log('📡 [ImageViewerModal] استجابة API:', response.status, response.statusText);
-              console.log('📋 [ImageViewerModal] Content-Type:', response.headers.get('content-type'));
-              console.log('📋 [ImageViewerModal] Content-Length:', response.headers.get('content-length'));
               
               if (!response.ok) {
                 let errorText = '';
@@ -3434,19 +3345,12 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               }
               
               const blob = await response.blob();
-              console.log('📦 [ImageViewerModal] تم تحميل Blob:', {
-                size: blob.size,
-                type: blob.type,
-                isEmpty: blob.size === 0
-              });
               
               if (blob.size === 0) {
                 throw new Error('الصورة فارغة أو غير موجودة');
               }
               
               const blobUrl = URL.createObjectURL(blob);
-              console.log('✅ [ImageViewerModal] تم إنشاء Blob URL:', blobUrl);
-              console.log('🖼️ [ImageViewerModal] جاهز لعرض الصورة');
               
               return blobUrl;
             } catch (error) {
@@ -3470,8 +3374,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           onLoadVideo={async () => {
             const token = localStorage.getItem('auth_token');
             const fileUrl = `${API_BASE_URL}/api/attachments/${viewingVideo.id}/download`;
-            
-            console.log('🔄 [VideoViewerModal] جلب الفيديو:', fileUrl);
             
             try {
               const response = await fetch(fileUrl, {

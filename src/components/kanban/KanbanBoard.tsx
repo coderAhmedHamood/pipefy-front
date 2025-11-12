@@ -45,39 +45,28 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const [loadingMoreStages, setLoadingMoreStages] = useState<Record<string, boolean>>({});
   const TICKETS_PER_PAGE = 25;
 
-  // مراقبة تغييرات ticketsByStages للتشخيص
+  // مراقبة تغييرات ticketsByStages
   useEffect(() => {
-    console.log('🔄 ticketsByStages تم تحديثه:', ticketsByStages);
-    const totalTickets = Object.values(ticketsByStages).reduce((sum, tickets) => sum + tickets.length, 0);
-    console.log(`📊 إجمالي التذاكر: ${totalTickets}`);
-
-    Object.keys(ticketsByStages).forEach(stageId => {
-      console.log(`   📋 ${stageId}: ${ticketsByStages[stageId].length} تذاكر`);
-    });
+    // Tickets updated
   }, [ticketsByStages]);
 
   // جلب التذاكر من API عند تحميل المكون أو تغيير العملية
   const loadTickets = async () => {
     if (!process.id || !process.stages.length) {
-      console.log('لا يمكن جلب التذاكر: معرف العملية أو المراحل مفقود', { processId: process.id, stagesCount: process.stages.length });
       return;
     }
 
-    console.log('بدء جلب التذاكر للعملية:', process.id);
     setLoading(true);
     setError(null);
 
     try {
       const stageIds = process.stages.map(stage => stage.id);
-      console.log('معرفات المراحل:', stageIds);
 
       const response = await ticketService.getTicketsByStages({
         process_id: process.id,
         stage_ids: stageIds,
         limit: TICKETS_PER_PAGE
       });
-
-      console.log('استجابة جلب التذاكر:', response);
 
       if (response.success && response.data) {
         setTicketsByStages(response.data);
@@ -117,16 +106,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const loadMoreTickets = async (stageId: string) => {
     // حماية من الاستدعاءات المتعددة
     if (!process.id || loadingMoreStages[stageId] || !stageHasMore[stageId]) {
-      console.log(`⚠️ تم منع التحميل المكرر للمرحلة: ${stageId}`, {
-        hasProcessId: !!process.id,
-        isLoading: loadingMoreStages[stageId],
-        hasMore: stageHasMore[stageId]
-      });
       return;
     }
 
-    console.log(`🔄 جلب المزيد من التذاكر للمرحلة: ${stageId}, offset: ${stageOffsets[stageId] || 0}`);
-    
     setLoadingMoreStages(prev => ({ ...prev, [stageId]: true }));
 
     try {
@@ -144,8 +126,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
         const existingTickets = ticketsByStages[stageId] || [];
         const existingIds = new Set(existingTickets.map(t => t.id));
         const uniqueNewTickets = newTickets.filter(ticket => !existingIds.has(ticket.id));
-        
-        console.log(`📊 التذاكر الموجودة: ${existingTickets.length}, الجديدة: ${newTickets.length}, الفريدة: ${uniqueNewTickets.length}`);
         
         // إضافة التذاكر الجديدة مع تجنب التكرار
         setTicketsByStages(prev => ({
@@ -168,8 +148,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
         // عرض رسالة فقط إذا تم تحميل تذاكر جديدة فريدة
         if (uniqueNewTickets.length > 0) {
           showSuccess('تم التحميل', `تم تحميل ${uniqueNewTickets.length} تذكرة إضافية`);
-        } else {
-          console.log('⚠️ لا توجد تذاكر جديدة فريدة للإضافة');
         }
       }
     } catch (error) {
@@ -215,12 +193,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   // فتح التذكرة من URL عند التحميل
   useEffect(() => {
     const ticketId = searchParams.get('ticket');
-    console.log('🔍 useEffect - ticketId من URL:', ticketId);
-    console.log('🔍 useEffect - lastOpenedTicketIdRef:', lastOpenedTicketIdRef.current);
     
     // إذا لم يكن هناك ticket في URL، نُعيد تعيين الـ ref وإغلاق التذكرة
     if (!ticketId) {
-      console.log('✅ لا يوجد ticket في URL - إعادة تعيين ref');
       if (lastOpenedTicketIdRef.current !== null) {
         lastOpenedTicketIdRef.current = null;
         setSelectedTicket(null);
@@ -230,7 +205,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     
     // إذا تم فتح هذه التذكرة من قبل، لا نفعل شيء
     if (ticketId === lastOpenedTicketIdRef.current) {
-      console.log('⏭️ التذكرة تم فتحها من قبل - تخطي');
       return;
     }
     
@@ -238,11 +212,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     if (allTickets.length > 0) {
       const ticket = allTickets.find(t => t.id === ticketId);
       if (ticket) {
-        console.log('🔗 فتح التذكرة من URL:', ticket.title);
         setSelectedTicket(ticket);
         lastOpenedTicketIdRef.current = ticketId;
-      } else {
-        console.log('❌ لم يتم العثور على التذكرة:', ticketId);
       }
     }
   }, [searchParams, allTickets]);
@@ -301,11 +272,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     // استدعاء API الجديد لحفظ التغيير مع إضافة تعليق تلقائي
     ticketService.moveTicketSimple(ticketId, newStageId)
       .then((response) => {
-        console.log('✅ تم تحريك التذكرة مع إضافة تعليق:', response.data);
         showSuccess('تم نقل التذكرة', `تم نقل "${ticket.title}" إلى "${targetStage.name}" بنجاح مع إضافة تعليق`);
       })
       .catch((error: any) => {
-        console.log('خطأ في نقل التذكرة:', error);
         showError('خطأ في نقل التذكرة', 'حدث خطأ أثناء نقل التذكرة');
         // إعادة تحميل البيانات في حالة الخطأ
         loadTickets();
@@ -313,14 +282,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   };
 
   const handleTicketClick = (ticket: Ticket) => {
-    console.log('Ticket clicked:', ticket.title);
     setSelectedTicket(ticket);
     // إضافة معرف التذكرة إلى URL
     setSearchParams({ ticket: ticket.id });
   };
 
   const handleCloseTicket = () => {
-    console.log('🚪 إغلاق التذكرة وإزالة معرفها من URL');
     setSelectedTicket(null);
     // إزالة معرف التذكرة من URL
     setSearchParams({});
@@ -363,53 +330,28 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   };
 
   const handleDeleteTicket = () => {
-    console.log('🔥 handleDeleteTicket تم استدعاؤها!');
-
     if (selectedTicket) {
-      console.log(`🗑️ حذف التذكرة من KanbanBoard: ${selectedTicket.title}`);
-      console.log(`📋 معرف التذكرة: ${selectedTicket.id}`);
-      console.log(`📍 المرحلة الحالية: ${selectedTicket.current_stage_id}`);
-
       // تحديث ticketsByStages state فوراً لإزالة التذكرة
       setTicketsByStages(prev => {
-        console.log('🔄 بدء تحديث ticketsByStages state...');
         const updated = { ...prev };
 
         // إزالة التذكرة من المرحلة الحالية
         if (updated[selectedTicket.current_stage_id]) {
-          const beforeCount = updated[selectedTicket.current_stage_id].length;
-          console.log(`📊 عدد التذاكر قبل الحذف: ${beforeCount}`);
-
           updated[selectedTicket.current_stage_id] = updated[selectedTicket.current_stage_id]
             .filter(t => t.id !== selectedTicket.id);
-
-          const afterCount = updated[selectedTicket.current_stage_id].length;
-          console.log(`✅ تم إزالة التذكرة من المرحلة: ${selectedTicket.current_stage_id}`);
-          console.log(`📊 عدد التذاكر بعد الحذف: ${afterCount}`);
-          console.log(`🔢 الفرق: ${beforeCount - afterCount} تذكرة محذوفة`);
-        } else {
-          console.error(`❌ المرحلة غير موجودة: ${selectedTicket.current_stage_id}`);
         }
 
-        console.log('✅ تم تحديث ticketsByStages state');
         return updated;
       });
 
       // إغلاق المودال
-      console.log('🚪 إغلاق المودال...');
       handleCloseTicket();
 
       // إظهار رسالة نجاح
-      console.log('📢 عرض رسالة النجاح...');
       showSuccess('تم حذف التذكرة', `تم حذف "${selectedTicket.title}" بنجاح`);
 
       // فرض إعادة الرسم
-      console.log('🔄 فرض إعادة الرسم...');
       setForceUpdate(prev => prev + 1);
-
-      console.log('🎊 تم تحديث واجهة KanbanBoard فوراً');
-    } else {
-      console.error('❌ selectedTicket غير موجودة!');
     }
   };
 

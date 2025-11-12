@@ -114,9 +114,6 @@ class NotificationController {
   // 4. جلب الإشعارات مع المستخدمين المعنيين
   static async getNotificationsWithRelatedUsers(req, res) {
     try {
-      console.log('🔔 getNotificationsWithRelatedUsers - بدء الطلب');
-      console.log('📊 Query params:', req.query);
-      
       const filters = {
         notification_type: req.query.notification_type,
         from_date: req.query.from_date,
@@ -124,14 +121,7 @@ class NotificationController {
         offset: parseInt(req.query.offset) || 0
       };
 
-      console.log('🔍 Filters:', filters);
-
       const notifications = await Notification.findWithRelatedUsers(filters);
-
-      console.log('✅ عدد الإشعارات المسترجعة:', notifications.length);
-      if (notifications.length > 0) {
-        console.log('📋 أول إشعار:', notifications[0]);
-      }
 
       res.json({
         success: true,
@@ -210,8 +200,6 @@ class NotificationController {
   // جلب عدد الإشعارات غير المقروءة
   static async getUnreadCount(req, res) {
     try {
-      console.log('🔔 getUnreadCount - بدء الطلب');
-      console.log('👤 req.user:', req.user);
       
       if (!req.user || !req.user.id) {
         console.error('❌ المستخدم غير معرف');
@@ -222,7 +210,6 @@ class NotificationController {
       }
       
       const userId = req.user.id;
-      console.log('👤 userId:', userId);
       
       const result = await pool.query(`
         SELECT COUNT(*) as unread_count 
@@ -230,7 +217,6 @@ class NotificationController {
         WHERE user_id = $1 AND is_read = false
       `, [userId]);
       
-      console.log('✅ النتيجة:', result.rows[0]);
       
       res.json({
         success: true,
@@ -525,7 +511,6 @@ class NotificationController {
 
       // التحقق من تفعيل البريد الإلكتروني بشكل عام
       if (!settings.integrations_email_enabled) {
-        console.log('⚠️ إرسال الإيميلات معطل في إعدادات النظام');
         return;
       }
 
@@ -535,13 +520,8 @@ class NotificationController {
       if (settingField) {
         // إذا كان النوع موجود في الخريطة، نتحقق من تفعيله
         if (!settings[settingField]) {
-          console.log(`⚠️ إرسال الإيميل معطل لنوع: ${notificationType} (الإعداد: ${settingField} = false)`);
           return;
         }
-        console.log(`✅ إرسال إيميل مفعل لنوع: ${notificationType} (الإعداد: ${settingField} = true)`);
-      } else {
-        // إذا لم يكن النوع موجود في الخريطة، نتحقق من الإعداد العام فقط
-        console.log(`✅ إرسال إيميل لنوع: ${notificationType} (لا يوجد إعداد محدد)`);
       }
 
       // جلب بيانات المستخدمين (الإيميلات والأسماء)
@@ -749,7 +729,6 @@ class NotificationController {
         });
       }
 
-      console.log(`✅ تم إرسال إيميل لنوع: ${notificationType} إلى ${emails.length} مستخدم`);
     } catch (error) {
       console.error('❌ خطأ في إرسال إيميل الإشعار:', error);
     }

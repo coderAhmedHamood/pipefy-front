@@ -35,10 +35,8 @@ export const NotificationBell: React.FC = () => {
   const fetchUnreadCount = async () => {
     try {
       const response = await notificationService.getUnreadCount();
-      console.log('📊 استجابة عدد الإشعارات:', response);
       if (response.success && response.data) {
         const count = response.data.unread_count || response.data.count || 0;
-        console.log('✅ عدد الإشعارات غير المقروءة:', count);
         setUnreadCount(count);
       }
     } catch (error) {
@@ -170,8 +168,6 @@ export const NotificationBell: React.FC = () => {
         return 'ℹ️';
     }
   };
-
-  console.log('🔔 NotificationBell - unreadCount:', unreadCount);
 
   return (
     <div className="relative" ref={panelRef}>

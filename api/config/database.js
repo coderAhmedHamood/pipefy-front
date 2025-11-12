@@ -13,8 +13,6 @@ const pool = new Pool({
 const testConnection = async () => {
   try {
     const client = await pool.connect();
-    console.log('✅ Database connected successfully!');
-    console.log(`Connected to: ${process.env.DB_DATABASE} on ${process.env.DB_HOST}:${process.env.DB_PORT}`);
     client.release();
     return true;
   } catch (err) {

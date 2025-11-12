@@ -74,7 +74,6 @@ class EmailService {
       if (useCid) {
         // استخدام CID لإرفاق الصورة مباشرة في الإيميل
         logoImgTag = `<img src="cid:company-logo" alt="${systemName}" class="email-logo" />`;
-        console.log(`📸 استخدام CID للشعار: company-logo`);
       } else {
         // استخدام رابط خارجي
         const apiBaseUrl = settings?.api_base_url || 'http://localhost:3004';
@@ -88,10 +87,7 @@ class EmailService {
           systemLogo = `${baseUrl}/${systemLogo}`;
         }
         logoImgTag = `<img src="${systemLogo}" alt="${systemName}" class="email-logo" />`;
-        console.log(`📸 بناء رابط الشعار: ${systemLogo} (من ${settings?.system_logo_url})`);
       }
-    } else {
-      console.log('⚠️ لا يوجد شعار في الإعدادات');
     }
 
     // بناء التمبلت
@@ -320,7 +316,6 @@ class EmailService {
               
               // استخدام CID في التمبلت
               htmlContent = this.createEmailTemplate(options.templateData, settings, true);
-              console.log(`✅ تم إرفاق الشعار مباشرة في الإيميل: ${fullLogoPath}`);
             } catch (fileError) {
               // الملف غير موجود، استخدام رابط خارجي
               console.warn(`⚠️ الملف غير موجود: ${fullLogoPath}، استخدام رابط خارجي`);
@@ -352,7 +347,6 @@ class EmailService {
       // إرسال الرسالة
       const info = await transporter.sendMail(mailOptions);
       
-      console.log('✅ تم إرسال البريد الإلكتروني بنجاح:', info.messageId);
       
       return {
         success: true,

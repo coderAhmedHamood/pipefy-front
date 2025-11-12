@@ -38,7 +38,6 @@ class Stage {
 
     // استخدام القيم التالية المتاحة إذا كانت القيم المرسلة مكررة
     if (parseInt(order_exists) > 0 || parseInt(priority_exists) > 0) {
-      console.log(`🔄 تعديل القيم المكررة - الترتيب: ${order_index} → ${next_order}, الأولوية: ${priority} → ${next_priority}`);
       stageData.order_index = next_order;
       stageData.priority = next_priority;
     } else {

@@ -81,7 +81,6 @@ class TicketReviewerController {
       try {
         await TicketEvaluationSummary.calculateAndUpdate(ticket_id);
       } catch (evalError) {
-        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
       }
 
       // جلب عنوان التذكرة لإرسال الإشعار
@@ -207,7 +206,6 @@ class TicketReviewerController {
       try {
         await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
       } catch (evalError) {
-        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
       }
 
       // إرسال إشعارات عند تحديث حالة المراجعة (خاصة عند الإكمال مع تقييم)
@@ -307,7 +305,6 @@ class TicketReviewerController {
       try {
         await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
       } catch (evalError) {
-        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
       }
 
       res.json({
@@ -345,7 +342,6 @@ class TicketReviewerController {
       try {
         await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
       } catch (evalError) {
-        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
       }
 
       res.json({
@@ -387,7 +383,6 @@ class TicketReviewerController {
       try {
         await TicketEvaluationSummary.calculateAndUpdate(reviewer.ticket_id);
       } catch (evalError) {
-        console.log('⚠️ تخطي تحديث ملخص التقييم:', evalError.message);
       }
 
       res.json({

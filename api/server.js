@@ -99,31 +99,20 @@ app.get('/test-db', async (req, res) => {
 const startServer = async () => {
   try {
     // Test database connection on startup
-    console.log('🔄 Testing database connection...');
     await testConnection();
     
     // إنشاء الجداول المطلوبة تلقائياً
-    console.log('🔄 Ensuring required tables exist...');
-    
     const UserProcess = require('./models/UserProcess');
     await UserProcess.ensureTable();
-    console.log('✅ user_processes table ready');
     
     const TicketAssignment = require('./models/TicketAssignment');
     await TicketAssignment.ensureTable();
-    console.log('✅ ticket_assignments table ready');
     
     const TicketReviewer = require('./models/TicketReviewer');
     await TicketReviewer.ensureTable();
-    console.log('✅ ticket_reviewers table ready');
     
     const server = app.listen(PORT, HOST, () => {
-      const accessHost = DISPLAY_HOST;
-      console.log(`🚀 Server is running on port ${PORT}`);
-      console.log(`📍 Local URL: http://localhost:${PORT}`);
-      console.log(`🌐 Network URL: http://${accessHost}:${PORT}`);
-      console.log(`📚 Swagger UI: http://${accessHost}:${PORT}/api-docs`);
-      console.log(`🔗 Test database: http://${accessHost}:${PORT}/test-db`);
+      // Server started successfully
     });
     
     server.on('error', (error) => {

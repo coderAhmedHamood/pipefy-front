@@ -241,7 +241,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       // جلب رمز المصادقة من localStorage
       const token = localStorage.getItem('auth_token');
-      console.log("token==="+token);
       // جلب العمليات من API
       const response = await fetch(`${API_BASE_URL}/api/processes/frontend`, {
         headers: {
@@ -255,21 +254,8 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       const data = await response.json();
-      console.log('✅ بيانات API الخام:', data);
 
       if (data.success && data.data) {
-        // تسجيل مفصل للحقول قبل المعالجة
-        console.log('🔍 فحص الحقول في البيانات الخام:');
-        data.data.forEach((process: any, index: number) => {
-          if (process.fields && process.fields.length > 0) {
-            console.log(`📋 العملية "${process.name}" - الحقول:`, process.fields.map((f: any) => ({
-              name: f.name,
-              field_type: f.field_type,
-              type: f.type,
-              options: f.options?.length || 0
-            })));
-          }
-        });
         // تحويل البيانات إلى تنسيق Process
         const apiProcesses: Process[] = data.data.map((process: any) => ({
           id: process.id.toString(),
@@ -329,19 +315,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           }
         }));
-
-        // تسجيل مفصل للحقول بعد المعالجة
-        console.log('🔍 فحص الحقول بعد المعالجة:');
-        apiProcesses.forEach((process: any, index: number) => {
-          if (process.fields && process.fields.length > 0) {
-            console.log(`📋 العملية "${process.name}" - الحقول المعالجة:`, process.fields.map((f: any) => ({
-              name: f.name,
-              type: f.type,
-              is_required: f.is_required,
-              options: f.options?.length || 0
-            })));
-          }
-        });
 
         setProcesses(apiProcesses);
 
@@ -1374,8 +1347,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return false;
       }
 
-      console.log('📝 تحديث العملية:', processId, updates);
-
       // إرسال طلب PUT إلى API
       const response = await fetch(`${API_BASE_URL}/api/processes/${processId}`, {
         method: 'PUT',
@@ -1386,17 +1357,9 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         body: JSON.stringify(updates)
       });
 
-      console.log('🚀 استجابة HTTP:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
       const result = await response.json();
-      console.log('🚀 محتوى الاستجابة:', result);
 
       if (response.ok && result.success === true) {
-        console.log('✅ تم تحديث العملية بنجاح:', result);
 
         // تحديث العملية في الحالة المحلية
         setProcesses(prev => prev.map(process =>
@@ -1428,8 +1391,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return false;
       }
 
-      console.log('🗑️ حذف العملية:', processId);
-
       // إرسال طلب DELETE إلى API
       const response = await fetch(`${API_BASE_URL}/api/processes/${processId}`, {
         method: 'DELETE',
@@ -1439,17 +1400,9 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       });
 
-      console.log('🚀 استجابة HTTP:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
       const result = await response.json();
-      console.log('🚀 محتوى الاستجابة:', result);
 
       if (response.ok && result.success === true) {
-        console.log('✅ تم حذف العملية بنجاح:', result);
 
         // حذف العملية من الحالة المحلية
         setProcesses(prev => prev.filter(process => process.id !== processId));
@@ -1597,9 +1550,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // إضافة حقل جديد إلى عملية محددة
   const addFieldToProcess = (processId: string, newField: ProcessField) => {
-    console.log('🔄 إضافة حقل جديد إلى العملية:', processId, newField);
-    console.log('📋 العملية المختارة الحالية:', selectedProcess);
-    console.log('📋 عدد الحقول الحالي:', selectedProcess?.fields?.length || 0);
 
     // تحديث قائمة العمليات في الحالة العامة
     setProcesses(prevProcesses => {
@@ -1608,7 +1558,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ? { ...process, fields: [...process.fields, newField] }
           : process
       );
-      console.log('📋 تم تحديث قائمة العمليات');
       return updatedProcesses;
     });
 
@@ -1616,22 +1565,15 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSelectedProcess(prevSelected => {
       if (prevSelected && prevSelected.id === processId) {
         const updatedSelected = { ...prevSelected, fields: [...prevSelected.fields, newField] };
-        console.log('📋 تم تحديث العملية المختارة:', updatedSelected);
-        console.log('📋 عدد الحقول الجديد:', updatedSelected.fields.length);
         return updatedSelected;
       }
-      console.log('📋 لم يتم تحديث العملية المختارة - العملية غير متطابقة');
       return prevSelected;
     });
 
-    console.log('✅ تم تحديث الحقول في الحالة المحلية');
   };
 
   // تحديث حقل موجود في عملية محددة
   const updateFieldInProcess = (processId: string, updatedField: ProcessField) => {
-    console.log('✏️ تحديث حقل في العملية:', processId, updatedField);
-    console.log('📋 العملية المختارة الحالية:', selectedProcess);
-    console.log('📋 عدد الحقول الحالي:', selectedProcess?.fields?.length || 0);
 
     // تحديث قائمة العمليات في الحالة العامة
     setProcesses(prevProcesses => {
@@ -1645,7 +1587,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }
           : process
       );
-      console.log('📋 العمليات المحدثة:', updatedProcesses);
       return updatedProcesses;
     });
 
@@ -1657,19 +1598,13 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           field.id === updatedField.id ? updatedField : field
         )
       };
-      console.log('📋 العملية المختارة المحدثة:', updatedSelectedProcess);
-      console.log('📋 عدد الحقول الجديد:', updatedSelectedProcess.fields.length);
       setSelectedProcess(updatedSelectedProcess);
     }
 
-    console.log('✅ تم تحديث الحقل في الحالة المحلية');
   };
 
   // حذف حقل من عملية محددة
   const removeFieldFromProcess = (processId: string, fieldId: string) => {
-    console.log('🗑️ حذف حقل من العملية:', processId, fieldId);
-    console.log('📋 العملية المختارة الحالية:', selectedProcess);
-    console.log('📋 عدد الحقول الحالي:', selectedProcess?.fields?.length || 0);
 
     // تحديث قائمة العمليات في الحالة العامة
     setProcesses(prevProcesses => {
@@ -1678,7 +1613,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ? { ...process, fields: process.fields.filter(field => field.id !== fieldId) }
           : process
       );
-      console.log('📋 تم تحديث قائمة العمليات - حذف الحقل');
       return updatedProcesses;
     });
 
@@ -1689,22 +1623,15 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ...prevSelected,
           fields: prevSelected.fields.filter(field => field.id !== fieldId)
         };
-        console.log('📋 تم تحديث العملية المختارة - حذف الحقل:', updatedSelected);
-        console.log('📋 عدد الحقول الجديد:', updatedSelected.fields.length);
         return updatedSelected;
       }
-      console.log('📋 لم يتم تحديث العملية المختارة - العملية غير متطابقة');
       return prevSelected;
     });
 
-    console.log('✅ تم حذف الحقل من الحالة المحلية');
   };
 
   // إضافة مرحلة جديدة إلى عملية محددة
   const addStageToProcess = (processId: string, newStage: Stage) => {
-    console.log('🔄 إضافة مرحلة جديدة إلى العملية:', processId, newStage);
-    console.log('📋 العملية المختارة الحالية:', selectedProcess);
-    console.log('📋 عدد المراحل الحالي:', selectedProcess?.stages?.length || 0);
 
     // تحديث قائمة العمليات في الحالة العامة
     setProcesses(prevProcesses => {
@@ -1713,7 +1640,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ? { ...process, stages: [...process.stages, newStage] }
           : process
       );
-      console.log('📋 تم تحديث قائمة العمليات - إضافة المرحلة');
       return updatedProcesses;
     });
 
@@ -1721,23 +1647,16 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSelectedProcess(prevSelected => {
       if (prevSelected && prevSelected.id === processId) {
         const updatedSelected = { ...prevSelected, stages: [...prevSelected.stages, newStage] };
-        console.log('📋 تم تحديث العملية المختارة - إضافة المرحلة:', updatedSelected);
-        console.log('📋 عدد المراحل الجديد:', updatedSelected.stages.length);
         return updatedSelected;
       }
-      console.log('📋 لم يتم تحديث العملية المختارة - العملية غير متطابقة');
       return prevSelected;
     });
 
-    console.log('✅ تم إضافة المرحلة إلى الحالة المحلية');
   };
 
   // تحديث مرحلة في عملية محددة
   const updateStageInProcess = (processId: string, updatedStage: Stage) => {
     try {
-      console.log('🔄 تحديث مرحلة في العملية:', processId, updatedStage);
-      console.log('📋 العملية المختارة الحالية:', selectedProcess);
-      console.log('📋 عدد المراحل الحالي:', selectedProcess?.stages?.length || 0);
 
       // التحقق من صحة البيانات
       if (!processId || !updatedStage || !updatedStage.id) {
@@ -1770,8 +1689,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 }
               : process
           );
-          console.log('📋 تم تحديث قائمة العمليات - تحديث المرحلة');
-          console.log('📋 المرحلة المحدثة:', updatedProcesses.find(p => p.id === processId)?.stages.find(s => s.id === updatedStage.id));
           return updatedProcesses;
         } catch (error) {
           console.error('❌ خطأ في تحديث قائمة العمليات:', error);
@@ -1801,9 +1718,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                   : stage
               ) || []
             };
-            console.log('📋 تم تحديث العملية المختارة - تحديث المرحلة:', updatedSelected);
-            console.log('📋 عدد المراحل:', updatedSelected.stages.length);
-            console.log('📋 المرحلة المحدثة في العملية المختارة:', updatedSelected.stages.find(s => s.id === updatedStage.id));
             return updatedSelected;
           }
           return prevSelected;
@@ -1813,7 +1727,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       });
 
-      console.log('✅ تم تحديث المرحلة في الحالة المحلية');
     } catch (error) {
       console.error('❌ خطأ عام في تحديث المرحلة:', error);
     }
@@ -1821,9 +1734,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // حذف مرحلة من عملية محددة
   const removeStageFromProcess = (processId: string, stageId: string) => {
-    console.log('🗑️ حذف مرحلة من العملية:', processId, stageId);
-    console.log('📋 العملية المختارة الحالية:', selectedProcess);
-    console.log('📋 عدد المراحل الحالي:', selectedProcess?.stages?.length || 0);
 
     // تحديث قائمة العمليات في الحالة العامة
     setProcesses(prevProcesses => {
@@ -1832,7 +1742,6 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ? { ...process, stages: process.stages.filter(stage => stage.id !== stageId) }
           : process
       );
-      console.log('📋 تم تحديث قائمة العمليات - حذف المرحلة');
       return updatedProcesses;
     });
 
@@ -1843,15 +1752,11 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           ...prevSelected,
           stages: prevSelected.stages.filter(stage => stage.id !== stageId)
         };
-        console.log('📋 تم تحديث العملية المختارة - حذف المرحلة:', updatedSelected);
-        console.log('📋 عدد المراحل الجديد:', updatedSelected.stages.length);
         return updatedSelected;
       }
-      console.log('📋 لم يتم تحديث العملية المختارة - العملية غير متطابقة');
       return prevSelected;
     });
 
-    console.log('✅ تم حذف المرحلة من الحالة المحلية');
   };
 
   const value = {

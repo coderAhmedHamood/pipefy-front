@@ -67,7 +67,6 @@ export const SettingsManager: React.FC = () => {
               const parsed = JSON.parse(response.data.allowed_file_types);
               allowedFileTypes = Array.isArray(parsed) ? parsed : [];
             } catch (e) {
-              console.warn('⚠️ فشل في تحليل allowed_file_types من API:', e);
               allowedFileTypes = [];
             }
           }
@@ -108,7 +107,6 @@ export const SettingsManager: React.FC = () => {
         });
         // تم إزالة رسالة النجاح عند تحميل الإعدادات
       } else {
-        console.warn('⚠️ لا توجد بيانات في الاستجابة - الحقول ستبقى فارغة');
         // إبقاء الحقول فارغة إذا لم ترجع بيانات
         setSettings({
           system_name: '',
@@ -169,12 +167,10 @@ export const SettingsManager: React.FC = () => {
             if (Array.isArray(parsed)) {
               cleanedSettings.allowed_file_types = parsed;
             } else {
-              console.warn('⚠️ allowed_file_types ليست مصفوفة بعد التحويل، استخدام مصفوفة فارغة');
               cleanedSettings.allowed_file_types = [];
             }
           } catch (e) {
             // إذا فشل التحويل، حاول تحليلها يدوياً
-            console.warn('⚠️ فشل في تحويل allowed_file_types من JSON، محاولة تحليل يدوي:', e);
             const str = cleanedSettings.allowed_file_types;
             if (str.startsWith('[') && str.endsWith(']')) {
               const cleanStr = str.replace(/[\[\]"]/g, '');
@@ -186,7 +182,6 @@ export const SettingsManager: React.FC = () => {
         }
         // التأكد من أنها مصفوفة حقيقية
         if (!Array.isArray(cleanedSettings.allowed_file_types)) {
-          console.warn('⚠️ allowed_file_types ليست مصفوفة، تحويلها إلى مصفوفة فارغة');
           cleanedSettings.allowed_file_types = [];
         }
       }

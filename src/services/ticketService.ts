@@ -227,11 +227,7 @@ class TicketService {
         offset: params.offset || 0
       };
 
-      console.log('إرسال طلب جلب التذاكر:', queryParams);
-
       const response = await apiClient.get(`${this.endpoint}/by-stages`, { params: queryParams });
-
-      console.log('استجابة جلب التذاكر:', response);
 
       return response;
     } catch (error) {

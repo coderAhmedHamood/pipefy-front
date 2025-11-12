@@ -9,8 +9,6 @@ class RecurringExecutionController {
     try {
       const { id } = req.params;
       
-      console.log(`🔄 بدء تنفيذ قاعدة التكرار: ${id}`);
-      
       // 1. جلب بيانات قاعدة التكرار
       const ruleResult = await pool.query(`
         SELECT 
@@ -30,7 +28,6 @@ class RecurringExecutionController {
       }
       
       const rule = ruleResult.rows[0];
-      console.log(`📋 تم جلب قاعدة التكرار: ${rule.name}`);
       
       // 2. تجهيز بيانات التذكرة من القالب
       const templateData = typeof rule.template_data === 'string'
@@ -70,7 +67,6 @@ class RecurringExecutionController {
       const data = processedTemplate.data || {};
 
       // 3. إنشاء التذكرة مباشرة عبر نموذج التذاكر
-      console.log('🎫 إنشاء التذكرة...');
       let createdTicket;
       try {
         createdTicket = await Ticket.create({
@@ -86,7 +82,6 @@ class RecurringExecutionController {
           tags,
           created_by: req.user.id
         });
-        console.log(`✅ تم إنشاء التذكرة: ${createdTicket.ticket_number}`);
       } catch (error) {
         console.error('❌ خطأ في إنشاء التذكرة:', error);
         throw new Error(`فشل إنشاء التذكرة: ${error.detail || error.message}`);
@@ -95,7 +90,6 @@ class RecurringExecutionController {
       // 4. إنشاء إسناد إذا كان هناك مستخدم محدد
       let assignmentResult = null;
       if (assignedTo) {
-        console.log('👤 إسناد المستخدم...');
         try {
           assignmentResult = await TicketAssignment.create({
             ticket_id: createdTicket.id,
@@ -104,7 +98,6 @@ class RecurringExecutionController {
             role: 'assignee',
             notes: `تم الإسناد تلقائياً من قاعدة التكرار: ${rule.name}`
           });
-          console.log('✅ تم إنشاء إسناد للمستخدم');
         } catch (error) {
           console.error('⚠️ خطأ في إنشاء الإسناد:', error);
         }
@@ -114,8 +107,6 @@ class RecurringExecutionController {
       const notificationResult = null;
       
       // 5. تحديث قاعدة التكرار
-      console.log('📊 تحديث قاعدة التكرار...');
-      
       const newExecutionCount = rule.execution_count + 1;
       const nextExecution = calculateNextExecution(
         rule.schedule_type,
@@ -135,11 +126,6 @@ class RecurringExecutionController {
       );
       
       const updatedRule = updateResult.rows[0];
-      
-      console.log(`📈 تم تحديث العداد: ${newExecutionCount}`);
-      if (nextExecution) {
-        console.log(`⏰ التنفيذ التالي: ${nextExecution}`);
-      }
       
       // إرجاع النتيجة
       res.json({

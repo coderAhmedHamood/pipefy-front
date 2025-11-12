@@ -204,7 +204,6 @@ class Settings {
             const passwordValue = settingsData[field];
             // إذا كانت `***` أو فارغة، نحتفظ بالقيمة القديمة (لا نحدثها)
             if (passwordValue === null || passwordValue === undefined || passwordValue === '' || passwordValue === '***') {
-              console.log('🔒 الاحتفاظ بكلمة المرور القديمة (لم يتم تحديثها)');
               return; // تخطي هذا الحقل، لا نحدثه
             }
             // كلمة مرور جديدة، قم بإضافتها للتحديث
@@ -218,15 +217,8 @@ class Settings {
           updateFields.push(`${field} = $${paramCount}`);
           // معالجة المصفوفات والكائنات (مثل allowed_file_types)
           if (field === 'allowed_file_types') {
-            console.log(`📦 [Settings.updateSettings] معالجة allowed_file_types:`, {
-              type: typeof settingsData[field],
-              isArray: Array.isArray(settingsData[field]),
-              value: settingsData[field]
-            });
-            
             // معالجة allowed_file_types - يجب أن تكون مصفوفة TEXT[] في PostgreSQL
             if (Array.isArray(settingsData[field])) {
-              console.log(`✅ [Settings.updateSettings] allowed_file_types هي مصفوفة، إرسالها مباشرة`);
               // إذا كانت مصفوفة، استخدمها مباشرة - node-postgres سيتعامل معها تلقائياً
               values.push(settingsData[field]);
             } else if (typeof settingsData[field] === 'string') {

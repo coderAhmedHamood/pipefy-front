@@ -4,8 +4,6 @@ const http = require('http');
 
 async function testLogin() {
   try {
-    console.log('🔄 Testing login...');
-
     const postData = JSON.stringify({
       email: 'admin@pipefy.com',
       password: 'admin123'
@@ -49,31 +47,16 @@ async function testLogin() {
     });
 
     if (response.statusCode === 200) {
-      console.log('✅ Login successful!');
-      console.log('Response:', response.data);
-
       if (response.data.token) {
-        console.log('🔑 Token received:', response.data.token.substring(0, 50) + '...');
-        console.log('\n🎉 All APIs are working! You can now test in Swagger:');
-        console.log(`📍 Swagger UI: ${TEST_CONFIG.URLS.SWAGGER}`);
-        console.log('\n🎯 New API Endpoints Available:');
-        console.log('   🤖 Automation: /api/automation/rules');
-        console.log('   🔄 Recurring: /api/recurring/rules');
-        console.log('   💬 Comments: /api/comments/search');
-        console.log('   📎 Attachments: /api/attachments/search');
-        console.log('   🔍 Audit: /api/audit/logs');
-        console.log('   📊 Reports: /api/reports/dashboard');
+        // Login successful
       }
     } else {
-      console.log('❌ Login failed!');
-      console.log('Status:', response.statusCode);
-      console.log('Response:', response.data);
+      // Login failed
     }
 
     
   } catch (error) {
-    console.log('❌ Login failed!');
-    console.log('Error:', error.message);
+    // Login error
   }
 }
 
