@@ -53,13 +53,10 @@ export const SettingsManager: React.FC = () => {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      console.log('🔄 بدء تحميل الإعدادات من API...');
       
       const response = await settingsService.getSettings();
-      console.log('📦 استجابة API:', response);
       
       if (response.success && response.data) {
-        console.log('✅ البيانات المستلمة:', response.data);
         // معالجة allowed_file_types من API
         let allowedFileTypes = [];
         if (response.data.allowed_file_types) {
@@ -109,18 +106,6 @@ export const SettingsManager: React.FC = () => {
           // معالجة allowed_file_types
           allowed_file_types: allowedFileTypes,
         });
-        console.log('📧 إعدادات البريد الإلكتروني المحملة:', {
-          integrations_email_enabled: response.data.integrations_email_enabled,
-          integrations_email_send_on_creation: response.data.integrations_email_send_on_creation,
-          integrations_email_send_on_assignment: response.data.integrations_email_send_on_assignment,
-          integrations_email_send_on_comment: response.data.integrations_email_send_on_comment,
-          integrations_email_send_on_completion: response.data.integrations_email_send_on_completion,
-          integrations_email_send_on_update: response.data.integrations_email_send_on_update,
-          integrations_email_send_on_move: response.data.integrations_email_send_on_move,
-          integrations_email_send_on_review_assigned: response.data.integrations_email_send_on_review_assigned,
-          integrations_email_send_on_review_updated: response.data.integrations_email_send_on_review_updated,
-          integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets,
-        });
         // تم إزالة رسالة النجاح عند تحميل الإعدادات
       } else {
         console.warn('⚠️ لا توجد بيانات في الاستجابة - الحقول ستبقى فارغة');
@@ -160,7 +145,6 @@ export const SettingsManager: React.FC = () => {
   };
 
   const updateSetting = (key: string, value: any) => {
-    console.log(`🔧 تحديث الإعداد: ${key} = ${value}`);
     setSettings((prev: any) => ({
       ...prev,
       [key]: value
@@ -170,7 +154,6 @@ export const SettingsManager: React.FC = () => {
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
-      console.log('💾 بدء حفظ الإعدادات إلى PUT /api/settings:', settings);
       
       // تنظيف البيانات قبل الإرسال
       const cleanedSettings: any = {
@@ -206,7 +189,6 @@ export const SettingsManager: React.FC = () => {
           console.warn('⚠️ allowed_file_types ليست مصفوفة، تحويلها إلى مصفوفة فارغة');
           cleanedSettings.allowed_file_types = [];
         }
-        console.log('✅ allowed_file_types بعد التنظيف:', cleanedSettings.allowed_file_types, Array.isArray(cleanedSettings.allowed_file_types));
       }
       
       // معالجة الحقول الرقمية - تحويل القيم الفارغة إلى null
@@ -233,18 +215,13 @@ export const SettingsManager: React.FC = () => {
         }
       });
       
-      console.log('📤 البيانات المُرسلة إلى API (بعد التنظيف):', cleanedSettings);
-      console.log('🔍 نوع allowed_file_types:', typeof cleanedSettings.allowed_file_types, Array.isArray(cleanedSettings.allowed_file_types));
-      
       const response = await settingsService.updateSettings(cleanedSettings);
-      console.log('📝 استجابة PUT /api/settings:', response);
       
       if (response.success) {
         notifications.showSuccess('تم حفظ الإعدادات', 'تم تحديث الإعدادات بنجاح عبر PUT /api/settings');
         
         // تحديث البيانات المحلية بالاستجابة من API
         if (response.data) {
-          console.log('🔄 تحديث البيانات المحلية من استجابة API:', response.data);
           // تحديث جميع البيانات من الاستجابة
           setSettings({
             ...response.data,
@@ -257,8 +234,6 @@ export const SettingsManager: React.FC = () => {
           });
           
           // 🎯 تحديث إعدادات النظام العامة (اسم الشركة والشعار)
-          console.log('🌐 تحديث إعدادات النظام العامة في Header...');
-          console.log('📊 بيانات API الفعلية:', response.data);
           updateSystemSettings({
             company_name: response.data.system_name || '',
             company_logo: response.data.system_logo_url || ''
@@ -281,7 +256,6 @@ export const SettingsManager: React.FC = () => {
   const handleUploadLogo = async (file: File) => {
     try {
       setUploading(true);
-      console.log('💾 بدء رفع الشعار عبر POST /api/settings/logo');
       
       // تحقق من نوع وحجم الملف
       if (!file.type.startsWith('image/')) {
@@ -302,16 +276,13 @@ export const SettingsManager: React.FC = () => {
       reader.readAsDataURL(file);
       
       const response = await settingsService.uploadLogo(file);
-      console.log('📦 استجابة رفع الشعار:', response);
       
       if (response.success && response.data) {
         // جلب رابط الشعار من الاستجابة
         const logoUrl = (response.data as any).logo_url || response.data.settings?.system_logo_url || response.data.logoUrl;
-        console.log('🎆 تم رفع الشعار بنجاح:', logoUrl);
         updateSetting('system_logo_url', logoUrl);
         
         // 🎯 تحديث شعار النظام في Header فوراً
-        console.log('🌐 تحديث شعار النظام في Header...');
         updateSystemSettings({
           company_logo: logoUrl
         });
@@ -335,7 +306,6 @@ export const SettingsManager: React.FC = () => {
     if (!confirmed) return;
 
     try {
-      console.log('🗑️ بدء حذف الشعار...');
       const response = await settingsService.deleteLogo();
       if (response.success) {
         updateSetting('system_logo_url', '');

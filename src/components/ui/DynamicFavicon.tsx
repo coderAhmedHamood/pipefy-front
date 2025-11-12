@@ -36,8 +36,6 @@ const updateFavicon = (iconUrl: string) => {
   appleLink.rel = 'apple-touch-icon';
   appleLink.href = iconUrl;
   document.head.appendChild(appleLink);
-
-  console.log('🎯 تم تحديث favicon إلى:', iconUrl);
 };
 
 // دالة لتحديث عنوان الصفحة
@@ -71,8 +69,6 @@ export const DynamicFavicon: React.FC = () => {
           // الاحتفاظ بـ favicon الافتراضي
         };
         img.src = logoUrl;
-      } else {
-        console.log('📝 لا يوجد شعار شركة، سيتم استخدام favicon الافتراضي');
       }
     }
   }, [companyName, companyLogo, loading]);

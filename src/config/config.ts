@@ -115,22 +115,6 @@ export const API_BASE_URL = `${API_PROTOCOL}://${API_HOST}:${API_PORT}`;
 // Full API URL with /api path
 export const API_REST_URL = `${API_BASE_URL}/api`;
 
-// ============================================
-// معلومات التشخيص (Development Only)
-// Diagnostic Information (Development Only)
-// ============================================
-
-if (import.meta.env.DEV) {
-  console.log('🔧 [Config] إعدادات الروابط:', {
-    FRONTEND: FRONTEND_BASE_URL,
-    API: API_BASE_URL,
-    API_REST: API_REST_URL,
-    FRONTEND_HOST,
-    FRONTEND_PORT,
-    API_HOST,
-    API_PORT,
-  });
-}
 
 // ============================================
 // دوال مساعدة لبناء الروابط

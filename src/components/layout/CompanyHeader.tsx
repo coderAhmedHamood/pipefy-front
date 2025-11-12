@@ -22,23 +22,7 @@ export const CompanyHeader: React.FC<CompanyHeaderProps> = ({
 }) => {
   const { companyName, companyLogo, loading } = useCompanyInfo();
   
-  // تشخيص للتطوير
   const fullLogoUrl = companyLogo ? buildImageUrl(companyLogo) : '';
-  console.log('🏢 [CompanyHeader] البيانات الحالية:', {
-    companyName,
-    companyLogo,
-    fullLogoUrl,
-    loading,
-    showName,
-    showLogo
-  });
-  
-  // اختبار إضافي للرابط
-  if (companyLogo) {
-    console.log('🔗 [CompanyHeader] تحويل الرابط:');
-    console.log('📥 الرابط الأصلي:', companyLogo);
-    console.log('📤 الرابط الكامل:', fullLogoUrl);
-  }
 
   // أحجام مختلفة للمكون - محسنة للوضوح
   const sizes = {

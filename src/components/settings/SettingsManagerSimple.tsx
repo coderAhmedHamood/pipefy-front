@@ -35,15 +35,9 @@ export const SettingsManager: React.FC = () => {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      console.log('🔄 [SettingsManager] جاري تحميل الإعدادات...');
       const response = await settingsService.getSettings();
-      console.log('📦 [SettingsManager] استجابة API:', response);
       
       if (response.success && response.data) {
-        console.log('✅ [SettingsManager] تم جلب الإعدادات بنجاح:', response.data);
-        console.log('📊 [SettingsManager] عدد الحقول:', Object.keys(response.data).length);
-        console.log('🔍 [SettingsManager] الحقول المتاحة:', Object.keys(response.data));
-        
         // التأكد من أن جميع الحقول موجودة مع الحفاظ على القيم الفعلية من API
         const loadedSettings: SettingsType = {
           ...response.data,
@@ -72,20 +66,9 @@ export const SettingsManager: React.FC = () => {
           integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets ?? false,
         };
         
-        console.log('📧 [SettingsManager] إعدادات البريد الإلكتروني:', {
-          integrations_email_enabled: loadedSettings.integrations_email_enabled,
-          integrations_email_send_on_creation: loadedSettings.integrations_email_send_on_creation,
-          integrations_email_send_on_assignment: loadedSettings.integrations_email_send_on_assignment,
-          integrations_email_send_on_comment: loadedSettings.integrations_email_send_on_comment,
-          integrations_email_send_on_completion: loadedSettings.integrations_email_send_on_completion,
-          integrations_email_send_delayed_tickets: loadedSettings.integrations_email_send_delayed_tickets,
-        });
-        
         setSettings(loadedSettings);
-        console.log('💾 [SettingsManager] تم حفظ الإعدادات في الحالة');
         notifications.showSuccess('تم تحميل الإعدادات', `تم جلب ${Object.keys(loadedSettings).length} حقل من الإعدادات بنجاح`);
       } else {
-        console.warn('⚠️ [SettingsManager] استجابة غير ناجحة:', response);
         notifications.showError('خطأ في تحميل الإعدادات', response.message || 'فشل في جلب الإعدادات');
       }
     } catch (error: any) {
@@ -569,7 +552,6 @@ export const SettingsManager: React.FC = () => {
                     type="checkbox"
                     checked={settings.integrations_email_enabled === true}
                     onChange={(e) => {
-                      console.log('📧 تحديث integrations_email_enabled:', e.target.checked);
                       updateSetting('integrations_email_enabled', e.target.checked);
                     }}
                     className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
@@ -586,7 +568,6 @@ export const SettingsManager: React.FC = () => {
                       type="checkbox"
                       checked={settings.integrations_email_send_on_creation === true}
                       onChange={(e) => {
-                        console.log('📧 تحديث integrations_email_send_on_creation:', e.target.checked);
                         updateSetting('integrations_email_send_on_creation', e.target.checked);
                       }}
                       className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
@@ -602,7 +583,6 @@ export const SettingsManager: React.FC = () => {
                       type="checkbox"
                       checked={settings.integrations_email_send_on_assignment === true}
                       onChange={(e) => {
-                        console.log('📧 تحديث integrations_email_send_on_assignment:', e.target.checked);
                         updateSetting('integrations_email_send_on_assignment', e.target.checked);
                       }}
                       className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
@@ -618,7 +598,6 @@ export const SettingsManager: React.FC = () => {
                       type="checkbox"
                       checked={settings.integrations_email_send_on_comment === true}
                       onChange={(e) => {
-                        console.log('📧 تحديث integrations_email_send_on_comment:', e.target.checked);
                         updateSetting('integrations_email_send_on_comment', e.target.checked);
                       }}
                       className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
@@ -634,7 +613,6 @@ export const SettingsManager: React.FC = () => {
                       type="checkbox"
                       checked={settings.integrations_email_send_on_completion === true}
                       onChange={(e) => {
-                        console.log('📧 تحديث integrations_email_send_on_completion:', e.target.checked);
                         updateSetting('integrations_email_send_on_completion', e.target.checked);
                       }}
                       className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
@@ -650,7 +628,6 @@ export const SettingsManager: React.FC = () => {
                       type="checkbox"
                       checked={settings.integrations_email_send_delayed_tickets === true}
                       onChange={(e) => {
-                        console.log('📧 تحديث integrations_email_send_delayed_tickets:', e.target.checked);
                         updateSetting('integrations_email_send_delayed_tickets', e.target.checked);
                       }}
                       className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"

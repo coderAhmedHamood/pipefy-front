@@ -96,9 +96,7 @@ export const settingsService = {
   // جلب جميع الإعدادات
   async getSettings(): Promise<ApiResponse<ApiSettings>> {
     try {
-      console.log('🔄 جاري استدعاء API:', `${API_BASE_URL}/settings`);
       const response = await api.get('/settings');
-      console.log('✅ تم استلام البيانات:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ خطأ في جلب الإعدادات:', error);
@@ -109,14 +107,7 @@ export const settingsService = {
   // تحديث الإعدادات عبر PUT /api/settings
   async updateSettings(settings: Partial<ApiSettings>): Promise<ApiResponse<ApiSettings>> {
     try {
-      console.log('🔄 استدعاء PUT /api/settings مع البيانات:', settings);
-      console.log('📍 URL الكامل:', `${API_BASE_URL}/settings`);
-      
       const response = await api.put('/settings', settings);
-      
-      console.log('✅ استجابة PUT /api/settings:', response.data);
-      console.log('📊 حالة الاستجابة:', response.status);
-      
       return response.data;
     } catch (error: any) {
       console.error('❌ خطأ في PUT /api/settings:', error);
@@ -133,31 +124,14 @@ export const settingsService = {
   // رفع شعار الشركة عبر POST /api/settings/logo
   async uploadLogo(file: File): Promise<ApiResponse<{ logoUrl: string; settings: ApiSettings }>> {
     try {
-      console.log('🔄 استدعاء POST /api/settings/logo');
-      console.log('📍 URL الكامل:', `${API_BASE_URL}/settings/logo`);
-      console.log('📁 معلومات الملف:', {
-        name: file.name,
-        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-        type: file.type
-      });
-      
       const formData = new FormData();
       formData.append('company_logo', file);
-      
-      console.log('📤 إرسال الملف إلى API...');
       
       const response = await api.post('/settings/logo', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
-      console.log('✅ استجابة POST /api/settings/logo:', response.data);
-      console.log('📊 حالة الاستجابة:', response.status);
-      
-      if (response.data.success && response.data.data) {
-        console.log('🖼️ رابط الشعار الجديد:', response.data.data.logoUrl);
-      }
       
       return response.data;
     } catch (error: any) {
@@ -175,9 +149,7 @@ export const settingsService = {
   // حذف شعار الشركة
   async deleteLogo(): Promise<ApiResponse<ApiSettings>> {
     try {
-      console.log('🔄 جاري حذف الشعار');
       const response = await api.delete('/settings/logo');
-      console.log('✅ تم حذف الشعار:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ خطأ في حذف الشعار:', error);
@@ -188,31 +160,14 @@ export const settingsService = {
   // رفع أيقونة الموقع (Favicon) عبر POST /api/settings/favicon
   async uploadFavicon(file: File): Promise<ApiResponse<{ faviconUrl: string; settings: ApiSettings }>> {
     try {
-      console.log('🔄 استدعاء POST /api/settings/favicon');
-      console.log('📍 URL الكامل:', `${API_BASE_URL}/settings/favicon`);
-      console.log('📁 معلومات الملف:', {
-        name: file.name,
-        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-        type: file.type
-      });
-      
       const formData = new FormData();
       formData.append('favicon', file);
-      
-      console.log('📤 إرسال الملف إلى API...');
       
       const response = await api.post('/settings/favicon', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
-      console.log('✅ استجابة POST /api/settings/favicon:', response.data);
-      console.log('📊 حالة الاستجابة:', response.status);
-      
-      if (response.data.success && response.data.data) {
-        console.log('🖼️ رابط الأيقونة الجديد:', response.data.data.faviconUrl || response.data.data.favicon_url);
-      }
       
       return {
         ...response.data,
@@ -236,9 +191,7 @@ export const settingsService = {
   // حذف أيقونة الموقع (Favicon)
   async deleteFavicon(): Promise<ApiResponse<ApiSettings>> {
     try {
-      console.log('🔄 جاري حذف الأيقونة');
       const response = await api.delete('/settings/favicon');
-      console.log('✅ تم حذف الأيقونة:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ خطأ في حذف الأيقونة:', error);
@@ -249,9 +202,7 @@ export const settingsService = {
   // اختبار الاتصال بـ API
   async testConnection(): Promise<boolean> {
     try {
-      console.log('🔄 اختبار الاتصال بـ API...');
       const response = await api.get('/');
-      console.log('✅ الاتصال ناجح:', response.data);
       return true;
     } catch (error: any) {
       console.error('❌ فشل الاتصال:', error);

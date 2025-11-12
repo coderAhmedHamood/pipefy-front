@@ -53,16 +53,10 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 [SystemSettings] جلب إعدادات النظام من GET /api/settings...');
       
       const response = await settingsService.getSettings();
-      console.log('📦 [SystemSettings] استجابة كاملة:', response);
       
       if (response.success && response.data) {
-        console.log('✅ [SystemSettings] تم جلب إعدادات النظام بنجاح:', response.data);
-        console.log('🏢 [SystemSettings] اسم الشركة:', response.data.system_name || 'فارغ');
-        console.log('🖼️ [SystemSettings] شعار الشركة:', response.data.system_logo_url || 'فارغ');
-        
         setSettings({
           company_name: response.data.system_name || '',
           company_logo: response.data.system_logo_url || '',
@@ -75,8 +69,6 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
           smtp_password: response.data.integrations_email_smtp_password || '',
         });
       } else {
-        console.warn('⚠️ [SystemSettings] لا توجد إعدادات في النظام');
-        console.log('📄 [SystemSettings] استجابة API:', response);
         setSettings(defaultSettings);
       }
     } catch (err: any) {
@@ -90,7 +82,6 @@ export const SystemSettingsProvider: React.FC<SystemSettingsProviderProps> = ({ 
 
   // تحديث الإعدادات محلياً (بدون استدعاء API)
   const updateSettings = (newSettings: Partial<SystemSettings>) => {
-    console.log('🔄 تحديث إعدادات النظام محلياً:', newSettings);
     setSettings(prev => ({ ...prev, ...newSettings }));
   };
 

@@ -260,15 +260,12 @@ export const RecurringManager: React.FC = () => {
         const result = await response.json();
         const ruleData = result.success ? result.data : result;
         
-        console.log('Fetched Rule Details:', ruleData);
-        
         // التحقق من توفر تفاصيل العملية قبل تحميل البيانات
         if (selectedProcessDetails && selectedProcessDetails.id === ruleData.process_id) {
           // تفاصيل العملية متاحة، قم بتحميل البيانات مباشرة
           loadRuleDataToForm(ruleData);
         } else {
           // تفاصيل العملية غير متاحة بعد، احفظ البيانات مؤقتاً
-          console.log('تفاصيل العملية غير متاحة بعد، حفظ البيانات مؤقتاً...');
           setPendingRuleData(ruleData);
           // محاولة تحميل البيانات الأساسية (بدون تحويل الحقول المخصصة)
           loadRuleDataToForm(ruleData);
@@ -303,7 +300,6 @@ export const RecurringManager: React.FC = () => {
 
   // تحميل بيانات القاعدة في النموذج
   const loadRuleDataToForm = (ruleData: any) => {
-    console.log('Loading Rule Data to Form:', ruleData);
     
     // البيانات موجودة في الجذر مباشرة وليس في template_data
     const templateData = ruleData.template_data || {};
@@ -344,19 +340,6 @@ export const RecurringManager: React.FC = () => {
       },
       is_active: ruleData.is_active !== undefined ? ruleData.is_active : true
     });
-    
-    console.log('Form Updated with:', {
-      name: ruleData.name || ruleData.rule_name || '',
-      title: ruleData.title,
-      description: ruleData.description,
-      priority: ruleData.priority,
-      due_date: ruleData.due_date,
-      assigned_to: ruleData.assigned_to || ruleData.assigned_to_id,
-      recurrence_type: ruleData.recurrence_type,
-      recurrence_interval: ruleData.recurrence_interval,
-      current_stage_id: ruleData.current_stage_id,
-      custom_data: ruleData.data // إضافة البيانات المخصصة للتشخيص
-    });
   };
 
   // حفظ بيانات القاعدة المحملة مؤقتاً لإعادة استخدامها عند توفر تفاصيل العملية
@@ -387,7 +370,6 @@ export const RecurringManager: React.FC = () => {
   // إعادة تحميل البيانات في النموذج عند توفر تفاصيل العملية
   useEffect(() => {
     if (editingRule && pendingRuleData && selectedProcessDetails && selectedProcessDetails.id === editingRule.process_id) {
-      console.log('إعادة تحميل البيانات مع تفاصيل العملية المتاحة الآن');
       loadRuleDataToForm(pendingRuleData);
       setPendingRuleData(null); // مسح البيانات المؤقتة
     }
@@ -430,8 +412,6 @@ export const RecurringManager: React.FC = () => {
         is_active: ruleForm.is_active
       };
 
-      console.log('Creating Rule with Data:', ruleData);
-      console.log('Custom Fields in Create:', ruleForm.template_data.data);
 
       // استدعاء API لإنشاء قاعدة التكرار
       const response = await fetch(API_ENDPOINTS.RECURRING.CREATE_RULE, {
@@ -743,11 +723,9 @@ export const RecurringManager: React.FC = () => {
         is_active: ruleForm.is_active
       };
 
-      console.log('Sending Update Data:', ruleData);
-      console.log('Custom Fields in Update:', ruleForm.template_data.data);
 
       // استدعاء API لتحديث قاعدة التكرار
-      const response = await fetch(`http://localhost:3004/api/recurring/rules/${editingRule.id}`, {
+      const response = await fetch(buildApiUrl(`/recurring/rules/${editingRule.id}`), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('token')}`,
