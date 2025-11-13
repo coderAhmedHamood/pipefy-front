@@ -9,7 +9,8 @@ import {
   Image,
   Shield,
   Mail,
-  Palette
+  Palette,
+  X
 } from 'lucide-react';
 import { settingsService } from '../../services/settingsServiceSimple';
 import { useQuickNotifications } from '../ui/NotificationSystem';
@@ -17,6 +18,7 @@ import { useSystemSettings } from '../../contexts/SystemSettingsContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { ThemePreview } from '../ui/ThemeToggle';
 import { FRONTEND_BASE_URL, API_BASE_URL } from '../../config/config';
+import { useDeviceType } from '../../hooks/useDeviceType';
 
 export const SettingsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -28,6 +30,7 @@ export const SettingsManager: React.FC = () => {
   const notifications = useQuickNotifications();
   const { updateSettings: updateSystemSettings } = useSystemSettings();
   const { currentTheme, setTheme, availableThemes } = useTheme();
+  const { isMobile, isTablet } = useDeviceType();
   
   // حالة الإعدادات - فارغة بدون قيم افتراضية
   const [settings, setSettings] = useState<any>({
@@ -321,8 +324,8 @@ export const SettingsManager: React.FC = () => {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-600">جاري تحميل الإعدادات...</p>
+          <Loader2 className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} animate-spin mx-auto mb-4 text-blue-500`} />
+          <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري تحميل الإعدادات...</p>
         </div>
       </div>
     );
@@ -338,49 +341,68 @@ export const SettingsManager: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className={`${isMobile || isTablet ? 'p-3' : 'max-w-6xl mx-auto p-6'}`}>
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-3 space-x-reverse">
-            <Settings className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">إعدادات النظام</h1>
+      <div className={`${isMobile || isTablet ? 'mb-4' : 'mb-8'}`}>
+        <div className={`flex items-center ${isMobile || isTablet ? 'flex-col space-y-3' : 'justify-between'} mb-4`}>
+          <div className={`flex items-center ${isMobile || isTablet ? 'w-full justify-between' : 'space-x-3 space-x-reverse'}`}>
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <Settings className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-8 h-8'} text-blue-600`} />
+              <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-3xl'} font-bold text-gray-900`}>إعدادات النظام</h1>
+            </div>
+            {!isMobile && !isTablet && (
+              <button
+                onClick={async () => {
+                  const isConnected = await settingsService.testConnection();
+                  if (isConnected) {
+                    notifications.showSuccess('الاتصال ناجح', 'تم الاتصال بـ API بنجاح');
+                  } else {
+                    notifications.showError('فشل الاتصال', 'لا يمكن الاتصال بـ API');
+                  }
+                }}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
+              >
+                اختبار الاتصال
+              </button>
+            )}
           </div>
-          <button
-            onClick={async () => {
-              const isConnected = await settingsService.testConnection();
-              if (isConnected) {
-                notifications.showSuccess('الاتصال ناجح', 'تم الاتصال بـ API بنجاح');
-              } else {
-                notifications.showError('فشل الاتصال', 'لا يمكن الاتصال بـ API');
-              }
-            }}
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
-          >
-            اختبار الاتصال
-          </button>
+          {(isMobile || isTablet) && (
+            <button
+              onClick={async () => {
+                const isConnected = await settingsService.testConnection();
+                if (isConnected) {
+                  notifications.showSuccess('الاتصال ناجح', 'تم الاتصال بـ API بنجاح');
+                } else {
+                  notifications.showError('فشل الاتصال', 'لا يمكن الاتصال بـ API');
+                }
+              }}
+              className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-xs' : 'px-4 py-2 text-sm'} bg-green-500 text-white rounded-lg hover:bg-green-600`}
+            >
+              اختبار الاتصال
+            </button>
+          )}
         </div>
-        <p className="text-gray-600">إدارة الإعدادات الأساسية للنظام - البيانات من قاعدة البيانات</p>
+        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>إدارة الإعدادات الأساسية للنظام - البيانات من قاعدة البيانات</p>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="mb-8">
+      <div className={`${isMobile || isTablet ? 'mb-4' : 'mb-8'}`}>
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 space-x-reverse">
+          <nav className={`-mb-px flex ${isMobile || isTablet ? 'overflow-x-auto space-x-4 space-x-reverse scrollbar-hide' : 'space-x-8 space-x-reverse'}`}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 space-x-reverse transition-colors ${
+                  className={`${isMobile || isTablet ? 'py-2 px-2 text-xs flex-shrink-0' : 'py-4 px-1 text-sm'} border-b-2 font-medium flex items-center space-x-2 space-x-reverse transition-colors ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span>{tab.name}</span>
+                  <Icon className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                  <span className={isMobile || isTablet ? 'whitespace-nowrap' : ''}>{tab.name}</span>
                 </button>
               );
             })}
@@ -389,73 +411,73 @@ export const SettingsManager: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-lg shadow-sm border p-8 mb-8">
+      <div className={`bg-white rounded-lg shadow-sm border ${isMobile || isTablet ? 'p-3 mb-4' : 'p-8 mb-8'}`}>
         
         {/* الإعدادات العامة */}
         {activeTab === 'general' && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">الإعدادات العامة</h3>
+          <div className={`${isMobile || isTablet ? 'space-y-4' : 'space-y-6'}`}>
+            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-4 pb-2' : 'mb-6 pb-3'} border-b border-gray-200`}>الإعدادات العامة</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم الشركة</label>
+            <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
+              <div className={isMobile || isTablet ? '' : 'md:col-span-1'}>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>اسم الشركة</label>
                 <input
                   type="text"
                   value={settings.system_name}
                   onChange={(e) => updateSetting('system_name', e.target.value)}
                   placeholder="أدخل اسم الشركة"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
               
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">رابط الواجهة الأمامية</label>
+              <div className={isMobile || isTablet ? '' : 'md:col-span-1'}>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>رابط الواجهة الأمامية</label>
                 <input
                   type="url"
                   value={settings.frontend_url}
                   onChange={(e) => updateSetting('frontend_url', e.target.value)}
                   placeholder={FRONTEND_BASE_URL}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
               
-              <div className="md:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">رابط API الأساسي</label>
+              <div className={isMobile || isTablet ? '' : 'md:col-span-1'}>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>رابط API الأساسي</label>
                 <input
                   type="url"
                   value={settings.api_base_url}
                   onChange={(e) => updateSetting('api_base_url', e.target.value)}
                   placeholder={API_BASE_URL}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
               
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">وصف النظام</label>
+              <div className={isMobile || isTablet ? '' : 'md:col-span-2'}>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>وصف النظام</label>
                 <textarea
                   value={settings.system_description}
                   onChange={(e) => updateSetting('system_description', e.target.value)}
                   placeholder="أدخل وصف النظام"
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={isMobile || isTablet ? 3 : 3}
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
             </div>
             
-            <div className="flex justify-end pt-6 border-t border-gray-200">
+            <div className={`flex ${isMobile || isTablet ? 'justify-center' : 'justify-end'} ${isMobile || isTablet ? 'pt-4' : 'pt-6'} border-t border-gray-200`}>
               <button
                 onClick={handleSaveSettings}
                 disabled={saving}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2 space-x-reverse"
+                className={`${isMobile || isTablet ? 'w-full px-4 py-2 text-sm' : 'px-6 py-2'} bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2 space-x-reverse`}
               >
                 {saving ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
                     <span>جاري الحفظ...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
+                    <Save className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>حفظ الإعدادات</span>
                   </>
                 )}
@@ -466,31 +488,31 @@ export const SettingsManager: React.FC = () => {
 
         {/* شعار الشركة */}
         {activeTab === 'logo' && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">شعار الشركة</h3>
+          <div className={`${isMobile || isTablet ? 'space-y-4' : 'space-y-6'}`}>
+            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-4 pb-2' : 'mb-6 pb-3'} border-b border-gray-200`}>شعار الشركة</h3>
             
             {/* معاينة الشعار الحالي */}
             {(settings.system_logo_url || previewLogo) && (
-              <div className="mb-6">
+              <div className={`${isMobile || isTablet ? 'mb-4' : 'mb-6'} flex flex-col items-center`}>
                 <div className="relative inline-block">
                   <img 
                     src={previewLogo || settings.system_logo_url} 
                     alt="شعار الشركة" 
-                    className="w-48 h-48 object-cover border-2 border-gray-300 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                    className={`${isMobile || isTablet ? 'w-32 h-32' : 'w-48 h-48'} object-cover border-2 border-gray-300 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
                     onClick={() => setShowLogoModal(true)}
                   />
                   {previewLogo && (
-                    <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+                    <div className={`absolute -top-2 -right-2 bg-blue-500 text-white ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} rounded-full`}>
                       جديد
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">اضغط على الصورة للتكبير</p>
+                <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500 mt-2`}>اضغط على الصورة للتكبير</p>
               </div>
             )}
             
             {/* أزرار إدارة الشعار */}
-            <div className="flex items-center space-x-4 space-x-reverse">
+            <div className={`flex ${isMobile || isTablet ? 'flex-col space-y-2' : 'items-center space-x-4 space-x-reverse'}`}>
               <input
                 type="file"
                 accept="image/*"
@@ -505,27 +527,27 @@ export const SettingsManager: React.FC = () => {
               />
               <label
                 htmlFor="logo-upload"
-                className="flex items-center space-x-2 space-x-reverse px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+                className={`flex items-center justify-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'w-full px-4 py-2.5 text-sm' : 'px-6 py-3'} bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors`}
               >
-                {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}
+                {uploading ? <Loader2 className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} animate-spin`} /> : <Upload className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />}
                 <span className="font-medium">{uploading ? 'جاري الرفع...' : 'رفع شعار جديد'}</span>
               </label>
               
               {(settings.system_logo_url || previewLogo) && (
                 <button
                   onClick={handleDeleteLogo}
-                  className="flex items-center space-x-2 space-x-reverse px-6 py-3 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  className={`flex items-center justify-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'w-full px-4 py-2.5 text-sm' : 'px-6 py-3'} border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors`}
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
                   <span className="font-medium">حذف الشعار</span>
                 </button>
               )}
             </div>
             
             {/* معلومات إضافية */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">متطلبات الشعار:</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
+            <div className={`bg-blue-50 border border-blue-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-4'}`}>
+              <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-blue-900 mb-2`}>متطلبات الشعار:</h4>
+              <ul className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-blue-700 space-y-1`}>
                 <li>• الحد الأقصى لحجم الملف: 5 ميجابايت</li>
                 <li>• الصيغ المدعومة: JPG, PNG, SVG</li>
                 <li>• الحجم المُوصى به: 512x512 بكسل</li>
@@ -537,24 +559,24 @@ export const SettingsManager: React.FC = () => {
 
         {/* الثيمات والألوان */}
         {activeTab === 'themes' && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">الثيمات والألوان</h3>
+          <div className={`${isMobile || isTablet ? 'space-y-4' : 'space-y-6'}`}>
+            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-4 pb-2' : 'mb-6 pb-3'} border-b border-gray-200`}>الثيمات والألوان</h3>
             
             {/* الثيم الحالي */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center space-x-3 space-x-reverse">
-                <Palette className="w-6 h-6 text-blue-600" />
+            <div className={`bg-blue-50 border border-blue-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-4'} ${isMobile || isTablet ? 'mb-4' : 'mb-6'}`}>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Palette className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} text-blue-600`} />
                 <div>
-                  <h4 className="font-medium text-blue-900">الثيم الحالي</h4>
-                  <p className="text-blue-700 text-sm">{currentTheme.displayName}</p>
+                  <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-blue-900`}>الثيم الحالي</h4>
+                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-blue-700`}>{currentTheme.displayName}</p>
                 </div>
               </div>
             </div>
 
             {/* اختيار الثيم */}
             <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4">اختر الثيم المفضل</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-medium text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>اختر الثيم المفضل</h4>
+              <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
                 {availableThemes.map((theme) => (
                   <ThemePreview
                     key={theme.name}
@@ -581,28 +603,28 @@ export const SettingsManager: React.FC = () => {
 
             {/* لوحة الألوان الحالية */}
             <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-4">لوحة الألوان الحالية</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-medium text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>لوحة الألوان الحالية</h4>
+              <div className={`grid ${isMobile || isTablet ? 'grid-cols-3 gap-2' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4'}`}>
                 {Object.entries(currentTheme.colors).map(([name, color]) => (
                   <div key={name} className="text-center">
                     <div
-                      className="w-16 h-16 rounded-lg border border-gray-200 mx-auto mb-2 shadow-sm"
+                      className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} rounded-lg border border-gray-200 mx-auto mb-2 shadow-sm`}
                       style={{ backgroundColor: color }}
                     />
-                    <p className="text-xs font-medium text-gray-700">{name}</p>
-                    <p className="text-xs text-gray-500 font-mono">{color}</p>
+                    <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-medium text-gray-700 truncate`}>{name}</p>
+                    <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500 font-mono truncate`}>{color}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* معلومات الثيم */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-              <h4 className="text-lg font-medium text-gray-900 mb-4">معلومات الثيم</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={`bg-gray-50 border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+              <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-medium text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>معلومات الثيم</h4>
+              <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
                 <div>
-                  <h5 className="font-medium text-gray-800 mb-2">التفاصيل</h5>
-                  <ul className="space-y-2 text-sm text-gray-600">
+                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-800 mb-2`}>التفاصيل</h5>
+                  <ul className={`space-y-1 ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>
                     <li><strong>الاسم:</strong> {currentTheme.displayName}</li>
                     <li><strong>المعرف:</strong> {currentTheme.name}</li>
                     <li><strong>اللون الأساسي:</strong> {currentTheme.colors.primary}</li>
@@ -610,8 +632,8 @@ export const SettingsManager: React.FC = () => {
                   </ul>
                 </div>
                 <div>
-                  <h5 className="font-medium text-gray-800 mb-2">الميزات</h5>
-                  <ul className="space-y-2 text-sm text-gray-600">
+                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-800 mb-2`}>الميزات</h5>
+                  <ul className={`space-y-1 ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>
                     <li>• تبديل سريع بين الثيمات</li>
                     <li>• حفظ تلقائي للاختيار</li>
                     <li>• ألوان متناسقة ومتجانسة</li>
@@ -623,12 +645,12 @@ export const SettingsManager: React.FC = () => {
             </div>
 
             {/* ملاحظة */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3 space-x-reverse">
-                <div className="text-green-600 text-xl">💡</div>
+            <div className={`bg-green-50 border border-green-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-4'}`}>
+              <div className="flex items-start space-x-2 space-x-reverse">
+                <div className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} text-green-600`}>💡</div>
                 <div>
-                  <h4 className="font-medium text-green-900 mb-1">نصيحة</h4>
-                  <p className="text-green-700 text-sm">
+                  <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-green-900 mb-1`}>نصيحة</h4>
+                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-green-700`}>
                     يتم حفظ اختيار الثيم تلقائياً في متصفحك. عند إعادة فتح النظام سيتم تحميل الثيم المفضل لديك.
                   </p>
                 </div>
@@ -639,49 +661,49 @@ export const SettingsManager: React.FC = () => {
 
         {/* إعدادات الأمان */}
         {activeTab === 'security' && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">إعدادات الأمان</h3>
+          <div className={`${isMobile || isTablet ? 'space-y-4' : 'space-y-6'}`}>
+            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-4 pb-2' : 'mb-6 pb-3'} border-b border-gray-200`}>إعدادات الأمان</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">عدد محاولات تسجيل الدخول</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>عدد محاولات تسجيل الدخول</label>
                 <input
                   type="number"
                   min="3"
                   max="10"
                   value={settings.security_login_attempts_limit || ''}
                   onChange={(e) => updateSetting('security_login_attempts_limit', e.target.value ? parseInt(e.target.value) : '')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">مدة الحظر (دقيقة)</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>مدة الحظر (دقيقة)</label>
                 <input
                   type="number"
                   min="5"
                   max="60"
                   value={settings.security_lockout_duration || ''}
                   onChange={(e) => updateSetting('security_lockout_duration', e.target.value ? parseInt(e.target.value) : '')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
             </div>
             
-            <div className="flex justify-end pt-6 border-t border-gray-200">
+            <div className={`flex ${isMobile || isTablet ? 'justify-center' : 'justify-end'} ${isMobile || isTablet ? 'pt-4' : 'pt-6'} border-t border-gray-200`}>
               <button
                 onClick={handleSaveSettings}
                 disabled={saving}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2 space-x-reverse"
+                className={`${isMobile || isTablet ? 'w-full px-4 py-2 text-sm' : 'px-6 py-2'} bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2 space-x-reverse`}
               >
                 {saving ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
                     <span>جاري الحفظ...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
+                    <Save className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>حفظ الإعدادات</span>
                   </>
                 )}
@@ -692,209 +714,206 @@ export const SettingsManager: React.FC = () => {
 
         {/* إعدادات البريد الإلكتروني */}
         {activeTab === 'email' && (
-          <div className="space-y-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200">إعدادات البريد الإلكتروني</h3>
+          <div className={`${isMobile || isTablet ? 'space-y-4' : 'space-y-6'}`}>
+            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-4 pb-2' : 'mb-6 pb-3'} border-b border-gray-200`}>إعدادات البريد الإلكتروني</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">خادم SMTP</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>خادم SMTP</label>
                 <input
                   type="text"
                   value={settings.integrations_email_smtp_host || ''}
                   onChange={(e) => updateSetting('integrations_email_smtp_host', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="smtp.gmail.com"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">المنفذ</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>المنفذ</label>
                 <input
                   type="number"
                   value={settings.integrations_email_smtp_port || ''}
                   onChange={(e) => updateSetting('integrations_email_smtp_port', e.target.value ? parseInt(e.target.value) : '')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم المستخدم</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>اسم المستخدم</label>
                 <input
                   type="text"
                   value={settings.integrations_email_smtp_username || ''}
                   onChange={(e) => updateSetting('integrations_email_smtp_username', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">كلمة المرور</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>كلمة المرور</label>
                 <input
                   type="password"
                   value={settings.integrations_email_smtp_password || ''}
                   onChange={(e) => updateSetting('integrations_email_smtp_password', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
               </div>
-               
-              
-           
             </div>
             
             {/* إعدادات إشعارات البريد الإلكتروني */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">إعدادات إشعارات البريد الإلكتروني</h4>
-              <p className="text-sm text-gray-500 mb-6">اختر متى تريد إرسال إشعارات البريد الإلكتروني للتذاكر</p>
+            <div className={`${isMobile || isTablet ? 'mt-4 pt-4' : 'mt-8 pt-6'} border-t border-gray-200`}>
+              <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>إعدادات إشعارات البريد الإلكتروني</h4>
+              <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500 ${isMobile || isTablet ? 'mb-4' : 'mb-6'}`}>اختر متى تريد إرسال إشعارات البريد الإلكتروني للتذاكر</p>
               
-              <div className="bg-gray-50 p-6 rounded-lg space-y-4">
-                <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+              <div className={`bg-gray-50 ${isMobile || isTablet ? 'p-3' : 'p-6'} rounded-lg ${isMobile || isTablet ? 'space-y-2' : 'space-y-4'}`}>
+                <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                   <input
                     type="checkbox"
                     checked={settings.integrations_email_enabled === true}
                     onChange={(e) => updateSetting('integrations_email_enabled', e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                   />
-                  <span className="mr-3 text-sm font-medium text-gray-700">تفعيل إرسال البريد الإلكتروني</span>
+                  <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 flex-1`}>تفعيل إرسال البريد الإلكتروني</span>
                   {settings.integrations_email_enabled !== undefined && (
-                    <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_enabled ? 'مفعل' : 'معطل'})</span>
+                    <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_enabled ? 'مفعل' : 'معطل'})</span>
                   )}
                 </label>
                 
-                <div className="mr-6 space-y-3 border-r-2 border-blue-200 pr-6">
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-3'} ${!isMobile && !isTablet ? 'mr-6 border-r-2 border-blue-200 pr-6' : ''}`}>
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_on_creation === true}
                       onChange={(e) => updateSetting('integrations_email_send_on_creation', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال عند إنشاء التذكرة</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال عند إنشاء التذكرة</span>
                     {settings.integrations_email_send_on_creation !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_creation ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_on_creation ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_on_assignment === true}
                       onChange={(e) => updateSetting('integrations_email_send_on_assignment', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال عند تعيين التذكرة</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال عند تعيين التذكرة</span>
                     {settings.integrations_email_send_on_assignment !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_assignment ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_on_assignment ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_on_comment === true}
                       onChange={(e) => updateSetting('integrations_email_send_on_comment', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال عند إضافة تعليق</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال عند إضافة تعليق</span>
                     {settings.integrations_email_send_on_comment !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_comment ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_on_comment ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_on_completion === true}
                       onChange={(e) => updateSetting('integrations_email_send_on_completion', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال عند إكمال التذكرة</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال عند إكمال التذكرة</span>
                     {settings.integrations_email_send_on_completion !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_completion ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_on_completion ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_on_update === true}
                       onChange={(e) => updateSetting('integrations_email_send_on_update', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال عند تحديث التذكرة</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال عند تحديث التذكرة</span>
                     {settings.integrations_email_send_on_update !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_update ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_on_update ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_on_move === true}
                       onChange={(e) => updateSetting('integrations_email_send_on_move', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال عند نقل التذكرة</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال عند نقل التذكرة</span>
                     {settings.integrations_email_send_on_move !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_move ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_on_move ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_on_review_assigned === true}
                       onChange={(e) => updateSetting('integrations_email_send_on_review_assigned', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال عند تعيين مراجعة</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال عند تعيين مراجعة</span>
                     {settings.integrations_email_send_on_review_assigned !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_review_assigned ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_on_review_assigned ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_on_review_updated === true}
                       onChange={(e) => updateSetting('integrations_email_send_on_review_updated', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال عند تحديث مراجعة</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال عند تحديث مراجعة</span>
                     {settings.integrations_email_send_on_review_updated !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_on_review_updated ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_on_review_updated ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                   
-                  <label className="flex items-center p-3 bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer">
+                  <label className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg hover:shadow-sm transition-shadow cursor-pointer`}>
                     <input
                       type="checkbox"
                       checked={settings.integrations_email_send_delayed_tickets === true}
                       onChange={(e) => updateSetting('integrations_email_send_delayed_tickets', e.target.checked)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-3 text-sm text-gray-700">إرسال إشعارات للتذاكر المتأخرة</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 flex-1`}>إرسال إشعارات للتذاكر المتأخرة</span>
                     {settings.integrations_email_send_delayed_tickets !== undefined && (
-                      <span className="text-xs text-gray-500 mr-auto">({settings.integrations_email_send_delayed_tickets ? 'مفعل' : 'معطل'})</span>
+                      <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({settings.integrations_email_send_delayed_tickets ? 'مفعل' : 'معطل'})</span>
                     )}
                   </label>
                 </div>
               </div>
             </div>
             
-            <div className="flex justify-end pt-6 border-t border-gray-200">
+            <div className={`flex ${isMobile || isTablet ? 'justify-center' : 'justify-end'} ${isMobile || isTablet ? 'pt-4' : 'pt-6'} border-t border-gray-200`}>
               <button
                 onClick={handleSaveSettings}
                 disabled={saving}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2 space-x-reverse"
+                className={`${isMobile || isTablet ? 'w-full px-4 py-2 text-sm' : 'px-6 py-2'} bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2 space-x-reverse`}
               >
                 {saving ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
                     <span>جاري الحفظ...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
+                    <Save className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>حفظ الإعدادات</span>
                   </>
                 )}
@@ -907,25 +926,27 @@ export const SettingsManager: React.FC = () => {
 
       {/* نافذة عرض الشعار */}
       {showLogoModal && (settings.system_logo_url || previewLogo) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowLogoModal(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">معاينة شعار الشركة</h3>
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`} onClick={() => setShowLogoModal(false)}>
+          <div className={`bg-white ${isMobile || isTablet ? 'rounded-none w-full h-full max-w-none' : 'rounded-lg'} ${isMobile || isTablet ? 'p-3' : 'p-6'} ${isMobile || isTablet ? 'max-h-full' : 'max-w-2xl max-h-[90vh]'} overflow-auto flex flex-col`} onClick={(e) => e.stopPropagation()}>
+            <div className={`flex justify-between items-center ${isMobile || isTablet ? 'mb-3' : 'mb-4'} flex-shrink-0`}>
+              <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold`}>معاينة شعار الشركة</h3>
               <button 
                 onClick={() => setShowLogoModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100`}
               >
-                ×
+                <X className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
               </button>
             </div>
-            <img 
-              src={previewLogo || settings.system_logo_url} 
-              alt="شعار الشركة" 
-              className="max-w-full max-h-96 object-contain mx-auto block border rounded-lg"
-            />
+            <div className="flex-1 flex items-center justify-center overflow-auto">
+              <img 
+                src={previewLogo || settings.system_logo_url} 
+                alt="شعار الشركة" 
+                className={`${isMobile || isTablet ? 'max-w-full max-h-[60vh]' : 'max-w-full max-h-96'} object-contain mx-auto block border rounded-lg`}
+              />
+            </div>
             {previewLogo && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-blue-800 text-sm">🎆 هذا هو الشعار الجديد الذي تم رفعه. اضغط "حفظ جميع الإعدادات" لحفظ التغييرات.</p>
+              <div className={`${isMobile || isTablet ? 'mt-3 p-2' : 'mt-4 p-3'} bg-blue-50 rounded-lg flex-shrink-0`}>
+                <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-blue-800`}>🎆 هذا هو الشعار الجديد الذي تم رفعه. اضغط "حفظ جميع الإعدادات" لحفظ التغييرات.</p>
               </div>
             )}
           </div>
@@ -933,13 +954,13 @@ export const SettingsManager: React.FC = () => {
       )}
 
       {/* Save Button */}
-      <div className="flex justify-center">
+      <div className={`flex justify-center ${isMobile || isTablet ? 'mt-4' : 'mt-8'}`}>
         <button
           onClick={handleSaveSettings}
           disabled={saving}
-          className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-12 py-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-3 space-x-reverse disabled:opacity-50 text-xl font-medium min-w-[300px] justify-center"
+          className={`bg-gradient-to-r from-blue-500 to-purple-600 text-white ${isMobile || isTablet ? 'w-full px-4 py-3 text-sm' : 'px-12 py-4 text-xl'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-3 space-x-reverse disabled:opacity-50 font-medium ${isMobile || isTablet ? '' : 'min-w-[300px]'}`}
         >
-          {saving ? <Loader2 className="w-6 h-6 animate-spin" /> : <Save className="w-6 h-6" />}
+          {saving ? <Loader2 className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} animate-spin`} /> : <Save className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'}`} />}
           <span>{saving ? 'جاري الحفظ...' : 'حفظ جميع الإعدادات'}</span>
         </button>
       </div>
