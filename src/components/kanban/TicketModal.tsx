@@ -866,7 +866,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [isMovingToProcess, setIsMovingToProcess] = useState(false);
   const [allProcesses, setAllProcesses] = useState<Process[]>([]);
   const [isLoadingProcesses, setIsLoadingProcesses] = useState(false);
-
+  
+  // Tabs للجوال
+  const [activeTab, setActiveTab] = useState<'info' | 'comments' | 'attachments' | 'stages'>('info');
 
   const [formData, setFormData] = useState({
     title: ticket.title,
@@ -1581,20 +1583,20 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     <div className={`fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`} dir="rtl">
       <div className={`bg-white shadow-2xl w-full overflow-hidden ${isMobile || isTablet ? 'h-full rounded-none' : 'rounded-xl max-w-7xl max-h-[95vh]'}`}>
         {/* Header */}
-        <div className="bg-[#00B8A9] text-white p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4 space-x-reverse">
-              <div className={`w-12 h-12 ${currentStage?.color || 'bg-gray-500'} rounded-xl flex items-center justify-center`}>
-                <span className="text-white font-bold text-lg">{process.name.charAt(0)}</span>
+        <div className={`bg-[#00B8A9] text-white ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+          <div className={`flex ${isMobile || isTablet ? 'flex-col space-y-3' : 'items-center justify-between'}`}>
+            <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+              <div className={`${isMobile || isTablet ? 'w-10 h-10' : 'w-12 h-12'} ${currentStage?.color || 'bg-gray-500'} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                <span className={`text-white font-bold ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>{process.name.charAt(0)}</span>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">{isEditing ? formData.title : ticket.title}</h1>
-                <div className="flex items-center space-x-3 space-x-reverse text-blue-100">
-                  <span>{process.name}</span>
+              <div className="flex-1 min-w-0">
+                <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold truncate`}>{isEditing ? formData.title : ticket.title}</h1>
+                <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1 mt-1' : 'space-x-3 space-x-reverse'} text-blue-100`}>
+                  <span className="truncate">{process.name}</span>
                   <span>•</span>
-                  <span>{currentStage?.name}</span>
+                  <span className="truncate">{currentStage?.name}</span>
                   <span>•</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
                     ticket.priority === 'urgent' ? 'bg-red-500' :
                     ticket.priority === 'high' ? 'bg-orange-500' :
                     ticket.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
@@ -1605,106 +1607,219 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               </div>
             </div>
             
-            <div className="flex items-center space-x-3 space-x-reverse">
-              {allowedStages.length > 0 && (
-                <button
-                  onClick={() => setShowStageSelector(true)}
-                  className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  <span>نقل إلى مرحلة</span>
-                </button>
-              )}
-              
-              <button
-                onClick={() => setShowProcessSelector(true)}
-                className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>نقل إلى عملية</span>
-              </button>
-
-
-
-
-
-              {( hasPermission('tickets', 'update')) && (
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-2 rounded-lg transition-colors shadow-sm"
-                  title={isEditing ? "إلغاء التعديل" : "تعديل التذكرة"}
-                >
-                  <Edit className="w-5 h-5" />
-                </button>
-              )}
-
-              {hasPermission('tickets', 'delete') && (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  disabled={isDeleting}
-                  className={`bg-[#EF5350] bg-opacity-90 hover:bg-opacity-100 text-white p-2 rounded-lg transition-colors shadow-sm ${
-                    isDeleting ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                  title="حذف التذكرة"
-                >
-                  {isDeleting ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Trash2 className="w-5 h-5" />
+            {/* أزرار الإجراءات */}
+            <div className={`flex items-center ${isMobile || isTablet ? 'justify-between w-full gap-2' : 'space-x-3 space-x-reverse'}`}>
+              {isMobile || isTablet ? (
+                <>
+                  {allowedStages.length > 0 && (
+                    <button
+                      onClick={() => setShowStageSelector(true)}
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-2 py-1.5 rounded-lg transition-colors flex items-center space-x-1 space-x-reverse shadow-sm text-xs flex-1 justify-center"
+                      title="نقل إلى مرحلة"
+                    >
+                      <ArrowRight className="w-3 h-3" />
+                      <span>نقل</span>
+                    </button>
                   )}
-                </button>
-              )}
+                  
+                  <button
+                    onClick={() => setShowProcessSelector(true)}
+                    className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-2 py-1.5 rounded-lg transition-colors flex items-center space-x-1 space-x-reverse shadow-sm text-xs flex-1 justify-center"
+                    title="نقل إلى عملية"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>عملية</span>
+                  </button>
 
-              <button
-                onClick={onClose}
-                className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-2 rounded-lg transition-colors shadow-sm"
-                title="إغلاق"
-              >
-                <X className="w-5 h-5" />
-              </button>
+                  {hasPermission('tickets', 'update') && (
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-1.5 rounded-lg transition-colors shadow-sm"
+                      title={isEditing ? "إلغاء التعديل" : "تعديل التذكرة"}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {hasPermission('tickets', 'delete') && (
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={isDeleting}
+                      className={`bg-[#EF5350] bg-opacity-90 hover:bg-opacity-100 text-white p-1.5 rounded-lg transition-colors shadow-sm ${
+                        isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      title="حذف التذكرة"
+                    >
+                      {isDeleting ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={onClose}
+                    className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-1.5 rounded-lg transition-colors shadow-sm"
+                    title="إغلاق"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  {allowedStages.length > 0 && (
+                    <button
+                      onClick={() => setShowStageSelector(true)}
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
+                    >
+                      <ArrowRight className="w-4 h-4" />
+                      <span>نقل إلى مرحلة</span>
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => setShowProcessSelector(true)}
+                    className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>نقل إلى عملية</span>
+                  </button>
+
+
+
+
+
+                  {hasPermission('tickets', 'update') && (
+                    <button
+                      onClick={() => setIsEditing(!isEditing)}
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-2 rounded-lg transition-colors shadow-sm"
+                      title={isEditing ? "إلغاء التعديل" : "تعديل التذكرة"}
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                  )}
+
+                  {hasPermission('tickets', 'delete') && (
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      disabled={isDeleting}
+                      className={`bg-[#EF5350] bg-opacity-90 hover:bg-opacity-100 text-white p-2 rounded-lg transition-colors shadow-sm ${
+                        isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      title="حذف التذكرة"
+                    >
+                      {isDeleting ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="w-5 h-5" />
+                      )}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={onClose}
+                    className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-2 rounded-lg transition-colors shadow-sm"
+                    title="إغلاق"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        <div className={`flex ${isMobile || isTablet ? 'h-[calc(100vh-120px)] flex-col' : 'h-[calc(95vh-120px)]'}`}>
+        {/* Tabs للجوال */}
+        {(isMobile || isTablet) && (
+          <div className="bg-white border-b border-gray-200 flex overflow-x-auto sticky top-0 z-10">
+            <button
+              onClick={() => setActiveTab('info')}
+              className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'info'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <FileText className="w-4 h-4 inline ml-1" />
+              المعلومات
+            </button>
+            <button
+              onClick={() => setActiveTab('comments')}
+              className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'comments'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4 inline ml-1" />
+              التعليقات
+            </button>
+            <button
+              onClick={() => setActiveTab('attachments')}
+              className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'attachments'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Paperclip className="w-4 h-4 inline ml-1" />
+              المرفقات
+            </button>
+            <button
+              onClick={() => setActiveTab('stages')}
+              className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'stages'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Target className="w-4 h-4 inline ml-1" />
+              المراحل
+            </button>
+          </div>
+        )}
+
+        <div className={`flex ${isMobile || isTablet ? 'h-[calc(100vh-180px)] flex-col' : 'h-[calc(95vh-120px)]'}`}>
           {/* Main Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} ${isMobile || isTablet ? 'space-y-4' : 'space-y-6'}`}>
             {/* Basic Info */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
+            {((isMobile || isTablet) && activeTab !== 'info') ? null : (
+            <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
               <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                <FileText className="w-5 h-5 text-blue-500" />
-                <h3 className="text-lg font-semibold text-gray-900">معلومات أساسية</h3>
+                <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
+                <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>معلومات أساسية</h3>
               </div>
               
               {isEditing ? (
-                <div className="space-y-4">
+                <div className={`${isMobile || isTablet ? 'space-y-3' : 'space-y-4'}`}>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">العنوان</label>
+                    <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>العنوان</label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">الوصف</label>
+                    <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الوصف</label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      rows={isMobile || isTablet ? 3 : 4}
+                      className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
                     />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className={`grid ${isMobile || isTablet ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'} ${isMobile || isTablet ? 'gap-3' : 'gap-4'}`}>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">الأولوية</label>
+                      <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الأولوية</label>
                       <select
                         value={formData.priority}
                         onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       >
                         <option value="low">منخفض</option>
                         <option value="medium">متوسط</option>
@@ -1714,26 +1829,26 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">تاريخ الاستحقاق</label>
+                      <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>تاريخ الاستحقاق</label>
                       <input
                         type="datetime-local"
                         value={formData.due_date}
                         onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       />
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className={`${isMobile || isTablet ? 'space-y-3' : 'space-y-4'}`}>
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">الوصف</h4>
-                    <p className="text-gray-700 leading-relaxed">
+                    <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-medium text-gray-900 mb-2`}>الوصف</h4>
+                    <p className={`text-gray-700 leading-relaxed ${isMobile || isTablet ? 'text-sm' : ''}`}>
                       {ticket.description || 'لا يوجد وصف'}
                     </p>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-2' : 'grid-cols-1 md:grid-cols-3 gap-4'}`}>
                     <div className="flex items-center space-x-2 space-x-reverse">
                       <Flag className="w-4 h-4 text-gray-500" />
                       <span className="text-sm text-gray-600">الأولوية:</span>
@@ -1809,13 +1924,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
               )}
             </div>
+            )}
 
             {/* Custom Fields */}
-            {process.fields.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+            {((isMobile || isTablet) && activeTab !== 'info') ? null : (
+              process.fields.length > 0 && (
+              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
                 <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                  <Settings className="w-5 h-5 text-green-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">حقول {process.name}</h3>
+                  <Settings className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
+                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>حقول {process.name}</h3>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -2111,6 +2228,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   })}
                 </div>
               </div>
+              )
             )}
 
 
@@ -2120,22 +2238,22 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 {/* المستخدمين المُسندين */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
-                      <Users className="w-5 h-5 text-blue-500" />
+                    <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                      <Users className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
                       <span>المستخدمين المُسندين ({assignments.length})</span>
                     </h3>
                     {hasPermission('ticket_assignees', 'create') && (
                       <button
                         onClick={() => setShowAddAssignment(true)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-blue-600 hover:bg-blue-50 rounded-lg transition-colors`}
                         title="إضافة مستخدم"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
                       </button>
                     )}
                   </div>
 
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className={`space-y-2 ${isMobile || isTablet ? 'max-h-48' : 'max-h-64'} overflow-y-auto`}>
                     {isLoadingAssignments ? (
                       <div className="text-center py-4 text-gray-400">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
@@ -2179,22 +2297,22 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 {hasPermission('ticket_reviewers', 'view') && (
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
-                        <Shield className="w-5 h-5 text-green-500" />
+                      <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                        <Shield className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
                         <span>المراجعين ({reviewers.length})</span>
                       </h3>
                       {hasPermission('ticket_reviewers', 'create') && (
                         <button
                           onClick={() => setShowAddReviewer(true)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-green-600 hover:bg-green-50 rounded-lg transition-colors`}
                           title="إضافة مراجع"
                         >
-                          <Plus className="w-4 h-4" />
+                          <Plus className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
                         </button>
                       )}
                     </div>
 
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className={`space-y-2 ${isMobile || isTablet ? 'max-h-48' : 'max-h-64'} overflow-y-auto`}>
                     {isLoadingReviewers ? (
                       <div className="text-center py-4 text-gray-400">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto mb-2"></div>
@@ -2329,46 +2447,50 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               </div>
             </div>
 
-
             {/* Comments Section */}
-            <CommentsSection
-              ticketId={ticket.id}
-              ticketTitle={ticket.title}
-              assignedUserIds={[
-                ...(ticket.assigned_to ? [ticket.assigned_to] : []),
-                ...assignments.map(a => a.user_id).filter(Boolean)
-              ]}
-              reviewerUserIds={reviewers.map(r => r.reviewer_id).filter(Boolean)}
-              onCommentAdded={(comment) => {
-                // يمكن إضافة منطق إضافي هنا إذا لزم الأمر
-              }}
-            />
+            {((isMobile || isTablet) && activeTab !== 'comments') ? null : (
+            <div className={isMobile || isTablet ? 'mt-4' : ''}>
+              <CommentsSection
+                ticketId={ticket.id}
+                ticketTitle={ticket.title}
+                assignedUserIds={[
+                  ...(ticket.assigned_to ? [ticket.assigned_to] : []),
+                  ...assignments.map(a => a.user_id).filter(Boolean)
+                ]}
+                reviewerUserIds={reviewers.map(r => r.reviewer_id).filter(Boolean)}
+                onCommentAdded={(comment) => {
+                  // يمكن إضافة منطق إضافي هنا إذا لزم الأمر
+                }}
+              />
+            </div>
+            )}
 
             
           </div>
 
           {/* Right Sidebar - Horizontal Layout */}
-          <div className="w-96 lg:w-[500px] border-r border-gray-200 bg-gray-50 flex flex-col">
+          {((isMobile || isTablet) && activeTab !== 'attachments' && activeTab !== 'stages') ? null : (
+          <div className={`${isMobile || isTablet ? 'w-full border-t' : 'w-96 lg:w-[500px] border-r'} border-gray-200 bg-gray-50 flex flex-col`}>
             {/* أزرار التعديل - تظهر فقط عند تفعيل وضع التعديل */}
             {isEditing && (
-              <div className="p-4 border-b border-gray-200 bg-white">
+              <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 bg-white`}>
                 <div className="space-y-2">
                   <button
                     onClick={handleSave}
                     disabled={isUpdating}
-                    className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium text-sm ${
+                    className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white ${isMobile || isTablet ? 'py-2 px-3 text-xs' : 'py-2 px-4 text-sm'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium ${
                       isUpdating ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                   >
-                    <Save className="w-4 h-4" />
+                    <Save className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ'}</span>
                   </button>
                   
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse text-sm"
+                    className={`w-full border border-gray-300 text-gray-700 ${isMobile || isTablet ? 'py-2 px-3 text-xs' : 'py-2 px-4 text-sm'} rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse`}
                   >
-                    <X className="w-4 h-4" />
+                    <X className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>إلغاء التعديل</span>
                   </button>
                 </div>
@@ -2376,14 +2498,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             )}
             
             {/* Horizontal Container for Process Path and Attachments */}
-            <div className="flex flex-col md:flex-row h-full min-h-[400px]">
+            <div className={`flex ${isMobile || isTablet ? 'flex-col' : 'flex-col md:flex-row'} h-full ${isMobile || isTablet ? '' : 'min-h-[400px]'}`}>
             
               {/* Attachments - Right Column */}
-              <div className="flex-1 md:w-1/2">
-                <div className="p-4 bg-white h-full">
+              {((isMobile || isTablet) && activeTab !== 'attachments') ? null : (
+              <div className={`flex-1 ${isMobile || isTablet ? 'w-full' : 'md:w-1/2'}`}>
+                <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-white h-full`}>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
-                      <Paperclip className="w-5 h-5 text-gray-500" />
+                    <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                      <Paperclip className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
                       <span>المرفقات ({(ticket.attachments?.length || 0) + (attachments?.length || 0)})</span>
                     </h3>
 
@@ -2472,7 +2595,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   )}
 
                   {/* منطقة المرفقات مع Scroll */}
-                  <div className="max-h-80 md:max-h-96 overflow-y-auto space-y-2 pr-2 scrollbar-thin border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <div className={`${isMobile || isTablet ? 'max-h-[40vh]' : 'max-h-80 md:max-h-96'} overflow-y-auto space-y-2 pr-2 scrollbar-thin border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gray-50`}>
                     {ticket.attachments?.map((attachment: any) => {
                       // معالجة المرفقات القديمة (من ticket.attachments مباشرة)
                       const isImage = attachment.mime_type?.startsWith('image/') || attachment.type?.startsWith('image/');
@@ -2561,10 +2684,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       return (
                         <div 
                           key={attachment.id || attachment.name} 
-                          className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group"
+                          className={`flex items-center justify-between ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group`}
                           onClick={handleOpenFile}
                         >
-                          <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+                          <div className="flex items-center space-x-2 space-x-reverse flex-1 min-w-0">
                             {isImage && attachmentId ? (
                               <AttachmentImagePreview 
                                 attachmentId={attachmentId}
@@ -2575,53 +2698,55 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                                 })}
                               />
                             ) : isVideo && attachmentId ? (
-                              <div className="w-10 h-10 flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer hover:border-purple-300 transition-colors" onClick={() => setViewingVideo({ 
+                              <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer hover:border-purple-300 transition-colors`} onClick={() => setViewingVideo({ 
                                 id: attachmentId, 
                                 filename: attachment.name || attachment.filename || attachment.original_filename || 'فيديو' 
                               })}>
-                                <Video className="w-5 h-5 text-purple-500" />
+                                <Video className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-purple-500`} />
                               </div>
                             ) : isPDF ? (
-                              <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                              <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-500 flex-shrink-0`} />
                             ) : isText ? (
-                              <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                              <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500 flex-shrink-0`} />
                             ) : (
-                              <Paperclip className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                              <Paperclip className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500 flex-shrink-0`} />
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors" title={attachment.name || attachment.filename || attachment.original_filename}>
+                              <div className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors`} title={attachment.name || attachment.filename || attachment.original_filename}>
                                 {attachment.name || attachment.filename || attachment.original_filename || 'ملف'}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
                                 {attachment.size ? `${(attachment.size / 1024 / 1024).toFixed(1)} MB` : 
                                  attachment.file_size ? `${(Number(attachment.file_size) / 1024).toFixed(1)} KB` : 'حجم غير معروف'}
                               </div>
                             </div>
                           </div>
-                          {(isImage || isVideo || isPDF || isText) && attachmentId && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenFile();
-                              }}
-                              className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors"
-                              title="فتح الملف"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                          )}
-                          {attachmentId && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadFile();
-                              }}
-                              className="text-green-600 hover:text-green-700 p-1 rounded transition-colors"
-                              title="تحميل الملف"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
-                          )}
+                          <div className="flex items-center space-x-1 space-x-reverse flex-shrink-0">
+                            {(isImage || isVideo || isPDF || isText) && attachmentId && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenFile();
+                                }}
+                                className={`text-blue-600 hover:text-blue-700 ${isMobile || isTablet ? 'p-0.5' : 'p-1'} rounded transition-colors`}
+                                title="فتح الملف"
+                              >
+                                <Eye className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
+                              </button>
+                            )}
+                            {attachmentId && (
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadFile();
+                                }}
+                                className={`text-green-600 hover:text-green-700 ${isMobile || isTablet ? 'p-0.5' : 'p-1'} rounded transition-colors`}
+                                title="تحميل الملف"
+                              >
+                                <Download className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -2750,10 +2875,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     return (
                       <div 
                         key={attachment.id} 
-                        className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group"
+                        className={`flex items-center justify-between ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group`}
                         onClick={handleOpenFile}
                       >
-                        <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+                        <div className="flex items-center space-x-2 space-x-reverse flex-1 min-w-0">
                           {isImage ? (
                             <AttachmentImagePreview 
                               attachmentId={attachment.id}
@@ -2761,37 +2886,37 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               onClick={() => setViewingImage({ id: attachment.id, filename: attachment.original_filename })}
                             />
                           ) : isVideo ? (
-                            <div className="w-10 h-10 flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer hover:border-purple-300 transition-colors" onClick={() => setViewingVideo({ id: attachment.id, filename: attachment.original_filename })}>
-                              <Video className="w-5 h-5 text-purple-500" />
+                            <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} flex-shrink-0 rounded border border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center cursor-pointer hover:border-purple-300 transition-colors`} onClick={() => setViewingVideo({ id: attachment.id, filename: attachment.original_filename })}>
+                              <Video className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-purple-500`} />
                             </div>
                           ) : isPDF ? (
-                            <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+                            <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-500 flex-shrink-0`} />
                           ) : isText ? (
-                            <FileText className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                            <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500 flex-shrink-0`} />
                           ) : (
-                            <FileText className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                            <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500 flex-shrink-0`} />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors" title={attachment.original_filename}>
+                            <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors`} title={attachment.original_filename}>
                               {attachment.original_filename}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
                               {(Number(attachment.file_size) / 1024).toFixed(1)} KB
                               {attachment.uploaded_by_name && ` • ${attachment.uploaded_by_name}`}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2 space-x-reverse" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center space-x-1 space-x-reverse flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                           {(isImage || isVideo || isPDF || isText) && (
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenFile();
                               }}
-                              className="text-blue-600 hover:text-blue-700 p-1 rounded transition-colors" 
+                              className={`text-blue-600 hover:text-blue-700 ${isMobile || isTablet ? 'p-0.5' : 'p-1'} rounded transition-colors`} 
                               title="فتح الملف"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
                             </button>
                           )}
                           <button 
@@ -2799,10 +2924,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               e.stopPropagation();
                               handleDownloadFile();
                             }}
-                            className="text-green-600 hover:text-green-700 p-1 rounded transition-colors" 
+                            className={`text-green-600 hover:text-green-700 ${isMobile || isTablet ? 'p-0.5' : 'p-1'} rounded transition-colors`} 
                             title="تحميل الملف"
                           >
-                            <Download className="w-4 h-4" />
+                            <Download className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
                           </button>
                           <button
                             onClick={() => {
@@ -2810,15 +2935,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               setShowDeleteAttachmentConfirm(true);
                             }}
                             disabled={isDeletingAttachment}
-                            className={`text-red-600 hover:text-red-700 p-1 rounded transition-colors ${
+                            className={`text-red-600 hover:text-red-700 ${isMobile || isTablet ? 'p-0.5' : 'p-1'} rounded transition-colors ${
                               isDeletingAttachment ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                             title="حذف المرفق"
                           >
                             {isDeletingAttachment && attachmentToDelete === attachment.id ? (
-                              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                              <div className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} border-2 border-red-600 border-t-transparent rounded-full animate-spin`} />
                             ) : (
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
                             )}
                           </button>
                         </div>
@@ -2844,17 +2969,19 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   )}
                 </div>
               </div>
+              )}
             
               {/* Stage Flow - Left Column */}
-              <div className="flex-1 md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200">
-                <div className="p-4 bg-white h-full">
-                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                    <Target className="w-5 h-5 text-blue-500" />
+              {((isMobile || isTablet) && activeTab !== 'stages') ? null : (
+              <div className={`flex-1 ${isMobile || isTablet ? 'w-full border-t' : 'md:w-1/2 border-b md:border-b-0 md:border-r'} border-gray-200`}>
+                <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-white h-full`}>
+                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse`}>
+                    <Target className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
                     <span>مسار العملية</span>
                   </h3>
 
-                  <div className="space-y-3 max-h-96 overflow-y-auto pr-2 scrollbar-thin">
-                {sortedStages.map((stage) => {
+                  <div className={`space-y-3 ${isMobile || isTablet ? 'max-h-[50vh]' : 'max-h-96'} overflow-y-auto pr-2 scrollbar-thin`}>
+                    {sortedStages.map((stage) => {
                   const isCurrentStage = stage.id === ticket.current_stage_id;
                   const isAllowedTransition = currentStage?.allowed_transitions?.includes(stage.id);
                   const isPassed = stage.priority < (currentStage?.priority || 0);
@@ -2936,10 +3063,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 )}
                 </div>
               </div>
-
+              )}
             
             </div>
           </div>
+          )}
         </div>
       </div>
 
