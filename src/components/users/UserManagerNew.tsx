@@ -5,6 +5,7 @@ import { userService, roleService, permissionService } from '../../services';
 import { processService } from '../../services/processService';
 import { API_ENDPOINTS, getAuthHeaders } from '../../config/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDeviceType } from '../../hooks/useDeviceType';
 import { 
   Users, 
   UserPlus, 
@@ -43,6 +44,7 @@ interface UserManagerState {
 
 export const UserManagerNew: React.FC = () => {
   const { hasPermission, isAdmin } = useAuth();
+  const { isMobile, isTablet } = useDeviceType();
   
   const [state, setState] = useState<UserManagerState>({
     users: [],
@@ -972,21 +974,21 @@ export const UserManagerNew: React.FC = () => {
   return (
     <div className="min-h-full bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">إدارة المستخدمين</h1>
-            <p className="text-gray-600">إضافة وتعديل المستخدمين والأدوار والصلاحيات</p>
+      <div className={`bg-white border-b border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+        <div className={`flex items-center justify-between ${isMobile || isTablet ? 'flex-col space-y-3' : 'mb-4'}`}>
+          <div className={isMobile || isTablet ? 'w-full' : ''}>
+            <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900`}>إدارة المستخدمين</h1>
+            <p className={`${isMobile || isTablet ? 'text-xs' : ''} text-gray-600`}>إضافة وتعديل المستخدمين والأدوار والصلاحيات</p>
           </div>
 
-          <div className="flex items-center space-x-3 space-x-reverse">
+          <div className={`flex items-center ${isMobile || isTablet ? 'w-full justify-end' : 'space-x-3 space-x-reverse'}`}>
             {selectedTab === 'users' && hasPermission('users', 'create') && (
               <button
                 onClick={() => setIsCreatingUser(true)}
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
+                className={`bg-gradient-to-r from-blue-500 to-purple-600 text-white ${isMobile || isTablet ? 'px-3 py-1.5 text-xs' : 'px-4 py-2'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse`}
                 disabled={state.loading}
               >
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
                 <span>مستخدم جديد</span>
               </button>
             )}
@@ -994,10 +996,10 @@ export const UserManagerNew: React.FC = () => {
             {selectedTab === 'roles' && hasPermission('roles', 'manage') && (
               <button
                 onClick={() => setIsCreatingRole(true)}
-                className="bg-gradient-to-r from-green-500 to-teal-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
+                className={`bg-gradient-to-r from-green-500 to-teal-600 text-white ${isMobile || isTablet ? 'px-3 py-1.5 text-xs' : 'px-4 py-2'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse`}
                 disabled={state.loading}
               >
-                <Shield className="w-4 h-4" />
+                <Shield className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
                 <span>دور جديد</span>
               </button>
             )}
@@ -1005,11 +1007,12 @@ export const UserManagerNew: React.FC = () => {
             {selectedTab === 'process-permissions' && hasPermission('processes', 'manage_user_permissions') && (
               <button
                 onClick={() => setIsAssigningProcesses(true)}
-                className="bg-gradient-to-r from-orange-500 to-red-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
+                className={`bg-gradient-to-r from-orange-500 to-red-600 text-white ${isMobile || isTablet ? 'px-3 py-1.5 text-xs' : 'px-4 py-2'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse`}
                 disabled={state.loading}
               >
-                <Plus className="w-4 h-4" />
-                <span>إضافة صلاحيات عمليات</span>
+                <Plus className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
+                <span className={isMobile || isTablet ? 'hidden' : ''}>إضافة صلاحيات عمليات</span>
+                <span className={isMobile || isTablet ? '' : 'hidden'}>إضافة</span>
               </button>
             )}
           </div>
@@ -1017,43 +1020,43 @@ export const UserManagerNew: React.FC = () => {
 
         {/* رسائل النجاح والخطأ */}
         {state.error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3 space-x-reverse">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-            <span className="text-red-700 text-sm">{state.error}</span>
+          <div className={`mb-3 ${isMobile || isTablet ? 'p-2' : 'p-4'} bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3 space-x-reverse`}>
+            <AlertCircle className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-500 flex-shrink-0`} />
+            <span className={`text-red-700 ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{state.error}</span>
             <button
               onClick={() => setState(prev => ({ ...prev, error: null }))}
               className="mr-auto text-red-500 hover:text-red-700"
             >
-              <X className="w-4 h-4" />
+              <X className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
             </button>
           </div>
         )}
 
         {state.success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-3 space-x-reverse">
-            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-            <span className="text-green-700 text-sm">{state.success}</span>
+          <div className={`mb-3 ${isMobile || isTablet ? 'p-2' : 'p-4'} bg-green-50 border border-green-200 rounded-lg flex items-center space-x-3 space-x-reverse`}>
+            <CheckCircle className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500 flex-shrink-0`} />
+            <span className={`text-green-700 ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{state.success}</span>
             <button
               onClick={() => setState(prev => ({ ...prev, success: null }))}
               className="mr-auto text-green-500 hover:text-green-700"
             >
-              <X className="w-4 h-4" />
+              <X className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
             </button>
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex space-x-1 space-x-reverse bg-gray-100 rounded-lg p-1">
+        <div className={`flex ${isMobile || isTablet ? 'flex-wrap gap-1' : 'space-x-1 space-x-reverse'} bg-gray-100 rounded-lg ${isMobile || isTablet ? 'p-1' : 'p-1'}`}>
           {hasPermission('users', 'view') && (
             <button
               onClick={() => setSelectedTab('users')}
-              className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`${isMobile || isTablet ? 'flex-1 min-w-[calc(50%-4px)]' : 'flex-1'} flex items-center justify-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'py-1.5 px-2 text-xs' : 'py-2 px-4 text-sm'} rounded-md font-medium transition-colors ${
                 selectedTab === 'users'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Users className="w-4 h-4" />
+              <Users className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
               <span>المستخدمين ({state.users.length})</span>
             </button>
           )}
@@ -1061,13 +1064,13 @@ export const UserManagerNew: React.FC = () => {
           {hasPermission('roles', 'view') && (
             <button
               onClick={() => setSelectedTab('roles')}
-              className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`${isMobile || isTablet ? 'flex-1 min-w-[calc(50%-4px)]' : 'flex-1'} flex items-center justify-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'py-1.5 px-2 text-xs' : 'py-2 px-4 text-sm'} rounded-md font-medium transition-colors ${
                 selectedTab === 'roles'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Shield className="w-4 h-4" />
+              <Shield className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
               <span>الأدوار ({state.roles.length})</span>
             </button>
           )}
@@ -1075,35 +1078,37 @@ export const UserManagerNew: React.FC = () => {
           {hasPermission('permissions', 'manage') && (
             <button
               onClick={() => setSelectedTab('permissions')}
-              className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`${isMobile || isTablet ? 'flex-1 min-w-[calc(50%-4px)]' : 'flex-1'} flex items-center justify-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'py-1.5 px-2 text-xs' : 'py-2 px-4 text-sm'} rounded-md font-medium transition-colors ${
                 selectedTab === 'permissions'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Key className="w-4 h-4" />
-              <span>الصلاحيات ({state.permissions.length})</span>
+              <Key className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
+              <span className={isMobile || isTablet ? 'hidden' : ''}>الصلاحيات ({state.permissions.length})</span>
+              <span className={isMobile || isTablet ? '' : 'hidden'}>الصلاحيات</span>
             </button>
           )}
 
           {hasPermission('processes', 'manage_user_permissions') && (
             <button
               onClick={() => setSelectedTab('process-permissions')}
-              className={`flex-1 flex items-center justify-center space-x-2 space-x-reverse py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`${isMobile || isTablet ? 'flex-1 min-w-[calc(50%-4px)]' : 'flex-1'} flex items-center justify-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'py-1.5 px-2 text-xs' : 'py-2 px-4 text-sm'} rounded-md font-medium transition-colors ${
                 selectedTab === 'process-permissions'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Shield className="w-4 h-4" />
-              <span>صلاحيات العمليات ({state.processes.length})</span>
+              <Shield className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
+              <span className={isMobile || isTablet ? 'hidden' : ''}>صلاحيات العمليات ({state.processes.length})</span>
+              <span className={isMobile || isTablet ? '' : 'hidden'}>العمليات</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className={isMobile || isTablet ? 'p-3' : 'p-6'}>
         {state.loading && (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -1116,228 +1121,310 @@ export const UserManagerNew: React.FC = () => {
         {!state.loading && selectedTab === 'users' && hasPermission('users', 'view') && (
           <div className="bg-white rounded-lg shadow-sm">
             {/* Search and Filter */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center space-x-4 space-x-reverse">
+            <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200`}>
+              <div className={`flex ${isMobile || isTablet ? 'flex-col space-y-2' : 'items-center space-x-4 space-x-reverse'}`}>
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 ${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                   <input
                     type="text"
                     placeholder="البحث في المستخدمين..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full ${isMobile || isTablet ? 'pl-8 pr-3 py-1.5 text-sm' : 'pl-10 pr-4 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                 </div>
 
-                <select
-                  value={filters.role_id}
-                  onChange={(e) => setFilters(prev => ({ ...prev, role_id: e.target.value }))}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">جميع الأدوار</option>
-                  {state.roles.map(role => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
-                  ))}
-                </select>
+                <div className={`flex ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : ''}`}>
+                  <select
+                    value={filters.role_id}
+                    onChange={(e) => setFilters(prev => ({ ...prev, role_id: e.target.value }))}
+                    className={`${isMobile || isTablet ? 'flex-1 px-2 py-1.5 text-xs' : 'px-4 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  >
+                    <option value="">جميع الأدوار</option>
+                    {state.roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
 
-                <select
-                  value={filters.is_active === undefined ? '' : filters.is_active.toString()}
-                  onChange={(e) => setFilters(prev => ({
-                    ...prev,
-                    is_active: e.target.value === '' ? undefined : e.target.value === 'true'
-                  }))}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">جميع الحالات</option>
-                  <option value="true">نشط</option>
-                  <option value="false">غير نشط</option>
-                </select>
+                  <select
+                    value={filters.is_active === undefined ? '' : filters.is_active.toString()}
+                    onChange={(e) => setFilters(prev => ({
+                      ...prev,
+                      is_active: e.target.value === '' ? undefined : e.target.value === 'true'
+                    }))}
+                    className={`${isMobile || isTablet ? 'flex-1 px-2 py-1.5 text-xs' : 'px-4 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  >
+                    <option value="">جميع الحالات</option>
+                    <option value="true">نشط</option>
+                    <option value="false">غير نشط</option>
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* Users Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">المستخدم</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">الدور</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
-                    <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الإنشاء</th>
-                    {hasPermission('users', 'manage') && (
-                      <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {state.users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-3 space-x-reverse">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">{user.name}</div>
-                            <div className="text-sm text-gray-500">{user.email}</div>
-                            {user.phone && (
-                              <div className="text-xs text-gray-400">{user.phone}</div>
-                            )}
-                          </div>
+            {/* Users Table / Cards */}
+            {isMobile || isTablet ? (
+              /* Mobile Cards View */
+              <div className="divide-y divide-gray-200">
+                {state.users.map((user) => (
+                  <div key={user.id} className={`${isMobile || isTablet ? 'p-3' : 'p-4'} hover:bg-gray-50`}>
+                    <div className="flex items-start justify-between space-x-3 space-x-reverse">
+                      <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+                        <div className={`${isMobile || isTablet ? 'w-10 h-10' : 'w-12 h-12'} bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0`}>
+                          <span className={`text-white font-bold ${isMobile || isTablet ? 'text-sm' : 'text-base'}`}>{user.name.charAt(0)}</span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center space-x-1 space-x-reverse px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role.id)}`}>
-                          {getRoleIcon(user.role.id)}
-                          <span>{user.role.name}</span>
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => hasPermission('users', 'manage') && handleToggleUserStatus(user.id)}
-                          disabled={!hasPermission('users', 'manage')}
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            user.is_active
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-red-100 text-red-800 hover:bg-red-200'
-                          } ${!hasPermission('users', 'manage') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                          {user.is_active ? 'نشط' : 'معطل'}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(user.created_at).toLocaleDateString('ar-SA')}
-                      </td>
+                        <div className="flex-1 min-w-0">
+                          <div className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-medium text-gray-900 truncate`}>{user.name}</div>
+                          <div className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500 truncate`}>{user.email}</div>
+                          {user.phone && (
+                            <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-400 truncate`}>{user.phone}</div>
+                          )}
+                        </div>
+                      </div>
+                      
                       {(hasPermission('permissions', 'manage') || hasPermission('users', 'edit') || hasPermission('users', 'delete')) && (
-                        <td className="px-6 py-4">
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            {/* زر الصلاحيات غير المفعلة */}
-                            {hasPermission('permissions', 'manage') && (
-                              <button
-                                onClick={() => handleOpenInactivePermissions(user)}
-                                className="p-2 rounded-lg hover:bg-purple-50 transition-colors"
-                                title="عرض الصلاحيات غير المفعلة"
-                              >
-                                <Key className="w-4 h-4 text-purple-600" />
-                              </button>
-                            )}
-
-                            {/* زر تعديل المستخدم */}
-                            {hasPermission('users', 'edit') && (
-                              <button
-                                onClick={() => openEditUserModal(user)}
-                                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                                title="تعديل المستخدم"
-                              >
-                                <Edit className="w-4 h-4 text-gray-500" />
-                              </button>
-                            )}
-
-                            {/* زر حذف المستخدم */}
-                            {hasPermission('users', 'delete') && (
-                              <button
-                                onClick={() => handleDeleteUser(user.id)}
-                                className="p-2 rounded-lg hover:bg-red-50 transition-colors"
-                                title="حذف المستخدم"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-500" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
+                        <div className="flex items-center space-x-1 space-x-reverse flex-shrink-0">
+                          {hasPermission('permissions', 'manage') && (
+                            <button
+                              onClick={() => handleOpenInactivePermissions(user)}
+                              className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-purple-50 transition-colors`}
+                              title="عرض الصلاحيات غير المفعلة"
+                            >
+                              <Key className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-purple-600`} />
+                            </button>
+                          )}
+                          {hasPermission('users', 'edit') && (
+                            <button
+                              onClick={() => openEditUserModal(user)}
+                              className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100 transition-colors`}
+                              title="تعديل المستخدم"
+                            >
+                              <Edit className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-gray-500`} />
+                            </button>
+                          )}
+                          {hasPermission('users', 'delete') && (
+                            <button
+                              onClick={() => handleDeleteUser(user.id)}
+                              className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-red-50 transition-colors`}
+                              title="حذف المستخدم"
+                            >
+                              <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-red-500`} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className={`mt-2 flex flex-wrap items-center gap-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>
+                      <span className={`inline-flex items-center space-x-1 space-x-reverse ${isMobile || isTablet ? 'px-2 py-0.5' : 'px-3 py-1'} rounded-full text-xs font-medium ${getRoleColor(user.role.id)}`}>
+                        {getRoleIcon(user.role.id)}
+                        <span>{user.role.name}</span>
+                      </span>
+                      
+                      <button
+                        onClick={() => hasPermission('users', 'manage') && handleToggleUserStatus(user.id)}
+                        disabled={!hasPermission('users', 'manage')}
+                        className={`inline-flex items-center ${isMobile || isTablet ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-xs'} rounded-full font-medium ${
+                          user.is_active
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        } ${!hasPermission('users', 'manage') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {user.is_active ? 'نشط' : 'معطل'}
+                      </button>
+                      
+                      <span className={`text-gray-600 ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'}`}>
+                        {new Date(user.created_at).toLocaleDateString('ar-SA')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Desktop Table View */
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">المستخدم</th>
+                      <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">الدور</th>
+                      <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
+                      <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الإنشاء</th>
+                      {hasPermission('users', 'manage') && (
+                        <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
                       )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* صف التفاصيل لعرض صلاحيات العمليات للمستخدم الموسع */}
-              {expandedUserId && (
-                <div className="px-6 py-4 border-t border-gray-200">
-                  {loadingUserProcesses ? (
-                    <div className="flex items-center space-x-2 space-x-reverse text-gray-600">
-                      <Loader className="w-4 h-4 animate-spin" />
-                      <span>جاري تحميل صلاحيات العمليات للمستخدم...</span>
-                    </div>
-                  ) : expandedUserProcesses.length === 0 ? (
-                    <div className="text-sm text-gray-500">لا توجد صلاحيات عمليات لهذا المستخدم.</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {expandedUserProcesses.map((link) => (
-                        <div key={link.id} className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {state.users.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
                           <div className="flex items-center space-x-3 space-x-reverse">
-                            <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: '#3B82F6' }}>
-                              {(link.process_name || link.process_id).charAt(0)}
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-gray-900">{link.process_name || link.process_id}</div>
-                              {link.role && <div className="text-xs text-gray-500">دور: {link.role}</div>}
+                              <div className="font-medium text-gray-900">{user.name}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                              {user.phone && (
+                                <div className="text-xs text-gray-400">{user.phone}</div>
+                              )}
                             </div>
                           </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center space-x-1 space-x-reverse px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role.id)}`}>
+                            {getRoleIcon(user.role.id)}
+                            <span>{user.role.name}</span>
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
                           <button
-                            onClick={() => handleDeleteUserProcess(link.id)}
-                            className="inline-flex items-center px-3 py-1 rounded text-xs bg-red-50 text-red-700 hover:bg-red-100"
+                            onClick={() => hasPermission('users', 'manage') && handleToggleUserStatus(user.id)}
+                            disabled={!hasPermission('users', 'manage')}
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              user.is_active
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            } ${!hasPermission('users', 'manage') ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                           >
-                            <Trash2 className="w-4 h-4 mr-1 ml-1" /> حذف
+                            {user.is_active ? 'نشط' : 'معطل'}
                           </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {new Date(user.created_at).toLocaleDateString('ar-SA')}
+                        </td>
+                        {(hasPermission('permissions', 'manage') || hasPermission('users', 'edit') || hasPermission('users', 'delete')) && (
+                          <td className="px-6 py-4">
+                            <div className="flex items-center space-x-2 space-x-reverse">
+                              {hasPermission('permissions', 'manage') && (
+                                <button
+                                  onClick={() => handleOpenInactivePermissions(user)}
+                                  className="p-2 rounded-lg hover:bg-purple-50 transition-colors"
+                                  title="عرض الصلاحيات غير المفعلة"
+                                >
+                                  <Key className="w-4 h-4 text-purple-600" />
+                                </button>
+                              )}
+                              {hasPermission('users', 'edit') && (
+                                <button
+                                  onClick={() => openEditUserModal(user)}
+                                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                  title="تعديل المستخدم"
+                                >
+                                  <Edit className="w-4 h-4 text-gray-500" />
+                                </button>
+                              )}
+                              {hasPermission('users', 'delete') && (
+                                <button
+                                  onClick={() => handleDeleteUser(user.id)}
+                                  className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                                  title="حذف المستخدم"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-              {state.users.length === 0 && (
-                <div className="text-center py-12">
-                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <div className="text-gray-400 text-lg mb-2">لا توجد مستخدمين</div>
-                  <p className="text-gray-500 text-sm">
-                    {searchQuery || filters.role_id || filters.is_active !== undefined
-                      ? 'لا توجد نتائج تطابق البحث'
-                      : 'ابدأ بإضافة مستخدم جديد'
-                    }
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* صف التفاصيل لعرض صلاحيات العمليات للمستخدم الموسع */}
+            {expandedUserId && (
+              <div className={`${isMobile || isTablet ? 'px-3 py-3' : 'px-6 py-4'} border-t border-gray-200`}>
+                {loadingUserProcesses ? (
+                  <div className="flex items-center space-x-2 space-x-reverse text-gray-600">
+                    <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
+                    <span className={isMobile || isTablet ? 'text-xs' : 'text-sm'}>جاري تحميل صلاحيات العمليات للمستخدم...</span>
+                  </div>
+                ) : expandedUserProcesses.length === 0 ? (
+                  <div className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>لا توجد صلاحيات عمليات لهذا المستخدم.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {expandedUserProcesses.map((link) => (
+                      <div key={link.id} className={`flex items-center justify-between ${isMobile || isTablet ? 'p-2' : 'p-2'} border border-gray-200 rounded`}>
+                        <div className="flex items-center space-x-3 space-x-reverse">
+                          <div className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} rounded-full flex items-center justify-center ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-bold text-white`} style={{ backgroundColor: '#3B82F6' }}>
+                            {(link.process_name || link.process_id).charAt(0)}
+                          </div>
+                          <div>
+                            <div className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>{link.process_name || link.process_id}</div>
+                            {link.role && <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>دور: {link.role}</div>}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteUserProcess(link.id)}
+                          className={`inline-flex items-center ${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'} rounded bg-red-50 text-red-700 hover:bg-red-100`}
+                        >
+                          <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} mr-1 ml-1`} /> حذف
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {state.users.length === 0 && (
+              <div className="text-center py-12">
+                <Users className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-300 mx-auto mb-3`} />
+                <div className={`text-gray-400 ${isMobile || isTablet ? 'text-base' : 'text-lg'} mb-2`}>لا توجد مستخدمين</div>
+                <p className={`text-gray-500 ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>
+                  {searchQuery || filters.role_id || filters.is_active !== undefined
+                    ? 'لا توجد نتائج تطابق البحث'
+                    : 'ابدأ بإضافة مستخدم جديد'
+                  }
+                </p>
+              </div>
+            )}
 
             {/* Pagination */}
             {state.pagination.total_pages > 1 && (
-              <div className="px-6 py-4 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-500">
+              <div className={`${isMobile || isTablet ? 'px-3 py-3' : 'px-6 py-4'} border-t border-gray-200 bg-white`}>
+                <div className={`flex items-center ${isMobile || isTablet ? 'flex-col space-y-3' : 'justify-between'}`}>
+                  <div className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500 text-center`}>
                     عرض {((state.pagination.page - 1) * state.pagination.per_page) + 1} إلى {Math.min(state.pagination.page * state.pagination.per_page, state.pagination.total)} من {state.pagination.total} نتيجة
                   </div>
-                  <div className="flex items-center space-x-2 space-x-reverse">
+                  <div className={`flex items-center ${isMobile || isTablet ? 'w-full justify-center' : 'space-x-2 space-x-reverse'}`}>
                     <button
                       onClick={() => loadUsers(state.pagination.page - 1)}
                       disabled={state.pagination.page <= 1}
-                      className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm'} border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       السابق
                     </button>
 
-                    {Array.from({ length: Math.min(5, state.pagination.total_pages) }, (_, i) => {
-                      const page = i + 1;
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => loadUsers(page)}
-                          className={`px-3 py-1 border rounded-md text-sm ${
-                            state.pagination.page === page
-                              ? 'bg-blue-500 text-white border-blue-500'
-                              : 'border-gray-300 hover:bg-gray-50'
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      const maxPagesToShow = (isMobile || isTablet) ? 3 : 5;
+                      const pagesToShow = Math.min(maxPagesToShow, state.pagination.total_pages);
+                      const pages = [];
+                      for (let i = 1; i <= pagesToShow; i++) {
+                        pages.push(
+                          <button
+                            key={i}
+                            onClick={() => loadUsers(i)}
+                            className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm'} border rounded-md ${
+                              state.pagination.page === i
+                                ? 'bg-blue-500 text-white border-blue-500'
+                                : 'border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {i}
+                          </button>
+                        );
+                      }
+                      return pages;
+                    })()}
 
                     <button
                       onClick={() => loadUsers(state.pagination.page + 1)}
                       disabled={state.pagination.page >= state.pagination.total_pages}
-                      className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-1 text-sm'} border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       التالي
                     </button>
@@ -1350,17 +1437,17 @@ export const UserManagerNew: React.FC = () => {
 
         {/* Roles Tab */}
         {!state.loading && selectedTab === 'roles' && hasPermission('roles', 'view') && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid ${isMobile || isTablet ? 'grid-cols-1' : 'md:grid-cols-2 lg:grid-cols-3'} ${isMobile || isTablet ? 'gap-3' : 'gap-6'}`}>
             {state.roles.map((role) => (
-              <div key={role.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div key={role.id} className={`bg-white rounded-lg shadow-sm border border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                <div className={`flex items-center justify-between ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>
                   <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className={`p-2 rounded-lg ${getRoleColor(role.id)}`}>
+                    <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg ${getRoleColor(role.id)}`}>
                       {getRoleIcon(role.id)}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{role.name}</h3>
-                      <p className="text-sm text-gray-500">{role.description}</p>
+                      <h3 className={`${isMobile || isTablet ? 'text-sm' : ''} font-semibold text-gray-900`}>{role.name}</h3>
+                      <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>{role.description}</p>
                     </div>
                   </div>
 
@@ -1407,23 +1494,23 @@ export const UserManagerNew: React.FC = () => {
         {/* Permissions Tab */}
         {!state.loading && selectedTab === 'permissions' && hasPermission('permissions', 'manage') && (
           <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">الصلاحيات المتاحة</h3>
+            <div className={isMobile || isTablet ? 'p-3' : 'p-6'}>
+              <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>الصلاحيات المتاحة</h3>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className={`grid ${isMobile || isTablet ? 'grid-cols-1' : 'md:grid-cols-2'} ${isMobile || isTablet ? 'gap-3' : 'gap-4'}`}>
                 {state.permissions.map((permission) => (
-                  <div key={permission.id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={permission.id} className={`border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-4'}`}>
                     <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{permission.name}</h4>
-                        <p className="text-sm text-gray-500">
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`${isMobile || isTablet ? 'text-sm' : ''} font-medium text-gray-900`}>{permission.name}</h4>
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>
                           {permission.resource} - {permission.action}
                         </p>
                         {permission.description && (
-                          <p className="text-xs text-gray-400 mt-1">{permission.description}</p>
+                          <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-400 mt-1`}>{permission.description}</p>
                         )}
                       </div>
-                      <Key className="w-5 h-5 text-gray-400" />
+                      <Key className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400 flex-shrink-0`} />
                     </div>
                   </div>
                 ))}
