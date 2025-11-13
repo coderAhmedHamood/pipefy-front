@@ -399,12 +399,12 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         <form onSubmit={handleSubmit} className={`flex flex-col ${isMobile || isTablet ? 'h-[calc(100vh-80px)]' : 'h-[calc(95vh-120px)]'}`}>
           <div className={`flex flex-1 min-h-0 ${isMobile || isTablet ? 'flex-col' : ''}`}>
             {/* Left Panel - Form Content */}
-            <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-4' : 'p-6'} space-y-4 ${isMobile || isTablet ? '' : 'space-y-6'}`}>
+            <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} ${isMobile || isTablet ? 'space-y-3' : 'space-y-6'}`}>
               {/* العنوان الأساسي */}
-              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-4' : 'p-6'}`}>
-                <div className="flex items-center space-x-2 space-x-reverse mb-4">
+              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                <div className={`flex items-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>
                   <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
-                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>معلومات أساسية</h3>
+                  <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>معلومات أساسية</h3>
                 </div>
                 
                 <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-4'}>
@@ -445,13 +445,13 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
               </div>
 
               {/* الحقول الأساسية */}
-              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-4' : 'p-6'}`}>
-                <div className="flex items-center space-x-2 space-x-reverse mb-4">
+              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                <div className="flex items-center space-x-2 space-x-reverse mb-3">
                   <Settings className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
-                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>إعدادات التذكرة</h3>
+                  <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>إعدادات التذكرة</h3>
                 </div>
                 
-                <div className={`grid grid-cols-1 ${isMobile || isTablet ? '' : 'md:grid-cols-2'} ${isMobile || isTablet ? 'gap-4' : 'gap-6'}`}>
+                <div className={`grid grid-cols-1 ${isMobile || isTablet ? '' : 'md:grid-cols-2'} ${isMobile || isTablet ? 'gap-3' : 'gap-6'}`}>
                   <div>
                     <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                       <Flag className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} inline ml-1`} />
@@ -486,13 +486,13 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
             {/* الحقول المخصصة للعملية */}
             {process.fields.length > 0 && (
-              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-4' : 'p-6'}`}>
-                <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                  <div className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} ${process.color} rounded mr-2`}></div>
-                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>حقول {process.name}</h3>
+              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                <div className="flex items-center space-x-2 space-x-reverse mb-3">
+                  <div className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} ${process.color} rounded mr-2`}></div>
+                  <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>حقول {process.name}</h3>
                 </div>
                 
-                <div className={`grid grid-cols-1 ${isMobile || isTablet ? '' : 'md:grid-cols-2'} ${isMobile || isTablet ? 'gap-4' : 'gap-6'}`}>
+                <div className={`grid grid-cols-1 ${isMobile || isTablet ? '' : 'md:grid-cols-2'} ${isMobile || isTablet ? 'gap-3' : 'gap-6'}`}>
                   {process.fields.map((field) => (
                     <div key={field.id} className="space-y-2">
                       <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
@@ -513,109 +513,157 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             </div>
 
             {/* Right Panel - Preview & Actions */}
-            <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col">
-              {/* Preview */}
-              <div className="p-6 bg-white border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                  <Eye className="w-5 h-5 text-blue-500" />
-                  <span>معاينة التذكرة</span>
-                </h3>
-                
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">العنوان:</span>
-                    <span className="font-medium text-gray-900">{formData.title || 'غير محدد'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">العملية:</span>
-                    <span className="font-medium text-gray-900">{process.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">المرحلة:</span>
-                    <span className="font-medium text-gray-900">{currentStage?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">الأولوية:</span>
-                    <span className={`font-medium ${
-                      formData.priority === 'urgent' ? 'text-red-600' :
-                      formData.priority === 'high' ? 'text-orange-600' :
-                      formData.priority === 'medium' ? 'text-yellow-600' : 'text-green-600'
-                    }`}>
-                      {getPriorityLabel(formData.priority)}
-                    </span>
-                  </div>
-                  {formData.due_date && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">موعد الإنتهاء:</span>
-                      <span className="font-medium text-gray-900">
-                        {new Date(formData.due_date).toLocaleDateString('ar-SA')}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Stage Progress */}
-              <div className="p-6 bg-white border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-4">مراحل العملية</h3>
-                <div className="space-y-3">
-                  {process.stages.map((stage, index) => (
-                    <div key={stage.id} className="flex items-center space-x-3 space-x-reverse">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        index === 0 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'
-                      }`}>
-                        {index === 0 ? <CheckCircle className="w-3 h-3" /> : index + 1}
+            {isMobile || isTablet ? (
+              /* Mobile Layout - Preview and Actions at bottom */
+              <div className="border-t border-gray-200 bg-gray-50 flex flex-col">
+                {/* Error Message */}
+                {submitError && (
+                  <div className="p-3">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <AlertCircle className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-500 flex-shrink-0`} />
+                        <div className={`text-red-700 ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{submitError}</div>
                       </div>
-                      <span className={`text-sm ${index === 0 ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
-                        {stage.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Error Message */}
-              {submitError && (
-                <div className="px-6 pb-3">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                      <div className="text-red-700 text-sm">{submitError}</div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Action Buttons */}
-              <div className={`${isMobile || isTablet ? 'p-4' : 'p-6'} space-y-3 border-t border-gray-200 bg-gray-50`}>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>جاري الإنشاء...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      <span>إنشاء التذكرة</span>
-                    </>
-                  )}
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
-                >
-                  <X className="w-4 h-4" />
-                  <span>إلغاء</span>
-                </button>
+                {/* Action Buttons */}
+                <div className={`${isMobile || isTablet ? 'p-3' : 'p-6'} space-y-2 border-t border-gray-200 bg-white sticky bottom-0`}>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white ${isMobile || isTablet ? 'py-2.5 px-3 text-sm' : 'py-3 px-4'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse disabled:opacity-50 disabled:cursor-not-allowed font-medium`}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} border-2 border-white border-t-transparent rounded-full animate-spin`}></div>
+                        <span>جاري الإنشاء...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                        <span>إنشاء التذكرة</span>
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className={`w-full border border-gray-300 text-gray-700 ${isMobile || isTablet ? 'py-2.5 px-3 text-sm' : 'py-3 px-4'} rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse`}
+                  >
+                    <X className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                    <span>إلغاء</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* Desktop Layout - Sidebar */
+              <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col">
+                {/* Preview */}
+                <div className="p-6 bg-white border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                    <Eye className="w-5 h-5 text-blue-500" />
+                    <span>معاينة التذكرة</span>
+                  </h3>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">العنوان:</span>
+                      <span className="font-medium text-gray-900">{formData.title || 'غير محدد'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">العملية:</span>
+                      <span className="font-medium text-gray-900">{process.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">المرحلة:</span>
+                      <span className="font-medium text-gray-900">{currentStage?.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">الأولوية:</span>
+                      <span className={`font-medium ${
+                        formData.priority === 'urgent' ? 'text-red-600' :
+                        formData.priority === 'high' ? 'text-orange-600' :
+                        formData.priority === 'medium' ? 'text-yellow-600' : 'text-green-600'
+                      }`}>
+                        {getPriorityLabel(formData.priority)}
+                      </span>
+                    </div>
+                    {formData.due_date && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">موعد الإنتهاء:</span>
+                        <span className="font-medium text-gray-900">
+                          {new Date(formData.due_date).toLocaleDateString('ar-SA')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stage Progress */}
+                <div className="p-6 bg-white border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900 mb-4">مراحل العملية</h3>
+                  <div className="space-y-3">
+                    {process.stages.map((stage, index) => (
+                      <div key={stage.id} className="flex items-center space-x-3 space-x-reverse">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          index === 0 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'
+                        }`}>
+                          {index === 0 ? <CheckCircle className="w-3 h-3" /> : index + 1}
+                        </div>
+                        <span className={`text-sm ${index === 0 ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
+                          {stage.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Error Message */}
+                {submitError && (
+                  <div className="px-6 pb-3">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                        <div className="text-red-700 text-sm">{submitError}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="p-6 space-y-3 border-t border-gray-200 bg-gray-50">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>جاري الإنشاء...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>إنشاء التذكرة</span>
+                      </>
+                    )}
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>إلغاء</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </form>
       </div>
