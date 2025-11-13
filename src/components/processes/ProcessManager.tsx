@@ -37,17 +37,6 @@ export const ProcessManager: React.FC = () => {
   
   // تسجيل تشخيصي للصلاحيات عند تحميل المكون
   useEffect(() => {
-    console.log('🔍 ProcessManager - تحميل الصلاحيات:');
-    console.log('   المستخدم:', user?.name || user?.email);
-    console.log('   الصلاحيات:', user?.permissions?.map(p => `${p.resource}.${p.action}`) || 'لا توجد');
-    console.log('   fields.create:', hasPermission('fields', 'create'));
-    console.log('   fields.update:', hasPermission('fields', 'update'));
-    console.log('   fields.delete:', hasPermission('fields', 'delete'));
-    console.log('   fields.read:', hasPermission('fields', 'read'));
-    console.log('   stages.create:', hasPermission('stages', 'create'));
-    console.log('   stages.update:', hasPermission('stages', 'update'));
-    console.log('   stages.delete:', hasPermission('stages', 'delete'));
-    console.log('   stages.read:', hasPermission('stages', 'read'));
   }, [user, hasPermission]);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -133,25 +122,14 @@ export const ProcessManager: React.FC = () => {
   // تحميل بيانات الحقل عند فتح نموذج التحديث
   React.useEffect(() => {
     if (editingField && editingField.id) {
-      console.log('🔄 تحميل بيانات الحقل للتحديث:', editingField);
-      console.log('🔍 جميع خصائص الحقل:', Object.keys(editingField));
-      console.log('🔍 البيانات الكاملة:', JSON.stringify(editingField, null, 2));
 
       // استخراج جميع البيانات من الحقل
       const fieldData = editingField as any;
 
       // تجربة جميع الطرق الممكنة لاستخراج نوع الحقل
-      console.log('🔍 field_type:', fieldData.field_type);
-      console.log('🔍 type:', fieldData.type);
-      console.log('🔍 fieldType:', fieldData.fieldType);
-
       // البيانات القادمة من API تستخدم field_type وليس type
       const fieldType = fieldData.field_type || fieldData.type || fieldData.fieldType || 'text';
       const fieldOptions = fieldData.options || [];
-
-      console.log('📝 نوع الحقل المستخرج:', fieldType);
-      console.log('📋 خيارات الحقل:', fieldOptions);
-      console.log('✅ حالة الإجبارية:', fieldData.is_required);
 
       // تحميل بيانات الحقل الموجود للتحديث
       const formData = {
@@ -164,10 +142,7 @@ export const ProcessManager: React.FC = () => {
         }))
       };
 
-      console.log('📋 بيانات النموذج النهائية:', formData);
       setFieldForm(formData);
-
-      console.log('✅ تم تحميل بيانات الحقل بنجاح');
     } else if (editingField && !editingField.id) {
       // إعادة تعيين النموذج للحقل الجديد
       setFieldForm({
@@ -181,7 +156,6 @@ export const ProcessManager: React.FC = () => {
 
   // مراقبة تغييرات fieldForm
   React.useEffect(() => {
-    console.log('🔄 تغيير في fieldForm:', fieldForm);
   }, [fieldForm]);
 
   const handleCreateProcess = async () => {
@@ -212,7 +186,6 @@ export const ProcessManager: React.FC = () => {
       };
 
       
-      console.log("🚀 إرسال بيانات العملية إلى API:", processData);
 
       // الحصول على token المصادقة
       let token = localStorage.getItem('auth_token');
@@ -222,7 +195,6 @@ export const ProcessManager: React.FC = () => {
         token = localStorage.getItem('token');
       }
 
-      console.log("🔑 Token المستخدم:", token ? `${token.substring(0, 20)}...` : 'غير موجود');
 
       if (!token) {
         alert('يجب تسجيل الدخول أولاً');
@@ -239,19 +211,10 @@ export const ProcessManager: React.FC = () => {
         body: JSON.stringify(processData)
       });
 
-      console.log("🚀 استجابة HTTP:", {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
       const result = await response.json();
-      console.log("🚀 محتوى الاستجابة:", result);
 
       // تحقق من نجاح العملية بناءً على HTTP status و محتوى الاستجابة
       if (response.ok && result.success === true) {
-        console.log("✅ تم إنشاء العملية بنجاح:", result);
 
         // استخدام البيانات المرجعة من API
         const processToAdd = result.data;
@@ -289,13 +252,11 @@ export const ProcessManager: React.FC = () => {
         return;
       }
 
-      console.log('🗑️ بدء حذف العملية:', processId);
 
       // استدعاء دالة الحذف من Context
       const success = await deleteProcess(processId);
 
       if (success) {
-        console.log('✅ تم حذف العملية بنجاح');
         alert('تم حذف العملية بنجاح!');
 
         // إغلاق تفاصيل العملية إذا كانت مفتوحة
@@ -348,13 +309,11 @@ export const ProcessManager: React.FC = () => {
         icon: editForm.icon
       };
 
-      console.log('📝 بدء تحديث العملية:', selectedProcess.id, updateData);
 
       // استدعاء دالة التحديث من Context
       const success = await updateProcess(selectedProcess.id, updateData);
 
       if (success) {
-        console.log('✅ تم تحديث العملية بنجاح');
         alert('تم تحديث العملية بنجاح!');
 
         // إغلاق نموذج التحرير
@@ -438,8 +397,6 @@ export const ProcessManager: React.FC = () => {
         settings: {}
       };
 
-      console.log('📝 إرسال بيانات المرحلة إلى API:', stageData);
-      console.log('🔍 المراحل المسموحة المُرسلة:', stageData.allowed_transitions);
 
       // إرسال طلب POST إلى API
       const response = await fetch(`${API_BASE_URL}/api/stages`, {
@@ -451,19 +408,9 @@ export const ProcessManager: React.FC = () => {
         body: JSON.stringify(stageData)
       });
 
-      console.log('🚀 استجابة HTTP:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
       const result = await response.json();
-      console.log('🚀 محتوى الاستجابة:', result);
-      console.log('🔍 المراحل المسموحة المُستلمة:', result.data?.allowed_transitions);
-      console.log('🔍 transitions المُستلمة:', result.data?.transitions);
 
       if (response.ok && result.success === true) {
-        console.log('✅ تم إنشاء المرحلة بنجاح:', result);
 
         // تحويل البيانات من API إلى تنسيق الواجهة
         const newStage: Stage = {
@@ -538,7 +485,6 @@ export const ProcessManager: React.FC = () => {
       }
 
       setIsUpdatingStage(true);
-      console.log('🔄 بدء تحديث المرحلة:', editingStage.id);
 
       // إعداد بيانات المرحلة للتحديث
       const updateData = {
@@ -555,11 +501,6 @@ export const ProcessManager: React.FC = () => {
         settings: {}
       };
 
-      console.log('📝 إرسال بيانات تحديث المرحلة إلى API:', updateData);
-      console.log('🔍 تفاصيل الحقول الحرجة:');
-      console.log('  - is_initial:', updateData.is_initial, '(نوع:', typeof updateData.is_initial, ')');
-      console.log('  - is_final:', updateData.is_final, '(نوع:', typeof updateData.is_final, ')');
-      console.log('  - allowed_transitions:', updateData.allowed_transitions, '(عدد:', updateData.allowed_transitions.length, ')');
 
       // التحقق من وجود رمز المصادقة
       const authToken = localStorage.getItem('auth_token');
@@ -578,22 +519,14 @@ export const ProcessManager: React.FC = () => {
         body: JSON.stringify(updateData)
       });
 
-      console.log('🚀 استجابة HTTP:', { status: response.status, ok: response.ok });
-
       if (!response.ok) {
         const errorResult = await response.json();
         throw new Error(errorResult.message || `HTTP ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('📋 استجابة API:', result);
-      console.log('📋 بيانات المرحلة المحدثة:', result.data);
-      console.log('📋 allowed_transitions في الاستجابة:', result.data?.allowed_transitions);
-      console.log('📋 is_initial في الاستجابة:', result.data?.is_initial);
-      console.log('📋 is_final في الاستجابة:', result.data?.is_final);
 
       if (result.success) {
-        console.log('✅ تم تحديث المرحلة بنجاح:', result.data);
 
         // إغلاق المودال أولاً لتجنب مشاكل الـ re-rendering
         setEditingStage(null);
@@ -700,11 +633,9 @@ export const ProcessManager: React.FC = () => {
         width: 'full'
       };
 
-      console.log('📝 إرسال بيانات الحقل إلى API:', fieldData);
 
       // تحديد ما إذا كان هذا تحديث أم إنشاء جديد
       const isUpdating = editingField && editingField.id;
-      console.log(isUpdating ? '✏️ تحديث حقل موجود:' : '📝 إنشاء حقل جديد:', fieldForm);
 
       // تحديد URL والطريقة بناءً على نوع العملية
       const url = isUpdating
@@ -722,19 +653,11 @@ export const ProcessManager: React.FC = () => {
         body: JSON.stringify(fieldData)
       });
 
-      console.log('🚀 استجابة HTTP:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
 
       const result = await response.json();
       console.log('� محتوى الاستجابة:', result);
 
       if (response.ok && result.success === true) {
-        console.log(isUpdating ? '✅ تم تحديث الحقل بنجاح:' : '✅ تم إنشاء الحقل بنجاح:', result);
-        console.log('📋 العملية المختارة قبل التحديث:', selectedProcess);
-        console.log('📋 عدد الحقول قبل التحديث:', selectedProcess?.fields?.length || 0);
 
         if (isUpdating) {
           // تحديث الحقل الموجود في الحالة
@@ -746,8 +669,6 @@ export const ProcessManager: React.FC = () => {
 
         // انتظار قصير للتأكد من تحديث الحالة
         setTimeout(() => {
-          console.log('📋 العملية المختارة بعد التحديث:', selectedProcess);
-          console.log('📋 عدد الحقول بعد التحديث:', selectedProcess?.fields?.length || 0);
         }, 100);
 
         // إعادة تعيين النموذج وإغلاق المودال
@@ -811,7 +732,6 @@ export const ProcessManager: React.FC = () => {
         return;
       }
 
-      console.log('🗑️ حذف الحقل:', fieldId);
 
       // إرسال طلب DELETE إلى API
       const response = await fetch(`${API_BASE_URL}/api/fields/${fieldId}`, {
@@ -822,17 +742,9 @@ export const ProcessManager: React.FC = () => {
         }
       });
 
-      console.log('🚀 استجابة HTTP:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
       const result = await response.json();
-      console.log('🚀 محتوى الاستجابة:', result);
 
       if (response.ok && result.success === true) {
-        console.log('✅ تم حذف الحقل بنجاح:', result);
 
         // استخدام الدالة المحسنة لحذف الحقل من الحالة بكفاءة
         removeFieldFromProcess(selectedProcess.id, fieldId);
@@ -896,7 +808,6 @@ export const ProcessManager: React.FC = () => {
         return;
       }
 
-      console.log('🗑️ حذف المرحلة:', stageId);
 
       // إرسال طلب DELETE إلى API
       const response = await fetch(`${API_BASE_URL}/api/stages/${stageId}`, {
@@ -907,17 +818,9 @@ export const ProcessManager: React.FC = () => {
         }
       });
 
-      console.log('🚀 استجابة HTTP:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
-      });
-
       const result = await response.json();
-      console.log('🚀 محتوى الاستجابة:', result);
 
       if (response.ok && result.success === true) {
-        console.log('✅ تم حذف المرحلة بنجاح');
 
         // استخدام الدالة المحسنة لحذف المرحلة من الحالة بكفاءة
         removeStageFromProcess(selectedProcess.id, stageId);
@@ -1127,11 +1030,6 @@ export const ProcessManager: React.FC = () => {
                 <div className="space-y-3">
                   {selectedProcess.stages.map((stage, index) => {
                     // 🔍 سجل تشخيصي لكل مرحلة
-                    console.log(`🔍 المرحلة ${index + 1}: ${stage.name}`);
-                    console.log('   - is_initial:', stage.is_initial, '(نوع:', typeof stage.is_initial, ')');
-                    console.log('   - is_final:', stage.is_final, '(نوع:', typeof stage.is_final, ')');
-                    console.log('   - سيظهر badge "أولى"?', stage.is_initial ? 'نعم ✅' : 'لا ❌');
-                    console.log('   - سيظهر badge "نهائية"?', stage.is_final ? 'نعم ✅' : 'لا ❌');
                     
                     return (
                       <div key={stage.id} className="flex items-center space-x-4 space-x-reverse p-3 border border-gray-200 rounded-lg">
@@ -1154,9 +1052,6 @@ export const ProcessManager: React.FC = () => {
                         {hasPermission('stages', 'update') && (
                           <button
                             onClick={() => {
-                              console.log('🔍 فتح نموذج تعديل المرحلة:', stage);
-                              console.log('   - is_initial:', stage.is_initial, '(نوع:', typeof stage.is_initial, ')');
-                              console.log('   - is_final:', stage.is_final, '(نوع:', typeof stage.is_final, ')');
 
                               // إعداد حالة المرحلة للتحرير
                               setEditingStage(stage);
@@ -1175,9 +1070,6 @@ export const ProcessManager: React.FC = () => {
                                 sla_hours: stage.sla_hours || undefined
                               });
 
-                              console.log('📝 النموذج بعد الملء:');
-                              console.log('   - is_initial:', stage.is_initial === true);
-                              console.log('   - is_final:', stage.is_final === true);
                             }}
                             className="p-1 rounded hover:bg-gray-100"
                           >
@@ -1259,12 +1151,6 @@ export const ProcessManager: React.FC = () => {
                         {hasPermission('fields', 'update') && (
                           <button
                             onClick={() => {
-                              console.log('🖱️ النقر على تحرير الحقل:', field);
-                              console.log('🔍 نوع البيانات:', typeof field);
-                              console.log('🔍 خصائص الحقل:', Object.keys(field));
-                              console.log('🔍 field.field_type:', (field as any).field_type);
-                              console.log('🔍 field.type:', (field as any).type);
-                              console.log('🔍 البيانات الكاملة:', JSON.stringify(field, null, 2));
                               setEditingField(field);
                             }}
                             className="p-1 rounded hover:bg-gray-100"
@@ -1496,16 +1382,12 @@ export const ProcessManager: React.FC = () => {
                           onChange={(e) => {
                             if (e.target.checked) {
                               const newTransitions = [...stageForm.allowed_transitions, stage.id];
-                              console.log('✅ إضافة مرحلة للانتقالات:', stage.name, stage.id);
-                              console.log('📋 الانتقالات الجديدة:', newTransitions);
                               setStageForm({
                                 ...stageForm,
                                 allowed_transitions: newTransitions
                               });
                             } else {
                               const newTransitions = stageForm.allowed_transitions.filter(id => id !== stage.id);
-                              console.log('❌ إزالة مرحلة من الانتقالات:', stage.name, stage.id);
-                              console.log('📋 الانتقالات الجديدة:', newTransitions);
                               setStageForm({
                                 ...stageForm,
                                 allowed_transitions: newTransitions
@@ -1584,7 +1466,6 @@ export const ProcessManager: React.FC = () => {
                 <select
                   value={fieldForm.type}
                   onChange={(e) => {
-                    console.log('🔄 تغيير نوع الحقل من', fieldForm.type, 'إلى', e.target.value);
                     setFieldForm({ ...fieldForm, type: e.target.value as FieldType });
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

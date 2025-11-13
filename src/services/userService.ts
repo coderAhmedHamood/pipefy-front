@@ -85,11 +85,7 @@ class UserService {
   // إنشاء مستخدم جديد
   async createUser(userData: CreateUserRequest): Promise<User> {
     try {
-      console.log('🚀 إرسال طلب إنشاء المستخدم:', userData);
-      
       const response: ApiResponse<User> = await apiClient.post('/users', userData);
-      
-      console.log('📥 استجابة الخادم:', response);
       
       if (!response.success || !response.data) {
         // إذا كان هناك أخطاء تفصيلية، اعرضها

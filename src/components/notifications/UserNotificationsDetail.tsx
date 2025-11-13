@@ -46,10 +46,7 @@ export const UserNotificationsDetail: React.FC<UserNotificationsDetailProps> = (
   const fetchUserNotifications = async () => {
     setIsLoading(true);
     try {
-      console.log('🔍 جلب إشعارات المستخدم:', user.id);
       const response = await apiClient.get(`/notifications/user/${user.id}`);
-      
-      console.log('📥 الاستجابة:', response);
       
       // apiClient يُرجع البيانات مباشرة أو داخل wrapper
       let notifs = [];
@@ -57,30 +54,22 @@ export const UserNotificationsDetail: React.FC<UserNotificationsDetailProps> = (
       if (Array.isArray(response)) {
         // البيانات مباشرة كـ array
         notifs = response;
-        console.log('✅ البيانات كـ array مباشرة');
       } else if (response.data) {
         // البيانات داخل wrapper
         if (Array.isArray(response.data)) {
           notifs = response.data;
-          console.log('✅ البيانات في response.data');
         } else if (response.data.notifications) {
           // البيانات في response.data.notifications
           notifs = response.data.notifications;
-          console.log('✅ البيانات في response.data.notifications');
         } else if (response.data.data) {
           // تحقق من نوع البيانات
           if (Array.isArray(response.data.data)) {
             notifs = response.data.data;
-            console.log('✅ البيانات في response.data.data كـ array');
           } else if (response.data.data.notifications) {
             notifs = response.data.data.notifications;
-            console.log('✅ البيانات في response.data.data.notifications');
           }
         }
       }
-      
-      console.log('📊 عدد الإشعارات:', notifs.length);
-      console.log('📋 الإشعارات:', notifs);
       
       setNotifications(notifs);
       

@@ -85,11 +85,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       const uniqueUserIds = Array.from(new Set(allUserIds));
       
       if (uniqueUserIds.length === 0) {
-        console.log('ℹ️ لا يوجد مستخدمين لإرسال إشعارات إليهم');
         return;
       }
-      
-      console.log(`📧 إرسال إشعارات لـ ${uniqueUserIds.length} مستخدم`);
       
       // إرسال إشعار جماعي
       await notificationService.sendBulkNotification({
@@ -99,8 +96,6 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         notification_type: 'comment_added',
         action_url: `/tickets/${ticketId}`
       });
-      
-      console.log('✅ تم إرسال الإشعارات بنجاح');
     } catch (error) {
       console.error('❌ خطأ في إرسال الإشعارات:', error);
       // لا نوقف العملية إذا فشل الإشعار

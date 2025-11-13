@@ -162,26 +162,22 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const createTicket = async (ticketData: Partial<Ticket>) => {
-    console.log('Creating ticket:', ticketData);
     // This would normally call the API
     // For now, just simulate success
     return Promise.resolve();
   };
 
   const updateTicket = async (ticketId: string, updates: Partial<Ticket>) => {
-    console.log('Updating ticket:', ticketId, updates);
     // This would normally call the API
     return Promise.resolve();
   };
 
   const moveTicket = async (ticketId: string, toStageId: string) => {
-    console.log('Moving ticket:', ticketId, 'to stage:', toStageId);
     // This would normally call the API
     return Promise.resolve();
   };
 
   const deleteTicket = async (ticketId: string) => {
-    console.log('Deleting ticket:', ticketId);
     // This would normally call the API
     return Promise.resolve();
   };

@@ -277,8 +277,6 @@ export const ReportsManager: React.FC = () => {
       const from = customDateFrom || dateFrom;
       const to = customDateTo || dateTo;
       
-      console.log('🔍 جلب تقرير العملية:', processId, 'من:', from, 'إلى:', to);
-      
       const url = `${API_BASE_URL}/api/reports/process/${processId}?date_from=${from}&date_to=${to}`;
       const response = await fetch(url, {
         headers: {
@@ -286,8 +284,6 @@ export const ReportsManager: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
-
-      console.log('📡 استجابة API:', response.status);
 
       if (response.ok) {
         const result = await response.json();
@@ -312,7 +308,6 @@ export const ReportsManager: React.FC = () => {
   };
 
   const handleProcessClick = (process: Process) => {
-    console.log('🖱️ تم الضغط على العملية:', process.name, process.id);
     setSelectedProcess(process);
     fetchProcessReport(process.id);
   };
@@ -361,8 +356,6 @@ export const ReportsManager: React.FC = () => {
       const from = customDateFrom || dateFrom;
       const to = customDateTo || dateTo;
       
-      console.log('🔍 جلب تقرير المستخدم:', userId, 'من:', from, 'إلى:', to);
-      
       const url = `${API_BASE_URL}/api/reports/user/${userId}?date_from=${from}&date_to=${to}`;
       const response = await fetch(url, {
         headers: {
@@ -371,11 +364,8 @@ export const ReportsManager: React.FC = () => {
         }
       });
 
-      console.log('📡 استجابة API:', response.status);
-
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ نتيجة التقرير:', result);
         
         if (result.success && result.data) {
           setUserReport(result.data);
@@ -440,7 +430,6 @@ export const ReportsManager: React.FC = () => {
           currentUserName = userData.data?.name || userData.name || 'المدير';
         }
       } catch (error) {
-        console.log('تعذر جلب اسم المستخدم، سيتم استخدام الاسم الافتراضي');
       }
 
       // استخراج معرفات المستخدمين
@@ -483,7 +472,6 @@ export const ReportsManager: React.FC = () => {
   };
 
   const handleUserClick = (user: User) => {
-    console.log('🖱️ تم الضغط على المستخدم:', user.name, user.id);
     setSelectedUser(user);
     fetchUserReport(user.id);
   };

@@ -59,10 +59,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const fetchUnreadCount = async () => {
       try {
         const response = await notificationService.getUnreadCount();
-        console.log('📊 Sidebar - استجابة عدد الإشعارات:', response);
         if (response.success && response.data) {
           const count = response.data.unread_count || response.data.count || 0;
-          console.log('✅ Sidebar - عدد الإشعارات غير المقروءة:', count);
           setUnreadCount(count);
         }
       } catch (error) {

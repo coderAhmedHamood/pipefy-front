@@ -28,20 +28,14 @@ export const useAttachments = (ticketId: string) => {
 
     setIsLoading(true);
     try {
-      console.log(`📎 جلب مرفقات التذكرة: ${ticketId}`);
       const response = await apiClient.get(`/tickets/${ticketId}/attachments`);
-
-      console.log('📡 استجابة API:', response.data);
 
       // البيانات تأتي مباشرة كـ array
       if (Array.isArray(response.data)) {
         setAttachments(response.data);
-        console.log(`✅ تم جلب ${response.data.length} مرفق`);
       } else if (response.data.success && response.data.data) {
         setAttachments(response.data.data || []);
-        console.log(`✅ تم جلب ${response.data.data?.length || 0} مرفق`);
       } else {
-        console.log('⚠️ لا توجد مرفقات أو فشل في الجلب');
         setAttachments([]);
       }
     } catch (error) {

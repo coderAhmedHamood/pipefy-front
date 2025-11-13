@@ -32,9 +32,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // إضافة console.log للتأكد من تمرير البيانات
   useEffect(() => {
-    console.log('CreateTicketModal opened with:', { process: process.name, stageId });
   }, [process, stageId]);
   // تحديث البيانات عند تغيير الحقل
   const handleFieldChange = (fieldId: string, value: any) => {
@@ -369,9 +367,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
   const currentStage = process.stages.find(s => s.id === stageId);
 
-  // إضافة console.log للتأكد من العثور على المرحلة
   useEffect(() => {
-    console.log('Current stage found:', currentStage);
   }, [currentStage]);
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" dir="rtl">

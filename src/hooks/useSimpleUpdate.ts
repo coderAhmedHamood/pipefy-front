@@ -26,25 +26,16 @@ export const useSimpleUpdate = () => {
 
   const updateTicket = async (ticketId: string, updateData: any): Promise<boolean> => {
     if (isUpdating) {
-      console.log('⏳ عملية تحديث أخرى قيد التنفيذ...');
       return false;
     }
 
     setIsUpdating(true);
-    console.log(`📝 بدء تحديث التذكرة: ${ticketId}`);
-    console.log('📋 البيانات المرسلة:', updateData);
 
     try {
       const response = await apiClient.put<UpdateResponse>(`/tickets/${ticketId}`, updateData);
-      
-      console.log('📡 استجابة API للتحديث:', response.data);
 
       // حل بسيط جداً: إذا كانت الاستجابة تحتوي على id فهي ناجحة
       if (response.data.id) {
-        console.log('✅ تم تحديث التذكرة بنجاح');
-        console.log(`   📋 معرف التذكرة: ${response.data.id}`);
-        console.log(`   📝 العنوان: ${response.data.title}`);
-        console.log(`   📅 تاريخ التحديث: ${response.data.updated_at}`);
         return true;
       } else {
         console.error('❌ فشل في تحديث التذكرة:', response.data.message || 'لا يوجد id في الاستجابة');
@@ -66,7 +57,6 @@ export const useSimpleUpdate = () => {
       return false;
     } finally {
       setIsUpdating(false);
-      console.log('🏁 انتهت عملية التحديث');
     }
   };
 

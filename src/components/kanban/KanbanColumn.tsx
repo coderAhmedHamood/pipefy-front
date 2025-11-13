@@ -59,7 +59,6 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
         
         // عندما يصل المستخدم إلى 90% من نهاية العمود
         if (scrollPercentage > 0.9 && hasMore && !loadingMore && !isLoadingTriggered) {
-          console.log(`🔄 Infinite Scroll: تحميل المزيد للمرحلة ${stage.name}`);
           isLoadingTriggered = true;
           onLoadMore();
           
@@ -155,7 +154,6 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               key={ticket.id}
               ticket={ticket}
               onClick={() => {
-                console.log('Card clicked in column:', ticket.title); // للتأكد من أن الحدث يعمل
                 onTicketClick(ticket);
               }}
               isDragging={draggedTicket?.id === ticket.id}

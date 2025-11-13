@@ -20,23 +20,16 @@ export const useSimpleDelete = () => {
 
   const deleteTicket = async (ticketId: string): Promise<boolean> => {
     if (isDeleting) {
-      console.log('⏳ عملية حذف أخرى قيد التنفيذ...');
       return false;
     }
 
     setIsDeleting(true);
-    console.log(`🗑️ بدء حذف التذكرة: ${ticketId}`);
 
     try {
       const response = await apiClient.delete<DeleteResponse>(`/tickets/${ticketId}`);
 
-      console.log('📡 استجابة API للحذف:', response.data);
-
       // حل بسيط: إذا كانت الاستجابة تحتوي على ticket_id فهي ناجحة
       if (response.data.ticket_id) {
-        console.log('✅ تم حذف التذكرة بنجاح');
-        console.log(`   📋 رقم التذكرة: ${response.data.ticket_number}`);
-        console.log(`   📅 تاريخ الحذف: ${response.data.deleted_at}`);
         return true;
       } else {
         console.error('❌ فشل في حذف التذكرة:', response.data.message || 'لا يوجد ticket_id في الاستجابة');
@@ -58,7 +51,6 @@ export const useSimpleDelete = () => {
       return false;
     } finally {
       setIsDeleting(false);
-      console.log('🏁 انتهت عملية الحذف');
     }
   };
 

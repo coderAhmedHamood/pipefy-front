@@ -61,11 +61,7 @@ class CommentService {
    */
   async getTicketComments(ticketId: string, params?: CommentListParams): Promise<CommentsResponse> {
     try {
-      console.log('جلب تعليقات التذكرة:', ticketId, params);
-      
       const response = await apiClient.get(`${this.endpoint}/${ticketId}/comments`, { params });
-      
-      console.log('استجابة تعليقات التذكرة:', response);
       
       return response;
     } catch (error) {
@@ -79,11 +75,7 @@ class CommentService {
    */
   async createComment(ticketId: string, commentData: CreateCommentData): Promise<ApiResponse<Comment>> {
     try {
-      console.log('إضافة تعليق جديد:', ticketId, commentData);
-      
       const response = await apiClient.post(`${this.endpoint}/${ticketId}/comments`, commentData);
-      
-      console.log('استجابة إضافة التعليق:', response);
       
       return response;
     } catch (error) {

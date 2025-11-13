@@ -33,9 +33,7 @@ export const DebugAuth: React.FC = () => {
 
   const handleTestLogin = async () => {
     try {
-      console.log('بدء اختبار تسجيل الدخول...');
       const result = await authService.login('admin@pipefy.com', 'admin123');
-      console.log('نتيجة تسجيل الدخول:', result);
     } catch (error) {
       console.error('خطأ في تسجيل الدخول:', error);
     }

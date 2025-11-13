@@ -35,8 +35,6 @@ export const useSimpleMove = () => {
     setIsMoving(true);
     
     try {
-      console.log('🔄 تحريك التذكرة:', { ticketId, targetStageId });
-      
       const response = await apiClient.post<SimpleMoveResponse>(
         `/tickets/${ticketId}/move-simple`,
         {
@@ -45,7 +43,6 @@ export const useSimpleMove = () => {
       );
 
       if (response.success) {
-        console.log('✅ تم تحريك التذكرة بنجاح:', response.data);
         return true;
       } else {
         console.error('❌ فشل تحريك التذكرة:', response.message);

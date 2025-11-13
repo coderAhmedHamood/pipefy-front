@@ -152,8 +152,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         console.warn(`⚠️ الثيم "${settings.system_theme}" غير موجود، يتم تصحيحه إلى "default"`);
         settingsService.updateSettings({
           system_theme: 'default'
-        }).then(() => {
-          console.log('✅ تم تصحيح الثيم في قاعدة البيانات إلى "default"');
         }).catch((error) => {
           console.error('❌ خطأ في تصحيح الثيم في قاعدة البيانات:', error);
           hasCorrectedTheme.current = false; // إعادة تعيين في حالة الخطأ للسماح بالمحاولة مرة أخرى
@@ -206,7 +204,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         await settingsService.updateSettings({
           system_theme: themeName
         });
-        console.log('✅ تم حفظ الثيم في قاعدة البيانات:', themeName);
       } catch (error) {
         console.error('❌ خطأ في حفظ الثيم في قاعدة البيانات:', error);
         // لا نوقف العملية، فقط نسجل الخطأ

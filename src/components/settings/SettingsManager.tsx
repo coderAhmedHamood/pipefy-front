@@ -73,7 +73,6 @@ export const SettingsManager: React.FC = () => {
 
   const handleSaveSettings = () => {
     // حفظ الإعدادات
-    console.log('Saving settings...');
   };
 
   const handleExportSettings = () => {

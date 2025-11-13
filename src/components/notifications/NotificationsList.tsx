@@ -51,12 +51,8 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
     if (!skipLoading) {
       setIsLoading(true);
     }
-    console.log('🔔 بدء جلب الإشعارات...', { limit, offset: currentOffset });
     try {
       const response = await apiClient.get(`/notifications/with-users?limit=${limit}&offset=${currentOffset}`);
-      
-      console.log('📥 الاستجابة الكاملة:', response);
-      console.log('📊 response.data:', response.data);
       
       // apiClient يُرجع البيانات مباشرة في response.data
       // تحقق من وجود البيانات
@@ -66,18 +62,11 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
       if (Array.isArray(response.data)) {
         // البيانات مباشرة كـ array
         newNotifications = response.data;
-        console.log('✅ البيانات كـ array مباشرة');
       } else if (response.data && response.data.data) {
         // البيانات داخل wrapper
         newNotifications = response.data.data || [];
         pagination = response.data.pagination;
-        console.log('✅ البيانات داخل wrapper');
-      } else {
-        console.warn('⚠️ صيغة غير متوقعة:', response.data);
       }
-
-      console.log('📋 عدد الإشعارات:', newNotifications.length);
-      console.log('📊 الإشعارات:', newNotifications);
 
       if (currentOffset === 0) {
         setNotifications(newNotifications);
@@ -104,7 +93,6 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
       setHasMore(false);
     } finally {
       setIsLoading(false);
-      console.log('🏁 انتهى جلب الإشعارات');
     }
   };
 
@@ -165,13 +153,10 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
     
     setIsMarkingAllAsRead(true);
     try {
-      console.log('📢 بدء تحديد جميع الإشعارات كمقروءة...');
       const response = await notificationService.markAllAsRead();
-      console.log('📥 استجابة markAllAsRead:', response);
       
       if (response.success) {
         const updatedCount = response.data?.updated_count || 0;
-        console.log(`✅ تم تحديد ${updatedCount} إشعار كمقروء`);
         
         // تحديث جميع الإشعارات في القائمة لتكون مقروءة
         setNotifications(prev => prev.map(notification => ({

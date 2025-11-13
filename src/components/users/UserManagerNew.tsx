@@ -221,8 +221,6 @@ export const UserManagerNew: React.FC = () => {
         userData.phone = userForm.phone.trim();
       }
 
-      console.log('📤 إرسال بيانات المستخدم:', userData);
-
       await userService.createUser(userData);
       
       setState(prev => ({ 
@@ -517,13 +515,8 @@ export const UserManagerNew: React.FC = () => {
       if (!token) {
         throw new Error('لا يوجد رمز مصادقة. يرجى تسجيل الدخول مرة أخرى.');
       }
-      console.log('🔑 تم العثور على التوكن:', token ? 'موجود' : 'غير موجود');
-      
-      console.log('🔄 جاري تحميل تقرير المستخدمين والعمليات...');
-      
       // استدعاء API endpoint للحصول على التقرير
       const apiUrl = API_ENDPOINTS.USER_PROCESSES.REPORTS.USERS_WITH_PROCESSES;
-      console.log('🌐 الرابط الكامل:', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -534,15 +527,11 @@ export const UserManagerNew: React.FC = () => {
         }
       });
 
-      console.log('📡 حالة الاستجابة:', response.status, response.statusText);
-      console.log('📄 نوع المحتوى:', response.headers.get('content-type'));
       // قراءة النص أولاً للتحقق من نوع الاستجابة
       const responseText = await response.text();
-      console.log('📏 حجم الاستجابة:', responseText.length, 'حرف');
 
       if (responseText.startsWith('<!doctype') || responseText.startsWith('<html')) {
         console.error('❌ الخادم يعيد HTML بدلاً من JSON');
-        console.log('🔍 بداية الاستجابة:', responseText.substring(0, 200));
         
         let errorMessage = 'خطأ في الخادم - يعيد صفحة HTML بدلاً من البيانات';
         
@@ -574,10 +563,8 @@ export const UserManagerNew: React.FC = () => {
       let data;
       try {
         data = JSON.parse(responseText);
-        console.log('📊 البيانات الخام من API:', data);
       } catch (parseError) {
         console.error('❌ فشل في تحليل JSON:', parseError);
-        console.log('📄 محتوى الاستجابة:', responseText.substring(0, 500));
         throw new Error('استجابة غير صحيحة من الخادم - ليست JSON صالح');
       }
 
@@ -602,9 +589,6 @@ export const UserManagerNew: React.FC = () => {
       
       setUsersProcessesReport(transformedData);
       setReportStats(data.stats || null);
-      console.log('📊 البيانات المحولة:', transformedData);
-      console.log('📈 الإحصائيات:', data.stats);
-      console.log('✅ تم تحميل التقرير بنجاح');
       
     } catch (error: any) {
       console.error('❌ خطأ في تحميل التقرير:', error);
@@ -709,7 +693,6 @@ export const UserManagerNew: React.FC = () => {
         setInactivePermissions(data.data.inactive_permissions || []);
         setActivePermissions(data.data.active_permissions || []);
         setPermissionsStats(data.data.stats || null);
-        console.log('✅ تم جلب الصلاحيات:', data.data);
       } else {
         throw new Error('صيغة بيانات غير متوقعة من الخادم');
       }
@@ -875,24 +858,6 @@ export const UserManagerNew: React.FC = () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      // طباعة البيانات في Console كما طلبت
-      console.log('🎯 بيانات إضافة العمليات للمستخدم:');
-      console.log('👤 المستخدم المختار:', {
-        id: selectedUserForProcesses.id,
-        name: selectedUserForProcesses.name,
-        email: selectedUserForProcesses.email
-      });
-      console.log('🔧 العمليات المختارة:', selectedProcesses.map(processId => {
-        const process = state.processes.find(p => p.id === processId);
-        return {
-          id: processId,
-          name: process?.name || 'غير معروف',
-          description: process?.description || ''
-        };
-      }));
-      console.log('📊 إجمالي العمليات:', selectedProcesses.length);
-      console.log('🕒 الوقت:', new Date().toLocaleString('ar-SA'));
-
       // إرسال طلب فردي لكل عملية: POST /api/user-processes
       const url = API_ENDPOINTS.USER_PROCESSES.CREATE;
       const headers = getAuthHeaders();
@@ -920,7 +885,6 @@ export const UserManagerNew: React.FC = () => {
             console.error('❌ فشل ربط العملية:', { processId, msg, response: text });
             results.push({ processId, ok: false, message: msg });
           } else {
-            console.log('✅ تم الربط بنجاح:', data);
             results.push({ processId, ok: true });
           }
         } catch (err: any) {
@@ -1504,34 +1468,19 @@ export const UserManagerNew: React.FC = () => {
                     
                     <button
                       onClick={() => {
-                        console.log('🔧 معلومات التشخيص:');
-                        console.log('🌐 الرابط:', API_ENDPOINTS.USER_PROCESSES.REPORTS.USERS_WITH_PROCESSES);
                         const authToken = localStorage.getItem('auth_token');
                         const token = localStorage.getItem('token');
-                        console.log('🔑 التوكنات المتاحة:', {
-                          auth_token: authToken ? 'موجود' : 'غير موجود',
-                          token: token ? 'موجود' : 'غير موجود',
-                          activeToken: authToken || token ? 'سيتم استخدام: ' + (authToken ? 'auth_token' : 'token') : 'لا يوجد'
-                        });
-                        console.log('📊 حالة البيانات:', {
-                          usersCount: usersProcessesReport.length,
-                          statsAvailable: !!reportStats,
-                          loadingState: loadingReport
-                        });
                         
                         // اختبار سريع للخادم
                         fetch(`${API_BASE_URL}/api`)
                           .then(response => {
-                            console.log('🏠 اختبار الصفحة الرئيسية:', response.status);
                             return response.json();
                           })
-                          .then(data => console.log('📋 معلومات الخادم:', data))
                           .catch(error => console.error('❌ خطأ في الاتصال:', error));
                         
                         // اختبار endpoint التقرير مباشرة
                         const testToken = authToken || token;
                         if (testToken) {
-                          console.log('🧪 اختبار endpoint التقرير...');
                           fetch(API_ENDPOINTS.USER_PROCESSES.REPORTS.USERS_WITH_PROCESSES, {
                             headers: {
                               'Authorization': `Bearer ${testToken}`,
@@ -1539,20 +1488,14 @@ export const UserManagerNew: React.FC = () => {
                             }
                           })
                           .then(response => {
-                            console.log('📊 حالة التقرير:', response.status, response.statusText);
-                            console.log('📄 نوع المحتوى:', response.headers.get('content-type'));
                             return response.text();
                           })
                           .then(text => {
-                            if (text.startsWith('<!doctype') || text.startsWith('<html')) {
-                              console.log('❌ يعيد HTML:', text.substring(0, 100));
-                            } else {
+                            if (!text.startsWith('<!doctype') && !text.startsWith('<html')) {
                               try {
-                                const data = JSON.parse(text);
-                                console.log('✅ JSON صحيح - عدد المستخدمين:', data.data?.length || 0);
-                                console.log('📈 الإحصائيات:', data.stats);
+                                JSON.parse(text);
                               } catch {
-                                console.log('❌ JSON غير صحيح:', text.substring(0, 100));
+                                // JSON غير صحيح
                               }
                             }
                           })
