@@ -1786,9 +1786,35 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             {/* Basic Info */}
             {((isMobile || isTablet) && activeTab !== 'info') ? null : (
             <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
-              <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
-                <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>معلومات أساسية</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
+                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>معلومات أساسية</h3>
+                </div>
+                
+                {/* أزرار الحفظ والإلغاء للجوال - في الأعلى */}
+                {isEditing && (isMobile || isTablet) && (
+                  <div className="flex items-center space-x-2 space-x-reverse">
+                    <button
+                      onClick={handleSave}
+                      disabled={isUpdating}
+                      className={`bg-gradient-to-r from-green-500 to-emerald-600 text-white py-1.5 px-3 text-xs rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-1 space-x-reverse font-medium ${
+                        isUpdating ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <Save className="w-3 h-3" />
+                      <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ'}</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="border border-gray-300 text-gray-700 py-1.5 px-3 text-xs rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1 space-x-reverse"
+                    >
+                      <X className="w-3 h-3" />
+                      <span>إلغاء</span>
+                    </button>
+                  </div>
+                )}
               </div>
               
               {isEditing ? (
