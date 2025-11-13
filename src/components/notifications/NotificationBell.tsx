@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Check, Trash2, CheckCheck, Eye } from 'lucide-react';
 import notificationService, { Notification } from '../../services/notificationService';
 import { openTicketUrl, isValidTicketUrl } from '../../utils/urlHelper';
+import { useDeviceType } from '../../hooks/useDeviceType';
 // date-fns removed - using custom function
 
 
@@ -30,6 +31,7 @@ export const NotificationBell: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const { isMobile, isTablet } = useDeviceType();
 
   // جلب عدد الإشعارات غير المقروءة
   const fetchUnreadCount = async () => {
@@ -187,10 +189,26 @@ export const NotificationBell: React.FC = () => {
 
       {/* قائمة الإشعارات المنسدلة */}
       {isOpen && (
-        <div className="absolute left-0 mt-2 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50" dir="rtl">
+        <>
+          {/* Overlay على الجوال */}
+          {(isMobile || isTablet) && (
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              onClick={() => setIsOpen(false)}
+            />
+          )}
+          
+          <div 
+            className={`${isMobile || isTablet 
+              ? 'fixed inset-x-0 top-0 bottom-0 w-full h-full rounded-none z-50' 
+              : 'absolute left-0 mt-2 w-96 rounded-lg z-50'
+            } bg-white shadow-2xl border border-gray-200`} 
+            dir="rtl"
+            ref={panelRef}
+          >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h3 className="text-lg font-bold text-gray-900">الإشعارات</h3>
+          <div className={`flex items-center justify-between ${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 sticky top-0 bg-white z-10`}>
+            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-bold text-gray-900`}>الإشعارات</h3>
             <div className="flex items-center space-x-2 space-x-reverse">
               {unreadCount > 0 && (
                 <button
@@ -218,7 +236,7 @@ export const NotificationBell: React.FC = () => {
           </div>
 
           {/* قائمة الإشعارات */}
-          <div className="max-h-96 overflow-y-auto">
+          <div className={`${isMobile || isTablet ? 'h-[calc(100vh-80px)]' : 'max-h-96'} overflow-y-auto`}>
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -311,6 +329,7 @@ export const NotificationBell: React.FC = () => {
             </div>
           )}
         </div>
+        </>
       )}
     </div>
   );

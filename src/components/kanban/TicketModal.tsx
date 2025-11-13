@@ -16,6 +16,7 @@ import commentService from '../../services/commentService';
 import notificationService from '../../services/notificationService';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { useQuickNotifications } from '../ui/NotificationSystem';
+import { useDeviceType } from '../../hooks/useDeviceType';
 import { 
   X, 
   Save, 
@@ -830,6 +831,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const { moveTicket, isMoving } = useSimpleMove();
   const { deleteTicket, isDeleting } = useSimpleDelete();
   const { updateTicket, isUpdating } = useSimpleUpdate();
+  const { isMobile, isTablet } = useDeviceType();
   const [isEditing, setIsEditing] = useState(false);
   const [showStageSelector, setShowStageSelector] = useState(false);
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
@@ -1576,8 +1578,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
   return (
     <>
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" dir="rtl">
-      <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden">
+    <div className={`fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`} dir="rtl">
+      <div className={`bg-white shadow-2xl w-full overflow-hidden ${isMobile || isTablet ? 'h-full rounded-none' : 'rounded-xl max-w-7xl max-h-[95vh]'}`}>
         {/* Header */}
         <div className="bg-[#00B8A9] text-white p-6">
           <div className="flex items-center justify-between">
@@ -1664,7 +1666,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           </div>
         </div>
 
-        <div className="flex h-[calc(95vh-120px)]">
+        <div className={`flex ${isMobile || isTablet ? 'h-[calc(100vh-120px)] flex-col' : 'h-[calc(95vh-120px)]'}`}>
           {/* Main Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Basic Info */}

@@ -4,6 +4,7 @@ import { Process, ProcessField, Priority, Ticket } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { getPriorityLabel } from '../../utils/priorityUtils';
 import { ticketService, CreateTicketData } from '../../services';
+import { useDeviceType } from '../../hooks/useDeviceType';
 
 interface CreateTicketModalProps {
   process: Process;
@@ -19,6 +20,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
   onSave
 }) => {
   const { getProcessUsers } = useWorkflow();
+  const { isMobile, isTablet } = useDeviceType();
   const [formData, setFormData] = useState<Record<string, any>>({
     title: '',
     description: '',
@@ -370,43 +372,51 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
   useEffect(() => {
   }, [currentStage]);
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4" dir="rtl">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden">
+    <div className={`fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`} dir="rtl">
+      <div className={`bg-white shadow-2xl w-full overflow-hidden ${isMobile || isTablet ? 'h-full rounded-none' : 'rounded-xl max-w-4xl max-h-[95vh]'}`}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
-          <div className="flex items-center space-x-3 space-x-reverse">
-            <div className="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-sm">{process.name.charAt(0)}</span>
+        <div className={`bg-gradient-to-r from-blue-500 to-purple-600 text-white ${isMobile || isTablet ? 'p-4' : 'p-6'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+              <div className={`${isMobile || isTablet ? 'w-10 h-10' : 'w-12 h-12'} bg-white bg-opacity-20 rounded-xl flex items-center justify-center flex-shrink-0`}>
+                <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{process.name.charAt(0)}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold truncate`}>تذكرة جديدة</h1>
+                <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-blue-100 truncate`}>{process.name} - {currentStage?.name}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">تذكرة جديدة</h1>
-              <p className="text-blue-100">{process.name} - {currentStage?.name}</p>
-            </div>
+            <button
+              onClick={onClose}
+              className="flex-shrink-0 p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+            >
+              <X className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'}`} />
+            </button>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col h-[calc(95vh-120px)]">
-          <div className="flex flex-1 min-h-0">
+        <form onSubmit={handleSubmit} className={`flex flex-col ${isMobile || isTablet ? 'h-[calc(100vh-80px)]' : 'h-[calc(95vh-120px)]'}`}>
+          <div className={`flex flex-1 min-h-0 ${isMobile || isTablet ? 'flex-col' : ''}`}>
             {/* Left Panel - Form Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* العنوان الأساسي */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+            <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-4' : 'p-6'} space-y-4 ${isMobile || isTablet ? '' : 'space-y-6'}`}>
+              {/* العنوان الأساسي */}
+              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">معلومات أساسية</h3>
+                  <FileText className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
+                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>معلومات أساسية</h3>
                 </div>
                 
-                <div className="space-y-4">
+                <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-4'}>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                       عنوان التذكرة *
                     </label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={(e) => handleFieldChange('title', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                      className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                         errors.title ? 'border-red-500 bg-red-50' : 'border-gray-300'
                       }`}
                       placeholder="أدخل عنوان واضح ومختصر للتذكرة..."
@@ -420,14 +430,14 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                       الوصف التفصيلي
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => handleFieldChange('description', e.target.value)}
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      rows={isMobile || isTablet ? 3 : 4}
+                      className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
                       placeholder="اشرح التفاصيل والمتطلبات بوضوح..."
                     />
                   </div>
@@ -435,22 +445,22 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
               </div>
 
               {/* الحقول الأساسية */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                  <Settings className="w-5 h-5 text-green-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">إعدادات التذكرة</h3>
+                  <Settings className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
+                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>إعدادات التذكرة</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className={`grid grid-cols-1 ${isMobile || isTablet ? '' : 'md:grid-cols-2'} ${isMobile || isTablet ? 'gap-4' : 'gap-6'}`}>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Flag className="w-4 h-4 inline ml-1" />
+                    <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
+                      <Flag className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} inline ml-1`} />
                       الأولوية
                     </label>
                     <select
                       value={formData.priority}
                       onChange={(e) => handleFieldChange('priority', e.target.value as Priority)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     >
                       <option value="low">منخفض</option>
                       <option value="medium">متوسط</option>
@@ -460,15 +470,15 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Calendar className="w-4 h-4 inline ml-1" />
+                    <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
+                      <Calendar className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} inline ml-1`} />
                       تاريخ الاستحقاق
                     </label>
                     <input
                       type="datetime-local"
                       value={formData.due_date}
                       onChange={(e) => handleFieldChange('due_date', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     />
                   </div>
                 </div>
@@ -476,16 +486,16 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
             {/* الحقول المخصصة للعملية */}
             {process.fields.length > 0 && (
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                  <div className={`w-6 h-6 ${process.color} rounded mr-2`}></div>
-                  <h3 className="text-lg font-semibold text-gray-900">حقول {process.name}</h3>
+                  <div className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} ${process.color} rounded mr-2`}></div>
+                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>حقول {process.name}</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className={`grid grid-cols-1 ${isMobile || isTablet ? '' : 'md:grid-cols-2'} ${isMobile || isTablet ? 'gap-4' : 'gap-6'}`}>
                   {process.fields.map((field) => (
                     <div key={field.id} className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                         {field.name}
                         {field.is_required && <span className="text-red-500 mr-1">*</span>}
                       </label>
@@ -577,7 +587,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
               )}
 
               {/* Action Buttons */}
-              <div className="p-6 space-y-3">
+              <div className={`${isMobile || isTablet ? 'p-4' : 'p-6'} space-y-3 border-t border-gray-200 bg-gray-50`}>
                 <button
                   type="submit"
                   disabled={isSubmitting}

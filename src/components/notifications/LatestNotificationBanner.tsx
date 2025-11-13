@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/config';
 import { Bell, X, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useDeviceType } from '../../hooks/useDeviceType';
 
 interface Notification {
   id: string;
@@ -19,6 +20,7 @@ export const LatestNotificationBanner: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { isMobile, isTablet } = useDeviceType();
 
   // جلب آخر إشعار
   const fetchLatestNotification = async () => {
@@ -166,6 +168,52 @@ export const LatestNotificationBanner: React.FC = () => {
 
   const style = getNotificationStyle(latestNotification.notification_type);
 
+  // على الجوال، نعرض البانر بشكل مختلف - تصميم محسّن
+  if (isMobile || isTablet) {
+    return (
+      <div 
+        className={`flex flex-col ${isMobile ? 'px-3 py-2.5' : 'px-4 py-3'} rounded-lg border-2 ${style.bg} cursor-pointer hover:shadow-md transition-all duration-200 w-full max-w-full shadow-sm`}
+        onClick={handleNotificationClick}
+      >
+        {/* Header: العنوان والوقت */}
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center space-x-2 space-x-reverse flex-1 min-w-0">
+            <div className="flex-shrink-0">
+              <Bell className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${style.icon}`} />
+            </div>
+            <h4 className={`${isMobile ? 'text-sm' : 'text-base'} font-semibold flex-1 ${style.text} leading-tight`}>
+              {latestNotification.title}
+            </h4>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDismiss();
+            }}
+            className={`flex-shrink-0 ${isMobile ? 'p-1' : 'p-1.5'} rounded-full hover:bg-white hover:bg-opacity-50 transition-colors ${style.text} opacity-70 hover:opacity-100`}
+          >
+            <X className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          </button>
+        </div>
+        
+        {/* Body: الرسالة */}
+        <div className="mb-2">
+          <p className={`${isMobile ? 'text-xs' : 'text-sm'} ${style.text} opacity-90 leading-relaxed line-clamp-3`}>
+            {latestNotification.message}
+          </p>
+        </div>
+        
+        {/* Footer: الوقت فقط */}
+        <div className="flex items-center justify-start pt-2 border-t border-gray-300 opacity-20">
+          <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} ${style.text} opacity-70`}>
+            {formatTime(latestNotification.created_at)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // على Desktop، نفس التصميم الحالي
   return (
     <div 
       className={`flex items-center space-x-3 space-x-reverse px-3 py-2 rounded-lg border ${style.bg} cursor-pointer hover:shadow-sm transition-all duration-200 max-w-md`}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDeviceType } from './hooks/useDeviceType';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WorkflowProvider, useWorkflow } from './contexts/WorkflowContext';
@@ -407,6 +408,7 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { processes, selectedProcess, setSelectedProcess } = useWorkflow();
+  const { isMobile, isTablet } = useDeviceType();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
 
@@ -423,8 +425,9 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
       <div className="h-screen bg-gray-50 overflow-hidden" dir="rtl">
         {/* Kanban Header */}
-        <div className="bg-white border-b border-gray-200 p-4">
-          <div className="flex items-center justify-between">
+        <div className="bg-white border-b border-gray-200">
+          {/* Header الرئيسي */}
+          <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} flex items-center justify-between`}>
             <div className="flex items-center space-x-4 space-x-reverse">
               <button
                 onClick={() => setShowSidebar(true)}
@@ -435,24 +438,37 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               
               <CompanyHeader size="medium" />
             </div>
-
-            {/* Latest Notification في المنتصف */}
-            <div className="flex-1 flex justify-center">
-              <LatestNotificationBanner />
-            </div>
             
             <div className="flex items-center space-x-3 space-x-reverse">
-              {/* Process Selector في الجهة اليمنى */}
-              <HeaderProcessSelector
-                processes={processes}
-                selectedProcess={selectedProcess}
-                onProcessSelect={setSelectedProcess}
-                compact={true}
-              />
+              {/* Process Selector مخفي على الجوال - موجود في KanbanMobileView */}
+              {!isMobile && !isTablet && (
+                <HeaderProcessSelector
+                  processes={processes}
+                  selectedProcess={selectedProcess}
+                  onProcessSelect={setSelectedProcess}
+                  compact={true}
+                />
+              )}
               <NotificationBell />
               <UserInfo />
             </div>
           </div>
+          
+          {/* Latest Notification - منفصل على الجوال فقط */}
+          {(isMobile || isTablet) && (
+            <div className="px-3 pb-3">
+              <LatestNotificationBanner />
+            </div>
+          )}
+          
+          {/* Latest Notification - في المنتصف على Desktop */}
+          {!isMobile && !isTablet && (
+            <div className="px-4 pb-3">
+              <div className="flex justify-center">
+                <LatestNotificationBanner />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="h-[calc(100vh-73px)]">

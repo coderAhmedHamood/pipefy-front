@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { DndContext, DragEndEvent, DragStartEvent, closestCenter } from '@dnd-kit/core';
 import { KanbanColumn } from './KanbanColumn';
+import { KanbanMobileView } from './KanbanMobileView';
 import { TicketModal } from './TicketModal';
 import { CreateTicketModal } from './CreateTicketModal';
 import { useWorkflow } from '../../contexts/WorkflowContext';
@@ -12,16 +13,18 @@ import { getPriorityColor, getPriorityLabel } from '../../utils/priorityUtils';
 import { formatDate } from '../../utils/dateUtils';
 import ticketService, { TicketsByStagesResponse, TicketsByStagesApiResponse } from '../../services/ticketService';
 import { useToast } from '../ui/Toast';
+import { useDeviceType } from '../../hooks/useDeviceType';
 
 interface KanbanBoardProps {
   process: Process;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
-  const { } = useWorkflow();
+  const { processes, setSelectedProcess } = useWorkflow();
   const { hasPermission } = useAuth();
   const { showSuccess, showError } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isMobile, isTablet } = useDeviceType();
 
   // State management
   const [ticketsByStages, setTicketsByStages] = useState<TicketsByStagesResponse>({});
@@ -417,8 +420,58 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
 
     showSuccess('تم تحديث التذكرة', `تم تحديث التذكرة "${updatedTicket.title}" بنجاح`);
   };
-  
 
+  // عرض الجوال - تصميم مختلف تماماً
+  if (isMobile || isTablet) {
+    return (
+      <>
+        <KanbanMobileView
+          process={process}
+          processes={processes}
+          onProcessSelect={setSelectedProcess}
+          ticketsByStages={ticketsByStages}
+          statistics={statistics}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onTicketClick={handleTicketClick}
+          onCreateTicket={handleCreateTicket}
+          hasPermission={hasPermission}
+          stageHasMore={stageHasMore}
+          loadingMoreStages={loadingMoreStages}
+          onLoadMore={loadMoreTickets}
+        />
+        
+        {/* Modals للجوال */}
+        {selectedTicket && (
+          <TicketModal
+            ticket={selectedTicket}
+            process={process}
+            onClose={handleCloseTicket}
+            onSave={(updatedTicket) => {
+              if (updatedTicket.id) {
+                handleTicketUpdated(updatedTicket as Ticket);
+              }
+              handleCloseTicket();
+            }}
+            onMoveToStage={handleMoveToStage}
+            onDelete={handleDeleteTicket}
+          />
+        )}
+
+        {isCreatingTicket && creatingTicketStageId && (
+          <CreateTicketModal
+            process={process}
+            stageId={creatingTicketStageId}
+            onClose={() => {
+              setIsCreatingTicket(false);
+              setCreatingTicketStageId(null);
+            }}
+            onSave={handleTicketCreated}
+          />
+        )}
+      </>
+    );
+  }
 
   if (viewMode === 'list') {
     return (
