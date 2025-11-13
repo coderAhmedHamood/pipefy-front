@@ -3,6 +3,7 @@ import { Bell, Clock, ChevronRight, Info, CheckCircle, AlertTriangle, AlertCircl
 import apiClient from '../../lib/api';
 import notificationService from '../../services/notificationService';
 import { useQuickNotifications } from '../ui/NotificationSystem';
+import { useDeviceType } from '../../hooks/useDeviceType';
 
 interface RelatedUser {
   id: string;
@@ -33,6 +34,7 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
   onNotificationSelect, 
   selectedNotificationId 
 }) => {
+  const { isMobile, isTablet } = useDeviceType();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMarkingAllAsRead, setIsMarkingAllAsRead] = useState(false);
@@ -196,31 +198,32 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
 
   // الحصول على أيقونة ولون النوع
   const getTypeConfig = (type: string) => {
+    const iconSize = isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5';
     switch (type) {
       case 'success':
         return {
-          icon: <CheckCircle className="w-5 h-5" />,
+          icon: <CheckCircle className={iconSize} />,
           bgColor: 'bg-green-100',
           textColor: 'text-green-600',
           borderColor: 'border-green-200'
         };
       case 'warning':
         return {
-          icon: <AlertTriangle className="w-5 h-5" />,
+          icon: <AlertTriangle className={iconSize} />,
           bgColor: 'bg-yellow-100',
           textColor: 'text-yellow-600',
           borderColor: 'border-yellow-200'
         };
       case 'error':
         return {
-          icon: <AlertCircle className="w-5 h-5" />,
+          icon: <AlertCircle className={iconSize} />,
           bgColor: 'bg-red-100',
           textColor: 'text-red-600',
           borderColor: 'border-red-200'
         };
       default:
         return {
-          icon: <Info className="w-5 h-5" />,
+          icon: <Info className={iconSize} />,
           bgColor: 'bg-blue-100',
           textColor: 'text-blue-600',
           borderColor: 'border-blue-200'
@@ -231,18 +234,18 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3 space-x-reverse">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Bell className="w-5 h-5 text-purple-600" />
+      <div className={`${isMobile || isTablet ? 'p-2' : 'p-4'} border-b border-gray-200`}>
+        <div className={`flex items-center ${isMobile || isTablet ? 'flex-col space-y-2' : 'justify-between'}`}>
+          <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse w-full' : 'space-x-3 space-x-reverse'}`}>
+            <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-purple-100 rounded-lg`}>
+              <Bell className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-purple-600`} />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">الإشعارات</h3>
-              <p className="text-xs text-gray-500">
+            <div className="flex-1 min-w-0">
+              <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-bold text-gray-900`}>الإشعارات</h3>
+              <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
                 إجمالي: {totalCount} إشعار
                 {unreadCount > 0 && (
-                  <span className="text-red-600 font-medium mr-2">• {unreadCount} غير مقروء</span>
+                  <span className="text-red-600 font-medium mr-1">• {unreadCount} غير مقروء</span>
                 )}
               </p>
             </div>
@@ -253,7 +256,7 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
             <button
               onClick={handleMarkAllAsRead}
               disabled={isMarkingAllAsRead}
-              className={`flex items-center space-x-2 space-x-reverse px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-full ${isMobile || isTablet ? '' : 'w-auto'} flex items-center justify-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm'} rounded-lg font-medium transition-colors ${
                 isMarkingAllAsRead
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'
@@ -262,12 +265,12 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
             >
               {isMarkingAllAsRead ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  <div className={`${isMobile || isTablet ? 'w-3 h-3 border-2' : 'w-4 h-4 border-2'} border-gray-400 border-t-transparent rounded-full animate-spin`} />
                   <span>جاري التحديد...</span>
                 </>
               ) : (
                 <>
-                  <CheckCheck className="w-4 h-4" />
+                  <CheckCheck className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                   <span>تحديد الكل كمقروء</span>
                 </>
               )}
@@ -279,9 +282,9 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
       {/* قائمة الإشعارات */}
       <div className="flex-1 overflow-y-auto">
         {notifications.length === 0 && !isLoading ? (
-          <div className="p-8 text-center">
-            <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">لا يوجد إشعارات</p>
+          <div className={`${isMobile || isTablet ? 'p-4' : 'p-8'} text-center`}>
+            <Bell className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-300 mx-auto mb-3`} />
+            <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>لا يوجد إشعارات</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -293,54 +296,54 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
                   key={notification.id}
                   ref={index === notifications.length - 1 ? lastNotificationRef : null}
                   onClick={() => onNotificationSelect(notification)}
-                  className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  className={`${isMobile || isTablet ? 'p-2' : 'p-4'} hover:bg-gray-50 cursor-pointer transition-colors ${
                     selectedNotificationId === notification.id ? 'bg-purple-50 border-r-4 border-purple-500' : ''
                   }`}
                 >
-                  <div className="flex items-start space-x-3 space-x-reverse">
+                  <div className={`flex items-start ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'}`}>
                     {/* أيقونة النوع */}
-                    <div className={`flex-shrink-0 p-2 ${typeConfig.bgColor} rounded-lg ${typeConfig.textColor}`}>
+                    <div className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} ${typeConfig.bgColor} rounded-lg ${typeConfig.textColor}`}>
                       {typeConfig.icon}
                     </div>
 
                     {/* محتوى الإشعار */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1">
-                        <h4 className="text-sm font-semibold text-gray-900 line-clamp-1">
+                      <div className={`flex items-start ${isMobile || isTablet ? 'flex-col space-y-1' : 'justify-between'} mb-1`}>
+                        <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 line-clamp-1`}>
                           {notification.title}
                         </h4>
-                        <div className="flex items-center space-x-1 space-x-reverse text-xs text-gray-400 mr-2">
-                          <Clock className="w-3 h-3" />
+                        <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1 space-x-reverse' : 'space-x-1 space-x-reverse'} ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-400`}>
+                          <Clock className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
                           <span>{formatTime(notification.created_at)}</span>
                         </div>
                       </div>
 
-                      <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                      <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 ${isMobile || isTablet ? 'line-clamp-1' : 'line-clamp-2'} mb-2`}>
                         {notification.message}
                       </p>
 
                       {/* معلومات المستخدمين */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 space-x-reverse">
+                      <div className={`flex items-center ${isMobile || isTablet ? 'flex-col items-start space-y-1' : 'justify-between'}`}>
+                        <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1 space-x-reverse' : 'space-x-2 space-x-reverse'}`}>
                           {/* صور المستخدمين */}
-                          <div className="flex -space-x-2 space-x-reverse">
+                          <div className="flex -space-x-1 space-x-reverse">
                             {notification.related_users.slice(0, 3).map((user, idx) => (
                               <div
                                 key={user.id}
-                                className="w-6 h-6 rounded-full border-2 border-white bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold"
+                                className={`${isMobile || isTablet ? 'w-5 h-5 text-[10px] border' : 'w-6 h-6 text-xs border-2'} rounded-full border-white bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold`}
                                 title={user.name}
                               >
                                 {user.name.substring(0, 1)}
                               </div>
                             ))}
                             {notification.total_users > 3 && (
-                              <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-bold">
+                              <div className={`${isMobile || isTablet ? 'w-5 h-5 text-[10px] border' : 'w-6 h-6 text-xs border-2'} rounded-full border-white bg-gray-300 flex items-center justify-center text-gray-600 font-bold`}>
                                 +{notification.total_users - 3}
                               </div>
                             )}
                           </div>
 
-                          <span className="text-xs text-gray-500">
+                          <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
                             {notification.total_users} مستخدم
                           </span>
                         </div>
@@ -348,7 +351,7 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
                         {/* عدد غير المقروء */}
                         {notification.unread_count > 0 && (
                           <div className="flex items-center space-x-1 space-x-reverse">
-                            <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs rounded-full font-medium">
+                            <span className={`${isMobile || isTablet ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs'} bg-red-100 text-red-600 rounded-full font-medium`}>
                               {notification.unread_count} غير مقروء
                             </span>
                           </div>
@@ -357,7 +360,7 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
                     </div>
 
                     {/* سهم */}
-                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    <ChevronRight className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400 flex-shrink-0`} />
                   </div>
                 </div>
               );
@@ -365,16 +368,16 @@ export const NotificationsList: React.FC<NotificationsListProps> = ({
 
             {/* مؤشر التحميل */}
             {isLoading && (
-              <div className="p-4 text-center">
-                <div className="inline-block w-6 h-6 border-3 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-sm text-gray-500 mt-2">جاري التحميل...</p>
+              <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} text-center`}>
+                <div className={`inline-block ${isMobile || isTablet ? 'w-4 h-4 border-2' : 'w-6 h-6 border-3'} border-purple-500 border-t-transparent rounded-full animate-spin`}></div>
+                <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500 mt-2`}>جاري التحميل...</p>
               </div>
             )}
 
             {/* رسالة نهاية القائمة */}
             {!hasMore && notifications.length > 0 && (
-              <div className="p-4 text-center">
-                <p className="text-sm text-gray-400">تم عرض جميع الإشعارات</p>
+              <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} text-center`}>
+                <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-400`}>تم عرض جميع الإشعارات</p>
               </div>
             )}
           </div>

@@ -6,6 +6,7 @@ import { UsersList } from './UsersList';
 import { NotificationsList } from './NotificationsList';
 import { UserNotificationsDetail } from './UserNotificationsDetail';
 import { NotificationUsersDetail } from './NotificationUsersDetail';
+import { useDeviceType } from '../../hooks/useDeviceType';
 
 interface User {
   id: string;
@@ -43,6 +44,7 @@ type ViewMode = 'send' | 'reports';
 type ReportView = 'users' | 'notifications';
 
 export const NotificationManagerEnhanced: React.FC = () => {
+  const { isMobile, isTablet } = useDeviceType();
   const [viewMode, setViewMode] = useState<ViewMode>('send');
   const [reportView, setReportView] = useState<ReportView>('users');
   
@@ -215,20 +217,18 @@ export const NotificationManagerEnhanced: React.FC = () => {
     <div className="h-full bg-gray-50 overflow-hidden flex flex-col" dir="rtl">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-      
-
         {/* التبويبات الأفقية */}
-        <div className="flex space-x-1 space-x-reverse border-b border-gray-200">
+        <div className={`flex ${isMobile || isTablet ? 'overflow-x-auto space-x-1 space-x-reverse scrollbar-hide' : 'space-x-1 space-x-reverse'} border-b border-gray-200`}>
           <button
             onClick={() => setViewMode('send')}
-            className={`px-6 py-3 font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
+            className={`${isMobile || isTablet ? 'px-4 py-2 text-xs flex-shrink-0' : 'px-6 py-3'} font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
               viewMode === 'send'
                 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            <Send className="w-5 h-5" />
-            <span>إرسال إشعار</span>
+            <Send className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <span className={isMobile || isTablet ? 'whitespace-nowrap' : ''}>إرسال إشعار</span>
           </button>
           
           <button
@@ -236,14 +236,14 @@ export const NotificationManagerEnhanced: React.FC = () => {
               setViewMode('reports');
               setReportView('users');
             }}
-            className={`px-6 py-3 font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
+            className={`${isMobile || isTablet ? 'px-4 py-2 text-xs flex-shrink-0' : 'px-6 py-3'} font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
               viewMode === 'reports' && reportView === 'users'
                 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            <Users className="w-5 h-5" />
-            <span>المستخدمين</span>
+            <Users className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <span className={isMobile || isTablet ? 'whitespace-nowrap' : ''}>المستخدمين</span>
           </button>
           
           <button
@@ -251,31 +251,30 @@ export const NotificationManagerEnhanced: React.FC = () => {
               setViewMode('reports');
               setReportView('notifications');
             }}
-            className={`px-6 py-3 font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
+            className={`${isMobile || isTablet ? 'px-4 py-2 text-xs flex-shrink-0' : 'px-6 py-3'} font-medium flex items-center space-x-2 space-x-reverse transition-all relative ${
               viewMode === 'reports' && reportView === 'notifications'
                 ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
             }`}
           >
-            <Bell className="w-5 h-5" />
-            <span>الإشعارات</span>
+            <Bell className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <span className={isMobile || isTablet ? 'whitespace-nowrap' : ''}>الإشعارات</span>
           </button>
         </div>
 
-        
         {/* رسائل النجاح/الخطأ */}
-        <div className="px-6 py-2">
+        <div className={`${isMobile || isTablet ? 'px-3 py-2' : 'px-6 py-2'}`}>
         {successMessage && (
-          <div className="mb-2 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-3 space-x-reverse">
-            <CheckCircle className="w-5 h-5 text-green-600" />
-            <p className="text-green-800 text-sm">{successMessage}</p>
+          <div className={`mb-2 ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-green-50 border border-green-200 rounded-lg flex items-center space-x-2 space-x-reverse`}>
+            <CheckCircle className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-600 flex-shrink-0`} />
+            <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-green-800 break-words`}>{successMessage}</p>
           </div>
         )}
 
         {errorMessage && (
-          <div className="mb-2 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3 space-x-reverse">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <p className="text-red-800 text-sm">{errorMessage}</p>
+          <div className={`mb-2 ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2 space-x-reverse`}>
+            <AlertCircle className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 flex-shrink-0`} />
+            <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-red-800 break-words`}>{errorMessage}</p>
           </div>
         )}
         </div>
@@ -285,53 +284,53 @@ export const NotificationManagerEnhanced: React.FC = () => {
       <div className="flex-1 overflow-hidden">
         {viewMode === 'send' ? (
           /* واجهة إرسال الإشعارات */
-          <div className="h-full overflow-y-auto p-6">
-            <div className="max-w-6xl mx-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className={`h-full overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+            <div className={`${isMobile || isTablet ? '' : 'max-w-6xl mx-auto'}`}>
+              <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 lg:grid-cols-3 gap-6'}`}>
                 {/* نموذج الإرسال */}
-                <div className="lg:col-span-2">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-lg font-bold text-gray-900 mb-4">إرسال إشعار جديد</h2>
+                <div className={isMobile || isTablet ? '' : 'lg:col-span-2'}>
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                    <h2 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>إرسال إشعار جديد</h2>
 
                     {/* نوع الإرسال */}
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-3">نوع الإرسال</label>
-                      <div className="flex space-x-4 space-x-reverse">
+                    <div className={`${isMobile || isTablet ? 'mb-4' : 'mb-6'}`}>
+                      <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-2' : 'mb-3'}`}>نوع الإرسال</label>
+                      <div className={`flex ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-4 space-x-reverse'}`}>
                         <button
                           onClick={() => setNotificationType('single')}
-                          className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                          className={`flex-1 ${isMobile || isTablet ? 'p-2' : 'p-4'} rounded-lg border-2 transition-all ${
                             notificationType === 'single'
                               ? 'border-blue-500 bg-blue-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <Bell className="w-6 h-6 mx-auto mb-2 text-blue-600" />
-                          <p className="text-sm font-medium">مستخدم واحد</p>
+                          <Bell className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} mx-auto ${isMobile || isTablet ? 'mb-1' : 'mb-2'} text-blue-600`} />
+                          <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium`}>مستخدم واحد</p>
                         </button>
                         <button
                           onClick={() => setNotificationType('bulk')}
-                          className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                          className={`flex-1 ${isMobile || isTablet ? 'p-2' : 'p-4'} rounded-lg border-2 transition-all ${
                             notificationType === 'bulk'
                               ? 'border-purple-500 bg-purple-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
-                          <Users className="w-6 h-6 mx-auto mb-2 text-purple-600" />
-                          <p className="text-sm font-medium">عدة مستخدمين</p>
+                          <Users className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} mx-auto ${isMobile || isTablet ? 'mb-1' : 'mb-2'} text-purple-600`} />
+                          <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium`}>عدة مستخدمين</p>
                         </button>
                       </div>
                     </div>
 
                     {/* اختيار المستخدم/المستخدمين */}
                     {notificationType === 'single' ? (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <div className={`${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>
+                        <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                           المستخدم <span className="text-red-500">*</span>
                         </label>
                         <select
                           value={selectedUserId}
                           onChange={(e) => setSelectedUserId(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           disabled={isLoadingUsers}
                         >
                           <option value="">اختر مستخدم</option>
@@ -343,47 +342,47 @@ export const NotificationManagerEnhanced: React.FC = () => {
                         </select>
                       </div>
                     ) : (
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="block text-sm font-medium text-gray-700">
+                      <div className={`${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>
+                        <div className={`flex items-center ${isMobile || isTablet ? 'flex-col space-y-2' : 'justify-between'} mb-2`}>
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}>
                             المستخدمين <span className="text-red-500">*</span>
                           </label>
                           <button
                             onClick={toggleSelectAll}
-                            className="text-sm text-blue-600 hover:text-blue-700"
+                            className={`${isMobile || isTablet ? 'text-xs w-full text-center px-2 py-1 bg-blue-50 rounded' : 'text-sm'} text-blue-600 hover:text-blue-700`}
                           >
                             {selectedUserIds.length === users.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
                           </button>
                         </div>
-                        <div className="border border-gray-300 rounded-lg max-h-48 overflow-y-auto">
+                        <div className={`border border-gray-300 rounded-lg ${isMobile || isTablet ? 'max-h-32' : 'max-h-48'} overflow-y-auto`}>
                           {users.map((user) => (
                             <label
                               key={user.id}
-                              className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              className={`flex items-center ${isMobile || isTablet ? 'p-2' : 'p-3'} hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0`}
                             >
                               <input
                                 type="checkbox"
                                 checked={selectedUserIds.includes(user.id)}
                                 onChange={() => toggleUserSelection(user.id)}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-blue-600 rounded focus:ring-2 focus:ring-blue-500 flex-shrink-0`}
                               />
-                              <div className="mr-3 flex-1">
-                                <p className="text-sm font-medium text-gray-900">{user.name}</p>
-                                <p className="text-xs text-gray-500">{user.email}</p>
+                              <div className={`${isMobile || isTablet ? 'mr-2' : 'mr-3'} flex-1 min-w-0`}>
+                                <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900 truncate`}>{user.name}</p>
+                                <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500 truncate`}>{user.email}</p>
                               </div>
                             </label>
                           ))}
                         </div>
-                        <p className="text-sm text-gray-500 mt-2">
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500 mt-2`}>
                           تم اختيار {selectedUserIds.length} من {users.length} مستخدم
                         </p>
                       </div>
                     )}
 
                     {/* نوع الإشعار */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">نوع الإشعار</label>
-                      <div className="grid grid-cols-4 gap-2">
+                    <div className={`${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>
+                      <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>نوع الإشعار</label>
+                      <div className={`grid ${isMobile || isTablet ? 'grid-cols-2 gap-2' : 'grid-cols-4 gap-2'}`}>
                         {[
                           { value: 'info', label: 'معلومات', color: 'blue' },
                           { value: 'success', label: 'نجاح', color: 'green' },
@@ -393,22 +392,24 @@ export const NotificationManagerEnhanced: React.FC = () => {
                           <button
                             key={item.value}
                             onClick={() => setType(item.value as any)}
-                            className={`p-3 rounded-lg border-2 transition-all ${
+                            className={`${isMobile || isTablet ? 'p-2' : 'p-3'} rounded-lg border-2 transition-all ${
                               type === item.value
                                 ? `border-${item.color}-500 bg-${item.color}-50`
                                 : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
-                            {getTypeIcon(item.value)}
-                            <p className="text-xs mt-1">{item.label}</p>
+                            <div className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-5 h-5'} mx-auto`}>
+                              {getTypeIcon(item.value)}
+                            </div>
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} mt-1`}>{item.label}</p>
                           </button>
                         ))}
                       </div>
                     </div>
 
                     {/* العنوان */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className={`${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>
+                      <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                         عنوان الإشعار <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -416,21 +417,21 @@ export const NotificationManagerEnhanced: React.FC = () => {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="مثال: تحديث مهم في النظام"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       />
                     </div>
 
                     {/* الرسالة */}
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <div className={`${isMobile || isTablet ? 'mb-4' : 'mb-6'}`}>
+                      <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                         محتوى الإشعار <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="اكتب محتوى الإشعار هنا..."
-                        rows={4}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        rows={isMobile || isTablet ? 3 : 4}
+                        className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
                       />
                     </div>
 
@@ -438,59 +439,107 @@ export const NotificationManagerEnhanced: React.FC = () => {
                     <button
                       onClick={handleSend}
                       disabled={isSending}
-                      className={`w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg font-medium flex items-center justify-center space-x-2 space-x-reverse transition-all ${
+                      className={`w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white ${isMobile || isTablet ? 'py-2.5 px-4 text-sm' : 'py-3 px-6'} rounded-lg font-medium flex items-center justify-center space-x-2 space-x-reverse transition-all ${
                         isSending ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'
                       }`}
                     >
-                      <Send className="w-5 h-5" />
+                      <Send className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
                       <span>{isSending ? 'جاري الإرسال...' : 'إرسال الإشعار'}</span>
                     </button>
                   </div>
                 </div>
 
                 {/* معاينة */}
-                <div className="lg:col-span-1">
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">معاينة الإشعار</h3>
-                    
-                    <div className={`p-4 rounded-lg border-2 ${
-                      type === 'info' ? 'bg-blue-50 border-blue-200' :
-                      type === 'success' ? 'bg-green-50 border-green-200' :
-                      type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                      'bg-red-50 border-red-200'
-                    }`}>
-                      <div className="flex items-start space-x-3 space-x-reverse">
-                        <div className="flex-shrink-0 text-2xl">
-                          {type === 'info' && 'ℹ️'}
-                          {type === 'success' && '✅'}
-                          {type === 'warning' && '⚠️'}
-                          {type === 'error' && '❌'}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900 mb-1">
-                            {title || 'عنوان الإشعار'}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {message || 'محتوى الإشعار سيظهر هنا...'}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-2">منذ لحظات</p>
+                {!isMobile && !isTablet && (
+                  <div className="lg:col-span-1">
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
+                      <h3 className="text-lg font-bold text-gray-900 mb-4">معاينة الإشعار</h3>
+                      
+                      <div className={`p-4 rounded-lg border-2 ${
+                        type === 'info' ? 'bg-blue-50 border-blue-200' :
+                        type === 'success' ? 'bg-green-50 border-green-200' :
+                        type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                        'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-start space-x-3 space-x-reverse">
+                          <div className="flex-shrink-0 text-2xl">
+                            {type === 'info' && 'ℹ️'}
+                            {type === 'success' && '✅'}
+                            {type === 'warning' && '⚠️'}
+                            {type === 'error' && '❌'}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-gray-900 mb-1">
+                              {title || 'عنوان الإشعار'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {message || 'محتوى الإشعار سيظهر هنا...'}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-2">منذ لحظات</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-600 mb-2">سيتم الإرسال إلى:</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {notificationType === 'single' 
-                          ? selectedUserId 
-                            ? users.find(u => u.id === selectedUserId)?.name || 'مستخدم واحد'
-                            : 'لم يتم الاختيار'
-                          : `${selectedUserIds.length} مستخدم`
-                        }
-                      </p>
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600 mb-2">سيتم الإرسال إلى:</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {notificationType === 'single' 
+                            ? selectedUserId 
+                              ? users.find(u => u.id === selectedUserId)?.name || 'مستخدم واحد'
+                              : 'لم يتم الاختيار'
+                            : `${selectedUserIds.length} مستخدم`
+                          }
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
+
+                {/* معاينة على الجوال */}
+                {(isMobile || isTablet) && (
+                  <div className="col-span-1">
+                    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                      <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>معاينة الإشعار</h3>
+                      
+                      <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} rounded-lg border-2 ${
+                        type === 'info' ? 'bg-blue-50 border-blue-200' :
+                        type === 'success' ? 'bg-green-50 border-green-200' :
+                        type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                        'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-start space-x-2 space-x-reverse">
+                          <div className={`flex-shrink-0 ${isMobile || isTablet ? 'text-lg' : 'text-2xl'}`}>
+                            {type === 'info' && 'ℹ️'}
+                            {type === 'success' && '✅'}
+                            {type === 'warning' && '⚠️'}
+                            {type === 'error' && '❌'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 mb-1 break-words`}>
+                              {title || 'عنوان الإشعار'}
+                            </p>
+                            <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 break-words`}>
+                              {message || 'محتوى الإشعار سيظهر هنا...'}
+                            </p>
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-400 mt-2`}>منذ لحظات</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`${isMobile || isTablet ? 'mt-3 p-2' : 'mt-4 p-3'} bg-gray-50 rounded-lg`}>
+                        <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mb-1`}>سيتم الإرسال إلى:</p>
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>
+                          {notificationType === 'single' 
+                            ? selectedUserId 
+                              ? users.find(u => u.id === selectedUserId)?.name || 'مستخدم واحد'
+                              : 'لم يتم الاختيار'
+                            : `${selectedUserIds.length} مستخدم`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -498,10 +547,10 @@ export const NotificationManagerEnhanced: React.FC = () => {
           /* واجهة التقارير */
           <div className="h-full flex flex-col">
             {/* محتوى التقارير */}
-            <div className="flex-1 overflow-hidden p-6">
-              <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
+            <div className={`flex-1 overflow-hidden ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+              <div className={`h-full grid ${isMobile || isTablet ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3'} ${isMobile || isTablet ? 'gap-3' : 'gap-6'} overflow-hidden`}>
                 {/* القائمة */}
-                <div className="lg:col-span-1 h-full overflow-hidden">
+                <div className={`${isMobile || isTablet ? '' : 'lg:col-span-1'} h-full overflow-hidden ${(isMobile || isTablet) && (selectedUser || selectedNotification) ? 'hidden' : ''}`}>
                   {reportView === 'users' ? (
                     <UsersList 
                       onUserSelect={handleUserSelect}
@@ -516,31 +565,53 @@ export const NotificationManagerEnhanced: React.FC = () => {
                 </div>
 
                 {/* التفاصيل */}
-                <div className="lg:col-span-2 h-full overflow-hidden">
+                <div className={`${isMobile || isTablet ? '' : 'lg:col-span-2'} h-full overflow-hidden`}>
                   {selectedUser ? (
-                    <UserNotificationsDetail
-                      user={selectedUser}
-                      onClose={handleCloseDetails}
-                    />
+                    <>
+                      {(isMobile || isTablet) && (
+                        <button
+                          onClick={handleCloseDetails}
+                          className="mb-3 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center space-x-2 space-x-reverse"
+                        >
+                          <span>←</span>
+                          <span>رجوع</span>
+                        </button>
+                      )}
+                      <UserNotificationsDetail
+                        user={selectedUser}
+                        onClose={handleCloseDetails}
+                      />
+                    </>
                   ) : selectedNotification ? (
-                    <NotificationUsersDetail
-                      notification={selectedNotification}
-                      onClose={handleCloseDetails}
-                    />
+                    <>
+                      {(isMobile || isTablet) && (
+                        <button
+                          onClick={handleCloseDetails}
+                          className="mb-3 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center space-x-2 space-x-reverse"
+                        >
+                          <span>←</span>
+                          <span>رجوع</span>
+                        </button>
+                      )}
+                      <NotificationUsersDetail
+                        notification={selectedNotification}
+                        onClose={handleCloseDetails}
+                      />
+                    </>
                   ) : (
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex items-center justify-center">
-                      <div className="text-center p-8">
+                      <div className={`text-center ${isMobile || isTablet ? 'p-4' : 'p-8'}`}>
                         {reportView === 'users' ? (
                           <>
-                            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">اختر مستخدم</h3>
-                            <p className="text-gray-500">اضغط على مستخدم لعرض إشعاراته</p>
+                            <Users className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} text-gray-300 mx-auto mb-4`} />
+                            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-bold text-gray-900 mb-2`}>اختر مستخدم</h3>
+                            <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>اضغط على مستخدم لعرض إشعاراته</p>
                           </>
                         ) : (
                           <>
-                            <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">اختر إشعار</h3>
-                            <p className="text-gray-500">اضغط على إشعار لعرض المستخدمين المعنيين</p>
+                            <Bell className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} text-gray-300 mx-auto mb-4`} />
+                            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-bold text-gray-900 mb-2`}>اختر إشعار</h3>
+                            <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>اضغط على إشعار لعرض المستخدمين المعنيين</p>
                           </>
                         )}
                       </div>
