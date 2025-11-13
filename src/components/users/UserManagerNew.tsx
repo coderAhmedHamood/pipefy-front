@@ -2747,11 +2747,11 @@ export const UserManagerNew: React.FC = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-end space-x-3 space-x-reverse">
+            <div className={`${isMobile || isTablet ? 'p-3 border-t border-gray-200 bg-gray-50 sticky bottom-0' : 'p-6 border-t border-gray-200 bg-gray-50'} flex-shrink-0`}>
+              <div className="flex items-center justify-end">
                 <button
                   onClick={handleCloseInactivePermissionsModal}
-                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  className={`w-full ${isMobile || isTablet ? 'px-4 py-2 text-sm' : 'px-6 py-2'} bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors`}
                 >
                   إغلاق
                 </button>
