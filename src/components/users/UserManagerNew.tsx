@@ -1967,10 +1967,11 @@ export const UserManagerNew: React.FC = () => {
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">تعديل المستخدم</h3>
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`}>
+          <div className={`bg-white ${isMobile || isTablet ? 'rounded-none w-full h-full max-w-none' : 'rounded-lg shadow-xl max-w-md w-full'} flex flex-col`}>
+            {/* Header */}
+            <div className={`flex items-center justify-between ${isMobile || isTablet ? 'p-3' : 'p-6'} border-b border-gray-200 flex-shrink-0`}>
+              <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>تعديل المستخدم</h3>
               <button
                 onClick={() => {
                   setEditingUser(null);
@@ -1983,77 +1984,78 @@ export const UserManagerNew: React.FC = () => {
                     is_active: true
                   });
                 }}
-                className="p-2 rounded-lg hover:bg-gray-100"
+                className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100`}
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            {/* Form Content - Scrollable */}
+            <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} space-y-4`}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">الاسم</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الاسم</label>
                 <input
                   type="text"
                   value={userForm.name}
                   onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="اسم المستخدم"
                   disabled={state.loading}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>البريد الإلكتروني</label>
                 <input
                   type="email"
                   value={userForm.email}
                   onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="user@example.com"
                   disabled={state.loading}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">كلمة المرور الجديدة (اختياري)</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>كلمة المرور الجديدة (اختياري)</label>
                 <div className="relative">
                   <input
                     type={showEditPassword ? "text" : "password"}
                     value={userForm.password}
                     onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full ${isMobile || isTablet ? 'px-3 py-2 pr-10 text-sm' : 'px-3 py-2 pr-10'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="اتركها فارغة للاحتفاظ بكلمة المرور الحالية"
                     disabled={state.loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowEditPassword(!showEditPassword)}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 ${isMobile || isTablet ? 'p-1' : ''}`}
                     disabled={state.loading}
                   >
-                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showEditPassword ? <EyeOff className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-4 h-4'}`} /> : <Eye className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-4 h-4'}`} />}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">رقم الهاتف (اختياري)</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>رقم الهاتف (اختياري)</label>
                 <input
                   type="tel"
                   value={userForm.phone}
                   onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="+966501234567"
                   disabled={state.loading}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">الدور</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الدور</label>
                 <select
                   value={userForm.role_id}
                   onChange={(e) => setUserForm({ ...userForm, role_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   disabled={state.loading}
                 >
                   <option value="">اختر الدور</option>
@@ -2071,16 +2073,17 @@ export const UserManagerNew: React.FC = () => {
                   id="edit-active"
                   checked={userForm.is_active}
                   onChange={(e) => setUserForm({ ...userForm, is_active: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  className={`rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 ${isMobile || isTablet ? 'w-4 h-4' : ''}`}
                   disabled={state.loading}
                 />
-                <label htmlFor="edit-active" className="mr-2 text-sm text-gray-700">
+                <label htmlFor="edit-active" className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700`}>
                   مستخدم نشط
                 </label>
               </div>
             </div>
 
-            <div className="flex items-center justify-end space-x-3 space-x-reverse p-6 border-t border-gray-200">
+            {/* Footer - Sticky on Mobile */}
+            <div className={`flex items-center ${isMobile || isTablet ? 'flex-col-reverse space-y-2 space-y-reverse' : 'justify-end space-x-3 space-x-reverse'} ${isMobile || isTablet ? 'p-3 border-t border-gray-200 bg-gray-50 sticky bottom-0' : 'p-6 border-t border-gray-200'} flex-shrink-0`}>
               <button
                 onClick={() => {
                   setEditingUser(null);
@@ -2093,7 +2096,7 @@ export const UserManagerNew: React.FC = () => {
                     is_active: true
                   });
                 }}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-2'} text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors`}
                 disabled={state.loading}
               >
                 إلغاء
@@ -2101,11 +2104,11 @@ export const UserManagerNew: React.FC = () => {
               <button
                 onClick={handleUpdateUser}
                 disabled={!userForm.name || !userForm.email || !userForm.role_id || state.loading}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
+                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-2'} bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 space-x-reverse transition-colors`}
               >
                 {state.loading ? (
                   <>
-                    <Loader className="w-4 h-4 animate-spin" />
+                    <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
                     <span>جاري التحديث...</span>
                   </>
                 ) : (
