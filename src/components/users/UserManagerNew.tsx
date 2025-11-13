@@ -2537,123 +2537,120 @@ export const UserManagerNew: React.FC = () => {
 
       {/* Modal الصلاحيات غير المفعلة */}
       {showInactivePermissionsModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`}>
+          <div className={`bg-white ${isMobile || isTablet ? 'rounded-none w-full h-full max-w-none' : 'rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh]'} overflow-hidden flex flex-col`}>
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
+            <div className={`${isMobile || isTablet ? 'p-3' : 'p-6'} border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0`}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 space-x-reverse">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Key className="w-6 h-6 text-purple-600" />
+                <div className="flex items-center space-x-2 space-x-reverse flex-1 min-w-0">
+                  <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-purple-100 rounded-lg flex-shrink-0`}>
+                    <Key className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} text-purple-600`} />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">إدارة الصلاحيات</h2>
+                  <div className="flex-1 min-w-0">
+                    <h2 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-bold text-gray-900 truncate`}>إدارة الصلاحيات</h2>
                     {selectedUserForPermissions && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        المستخدم: <span className="font-medium">{selectedUserForPermissions.name}</span> ({selectedUserForPermissions.email})
+                      <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mt-1 truncate`}>
+                        <span className="font-medium">{selectedUserForPermissions.name}</span> ({selectedUserForPermissions.email})
                       </p>
                     )}
                   </div>
                 </div>
                 <button
                   onClick={handleCloseInactivePermissionsModal}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0`}
                   title="إغلاق"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
                 </button>
               </div>
             </div>
 
             {/* Statistics */}
             {permissionsStats && (
-              <div className="p-4 bg-gray-50 border-b border-gray-200">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="text-center p-3 bg-white rounded-lg border border-gray-200">
-                    <div className="text-2xl font-bold text-gray-900">{permissionsStats.total}</div>
-                    <div className="text-sm text-gray-600 mt-1">إجمالي الصلاحيات</div>
+              <div className={`${isMobile || isTablet ? 'p-2' : 'p-4'} bg-gray-50 border-b border-gray-200 flex-shrink-0`}>
+                <div className={`grid ${isMobile || isTablet ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-5 gap-4'}`}>
+                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg border border-gray-200`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900`}>{permissionsStats.total}</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-gray-600 mt-1`}>إجمالي</div>
                   </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div className="text-2xl font-bold text-green-700">{permissionsStats.active}</div>
-                    <div className="text-sm text-green-600 mt-1">صلاحيات مفعلة</div>
+                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-green-50 rounded-lg border border-green-200`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-green-700`}>{permissionsStats.active}</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-green-600 mt-1`}>مفعلة</div>
                   </div>
-                  <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-                    <div className="text-2xl font-bold text-red-700">{permissionsStats.inactive}</div>
-                    <div className="text-sm text-red-600 mt-1">صلاحيات غير مفعلة</div>
+                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-red-50 rounded-lg border border-red-200`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-red-700`}>{permissionsStats.inactive}</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-red-600 mt-1`}>غير مفعلة</div>
                   </div>
-                  <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="text-2xl font-bold text-blue-700">{permissionsStats.from_role || 0}</div>
-                    <div className="text-sm text-blue-600 mt-1">من الدور</div>
+                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-blue-50 rounded-lg border border-blue-200`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-blue-700`}>{permissionsStats.from_role || 0}</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-blue-600 mt-1`}>من الدور</div>
                   </div>
-                  <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
-                    <div className="text-2xl font-bold text-purple-700">{permissionsStats.from_direct || 0}</div>
-                    <div className="text-sm text-purple-600 mt-1">مباشرة</div>
+                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-purple-50 rounded-lg border border-purple-200`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-purple-700`}>{permissionsStats.from_direct || 0}</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-purple-600 mt-1`}>مباشرة</div>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
               {loadingInactivePermissions ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
-                    <Loader className="w-8 h-8 text-purple-600 animate-spin mx-auto mb-4" />
-                    <p className="text-gray-600">جاري جلب الصلاحيات...</p>
+                    <Loader className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-purple-600 animate-spin mx-auto mb-4`} />
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري جلب الصلاحيات...</p>
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
                   {/* الصلاحيات غير المفعلة - العمود الأول */}
                   <div className="flex flex-col">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse sticky top-0 bg-white pb-2 z-10">
-                      <AlertCircle className="w-5 h-5 text-red-600" />
-                      <span>الصلاحيات غير المفعلة ({inactivePermissions.length})</span>
+                    <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse sticky top-0 bg-white pb-2 z-10`}>
+                      <AlertCircle className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-600`} />
+                      <span>غير المفعلة ({inactivePermissions.length})</span>
                     </h3>
-                    <div className="flex-1 overflow-y-auto pr-2">
+                    <div className="flex-1 overflow-y-auto">
                       {inactivePermissions.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                          <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                          <p className="text-gray-600">جميع الصلاحيات مفعلة</p>
+                        <div className={`text-center ${isMobile || isTablet ? 'py-6' : 'py-8'} bg-gray-50 rounded-lg border border-gray-200`}>
+                          <CheckCircle className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-green-500 mx-auto mb-2`} />
+                          <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جميع الصلاحيات مفعلة</p>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-3'}`}>
                           {inactivePermissions.map((permission: any) => (
                             <div
                               key={permission.id}
-                              className="p-4 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-md transition-all"
+                              className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-md transition-all`}
                             >
-                              <div className="flex items-start justify-between">
+                              <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center space-x-2 space-x-reverse mb-2 flex-wrap">
-                                    <h4 className="font-semibold text-gray-900 break-words">{permission.name}</h4>
-                                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium whitespace-nowrap">
+                                  <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1' : 'space-x-2 space-x-reverse'} mb-2`}>
+                                    <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 break-words`}>{permission.name}</h4>
+                                    <span className={`${isMobile || isTablet ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} bg-purple-100 text-purple-700 rounded-full font-medium whitespace-nowrap`}>
                                       {permission.resource}
                                     </span>
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium whitespace-nowrap">
+                                    <span className={`${isMobile || isTablet ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} bg-blue-100 text-blue-700 rounded-full font-medium whitespace-nowrap`}>
                                       {permission.action}
                                     </span>
                                   </div>
                                   {permission.description && (
-                                    <p className="text-sm text-gray-600 mt-1 break-words">{permission.description}</p>
+                                    <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words`}>{permission.description}</p>
                                   )}
                                 </div>
                                 <button
                                   onClick={() => handleAddPermission(permission.id)}
                                   disabled={processingPermission === permission.id}
-                                  className="mr-2 ml-2 flex-shrink-0 p-2 bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 space-x-reverse"
+                                  className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center ${isMobile || isTablet ? 'space-x-1' : 'space-x-1 space-x-reverse'}`}
                                   title="إضافة الصلاحية"
                                 >
                                   {processingPermission === permission.id ? (
-                                    <>
-                                      <Loader className="w-4 h-4 animate-spin" />
-                                      <span className="text-xs hidden sm:inline">جاري...</span>
-                                    </>
+                                    <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
                                   ) : (
-                                    <>
-                                      <Plus className="w-4 h-4" />
-                                      <span className="text-xs hidden sm:inline">إضافة</span>
-                                    </>
+                                    <Plus className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                                  )}
+                                  {!isMobile && !isTablet && (
+                                    <span className="text-xs">{processingPermission === permission.id ? 'جاري...' : 'إضافة'}</span>
                                   )}
                                 </button>
                               </div>
@@ -2666,17 +2663,17 @@ export const UserManagerNew: React.FC = () => {
 
                   {/* الصلاحيات المفعلة - العمود الثاني */}
                   <div className="flex flex-col">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse sticky top-0 bg-white pb-2 z-10">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span>الصلاحيات المفعلة ({activePermissions.length})</span>
+                    <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse sticky top-0 bg-white pb-2 z-10`}>
+                      <CheckCircle className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-600`} />
+                      <span>المفعلة ({activePermissions.length})</span>
                     </h3>
-                    <div className="flex-1 overflow-y-auto pr-2">
+                    <div className="flex-1 overflow-y-auto">
                       {activePermissions.length === 0 ? (
-                        <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                          <p className="text-gray-600">لا توجد صلاحيات مفعلة</p>
+                        <div className={`text-center ${isMobile || isTablet ? 'py-6' : 'py-8'} bg-gray-50 rounded-lg border border-gray-200`}>
+                          <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>لا توجد صلاحيات مفعلة</p>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-3'}`}>
                           {/* ترتيب الصلاحيات: المباشرة أولاً (التي لها زر حذف) */}
                           {activePermissions
                             .sort((a, b) => {
@@ -2689,24 +2686,24 @@ export const UserManagerNew: React.FC = () => {
                             .map((permission: any) => (
                               <div
                                 key={permission.id}
-                                className={`p-4 bg-white border rounded-lg hover:shadow-md transition-all ${
+                                className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-white border rounded-lg hover:shadow-md transition-all ${
                                   permission.source === 'direct' 
                                     ? 'border-orange-300 hover:border-orange-400' 
                                     : 'border-green-200 hover:border-green-300'
                                 }`}
                               >
-                                <div className="flex items-start justify-between">
+                                <div className="flex items-start justify-between gap-2">
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center space-x-2 space-x-reverse mb-2 flex-wrap">
-                                      <h4 className="font-semibold text-gray-900 break-words">{permission.name}</h4>
-                                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium whitespace-nowrap">
+                                    <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1' : 'space-x-2 space-x-reverse'} mb-2`}>
+                                      <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 break-words`}>{permission.name}</h4>
+                                      <span className={`${isMobile || isTablet ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} bg-purple-100 text-purple-700 rounded-full font-medium whitespace-nowrap`}>
                                         {permission.resource}
                                       </span>
-                                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium whitespace-nowrap">
+                                      <span className={`${isMobile || isTablet ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} bg-blue-100 text-blue-700 rounded-full font-medium whitespace-nowrap`}>
                                         {permission.action}
                                       </span>
                                       {permission.source && (
-                                        <span className={`px-2 py-1 text-xs rounded-full font-medium whitespace-nowrap ${
+                                        <span className={`${isMobile || isTablet ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-xs'} rounded-full font-medium whitespace-nowrap ${
                                           permission.source === 'role' 
                                             ? 'bg-blue-100 text-blue-700' 
                                             : 'bg-orange-100 text-orange-700'
@@ -2716,10 +2713,10 @@ export const UserManagerNew: React.FC = () => {
                                       )}
                                     </div>
                                     {permission.description && (
-                                      <p className="text-sm text-gray-600 mt-1 break-words">{permission.description}</p>
+                                      <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words`}>{permission.description}</p>
                                     )}
                                     {permission.expires_at && (
-                                      <p className="text-xs text-orange-600 mt-2">
+                                      <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-orange-600 mt-2`}>
                                         تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
                                       </p>
                                     )}
@@ -2728,13 +2725,13 @@ export const UserManagerNew: React.FC = () => {
                                     <button
                                       onClick={() => handleRemovePermission(permission.id)}
                                       disabled={processingPermission === permission.id}
-                                      className="mr-2 ml-2 flex-shrink-0 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
                                       title="إلغاء الصلاحية"
                                     >
                                       {processingPermission === permission.id ? (
-                                        <Loader className="w-4 h-4 animate-spin" />
+                                        <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
                                       ) : (
-                                        <Trash2 className="w-4 h-4" />
+                                        <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                                       )}
                                     </button>
                                   )}
