@@ -185,14 +185,6 @@ class RecurringController {
         });
       }
 
-      // التأكد من وجود template_data
-      if (!template_data) {
-        return res.status(400).json({
-          success: false,
-          message: 'الحقل template_data مطلوب'
-        });
-      }
-
       // التأكد من وجود المستخدم
       if (!req.user || !req.user.id) {
         return res.status(401).json({
@@ -205,9 +197,25 @@ class RecurringController {
         ? safeParseJSON(schedule_config, {})
         : (schedule_config || {});
 
-      const templateDataObject = typeof template_data === 'string'
-        ? safeParseJSON(template_data, {})
-        : (template_data || {});
+      // معالجة template_data - السماح بقيم افتراضية إذا لم يتم إرسالها
+      let templateDataObject = {};
+      if (template_data !== undefined && template_data !== null) {
+        if (typeof template_data === 'string') {
+          templateDataObject = safeParseJSON(template_data, {});
+        } else if (typeof template_data === 'object') {
+          templateDataObject = template_data;
+        }
+      }
+      
+      // إذا كان template_data فارغاً، استخدم name كعنوان افتراضي
+      if (!templateDataObject.title && !templateDataObject.data) {
+        templateDataObject = {
+          title: name,
+          description: description || '',
+          priority: priority || 'medium',
+          data: {}
+        };
+      }
 
       // استخراج title من template_data
       const title = templateDataObject.title || name;

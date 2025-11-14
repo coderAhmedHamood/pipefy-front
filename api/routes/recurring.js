@@ -197,9 +197,7 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *             required:
  *               - name
  *               - process_id
- *               - template_data
  *               - schedule_type
- *               - schedule_config
  *             properties:
  *               name:
  *                 type: string
@@ -216,9 +214,7 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *               template_data:
  *                 type: object
- *                 description: قالب بيانات التذكرة التي سيتم إنشاؤها
- *                 required:
- *                   - title
+ *                 description: قالب بيانات التذكرة التي سيتم إنشاؤها (اختياري - سيتم استخدام name كعنوان افتراضي إذا لم يتم تحديده)
  *                 properties:
  *                   title:
  *                     type: string
@@ -256,7 +252,8 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *                 example: "monthly"
  *               schedule_config:
  *                 type: object
- *                 description: إعدادات الجدولة حسب نوع الجدولة
+ *                 description: إعدادات الجدولة حسب نوع الجدولة (اختياري - سيتم استخدام قيم افتراضية إذا لم يتم تحديده)
+ *                 default: {}
  *                 properties:
  *                   interval:
  *                     type: integer
