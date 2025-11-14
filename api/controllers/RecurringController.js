@@ -171,7 +171,10 @@ class RecurringController {
         schedule_config = {},
         timezone = 'Asia/Riyadh',
         is_active = true,
-        next_execution
+        next_execution,
+        assigned_to,
+        priority = 'medium',
+        status = 'active'
       } = req.body;
       
       // التأكد من وجود الحقول المطلوبة
@@ -179,6 +182,22 @@ class RecurringController {
         return res.status(400).json({
           success: false,
           message: 'الحقول name و process_id مطلوبة'
+        });
+      }
+
+      // التأكد من وجود template_data
+      if (!template_data) {
+        return res.status(400).json({
+          success: false,
+          message: 'الحقل template_data مطلوب'
+        });
+      }
+
+      // التأكد من وجود المستخدم
+      if (!req.user || !req.user.id) {
+        return res.status(401).json({
+          success: false,
+          message: 'يجب تسجيل الدخول لإنشاء قاعدة تكرار'
         });
       }
 
@@ -190,37 +209,110 @@ class RecurringController {
         ? safeParseJSON(template_data, {})
         : (template_data || {});
 
-      const nextExecution = next_execution 
+      // استخراج title من template_data
+      const title = templateDataObject.title || name;
+
+      // حساب next_execution_date
+      const nextExecutionDate = next_execution 
         ? new Date(next_execution) 
         : calculateNextExecution(schedule_type, scheduleConfigObject, timezone);
 
-      const result = await pool.query(`
-        INSERT INTO recurring_rules (
+      // التحقق من صحة next_execution_date
+      if (isNaN(nextExecutionDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'تاريخ التنفيذ التالي غير صحيح'
+        });
+      }
+
+      // تحويل schedule_type إلى recurrence_type
+      const recurrenceType = schedule_type === 'custom' ? 'daily' : schedule_type;
+      
+      // استخراج recurrence_interval من schedule_config
+      const recurrenceInterval = scheduleConfigObject.interval || 1;
+      
+      // استخراج month_day من schedule_config
+      const monthDay = scheduleConfigObject.day_of_month || null;
+      
+      // استخراج weekdays من schedule_config
+      const weekdays = scheduleConfigObject.days_of_week || [];
+
+      // محاولة الإدراج مع البنية الجديدة أولاً
+      let result;
+      try {
+        result = await pool.query(`
+          INSERT INTO recurring_rules (
+            name,
+            description,
+            process_id,
+            title,
+            data,
+            recurrence_type,
+            recurrence_interval,
+            month_day,
+            weekdays,
+            next_execution_date,
+            start_date,
+            is_active,
+            created_by,
+            assigned_to,
+            priority,
+            status
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+          RETURNING *
+        `, [
           name,
-          description,
+          description || null,
           process_id,
-          template_data,
-          schedule_type,
-          schedule_config,
-          timezone,
+          title,
+          templateDataObject.data || templateDataObject || {},
+          recurrenceType,
+          recurrenceInterval,
+          monthDay,
+          weekdays,
+          nextExecutionDate,
+          new Date(),
           is_active,
-          next_execution,
-          created_by
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING *
-      `, [
-        name,
-        description || null,
-        process_id,
-        templateDataObject,
-        schedule_type,
-        scheduleConfigObject,
-        timezone,
-        is_active,
-        nextExecution,
-        req.user.id
-      ]);
+          req.user.id,
+          assigned_to || null,
+          priority,
+          status
+        ]);
+      } catch (error) {
+        // إذا فشل، جرب البنية القديمة (schedule_type, template_data, etc.)
+        if (error.message && (error.message.includes('recurrence_type') || error.message.includes('column'))) {
+          result = await pool.query(`
+            INSERT INTO recurring_rules (
+              name,
+              description,
+              process_id,
+              template_data,
+              schedule_type,
+              schedule_config,
+              timezone,
+              is_active,
+              next_execution,
+              created_by
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING *
+          `, [
+            name,
+            description || null,
+            process_id,
+            templateDataObject,
+            schedule_type,
+            scheduleConfigObject,
+            timezone,
+            is_active,
+            nextExecutionDate,
+            req.user.id
+          ]);
+        } else {
+          throw error;
+        }
+      }
       
       const rule = formatRecurringRule(result.rows[0]);
 
@@ -231,10 +323,38 @@ class RecurringController {
       });
     } catch (error) {
       console.error('خطأ في إنشاء قاعدة التكرار:', error);
+      console.error('تفاصيل الخطأ:', {
+        message: error.message,
+        detail: error.detail,
+        code: error.code,
+        constraint: error.constraint,
+        stack: error.stack
+      });
+      
+      // معالجة أخطاء قاعدة البيانات بشكل أفضل
+      let errorMessage = 'خطأ في إنشاء قاعدة التكرار';
+      if (error.code === '23503') { // Foreign key violation
+        if (error.constraint?.includes('process_id')) {
+          errorMessage = 'العملية المحددة غير موجودة';
+        } else if (error.constraint?.includes('created_by')) {
+          errorMessage = 'المستخدم غير موجود';
+        } else {
+          errorMessage = 'مرجع غير صحيح في البيانات';
+        }
+      } else if (error.code === '23502') { // Not null violation
+        errorMessage = 'حقل مطلوب مفقود: ' + (error.column || 'غير محدد');
+      } else if (error.code === '23505') { // Unique violation
+        errorMessage = 'قاعدة تكرار بهذا الاسم موجودة بالفعل';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       res.status(500).json({
         success: false,
-        message: 'خطأ في إنشاء قاعدة التكرار',
-        error: error.message
+        message: errorMessage,
+        error: error.message,
+        detail: process.env.NODE_ENV === 'development' ? error.detail : undefined,
+        code: process.env.NODE_ENV === 'development' ? error.code : undefined
       });
     }
   }

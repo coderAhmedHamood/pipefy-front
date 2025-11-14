@@ -203,16 +203,43 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *             properties:
  *               name:
  *                 type: string
+ *                 description: اسم قاعدة التكرار
  *                 example: "تقرير شهري"
  *               description:
  *                 type: string
+ *                 description: وصف قاعدة التكرار
  *                 example: "إنشاء تقرير شهري تلقائياً"
  *               process_id:
  *                 type: string
  *                 format: uuid
+ *                 description: معرف العملية (يجب أن يكون موجوداً في قاعدة البيانات)
  *                 example: "123e4567-e89b-12d3-a456-426614174000"
  *               template_data:
  *                 type: object
+ *                 description: قالب بيانات التذكرة التي سيتم إنشاؤها
+ *                 required:
+ *                   - title
+ *                 properties:
+ *                   title:
+ *                     type: string
+ *                     description: عنوان التذكرة (يدعم متغيرات مثل {{current_month}})
+ *                     example: "تقرير شهري - {{current_month}} {{current_year}}"
+ *                   description:
+ *                     type: string
+ *                     description: وصف التذكرة
+ *                     example: "تقرير شهري للمشتريات"
+ *                   priority:
+ *                     type: string
+ *                     enum: [low, medium, high, urgent]
+ *                     description: أولوية التذكرة
+ *                     example: "medium"
+ *                   data:
+ *                     type: object
+ *                     description: بيانات إضافية للتذكرة
+ *                     example: {
+ *                       "report_type": "monthly",
+ *                       "department": "finance"
+ *                     }
  *                 example: {
  *                   "title": "تقرير شهري - {{current_month}} {{current_year}}",
  *                   "description": "تقرير شهري للمشتريات",
@@ -225,9 +252,35 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *               schedule_type:
  *                 type: string
  *                 enum: [daily, weekly, monthly, yearly, custom]
+ *                 description: نوع الجدولة
  *                 example: "monthly"
  *               schedule_config:
  *                 type: object
+ *                 description: إعدادات الجدولة حسب نوع الجدولة
+ *                 properties:
+ *                   interval:
+ *                     type: integer
+ *                     description: فترة التكرار (عدد الأيام/الأسابيع/الأشهر)
+ *                     example: 1
+ *                   time:
+ *                     type: string
+ *                     format: time
+ *                     description: وقت التنفيذ بصيغة HH:MM
+ *                     example: "09:00"
+ *                   day_of_month:
+ *                     type: integer
+ *                     minimum: 1
+ *                     maximum: 31
+ *                     description: يوم الشهر (للمواعيد الشهرية)
+ *                     example: 1
+ *                   days_of_week:
+ *                     type: array
+ *                     items:
+ *                       type: integer
+ *                       minimum: 0
+ *                       maximum: 6
+ *                     description: أيام الأسبوع (0=الأحد, 1=الاثنين, ...) للمواعيد الأسبوعية
+ *                     example: [1, 3, 5]
  *                 example: {
  *                   "interval": 1,
  *                   "day_of_month": 1,
@@ -235,10 +288,40 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *                 }
  *               timezone:
  *                 type: string
+ *                 description: المنطقة الزمنية
  *                 default: "Asia/Riyadh"
+ *                 example: "Asia/Riyadh"
  *               is_active:
  *                 type: boolean
+ *                 description: حالة تفعيل القاعدة
  *                 default: true
+ *                 example: true
+ *               next_execution:
+ *                 type: string
+ *                 format: date-time
+ *                 description: موعد التنفيذ التالي (اختياري، سيتم حسابه تلقائياً إذا لم يتم تحديده)
+ *                 example: "2024-01-01T09:00:00Z"
+ *           examples:
+ *             monthly:
+ *               summary: مثال - تقرير شهري
+ *               value:
+ *                 name: "تقرير شهري"
+ *                 description: "إنشاء تقرير شهري تلقائياً"
+ *                 process_id: "123e4567-e89b-12d3-a456-426614174000"
+ *                 template_data:
+ *                   title: "تقرير شهري - {{current_month}} {{current_year}}"
+ *                   description: "تقرير شهري للمشتريات"
+ *                   priority: "medium"
+ *                   data:
+ *                     report_type: "monthly"
+ *                     department: "finance"
+ *                 schedule_type: "monthly"
+ *                 schedule_config:
+ *                   interval: 1
+ *                   day_of_month: 1
+ *                   time: "09:00"
+ *                 timezone: "Asia/Riyadh"
+ *                 is_active: true
  *     responses:
  *       201:
  *         description: تم إنشاء قاعدة التكرار بنجاح
