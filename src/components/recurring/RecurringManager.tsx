@@ -4,6 +4,7 @@ import { RecurringRule, RecurringSchedule, Process } from '../../types/workflow'
 import { API_ENDPOINTS, apiRequest } from '../../config/api';
 import { useQuickNotifications } from '../ui/NotificationSystem';
 import { buildApiUrl } from '../../config/config';
+import { useDeviceType } from '../../hooks/useDeviceType';
 import { 
   RefreshCw, 
   Plus, 
@@ -20,7 +21,9 @@ import {
   Flag,
   Tag,
   User,
-  PlayCircle
+  PlayCircle,
+  ChevronLeft,
+  Menu
 } from 'lucide-react';
 
 interface ProcessField {
@@ -70,6 +73,7 @@ interface User {
 export const RecurringManager: React.FC = () => {
   const { processes } = useWorkflow();
   const notifications = useQuickNotifications();
+  const { isMobile, isTablet } = useDeviceType();
   const [recurringRules, setRecurringRules] = useState<RecurringRule[]>([]);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [selectedProcessDetails, setSelectedProcessDetails] = useState<ProcessDetails | null>(null);
@@ -81,6 +85,7 @@ export const RecurringManager: React.FC = () => {
   const [creatingRule, setCreatingRule] = useState(false);
   const [loadingRuleDetails, setLoadingRuleDetails] = useState(false);
   const [editingRule, setEditingRule] = useState<RecurringRule | null>(null);
+  const [showProcessSelector, setShowProcessSelector] = useState(false);
 
   const [ruleForm, setRuleForm] = useState({
     name: '',
@@ -1093,114 +1098,146 @@ export const RecurringManager: React.FC = () => {
   return (
     <div className="h-full bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center space-x-3 space-x-reverse">
-              <RefreshCw className="w-8 h-8 text-blue-500" />
-              <span>التذاكر المتكررة</span>
-            </h1>
-            <p className="text-gray-600">إنشاء تذاكر تلقائية حسب جدول محدد</p>
+      <div className={`bg-white border-b border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+        <div className={`flex items-center ${isMobile || isTablet ? 'justify-between' : 'justify-between'}`}>
+          <div className="flex items-center space-x-2 space-x-reverse flex-1">
+            {(isMobile || isTablet) && selectedProcess && (
+              <button
+                onClick={() => setSelectedProcess(null)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                <RefreshCw className={isMobile || isTablet ? 'w-5 h-5' : 'w-8 h-8'} />
+                <span>التذاكر المتكررة</span>
+              </h1>
+              {!(isMobile || isTablet) && (
+                <p className="text-gray-600 text-sm">إنشاء تذاكر تلقائية حسب جدول محدد</p>
+              )}
+            </div>
           </div>
-{/*           
-          <button
-            onClick={() => setIsCreating(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
-          >
-            <Plus className="w-4 h-4" />
-            <span>قاعدة تكرار جديدة</span>
-          </button> */}
+          {(isMobile || isTablet) && !selectedProcess && (
+            <button
+              onClick={() => setShowProcessSelector(!showProcessSelector)}
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="p-6 h-[calc(100vh-140px)] flex gap-6">
+      <div className={`${isMobile || isTablet ? 'p-3' : 'p-6'} ${isMobile || isTablet ? 'h-[calc(100vh-100px)]' : 'h-[calc(100vh-140px)]'} ${isMobile || isTablet ? 'flex-col' : 'flex'} ${isMobile || isTablet ? 'gap-3' : 'gap-6'}`}>
         {/* Process Selector - Left Side */}
-        <div className="w-1/3 bg-white rounded-lg shadow-sm p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">اختر العملية</h3>
-            <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm">
-              {processes.length} عملية
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            {processes.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <RefreshCw className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد عمليات</h3>
-                <p className="text-gray-500">يجب إنشاء عملية أولاً لإنشاء قواعد التكرار</p>
-              </div>
-            ) : (
-              <div className="space-y-3 pr-2">
-                {processes.map((process) => (
+        {((isMobile || isTablet) && showProcessSelector) || !(isMobile || isTablet) ? (
+          <div className={`${isMobile || isTablet ? 'w-full mb-3' : 'w-1/3'} bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'} flex flex-col ${(isMobile || isTablet) && showProcessSelector ? 'fixed inset-0 z-50' : ''}`}>
+            {(isMobile || isTablet) && showProcessSelector && (
+              <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-200">
+                <h3 className="text-base font-semibold text-gray-900">اختر العملية</h3>
                 <button
-                  key={process.id}
-                  onClick={() => handleProcessSelect(process)}
-                  className={`
-                    w-full p-4 rounded-lg border-2 transition-all duration-200 text-right
-                    ${selectedProcess?.id === process.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }
-                  `}
+                  onClick={() => setShowProcessSelector(false)}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
                 >
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className={`w-8 h-8 ${process.color} rounded-lg flex items-center justify-center`}>
-                      <span className="text-white font-bold text-sm">{process.name.charAt(0)}</span>
-                    </div>
-                    <div className="flex-1 text-right">
-                      <h4 className="font-medium text-gray-900">{process.name}</h4>
-                      <p className="text-sm text-gray-500 truncate">{process.description}</p>
-                    </div>
-                  </div>
+                  <X className="w-5 h-5" />
                 </button>
-                ))}
               </div>
             )}
+            {!((isMobile || isTablet) && showProcessSelector) && (
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>اختر العملية</h3>
+                <span className={`bg-blue-100 text-blue-600 ${isMobile || isTablet ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm'} rounded-full`}>
+                  {processes.length} عملية
+                </span>
+              </div>
+            )}
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              {processes.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4`}>
+                    <RefreshCw className={isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} />
+                  </div>
+                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-medium text-gray-900 mb-2`}>لا توجد عمليات</h3>
+                  <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>يجب إنشاء عملية أولاً لإنشاء قواعد التكرار</p>
+                </div>
+              ) : (
+                <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-3'} pr-2`}>
+                  {processes.map((process) => (
+                  <button
+                    key={process.id}
+                    onClick={() => {
+                      handleProcessSelect(process);
+                      if (isMobile || isTablet) setShowProcessSelector(false);
+                    }}
+                    className={`
+                      w-full ${isMobile || isTablet ? 'p-2.5' : 'p-4'} rounded-lg border-2 transition-all duration-200 text-right
+                      ${selectedProcess?.id === process.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <div className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} ${process.color} rounded-lg flex items-center justify-center`}>
+                        <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{process.name.charAt(0)}</span>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-medium text-gray-900`}>{process.name}</h4>
+                        {!(isMobile || isTablet) && (
+                          <p className="text-sm text-gray-500 truncate">{process.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         {/* Rules Section - Right Side */}
-        <div className="flex-1 bg-white rounded-lg shadow-sm flex flex-col overflow-hidden">
+        <div className={`${isMobile || isTablet ? 'w-full' : 'flex-1'} bg-white rounded-lg shadow-sm flex flex-col overflow-hidden`}>
           {!selectedProcess ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center py-12">
-                <div className="w-20 h-20 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <RefreshCw className="w-10 h-10 text-blue-500" />
+              <div className={`text-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                <div className={`${isMobile || isTablet ? 'w-16 h-16' : 'w-20 h-20'} bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4`}>
+                  <RefreshCw className={isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">اختر عملية للبدء</h3>
-                <p className="text-gray-500">حدد عملية من القائمة لعرض وإدارة قواعد التكرار الخاصة بها</p>
+                <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-medium text-gray-900 mb-2`}>اختر عملية للبدء</h3>
+                <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>حدد عملية من القائمة لعرض وإدارة قواعد التكرار الخاصة بها</p>
               </div>
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-                <div className="flex items-center space-x-3 space-x-reverse">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    قواعد التكرار - {selectedProcess.name}
+              <div className={`flex items-center ${isMobile || isTablet ? 'justify-between flex-wrap gap-2' : 'justify-between'} ${isMobile || isTablet ? 'p-3' : 'p-6'} border-b border-gray-200 flex-shrink-0`}>
+                <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'} flex-1`}>
+                  <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 truncate`}>
+                    {isMobile || isTablet ? selectedProcess.name : `قواعد التكرار - ${selectedProcess.name}`}
                   </h3>
-                  <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
+                  <span className={`bg-gray-100 text-gray-600 ${isMobile || isTablet ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm'} rounded-full flex-shrink-0`}>
                     {recurringRules.filter(r => r.process_id === selectedProcess.id).length} قاعدة
                   </span>
                 </div>
                 <button
                   onClick={openCreateRuleModal}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-2 space-x-reverse"
+                  className={`bg-blue-500 text-white ${isMobile || isTablet ? 'px-3 py-1.5 text-xs' : 'px-4 py-2'} rounded-lg hover:bg-blue-600 transition-colors flex items-center space-x-1 space-x-reverse flex-shrink-0`}
                 >
-                  <Plus className="w-4 h-4" />
-                  <span>قاعدة جديدة</span>
+                  <Plus className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+                  <span>{isMobile || isTablet ? 'جديدة' : 'قاعدة جديدة'}</span>
                 </button>
               </div>
               
-              <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100`}>
                 {loadingRules ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-                    <span className="text-gray-600">جاري تحميل قواعد التكرار...</span>
+                  <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                    <div className={`animate-spin rounded-full ${isMobile || isTablet ? 'h-6 w-6 border-2' : 'h-8 w-8 border-b-2'} border-blue-500 mr-3`}></div>
+                    <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري تحميل قواعد التكرار...</span>
                   </div>
                 ) : (
-                  <div className="space-y-4 text-[15px]">
+                  <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-4'} ${isMobile || isTablet ? 'text-xs' : 'text-[15px]'}`}>
                 {recurringRules
                   .filter(rule => rule.process_id === selectedProcess.id)
                   .map((rule, index) => {
@@ -1212,84 +1249,132 @@ export const RecurringManager: React.FC = () => {
                     const isEven = index % 2 === 0;
                     const bgColor = isEven ? 'bg-white' : 'bg-gray-50';
                     return (
-                      <div key={rule.id} className={`${bgColor} border border-gray-200 rounded-lg px-5 py-4 hover:bg-gray-50 transition-colors`}> 
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                          {/* الاسم والحالة والأولوية */}
-                          <div className="md:col-span-4">
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-block w-2 h-2 rounded-full ${rule.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                              <span className="font-semibold text-gray-900 truncate">{(rule as any).rule_name || rule.name || 'قاعدة بدون اسم'}</span>
-                              <span className={`text-xs px-2.5 py-0.5 rounded-full ${
+                      <div key={rule.id} className={`${bgColor} border border-gray-200 rounded-lg ${isMobile || isTablet ? 'px-3 py-2.5' : 'px-5 py-4'} hover:bg-gray-50 transition-colors`}> 
+                        {isMobile || isTablet ? (
+                          // عرض مبسط للجوال
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <span className={`inline-block ${isMobile || isTablet ? 'w-1.5 h-1.5' : 'w-2 h-2'} rounded-full flex-shrink-0 ${rule.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 truncate`}>{(rule as any).rule_name || rule.name || 'قاعدة بدون اسم'}</span>
+                              </div>
+                              <span className={`${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2.5 py-0.5'} rounded-full flex-shrink-0 ${
                                 (rule as any).priority === 'high' ? 'bg-red-50 text-red-700' :
                                 (rule as any).priority === 'medium' ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'
                               }`}>{(rule as any).priority === 'high' ? 'عالية' : (rule as any).priority === 'medium' ? 'متوسطة' : 'منخفضة'}</span>
                             </div>
                             {(rule as any).title && (
-                              <div className="text-sm text-gray-600 mt-1 truncate">{(rule as any).title}</div>
+                              <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 truncate`}>{(rule as any).title}</div>
                             )}
+                            <div className="flex items-center justify-between text-[10px] text-gray-600">
+                              <span>التنفيذات: {executionCount}/{recurrenceInterval || '∞'}</span>
+                              <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-blue-500" style={{ width: `${progressPercentage}%` }} />
+                              </div>
+                            </div>
+                            <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-700 space-y-1`}>
+                              <div className="flex items-center gap-1">
+                                <Calendar className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-blue-600 flex-shrink-0`} />
+                                <span className="truncate">
+                                  {(rule as any).next_execution_date ? new Date((rule as any).next_execution_date).toLocaleString('ar', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-end gap-1 pt-1 border-t border-gray-200">
+                              <button onClick={() => toggleRuleStatus(rule)} className={`${isMobile || isTablet ? 'p-1.5' : 'p-2.5'} rounded hover:bg-gray-100 ${rule.is_active ? 'text-green-600' : 'text-gray-400'}`}>
+                                {rule.is_active ? <Pause className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} /> : <Play className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />}
+                              </button>
+                              <button onClick={() => handleRunRule(rule)} className={`${isMobile || isTablet ? 'p-1.5' : 'p-2.5'} rounded hover:bg-gray-100 text-blue-600`}>
+                                <PlayCircle className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
+                              </button>
+                              <button onClick={() => setEditingRule(rule)} className={`${isMobile || isTablet ? 'p-1.5' : 'p-2.5'} rounded hover:bg-gray-100 text-gray-600`}>
+                                <Edit className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
+                              </button>
+                              <button onClick={() => handleDeleteRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')} className={`${isMobile || isTablet ? 'p-1.5' : 'p-2.5'} rounded hover:bg-red-50 text-red-500`}>
+                                <Trash2 className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
+                              </button>
+                            </div>
                           </div>
+                        ) : (
+                          // عرض كامل للكمبيوتر
+                          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                            {/* الاسم والحالة والأولوية */}
+                            <div className="md:col-span-4">
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-block w-2 h-2 rounded-full ${rule.is_active ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                <span className="font-semibold text-gray-900 truncate">{(rule as any).rule_name || rule.name || 'قاعدة بدون اسم'}</span>
+                                <span className={`text-xs px-2.5 py-0.5 rounded-full ${
+                                  (rule as any).priority === 'high' ? 'bg-red-50 text-red-700' :
+                                  (rule as any).priority === 'medium' ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'
+                                }`}>{(rule as any).priority === 'high' ? 'عالية' : (rule as any).priority === 'medium' ? 'متوسطة' : 'منخفضة'}</span>
+                              </div>
+                              {(rule as any).title && (
+                                <div className="text-sm text-gray-600 mt-1 truncate">{(rule as any).title}</div>
+                              )}
+                            </div>
 
-                          {/* التنفيذات */}
-                          <div className="md:col-span-3">
-                            <div className="flex items-center justify-between text-sm text-gray-600">
-                              <span>التنفيذات</span>
-                              <span className="font-medium text-gray-800">{executionCount}/{recurrenceInterval || '∞'}</span>
+                            {/* التنفيذات */}
+                            <div className="md:col-span-3">
+                              <div className="flex items-center justify-between text-sm text-gray-600">
+                                <span>التنفيذات</span>
+                                <span className="font-medium text-gray-800">{executionCount}/{recurrenceInterval || '∞'}</span>
+                              </div>
+                              <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
+                                <div className="h-full bg-blue-500" style={{ width: `${progressPercentage}%` }} />
+                              </div>
                             </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
-                              <div className="h-full bg-blue-500" style={{ width: `${progressPercentage}%` }} />
-                            </div>
-                          </div>
 
-                          {/* القادم والانتهاء وآخر تنفيذ */}
-                          <div className="md:col-span-3 text-sm text-gray-700">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-4 h-4 text-blue-600" />
-                              <span className="font-medium">التالي:</span>
-                              <span className="truncate">
-                                {(rule as any).next_execution_date ? new Date((rule as any).next_execution_date).toLocaleString('ar', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
-                              </span>
+                            {/* القادم والانتهاء وآخر تنفيذ */}
+                            <div className="md:col-span-3 text-sm text-gray-700">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-4 h-4 text-blue-600" />
+                                <span className="font-medium">التالي:</span>
+                                <span className="truncate">
+                                  {(rule as any).next_execution_date ? new Date((rule as any).next_execution_date).toLocaleString('ar', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <Calendar className="w-4 h-4 text-orange-600" />
+                                <span className="font-medium">الانتهاء:</span>
+                                <span className="truncate">
+                                  {(rule as any).end_date ? new Date((rule as any).end_date).toLocaleDateString('ar', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'مستمر'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <Clock className="w-4 h-4 text-purple-600" />
+                                <span className="font-medium">آخر:</span>
+                                <span className="truncate">
+                                  {(rule as any).last_execution_date ? new Date((rule as any).last_execution_date).toLocaleString('ar', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <Calendar className="w-4 h-4 text-orange-600" />
-                              <span className="font-medium">الانتهاء:</span>
-                              <span className="truncate">
-                                {(rule as any).end_date ? new Date((rule as any).end_date).toLocaleDateString('ar', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'مستمر'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <Clock className="w-4 h-4 text-purple-600" />
-                              <span className="font-medium">آخر:</span>
-                              <span className="truncate">
-                                {(rule as any).last_execution_date ? new Date((rule as any).last_execution_date).toLocaleString('ar', { year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
-                              </span>
-                            </div>
-                          </div>
 
-                          {/* أزرار */}
-                          <div className="md:col-span-2 flex items-center justify-end gap-1.5">
-                            <button onClick={() => toggleRuleStatus(rule)} className={`p-2.5 rounded hover:bg-gray-100 ${rule.is_active ? 'text-green-600' : 'text-gray-400'}`} title={rule.is_active ? 'إيقاف' : 'تفعيل'}>
-                              {rule.is_active ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                            </button>
-                            <button onClick={() => handleRunRule(rule)} className="p-2.5 rounded hover:bg-gray-100 text-blue-600" title="تشغيل الآن">
-                              <PlayCircle className="w-5 h-5" />
-                            </button>
-                            <button onClick={() => setEditingRule(rule)} className="p-2.5 rounded hover:bg-gray-100 text-gray-600" title="تعديل">
-                              <Edit className="w-5 h-5" />
-                            </button>
-                            <button onClick={() => handleDeleteRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')} className="p-2.5 rounded hover:bg-red-50 text-red-500" title="حذف">
-                              <Trash2 className="w-5 h-5" />
-                          </button>
+                            {/* أزرار */}
+                            <div className="md:col-span-2 flex items-center justify-end gap-1.5">
+                              <button onClick={() => toggleRuleStatus(rule)} className={`p-2.5 rounded hover:bg-gray-100 ${rule.is_active ? 'text-green-600' : 'text-gray-400'}`} title={rule.is_active ? 'إيقاف' : 'تفعيل'}>
+                                {rule.is_active ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                              </button>
+                              <button onClick={() => handleRunRule(rule)} className="p-2.5 rounded hover:bg-gray-100 text-blue-600" title="تشغيل الآن">
+                                <PlayCircle className="w-5 h-5" />
+                              </button>
+                              <button onClick={() => setEditingRule(rule)} className="p-2.5 rounded hover:bg-gray-100 text-gray-600" title="تعديل">
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button onClick={() => handleDeleteRule(rule.id, (rule as any).rule_name || rule.name || 'قاعدة بدون اسم')} className="p-2.5 rounded hover:bg-red-50 text-red-500" title="حذف">
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}
                 
                 {recurringRules.filter(r => r.process_id === selectedProcess.id).length === 0 && (
-                  <div className="text-center py-12">
-                    <RefreshCw className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد قواعد تكرار</h3>
-                    <p className="text-gray-500 mb-4">ابدأ بإنشاء قاعدة تكرار لإنشاء تذاكر تلقائية</p>
+                  <div className={`text-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                    <RefreshCw className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} text-gray-300 mx-auto mb-4`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-medium text-gray-900 mb-2`}>لا توجد قواعد تكرار</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500 mb-4`}>ابدأ بإنشاء قاعدة تكرار لإنشاء تذاكر تلقائية</p>
                     <button
                       onClick={openCreateRuleModal}
                       className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
@@ -1308,20 +1393,20 @@ export const RecurringManager: React.FC = () => {
 
       {/* Create/Edit Rule Modal */}
       {(isCreating || editingRule) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`}>
+          <div className={`bg-white ${isMobile || isTablet ? 'rounded-none' : 'rounded-lg'} shadow-xl ${isMobile || isTablet ? 'max-w-none w-full h-full' : 'max-w-4xl w-full max-h-[90vh]'} overflow-hidden flex flex-col`}>
             {/* Header with gradient background */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6">
+            <div className={`bg-gradient-to-r from-blue-500 to-purple-600 text-white ${isMobile || isTablet ? 'p-3' : 'p-6'} flex-shrink-0`}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 space-x-reverse">
-                  <div className="w-10 h-10 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                    <RefreshCw className="w-5 h-5 text-white" />
+                <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'}`}>
+                  <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} bg-white bg-opacity-20 rounded-lg flex items-center justify-center`}>
+                    <RefreshCw className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold">
+                    <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-bold`}>
                       {editingRule ? 'تعديل قاعدة التكرار' : 'قاعدة تكرار جديدة'}
                     </h3>
-                    {selectedProcess && (
+                    {selectedProcess && !(isMobile || isTablet) && (
                       <p className="text-blue-100 text-sm">
                         عملية: {selectedProcess.name}
                       </p>
@@ -1333,51 +1418,51 @@ export const RecurringManager: React.FC = () => {
                     setIsCreating(false);
                     setEditingRule(null);
                   }}
-                  className="p-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors"
+                  className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-white hover:bg-opacity-20 transition-colors`}
                 >
-                  <X className="w-5 h-5 text-white" />
+                  <X className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
                 </button>
               </div>
             </div>
             
-            <div className="overflow-y-auto max-h-[calc(80vh-200px)]">
-              <div className="p-6">
+            <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'max-h-[calc(100vh-80px)]' : 'max-h-[calc(80vh-200px)]'}`}>
+              <div className={isMobile || isTablet ? 'p-3' : 'p-6'}>
                 {/* Form Content - Two Column Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className={`grid ${isMobile || isTablet ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'} ${isMobile || isTablet ? 'gap-3' : 'gap-6'}`}>
                   
                   {/* العمود الأيمن */}
-                  <div className="space-y-6">
+                  <div className={`${isMobile || isTablet ? 'space-y-3' : 'space-y-6'}`}>
                     {/* معلومات القاعدة */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                        <Settings className="w-5 h-5 text-blue-500" />
-                        <h3 className="text-lg font-semibold text-gray-900">معلومات القاعدة</h3>
+                    <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                      <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mb-3' : 'space-x-2 space-x-reverse mb-4'}`}>
+                        <Settings className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>معلومات القاعدة</h3>
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
                           اسم القاعدة *
                         </label>
                         <input
                           type="text"
                           value={ruleForm.name}
                           onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                          className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
                           placeholder="أدخل اسم واضح ومختصر للقاعدة..."
                         />
                       </div>
                     </div>
 
                     {/* معلومات أساسية للتذكرة */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                        <FileText className="w-5 h-5 text-blue-500" />
-                        <h3 className="text-lg font-semibold text-gray-900">معلومات أساسية</h3>
+                    <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                      <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mb-3' : 'space-x-2 space-x-reverse mb-4'}`}>
+                        <FileText className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>معلومات أساسية</h3>
                       </div>
                       
-                      <div className="space-y-4">
+                      <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-4'}>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
                             عنوان التذكرة *
                           </label>
                           <input
@@ -1387,13 +1472,13 @@ export const RecurringManager: React.FC = () => {
                               ...ruleForm,
                               template_data: { ...ruleForm.template_data, title: e.target.value }
                             })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                            className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
                             placeholder="أدخل عنوان واضح ومختصر للتذكرة..."
                           />
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
                             الوصف التفصيلي
                           </label>
                           <textarea
@@ -1402,8 +1487,8 @@ export const RecurringManager: React.FC = () => {
                               ...ruleForm,
                               template_data: { ...ruleForm.template_data, description: e.target.value }
                             })}
-                            rows={4}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            rows={isMobile || isTablet ? 3 : 4}
+                            className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
                             placeholder="اشرح التفاصيل والمتطلبات بوضوح..."
                           />
                         </div>
@@ -1411,16 +1496,16 @@ export const RecurringManager: React.FC = () => {
                     </div>
 
                     {/* إعدادات التذكرة */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                        <Settings className="w-5 h-5 text-green-500" />
-                        <h3 className="text-lg font-semibold text-gray-900">إعدادات التذكرة</h3>
+                    <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                      <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mb-3' : 'space-x-2 space-x-reverse mb-4'}`}>
+                        <Settings className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>إعدادات التذكرة</h3>
                       </div>
                       
-                      <div className="space-y-4">
+                      <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-4'}>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <Flag className="w-4 h-4 inline ml-1" />
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
+                            <Flag className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} inline ml-1`} />
                             الأولوية
                           </label>
                           <select
@@ -1429,7 +1514,7 @@ export const RecurringManager: React.FC = () => {
                               ...ruleForm,
                               template_data: { ...ruleForm.template_data, priority: e.target.value as any }
                             })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           >
                             <option value="low">منخفض</option>
                             <option value="medium">متوسط</option>
@@ -1439,8 +1524,8 @@ export const RecurringManager: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <Calendar className="w-4 h-4 inline ml-1" />
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
+                            <Calendar className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} inline ml-1`} />
                             تاريخ الاستحقاق
                           </label>
                           <input
@@ -1450,21 +1535,21 @@ export const RecurringManager: React.FC = () => {
                               ...ruleForm,
                               template_data: { ...ruleForm.template_data, due_date: e.target.value }
                             })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           />
                         </div>
 
                     
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <User className="w-4 h-4 inline ml-1" />
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
+                            <User className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} inline ml-1`} />
                             المسند إليه
                           </label>
                           {loadingUsers ? (
-                            <div className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mr-2"></div>
-                              <span className="text-sm text-gray-500">جاري التحميل...</span>
+                            <div className={`w-full ${isMobile || isTablet ? 'px-3 py-2' : 'px-4 py-3'} border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-center`}>
+                              <div className={`animate-spin rounded-full ${isMobile || isTablet ? 'h-3 w-3 border-2' : 'h-4 w-4 border-b-2'} border-blue-500 mr-2`}></div>
+                              <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>جاري التحميل...</span>
                             </div>
                           ) : (
                             <select
@@ -1473,7 +1558,7 @@ export const RecurringManager: React.FC = () => {
                                 ...ruleForm,
                                 template_data: { ...ruleForm.template_data, assigned_to: e.target.value }
                               })}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                             >
                               <option value="">اختر المستخدم</option>
                               {users.map((user) => (
@@ -1489,13 +1574,13 @@ export const RecurringManager: React.FC = () => {
                   </div>
 
                   {/* العمود الأيسر */}
-                  <div className="space-y-6">
+                  <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-6'}>
                     {/* المرحلة الأولية */}
                     {selectedProcessDetails && selectedProcessDetails.stages && selectedProcessDetails.stages.length > 0 && (
-                      <div className="bg-white border border-gray-200 rounded-lg p-6">
-                        <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                          <RefreshCw className="w-5 h-5 text-purple-500" />
-                          <h3 className="text-lg font-semibold text-gray-900">المرحلة الأولية</h3>
+                      <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                        <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mb-3' : 'space-x-2 space-x-reverse mb-4'}`}>
+                          <RefreshCw className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
+                          <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>المرحلة الأولية</h3>
                         </div>
                         {loadingProcessDetails ? (
                           <div className="flex items-center justify-center py-4">
@@ -1543,22 +1628,22 @@ export const RecurringManager: React.FC = () => {
                     )}
 
                     {/* جدول التكرار */}
-                    <div className="bg-white border border-gray-200 rounded-lg p-6">
-                      <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                        <Clock className="w-5 h-5 text-indigo-500" />
-                        <h3 className="text-lg font-semibold text-gray-900">جدول التكرار</h3>
+                    <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                      <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mb-3' : 'space-x-2 space-x-reverse mb-4'}`}>
+                        <Clock className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>جدول التكرار</h3>
                       </div>
                       
-                      <div className="space-y-4">
+                      <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-4'}>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">نوع التكرار</label>
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>نوع التكرار</label>
                           <select
                             value={ruleForm.schedule.type}
                             onChange={(e) => setRuleForm({
                               ...ruleForm,
                               schedule: { ...ruleForm.schedule, type: e.target.value as any }
                             })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           >
                             {scheduleTypes.map((type) => (
                               <option key={type.value} value={type.value}>
@@ -1569,7 +1654,7 @@ export const RecurringManager: React.FC = () => {
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">التكرار </label>
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>التكرار </label>
                           <input
                             type="number"
                             min="1"
@@ -1578,13 +1663,13 @@ export const RecurringManager: React.FC = () => {
                               ...ruleForm,
                               schedule: { ...ruleForm.schedule, interval: parseInt(e.target.value) }
                             })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           />
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <Calendar className="w-4 h-4 inline ml-1" />
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
+                            <Calendar className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} inline ml-1`} />
                             تاريخ البداية
                           </label>
                           <input
@@ -1594,14 +1679,14 @@ export const RecurringManager: React.FC = () => {
                               ...ruleForm,
                               template_data: { ...ruleForm.template_data, due_date: e.target.value }
                             })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           />
                         </div>
 
                         {ruleForm.schedule.type === 'weekly' && (
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">أيام الأسبوع</label>
-                            <div className="flex flex-wrap gap-3">
+                            <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>أيام الأسبوع</label>
+                            <div className={`flex flex-wrap ${isMobile || isTablet ? 'gap-2' : 'gap-3'}`}>
                               {daysOfWeek.map((day) => (
                                 <label key={day.value} className="flex items-center">
                                   <input
@@ -1627,9 +1712,9 @@ export const RecurringManager: React.FC = () => {
                                         });
                                       }
                                     }}
-                                    className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : ''} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                                   />
-                                  <span className="mr-2 text-sm text-gray-700">{day.label}</span>
+                                  <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700`}>{day.label}</span>
                                 </label>
                               ))}
                             </div>
@@ -1638,7 +1723,7 @@ export const RecurringManager: React.FC = () => {
 
                         {ruleForm.schedule.type === 'monthly' && (
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">يوم الشهر</label>
+                            <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>يوم الشهر</label>
                             <input
                               type="number"
                               min="1"
@@ -1648,21 +1733,21 @@ export const RecurringManager: React.FC = () => {
                                 ...ruleForm,
                                 schedule: { ...ruleForm.schedule, day_of_month: parseInt(e.target.value) }
                               })}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                             />
                           </div>
                         )}
 
                         {/* تفعيل القاعدة */}
-                        <div className="flex items-center p-4 bg-gray-50 rounded-lg">
+                        <div className={`flex items-center ${isMobile || isTablet ? 'p-2.5' : 'p-4'} bg-gray-50 rounded-lg`}>
                           <input
                             type="checkbox"
                             id="active"
                             checked={ruleForm.is_active}
                             onChange={(e) => setRuleForm({ ...ruleForm, is_active: e.target.checked })}
-                            className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                            className={`${isMobile || isTablet ? 'w-4 h-4' : ''} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                           />
-                          <label htmlFor="active" className="mr-2 text-sm font-medium text-gray-700">
+                          <label htmlFor="active" className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}>
                             تفعيل القاعدة فور الإنشاء
                           </label>
                         </div>
@@ -1676,13 +1761,13 @@ export const RecurringManager: React.FC = () => {
 
                 {/* حقول العملية المخصصة - في العمودين */}
                 {selectedProcessDetails && selectedProcessDetails.fields && selectedProcessDetails.fields.filter(field => !field.is_system_field).length > 0 && (
-                  <div className="col-span-2 bg-white border border-gray-200 rounded-lg p-6">
-                    <div className="flex items-center space-x-2 space-x-reverse mb-6">
-                      <div className={`w-6 h-6 ${selectedProcess?.color || 'bg-blue-500'} rounded mr-2`}></div>
-                      <h3 className="text-lg font-semibold text-gray-900">حقول {selectedProcess?.name}</h3>
+                  <div className={`${isMobile || isTablet ? 'col-span-1' : 'col-span-2'} bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                    <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mb-3' : 'space-x-2 space-x-reverse mb-6'}`}>
+                      <div className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} ${selectedProcess?.color || 'bg-blue-500'} rounded mr-2`}></div>
+                      <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900`}>حقول {selectedProcess?.name}</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className={`grid ${isMobile || isTablet ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'} ${isMobile || isTablet ? 'gap-3' : 'gap-6'}`}>
                       {selectedProcessDetails.fields
                         .filter(field => !field.is_system_field)
                         .sort((a, b) => a.order_index - b.order_index)
@@ -1692,7 +1777,7 @@ export const RecurringManager: React.FC = () => {
                               ? 'md:col-span-2' 
                               : ''
                           }>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
                               {field.label}
                               {field.is_required && <span className="text-red-500 mr-1">*</span>}
                             </label>
@@ -1703,7 +1788,7 @@ export const RecurringManager: React.FC = () => {
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                                 placeholder={field.placeholder || `أدخل ${field.label}...`}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
                               />
                             )}
                             
@@ -1713,7 +1798,7 @@ export const RecurringManager: React.FC = () => {
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                                 placeholder={field.placeholder || "example@domain.com"}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
                               />
                             )}
                             
@@ -1723,17 +1808,17 @@ export const RecurringManager: React.FC = () => {
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                                 placeholder={field.placeholder || `أدخل ${field.label}...`}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
                               />
                             )}
                             
                             {field.field_type === 'textarea' && (
                               <textarea
-                                rows={3}
+                                rows={isMobile || isTablet ? 2 : 3}
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                                 placeholder={field.placeholder || `أدخل ${field.label}...`}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
                               />
                             )}
                             
@@ -1743,7 +1828,7 @@ export const RecurringManager: React.FC = () => {
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
                                 placeholder={field.placeholder || "+966 50 123 4567"}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors`}
                               />
                             )}
 
@@ -1752,7 +1837,7 @@ export const RecurringManager: React.FC = () => {
                                 type="date"
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                               />
                             )}
 
@@ -1761,7 +1846,7 @@ export const RecurringManager: React.FC = () => {
                                 type="datetime-local"
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                               />
                             )}
 
@@ -1769,7 +1854,7 @@ export const RecurringManager: React.FC = () => {
                               <select 
                                 value={ruleForm.template_data.data[field.name] || ''}
                                 onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                               >
                                 <option value="">اختر {field.label}</option>
                                 {(field.options?.choices || field.options || []).map((choice: any, index: number) => (
@@ -1940,15 +2025,15 @@ export const RecurringManager: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6 border-t border-gray-200 bg-white sticky bottom-0">
+            <div className={`${isMobile || isTablet ? 'p-3' : 'p-6'} border-t border-gray-200 bg-white sticky bottom-0`}>
               {/* Required Fields Notice */}
               {selectedProcessDetails?.fields?.some(field => field.is_required && !field.is_system_field) && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className={`${isMobile || isTablet ? 'mb-3 p-2' : 'mb-4 p-3'} bg-blue-50 border border-blue-200 rounded-lg`}>
                   <div className="flex items-center">
-                    <div className="text-blue-500 mr-2">
-                      <Settings className="w-4 h-4" />
+                    <div className={`text-blue-500 ${isMobile || isTablet ? 'mr-1.5' : 'mr-2'}`}>
+                      <Settings className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                     </div>
-                    <p className="text-sm text-blue-700">
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-blue-700`}>
                       <span className="font-medium">ملاحظة:</span> الحقول المميزة بـ 
                       <span className="text-red-500 mx-1">*</span> 
                       مطلوبة لإنشاء القاعدة
@@ -1957,19 +2042,21 @@ export const RecurringManager: React.FC = () => {
                 </div>
               )}
               
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-500">
-                  تأكد من ملء جميع الحقول المطلوبة قبل الحفظ
-                </div>
-                <div className="flex items-center space-x-3 space-x-reverse">
+              <div className={`flex items-center ${isMobile || isTablet ? 'flex-col-reverse space-y-2 space-y-reverse' : 'justify-between'}`}>
+                {!(isMobile || isTablet) && (
+                  <div className="text-sm text-gray-500">
+                    تأكد من ملء جميع الحقول المطلوبة قبل الحفظ
+                  </div>
+                )}
+                <div className={`flex items-center ${isMobile || isTablet ? 'w-full space-y-2 space-y-reverse flex-col' : 'space-x-3 space-x-reverse'}`}>
                   <button
                     onClick={() => {
                       setIsCreating(false);
                       setEditingRule(null);
                     }}
-                    className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2 space-x-reverse"
+                    className={`${isMobile || isTablet ? 'w-full px-4 py-2.5 text-sm' : 'px-6 py-2'} text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2 space-x-reverse`}
                   >
-                    <X className="w-4 h-4" />
+                    <X className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                     <span>إلغاء</span>
                   </button>
                   <button
@@ -1986,12 +2073,12 @@ export const RecurringManager: React.FC = () => {
                          (Array.isArray(ruleForm.template_data.data[field.name]) && ruleForm.template_data.data[field.name].length === 0))
                       ))
                     }
-                    className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse transition-all duration-200"
+                    className={`${isMobile || isTablet ? 'w-full px-4 py-2.5 text-sm' : 'px-6 py-2'} bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 space-x-reverse transition-all duration-200`}
                   >
                     {creatingRule ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <div className={`animate-spin rounded-full ${isMobile || isTablet ? 'h-3.5 w-3.5 border-2' : 'h-4 w-4 border-b-2'} border-white`}></div>
                     ) : (
-                      <Save className="w-4 h-4" />
+                      <Save className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                     )}
                     <span>
                       {creatingRule 
