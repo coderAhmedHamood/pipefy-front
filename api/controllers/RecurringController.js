@@ -380,73 +380,273 @@ class RecurringController {
         schedule_config,
         timezone,
         is_active,
-        next_execution
+        next_execution,
+        assigned_to,
+        priority,
+        status
       } = req.body;
       
-      // حساب التنفيذ التالي إذا تم تحديث الإعدادات
-      let nextExecution = null;
-      const scheduleConfigObject = schedule_config !== undefined
-        ? (typeof schedule_config === 'string' ? safeParseJSON(schedule_config, {}) : schedule_config)
-        : null;
-
-      if (schedule_type || scheduleConfigObject || timezone || next_execution) {
-        const currentConfig = scheduleConfigObject !== null ? scheduleConfigObject : undefined;
-        const currentType = schedule_type || undefined;
-        const currentTimezone = timezone || undefined;
+      // التحقق من وجود القاعدة أولاً
+      const existingResult = await pool.query(
+        'SELECT * FROM recurring_rules WHERE id = $1',
+        [id]
+      );
+      
+      if (existingResult.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'قاعدة التكرار غير موجودة'
+        });
+      }
+      
+      const existingRule = existingResult.rows[0];
+      
+      // بناء استعلام UPDATE ديناميكي
+      const updateFields = [];
+      const updateValues = [];
+      let paramCount = 0;
+      
+      // تحديث name
+      if (name !== undefined) {
+        paramCount++;
+        updateFields.push(`name = $${paramCount}`);
+        updateValues.push(name);
+      }
+      
+      // تحديث description
+      if (description !== undefined) {
+        paramCount++;
+        updateFields.push(`description = $${paramCount}`);
+        updateValues.push(description);
+      }
+      
+      // تحديث process_id
+      if (process_id !== undefined) {
+        paramCount++;
+        updateFields.push(`process_id = $${paramCount}`);
+        updateValues.push(process_id);
+      }
+      
+      // معالجة template_data - تحويله إلى title و data
+      if (template_data !== undefined) {
+        const templateDataObject = typeof template_data === 'string'
+          ? safeParseJSON(template_data, {})
+          : template_data;
         
-        if (next_execution) {
-          nextExecution = new Date(next_execution);
-        } else {
-          const existingResult = await pool.query(
-            'SELECT schedule_type, schedule_config, timezone FROM recurring_rules WHERE id = $1',
-            [id]
-          );
-          
-          if (existingResult.rows.length === 0) {
-            return res.status(404).json({
-              success: false,
-              message: 'قاعدة التكرار غير موجودة'
-            });
-          }
-          
-          const existingRule = existingResult.rows[0];
-          const typeToUse = currentType || existingRule.schedule_type;
-          const configToUse = currentConfig !== undefined ? currentConfig : existingRule.schedule_config;
-          const timezoneToUse = currentTimezone || existingRule.timezone;
-          
-          nextExecution = calculateNextExecution(typeToUse, configToUse, timezoneToUse);
+        if (templateDataObject.title !== undefined) {
+          paramCount++;
+          updateFields.push(`title = $${paramCount}`);
+          updateValues.push(templateDataObject.title);
+        }
+        
+        if (templateDataObject.data !== undefined) {
+          paramCount++;
+          updateFields.push(`data = $${paramCount}`);
+          updateValues.push(templateDataObject.data);
+        } else if (Object.keys(templateDataObject).length > 0 && !templateDataObject.title) {
+          // إذا كان template_data كائن بدون title، استخدمه كـ data
+          paramCount++;
+          updateFields.push(`data = $${paramCount}`);
+          updateValues.push(templateDataObject);
         }
       }
       
-      const result = await pool.query(`
-        UPDATE recurring_rules 
-        SET 
-          name = COALESCE($1, name),
-          description = COALESCE($2, description),
-          template_data = COALESCE($3, template_data),
-          process_id = COALESCE($4, process_id),
-          schedule_type = COALESCE($5, schedule_type),
-          schedule_config = COALESCE($6, schedule_config),
-          timezone = COALESCE($7, timezone),
-          is_active = COALESCE($8, is_active),
-          next_execution = COALESCE($9, next_execution),
-          updated_at = NOW()
-        WHERE id = $10
-        RETURNING *
-      `, [
-        name,
-        description,
-        template_data !== undefined
-          ? (typeof template_data === 'string' ? safeParseJSON(template_data, {}) : template_data)
-          : null,
-        process_id,
-        schedule_type,
-        scheduleConfigObject !== null ? scheduleConfigObject : null,
-        timezone,
-        is_active,
-        nextExecution,
-        id
-      ]);
+      // معالجة schedule_type و schedule_config
+      if (schedule_type !== undefined) {
+        const recurrenceType = schedule_type === 'custom' ? 'daily' : schedule_type;
+        paramCount++;
+        updateFields.push(`recurrence_type = $${paramCount}`);
+        updateValues.push(recurrenceType);
+      }
+      
+      if (schedule_config !== undefined) {
+        const scheduleConfigObject = typeof schedule_config === 'string'
+          ? safeParseJSON(schedule_config, {})
+          : schedule_config;
+        
+        if (scheduleConfigObject.interval !== undefined) {
+          paramCount++;
+          updateFields.push(`recurrence_interval = $${paramCount}`);
+          updateValues.push(scheduleConfigObject.interval);
+        }
+        
+        if (scheduleConfigObject.day_of_month !== undefined) {
+          paramCount++;
+          updateFields.push(`month_day = $${paramCount}`);
+          updateValues.push(scheduleConfigObject.day_of_month);
+        }
+        
+        if (scheduleConfigObject.days_of_week !== undefined) {
+          paramCount++;
+          updateFields.push(`weekdays = $${paramCount}`);
+          updateValues.push(scheduleConfigObject.days_of_week);
+        }
+      }
+      
+      // تحديث next_execution_date
+      if (next_execution !== undefined || schedule_type !== undefined || schedule_config !== undefined) {
+        let nextExecutionDate;
+        
+        if (next_execution !== undefined) {
+          nextExecutionDate = new Date(next_execution);
+        } else {
+          // حساب next_execution_date من schedule_type و schedule_config
+          const scheduleType = schedule_type || existingRule.recurrence_type || existingRule.schedule_type || 'daily';
+          let scheduleConfig = {};
+          
+          if (schedule_config !== undefined) {
+            scheduleConfig = typeof schedule_config === 'string'
+              ? safeParseJSON(schedule_config, {})
+              : schedule_config;
+          } else {
+            scheduleConfig = {
+              interval: existingRule.recurrence_interval || 1,
+              day_of_month: existingRule.month_day,
+              days_of_week: existingRule.weekdays || []
+            };
+          }
+          
+          nextExecutionDate = calculateNextExecution(
+            scheduleType,
+            scheduleConfig,
+            timezone || existingRule.timezone || 'Asia/Riyadh'
+          );
+        }
+        
+        paramCount++;
+        updateFields.push(`next_execution_date = $${paramCount}`);
+        updateValues.push(nextExecutionDate);
+      }
+      
+      // تحديث is_active
+      if (is_active !== undefined) {
+        paramCount++;
+        updateFields.push(`is_active = $${paramCount}`);
+        updateValues.push(is_active);
+      }
+      
+      // تحديث assigned_to
+      if (assigned_to !== undefined) {
+        paramCount++;
+        updateFields.push(`assigned_to = $${paramCount}`);
+        updateValues.push(assigned_to);
+      }
+      
+      // تحديث priority
+      if (priority !== undefined) {
+        paramCount++;
+        updateFields.push(`priority = $${paramCount}`);
+        updateValues.push(priority);
+      }
+      
+      // تحديث status
+      if (status !== undefined) {
+        paramCount++;
+        updateFields.push(`status = $${paramCount}`);
+        updateValues.push(status);
+      }
+      
+      // إضافة updated_at دائماً
+      updateFields.push('updated_at = NOW()');
+      
+      // إذا لم يكن هناك حقول للتحديث، أرجع القاعدة الحالية
+      if (updateFields.length === 1) {
+        return res.json({
+          success: true,
+          message: 'لم يتم تحديث أي حقول',
+          data: formatRecurringRule(existingRule)
+        });
+      }
+      
+      // إضافة id في النهاية
+      paramCount++;
+      updateValues.push(id);
+      
+      // محاولة التحديث مع البنية الجديدة أولاً
+      let result;
+      try {
+        const updateQuery = `
+          UPDATE recurring_rules 
+          SET ${updateFields.join(', ')}
+          WHERE id = $${paramCount}
+          RETURNING *
+        `;
+        result = await pool.query(updateQuery, updateValues);
+      } catch (error) {
+        // إذا فشل، جرب البنية القديمة
+        if (error.message && (error.message.includes('recurrence_type') || error.message.includes('column'))) {
+          // إعادة بناء الاستعلام للبنية القديمة
+          const oldUpdateFields = [];
+          const oldUpdateValues = [];
+          let oldParamCount = 0;
+          
+          if (name !== undefined) {
+            oldParamCount++;
+            oldUpdateFields.push(`name = $${oldParamCount}`);
+            oldUpdateValues.push(name);
+          }
+          if (description !== undefined) {
+            oldParamCount++;
+            oldUpdateFields.push(`description = $${oldParamCount}`);
+            oldUpdateValues.push(description);
+          }
+          if (process_id !== undefined) {
+            oldParamCount++;
+            oldUpdateFields.push(`process_id = $${oldParamCount}`);
+            oldUpdateValues.push(process_id);
+          }
+          if (template_data !== undefined) {
+            oldParamCount++;
+            const templateDataObject = typeof template_data === 'string'
+              ? safeParseJSON(template_data, {})
+              : template_data;
+            oldUpdateFields.push(`template_data = $${oldParamCount}`);
+            oldUpdateValues.push(templateDataObject);
+          }
+          if (schedule_type !== undefined) {
+            oldParamCount++;
+            oldUpdateFields.push(`schedule_type = $${oldParamCount}`);
+            oldUpdateValues.push(schedule_type);
+          }
+          if (schedule_config !== undefined) {
+            oldParamCount++;
+            const scheduleConfigObject = typeof schedule_config === 'string'
+              ? safeParseJSON(schedule_config, {})
+              : schedule_config;
+            oldUpdateFields.push(`schedule_config = $${oldParamCount}`);
+            oldUpdateValues.push(scheduleConfigObject);
+          }
+          if (timezone !== undefined) {
+            oldParamCount++;
+            oldUpdateFields.push(`timezone = $${oldParamCount}`);
+            oldUpdateValues.push(timezone);
+          }
+          if (is_active !== undefined) {
+            oldParamCount++;
+            oldUpdateFields.push(`is_active = $${oldParamCount}`);
+            oldUpdateValues.push(is_active);
+          }
+          if (next_execution !== undefined) {
+            oldParamCount++;
+            oldUpdateFields.push(`next_execution = $${oldParamCount}`);
+            oldUpdateValues.push(new Date(next_execution));
+          }
+          
+          oldUpdateFields.push('updated_at = NOW()');
+          oldParamCount++;
+          oldUpdateValues.push(id);
+          
+          const oldUpdateQuery = `
+            UPDATE recurring_rules 
+            SET ${oldUpdateFields.join(', ')}
+            WHERE id = $${oldParamCount}
+            RETURNING *
+          `;
+          result = await pool.query(oldUpdateQuery, oldUpdateValues);
+        } else {
+          throw error;
+        }
+      }
       
       if (result.rows.length === 0) {
         return res.status(404).json({
@@ -462,10 +662,32 @@ class RecurringController {
       });
     } catch (error) {
       console.error('خطأ في تحديث قاعدة التكرار:', error);
+      console.error('تفاصيل الخطأ:', {
+        message: error.message,
+        detail: error.detail,
+        code: error.code,
+        constraint: error.constraint
+      });
+      
+      let errorMessage = 'خطأ في تحديث قاعدة التكرار';
+      if (error.code === '23503') {
+        if (error.constraint?.includes('process_id')) {
+          errorMessage = 'العملية المحددة غير موجودة';
+        } else {
+          errorMessage = 'مرجع غير صحيح في البيانات';
+        }
+      } else if (error.code === '23502') {
+        errorMessage = 'حقل مطلوب مفقود: ' + (error.column || 'غير محدد');
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       res.status(500).json({
         success: false,
-        message: 'خطأ في تحديث قاعدة التكرار',
-        error: error.message
+        message: errorMessage,
+        error: error.message,
+        detail: process.env.NODE_ENV === 'development' ? error.detail : undefined,
+        code: process.env.NODE_ENV === 'development' ? error.code : undefined
       });
     }
   }
