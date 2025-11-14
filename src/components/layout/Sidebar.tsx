@@ -28,11 +28,11 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { id: 'dashboard', label: 'لوحة المعلومات', icon: BarChart3 },
+  // { id: 'dashboard', label: 'لوحة المعلومات', icon: BarChart3 },
   { id: 'kanban', label: 'لوحة كانبان', icon: Home },
   { id: 'processes', label: 'العمليات', icon: FolderOpen },
   { id: 'users', label: 'المستخدمين', icon: Users },
-  { id: 'automation', label: 'الأتمتة', icon: Zap },
+  // { id: 'automation', label: 'الأتمتة', icon: Zap },
   { id: 'recurring', label: 'التذاكر المتكررة', icon: RefreshCw },
   // { id: 'integrations', label: 'التكاملات', icon: Globe },
   { id: 'reports', label: 'التقارير', icon: BarChart3 },
