@@ -9,7 +9,7 @@ class RecurringController {
         limit = 50, 
         process_id, 
         is_active,
-        recurrence_type 
+        schedule_type 
       } = req.query;
       
       const offset = (page - 1) * limit;
@@ -17,8 +17,6 @@ class RecurringController {
       let query = `
         SELECT 
           rr.*,
-          rr.next_execution AS next_execution_date,
-          rr.last_executed AS last_execution_date,
           p.name as process_name,
           p.color as process_color
         FROM recurring_rules rr
@@ -40,31 +38,69 @@ class RecurringController {
         params.push(is_active === 'true');
       }
       
-      if (recurrence_type) {
+      if (schedule_type) {
         paramCount++;
-        query += ` AND rr.recurrence_type = $${paramCount}`;
-        params.push(recurrence_type);
+        query += ` AND (rr.schedule_type = $${paramCount} OR rr.recurrence_type = $${paramCount})`;
+        params.push(schedule_type);
       }
       
+      // إضافة ORDER BY و LIMIT/OFFSET
       query += ` 
-        ORDER BY rr.next_execution ASC
         LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
       `;
       params.push(limit, offset);
       
-      const result = await pool.query(query, params);
+      // محاولة استخدام next_execution في ORDER BY
+      let result;
+      try {
+        const queryWithOrder = query.replace('LIMIT', 'ORDER BY rr.next_execution ASC NULLS LAST LIMIT');
+        result = await pool.query(queryWithOrder, params);
+      } catch (error) {
+        // إذا فشل، استخدم next_execution_date أو created_at
+        if (error.message && error.message.includes('next_execution')) {
+          try {
+            const queryWithOrder = query.replace('LIMIT', 'ORDER BY rr.next_execution_date ASC NULLS LAST LIMIT');
+            result = await pool.query(queryWithOrder, params);
+          } catch (error2) {
+            // إذا فشل أيضاً، استخدم created_at
+            const queryWithOrder = query.replace('LIMIT', 'ORDER BY rr.created_at DESC LIMIT');
+            result = await pool.query(queryWithOrder, params);
+          }
+        } else {
+          throw error;
+        }
+      }
+      
       const rules = result.rows.map(formatRecurringRule);
       
-      // عدد إجمالي السجلات
-      const countQuery = `
+      // عدد إجمالي السجلات - استخدام parameterized queries
+      let countQuery = `
         SELECT COUNT(*) as total
         FROM recurring_rules rr
         WHERE 1=1
-        ${process_id ? `AND rr.process_id = '${process_id}'` : ''}
-        ${is_active !== undefined ? `AND rr.is_active = ${is_active === 'true'}` : ''}
-        ${recurrence_type ? `AND rr.recurrence_type = '${recurrence_type}'` : ''}
       `;
-      const countResult = await pool.query(countQuery);
+      const countParams = [];
+      let countParamCount = 0;
+      
+      if (process_id) {
+        countParamCount++;
+        countQuery += ` AND rr.process_id = $${countParamCount}`;
+        countParams.push(process_id);
+      }
+      
+      if (is_active !== undefined) {
+        countParamCount++;
+        countQuery += ` AND rr.is_active = $${countParamCount}`;
+        countParams.push(is_active === 'true');
+      }
+      
+      if (schedule_type) {
+        countParamCount++;
+        countQuery += ` AND (rr.schedule_type = $${countParamCount} OR rr.recurrence_type = $${countParamCount})`;
+        countParams.push(schedule_type);
+      }
+      
+      const countResult = await pool.query(countQuery, countParams);
       const total = parseInt(countResult.rows[0].total);
       
       res.json({
@@ -95,8 +131,6 @@ class RecurringController {
       const result = await pool.query(`
         SELECT 
           rr.*,
-          rr.next_execution AS next_execution_date,
-          rr.last_executed AS last_execution_date,
           p.name as process_name,
           p.color as process_color
         FROM recurring_rules rr
@@ -460,18 +494,36 @@ class RecurringController {
   // جلب القواعد المستحقة للتنفيذ
   static async getDue(req, res) {
     try {
-      const result = await pool.query(`
-        SELECT 
-          rr.*,
-          rr.next_execution AS next_execution_date,
-          rr.last_executed AS last_execution_date,
-          p.name as process_name
-        FROM recurring_rules rr
-        LEFT JOIN processes p ON rr.process_id = p.id
-        WHERE rr.is_active = true 
-        AND rr.next_execution <= NOW()
-        ORDER BY rr.next_execution ASC
-      `);
+      // محاولة استخدام next_execution أولاً
+      let result;
+      try {
+        result = await pool.query(`
+          SELECT 
+            rr.*,
+            p.name as process_name
+          FROM recurring_rules rr
+          LEFT JOIN processes p ON rr.process_id = p.id
+          WHERE rr.is_active = true 
+          AND rr.next_execution <= NOW()
+          ORDER BY rr.next_execution ASC
+        `);
+      } catch (error) {
+        // إذا فشل، استخدم next_execution_date
+        if (error.message && error.message.includes('next_execution')) {
+          result = await pool.query(`
+            SELECT 
+              rr.*,
+              p.name as process_name
+            FROM recurring_rules rr
+            LEFT JOIN processes p ON rr.process_id = p.id
+            WHERE rr.is_active = true 
+            AND rr.next_execution_date <= NOW()
+            ORDER BY rr.next_execution_date ASC
+          `);
+        } else {
+          throw error;
+        }
+      }
       
       res.json({
         success: true,
@@ -608,6 +660,7 @@ function formatRecurringRule(rule) {
 
   formatted.rule_name = formatted.rule_name || formatted.name;
   formatted.title = formatted.title || (formatted.template_data?.title ?? formatted.name);
+  // التعامل مع أسماء الأعمدة المختلفة
   formatted.next_execution_date = formatted.next_execution_date || formatted.next_execution || null;
   formatted.last_execution_date = formatted.last_execution_date || formatted.last_executed || null;
 
