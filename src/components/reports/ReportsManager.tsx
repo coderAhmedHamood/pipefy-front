@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/config';
+import { useDeviceType } from '../../hooks/useDeviceType';
 import { 
   BarChart3, 
   Users, 
@@ -16,7 +17,8 @@ import {
   TrendingUp,
   FileText,
   Bell,
-  Send
+  Send,
+  ChevronLeft
 } from 'lucide-react';
 import notificationService from '../../services/notificationService';
 import ticketAssignmentService from '../../services/ticketAssignmentService';
@@ -204,8 +206,11 @@ type TabType = 'users' | 'processes' | 'development';
 
 export const ReportsManager: React.FC = () => {
   const notifications = useQuickNotifications();
+  const { isMobile, isTablet } = useDeviceType();
   
   const [activeTab, setActiveTab] = useState<TabType>('processes');
+  const [showProcessList, setShowProcessList] = useState(false);
+  const [showUserList, setShowUserList] = useState(false);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [processReport, setProcessReport] = useState<ProcessReport | null>(null);
@@ -500,162 +505,224 @@ export const ReportsManager: React.FC = () => {
   return (
     <div className="h-full bg-gray-50" dir="rtl">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-6">
-      
+      <div className={`bg-white border-b border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+        <div className={`flex items-center ${isMobile || isTablet ? 'justify-between mb-3' : 'mb-4'}`}>
+          <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+            <BarChart3 className={isMobile || isTablet ? 'w-5 h-5' : 'w-8 h-8'} />
+            <span>التقارير</span>
+          </h1>
+        </div>
 
         {/* Tabs */}
-        <div className="flex items-center space-x-4 space-x-reverse mt-6 border-b border-gray-200">
+        <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse overflow-x-auto scrollbar-hide' : 'space-x-4 space-x-reverse'} border-b border-gray-200`}>
           <button
-            onClick={() => setActiveTab('processes')}
-            className={`pb-3 px-4 font-medium transition-colors relative ${
+            onClick={() => {
+              setActiveTab('processes');
+              if (isMobile || isTablet) {
+                setShowProcessList(false);
+                setShowUserList(false);
+              }
+            }}
+            className={`${isMobile || isTablet ? 'pb-2 px-3 text-xs flex-shrink-0' : 'pb-3 px-4'} font-medium transition-colors relative ${
               activeTab === 'processes'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <BarChart3 className="w-4 h-4" />
-              <span>تقارير العمليات</span>
+            <div className="flex items-center space-x-1.5 space-x-reverse">
+              <BarChart3 className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+              <span>{isMobile || isTablet ? 'العمليات' : 'تقارير العمليات'}</span>
             </div>
           </button>
 
           <button
-            onClick={() => setActiveTab('users')}
-            className={`pb-3 px-4 font-medium transition-colors relative ${
+            onClick={() => {
+              setActiveTab('users');
+              if (isMobile || isTablet) {
+                setShowProcessList(false);
+                setShowUserList(false);
+              }
+            }}
+            className={`${isMobile || isTablet ? 'pb-2 px-3 text-xs flex-shrink-0' : 'pb-3 px-4'} font-medium transition-colors relative ${
               activeTab === 'users'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <Users className="w-4 h-4" />
-              <span>تقارير المستخدمين</span>
+            <div className="flex items-center space-x-1.5 space-x-reverse">
+              <Users className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+              <span>{isMobile || isTablet ? 'المستخدمين' : 'تقارير المستخدمين'}</span>
             </div>
           </button>
 
           <button
             onClick={() => setActiveTab('development')}
-            className={`pb-3 px-4 font-medium transition-colors relative ${
+            className={`${isMobile || isTablet ? 'pb-2 px-3 text-xs flex-shrink-0' : 'pb-3 px-4'} font-medium transition-colors relative ${
               activeTab === 'development'
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <Settings className="w-4 h-4" />
-              <span>قيد التطوير</span>
+            <div className="flex items-center space-x-1.5 space-x-reverse">
+              <Settings className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+              <span>{isMobile || isTablet ? 'قيد التطوير' : 'قيد التطوير'}</span>
             </div>
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex h-[calc(100vh-200px)]">
+      <div className={`${isMobile || isTablet ? 'flex-col' : 'flex'} ${isMobile || isTablet ? 'h-[calc(100vh-120px)]' : 'h-[calc(100vh-200px)]'}`}>
         {/* تبويبة العمليات */}
         {activeTab === 'processes' && (
           <>
             {/* Right Panel - قائمة العمليات */}
-            <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
-              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
-                <h3 className="font-bold text-white text-lg">العمليات</h3>
-                <p className="text-blue-100 text-sm mt-1">اختر عملية لعرض التقرير</p>
-              </div>
-
-              {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader className="w-6 h-6 text-blue-500 animate-spin" />
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {processes.map((process) => (
+            {((isMobile || isTablet) && showProcessList) || !(isMobile || isTablet) ? (
+              <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
+                {(isMobile || isTablet) && (
+                  <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
+                    <h3 className="font-bold text-white text-base">العمليات</h3>
                     <button
-                      key={process.id}
-                      onClick={() => handleProcessClick(process)}
-                      className={`w-full p-4 text-right hover:bg-blue-50 transition-colors ${
-                        selectedProcess?.id === process.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
-                      }`}
+                      onClick={() => setShowProcessList(false)}
+                      className="p-1.5 rounded-lg hover:bg-white hover:bg-opacity-20 text-white"
                     >
-                      <div className="flex items-center space-x-3 space-x-reverse">
-                        <div className={`w-10 h-10 ${process.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                          <span className="text-white font-bold">{process.name.charAt(0)}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 text-sm truncate">{process.name}</h4>
-                          <p className="text-xs text-gray-500 truncate">{process.description}</p>
-                          <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
-                            process.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                            {process.is_active ? 'نشط' : 'غير نشط'}
-                          </span>
-                        </div>
-                      </div>
+                      <ChevronLeft className="w-5 h-5" />
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+                {!(isMobile || isTablet) && (
+                  <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600`}>
+                    <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>العمليات</h3>
+                    <p className={`text-blue-100 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1`}>اختر عملية لعرض التقرير</p>
+                  </div>
+                )}
+
+                {isLoading ? (
+                  <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-blue-500 animate-spin`} />
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {processes.map((process) => (
+                      <button
+                        key={process.id}
+                        onClick={() => {
+                          handleProcessClick(process);
+                          if (isMobile || isTablet) setShowProcessList(false);
+                        }}
+                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right hover:bg-blue-50 transition-colors ${
+                          selectedProcess?.id === process.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} ${process.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{process.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`font-semibold text-gray-900 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} truncate`}>{process.name}</h4>
+                            {!(isMobile || isTablet) && (
+                              <p className="text-xs text-gray-500 truncate">{process.description}</p>
+                            )}
+                            <span className={`inline-block mt-1 ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
+                              process.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {process.is_active ? 'نشط' : 'غير نشط'}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             {/* Left Panel - التقارير */}
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <div className={`${isMobile || isTablet ? 'w-full' : 'flex-1'} overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} bg-gray-50`}>
               {!selectedProcess ? (
                 /* رسالة اختيار عملية */
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <BarChart3 className="w-24 h-24 mx-auto mb-6 text-gray-300" />
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">اختر عملية من القائمة</h3>
-                    <p className="text-gray-600">اضغط على أي عملية من القائمة اليمنى لعرض التقرير التفصيلي</p>
+                    <BarChart3 className={`${isMobile || isTablet ? 'w-16 h-16' : 'w-24 h-24'} mx-auto mb-6 text-gray-300`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 mb-2`}>اختر عملية من القائمة</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                      {(isMobile || isTablet) ? 'اضغط على زر العمليات لعرض القائمة' : 'اضغط على أي عملية من القائمة اليمنى لعرض التقرير التفصيلي'}
+                    </p>
+                    {(isMobile || isTablet) && (
+                      <button
+                        onClick={() => setShowProcessList(true)}
+                        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                      >
+                        عرض العمليات
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : isLoadingReport ? (
                 /* تحميل التقرير */
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <Loader className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-                    <p className="text-gray-600">جاري تحميل التقرير...</p>
+                    <Loader className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-blue-500 animate-spin mx-auto mb-4`} />
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري تحميل التقرير...</p>
                   </div>
                 </div>
               ) : processReport && selectedProcess ? (
-                  <div className="space-y-6">
+                <>
+                  {/* زر العودة على الجوال */}
+                  {(isMobile || isTablet) && (
+                    <button
+                      onClick={() => {
+                        setSelectedProcess(null);
+                        setProcessReport(null);
+                        setShowProcessList(true);
+                      }}
+                      className="mb-3 flex items-center space-x-2 space-x-reverse text-blue-600 hover:text-blue-700 text-sm"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>العودة للقائمة</span>
+                    </button>
+                  )}
+                  <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-6'}>
                     {/* Header - Date Range with Filters */}
-                    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                    <div className={`bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden ${isMobile || isTablet ? 'rounded-lg' : ''}`}>
                  
                       
                       {/* Date Filters Section */}
-                      <div className="bg-gray-50 p-6 border-t border-gray-200">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className={`bg-gray-50 ${isMobile || isTablet ? 'p-3' : 'p-6'} border-t border-gray-200`}>
+                        <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-4'}`}>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1 space-x-reverse">
-                              <Clock className="w-3.5 h-3.5 text-green-600" />
+                            <label className={`block ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'} flex items-center space-x-1 space-x-reverse`}>
+                              <Clock className={isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
                               <span>من تاريخ</span>
                             </label>
                             <input
                               type="date"
                               value={dateFrom}
                               onChange={(e) => setDateFrom(e.target.value)}
-                              className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white hover:border-gray-400"
+                              className={`w-full ${isMobile || isTablet ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'} border-2 border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white hover:border-gray-400`}
                             />
                           </div>
                           
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1 space-x-reverse">
-                              <Clock className="w-3.5 h-3.5 text-red-600" />
+                            <label className={`block ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'} flex items-center space-x-1 space-x-reverse`}>
+                              <Clock className={isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
                               <span>إلى تاريخ</span>
                             </label>
                             <input
                               type="date"
                               value={dateTo}
                               onChange={(e) => setDateTo(e.target.value)}
-                              className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white hover:border-gray-400"
+                              className={`w-full ${isMobile || isTablet ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'} border-2 border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white hover:border-gray-400`}
                             />
                           </div>
                           
-                          <div className="flex items-end">
+                          <div className={isMobile || isTablet ? 'flex items-end' : 'flex items-end'}>
                             <button
                               onClick={handleDateChange}
-                              className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-all duration-200 text-sm font-semibold flex items-center justify-center space-x-2 space-x-reverse shadow-sm hover:shadow-md"
+                              className={`w-full bg-blue-600 text-white ${isMobile || isTablet ? 'py-2 px-3 text-xs' : 'py-2.5 px-4 text-sm'} rounded-lg hover:bg-blue-700 transition-all duration-200 font-semibold flex items-center justify-center space-x-1.5 space-x-reverse shadow-sm hover:shadow-md`}
                             >
-                              <RefreshCw className="w-4 h-4" />
-                              <span>تحديث التقرير</span>
+                              <RefreshCw className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+                              <span>تحديث</span>
                             </button>
                           </div>
                         </div>
@@ -663,54 +730,54 @@ export const ReportsManager: React.FC = () => {
                     </div>
 
                     {/* الإحصائيات الأساسية */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className={`grid ${isMobile || isTablet ? 'grid-cols-2 gap-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'}`}>
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-600">إجمالي التذاكر</p>
-                            <p className="text-3xl font-bold text-gray-900">{processReport.basic_stats.total_tickets.toString()}</p>
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-600`}>إجمالي التذاكر</p>
+                            <p className={`${isMobile || isTablet ? 'text-xl' : 'text-3xl'} font-bold text-gray-900`}>{processReport.basic_stats.total_tickets.toString()}</p>
                           </div>
-                          <div className="p-3 bg-blue-100 rounded-lg">
-                            <BarChart3 className="w-6 h-6 text-blue-600" />
+                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-blue-100 rounded-lg`}>
+                            <BarChart3 className={isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} />
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-white rounded-lg shadow-sm p-6">
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-600">مكتملة</p>
-                            <p className="text-3xl font-bold text-green-600">{processReport.basic_stats.completed_tickets.toString()}</p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-600`}>مكتملة</p>
+                            <p className={`${isMobile || isTablet ? 'text-xl' : 'text-3xl'} font-bold text-green-600`}>{processReport.basic_stats.completed_tickets.toString()}</p>
+                            <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500 mt-1`}>
                               {Number(parseFloat(String(processReport.completion_rate?.rate || 0))).toFixed(1)}% معدل الإنجاز
                             </p>
                           </div>
-                          <div className="p-3 bg-green-100 rounded-lg">
-                            <CheckCircle className="w-6 h-6 text-green-600" />
+                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-green-100 rounded-lg`}>
+                            <CheckCircle className={isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} />
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-white rounded-lg shadow-sm p-6">
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-600">متأخرة</p>
-                            <p className="text-3xl font-bold text-red-600">{processReport.basic_stats.overdue_tickets.toString()}</p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-600`}>متأخرة</p>
+                            <p className={`${isMobile || isTablet ? 'text-xl' : 'text-3xl'} font-bold text-red-600`}>{processReport.basic_stats.overdue_tickets.toString()}</p>
+                            <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500 mt-1`}>
                               {processReport.basic_stats.total_tickets > 0 
                                 ? ((processReport.basic_stats.overdue_tickets / processReport.basic_stats.total_tickets) * 100).toFixed(1) 
                                 : 0}% من الإجمالي
                             </p>
                           </div>
-                          <div className="p-3 bg-red-100 rounded-lg">
-                            <AlertTriangle className="w-6 h-6 text-red-600" />
+                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-red-100 rounded-lg`}>
+                            <AlertTriangle className={isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} />
                           </div>
                         </div>
                       </div>
 
                       {/* مؤشر الأداء */}
                       {processReport.performance_metrics && processReport.performance_metrics.net_performance_hours !== null ? (
-                        <div className={`rounded-lg shadow-sm p-6 ${
+                        <div className={`rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3 col-span-2' : 'p-6'} ${
                           parseFloat(processReport.performance_metrics.net_performance_hours) > 0 
                             ? 'bg-gradient-to-br from-green-50 to-green-100' 
                             : parseFloat(processReport.performance_metrics.net_performance_hours) < 0
@@ -719,7 +786,7 @@ export const ReportsManager: React.FC = () => {
                         }`}>
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-700 mb-1">صافي الأداء</p>
+                              <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-0.5' : 'mb-1'}`}>صافي الأداء</p>
                               {(() => {
                                 const hours = parseFloat(processReport.performance_metrics.net_performance_hours);
                                 const absHours = Math.abs(hours);
@@ -731,31 +798,31 @@ export const ReportsManager: React.FC = () => {
                                 return (
                                   <>
                                     {absHours >= 24 ? (
-                                      <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
+                                      <div className={`${isMobile || isTablet ? 'text-lg' : 'text-3xl'} font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
                                         {isPositive ? '+' : isNegative ? '-' : ''}
                                         {days} يوم
                                         {remainingHours > 0 && ` و ${remainingHours} ساعة`}
                                       </div>
                                     ) : (
-                                      <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
+                                      <div className={`${isMobile || isTablet ? 'text-lg' : 'text-3xl'} font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
                                         {isPositive ? '+' : ''}{hours.toFixed(1)} ساعة
                                       </div>
                                     )}
-                                    <p className="text-xs text-gray-600 mt-1">
+                                    <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-600 mt-1`}>
                                       {isPositive ? '✅ متقدم عن الجدول' : isNegative ? '⚠️ متأخر عن الجدول' : '⏱️ حسب الجدول'}
                                     </p>
                                   </>
                                 );
                               })()}
                             </div>
-                            <div className={`p-3 rounded-lg ${
+                            <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} rounded-lg ${
                               parseFloat(processReport.performance_metrics.net_performance_hours) > 0 
                                 ? 'bg-green-200' 
                                 : parseFloat(processReport.performance_metrics.net_performance_hours) < 0
                                 ? 'bg-red-200'
                                 : 'bg-gray-200'
                             }`}>
-                              <TrendingUp className={`w-6 h-6 ${
+                              <TrendingUp className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} ${
                                 parseFloat(processReport.performance_metrics.net_performance_hours) > 0 
                                   ? 'text-green-700' 
                                   : parseFloat(processReport.performance_metrics.net_performance_hours) < 0
@@ -785,32 +852,32 @@ export const ReportsManager: React.FC = () => {
 
 
                     {/* توزيع المراحل والأولويات جنباً إلى جنب */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-1 lg:grid-cols-2 gap-6'}`}>
                       {/* توزيع التذاكر حسب المرحلة - اليمين */}
-                      <div className="bg-white rounded-lg shadow-sm p-4">
-                        <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse">
-                          <Target className="w-4 h-4 text-blue-500" />
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-4'}`}>
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-2' : 'mb-3'} flex items-center space-x-1.5 space-x-reverse`}>
+                          <Target className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                           <span>توزيع التذاكر حسب المرحلة</span>
                         </h3>
                         
-                        <div className="space-y-2">
+                        <div className={isMobile || isTablet ? 'space-y-1.5' : 'space-y-2'}>
                           {processReport.stage_distribution.map((stage, index) => (
                             <div key={index} className="flex items-center justify-between">
-                              <div className="flex items-center space-x-3 space-x-reverse flex-1">
+                              <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'} flex-1 min-w-0`}>
                                 <div 
-                                  className="w-3 h-3 rounded flex-shrink-0"
+                                  className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} rounded flex-shrink-0`}
                                   style={{
                                     backgroundColor: `hsl(${(index * 360) / processReport.stage_distribution.length}, 70%, 50%)`
                                   }}
                                 ></div>
-                                <span className="text-xs font-medium text-gray-900 truncate">{stage.stage_name}</span>
+                                <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-medium text-gray-900 truncate`}>{stage.stage_name}</span>
                               </div>
-                              <div className="flex items-center space-x-3 space-x-reverse">
-                                <span className="text-xs font-bold text-gray-900 whitespace-nowrap">{stage.ticket_count.toString()}</span>
-                                <span className="text-xs text-gray-500 whitespace-nowrap">({Number(parseFloat(String(stage.percentage || 0))).toFixed(1)}%)</span>
-                                <div className="w-24 bg-gray-200 rounded-full h-1.5">
+                              <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse' : 'space-x-3 space-x-reverse'} flex-shrink-0`}>
+                                <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-bold text-gray-900 whitespace-nowrap`}>{stage.ticket_count.toString()}</span>
+                                <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500 whitespace-nowrap`}>({Number(parseFloat(String(stage.percentage || 0))).toFixed(1)}%)</span>
+                                <div className={`${isMobile || isTablet ? 'w-16' : 'w-24'} bg-gray-200 rounded-full ${isMobile || isTablet ? 'h-1' : 'h-1.5'}`}>
                                   <div 
-                                    className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                                    className={`bg-blue-500 ${isMobile || isTablet ? 'h-1' : 'h-1.5'} rounded-full transition-all duration-300`}
                                     style={{ width: `${Number(parseFloat(String(stage.percentage || 0)))}%` }}
                                   ></div>
                                 </div>
@@ -822,14 +889,14 @@ export const ReportsManager: React.FC = () => {
 
                       {/* توزيع حسب الأولوية - اليسار (نسخة من تقارير المستخدمين) */}
                       {processReport.priority_distribution && processReport.priority_distribution.length > 0 && (
-                        <div className="bg-white rounded-lg shadow-sm p-2.5">
-                          <h3 className="text-xs font-bold text-gray-900 mb-2 flex items-center space-x-1.5 space-x-reverse">
-                            <AlertTriangle className="w-3 h-3 text-orange-500" />
+                        <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-2.5' : 'p-2.5'}`}>
+                          <h3 className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'} flex items-center space-x-1.5 space-x-reverse`}>
+                            <AlertTriangle className={isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
                             <span>توزيع التذاكر حسب الأولوية</span>
                           </h3>
                           
                           {/* عرض بصري محسّن ومصغّر جداً */}
-                          <div className="space-y-1">
+                          <div className={isMobile || isTablet ? 'space-y-1' : 'space-y-1'}>
                             {processReport.priority_distribution.map((item, index) => {
                               const priorityColors: { [key: string]: { bg: string; text: string; border: string; progress: string } } = {
                                 'urgent': { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', progress: 'bg-red-500' },
@@ -841,22 +908,22 @@ export const ReportsManager: React.FC = () => {
                               const percentage = Number(parseFloat(String(item.percentage || 0)));
                               
                               return (
-                                <div key={index} className={`p-1.5 rounded border ${colors.bg} ${colors.border} hover:shadow-sm transition-all`}>
+                                <div key={index} className={`${isMobile || isTablet ? 'p-1.5' : 'p-1.5'} rounded border ${colors.bg} ${colors.border} hover:shadow-sm transition-all`}>
                                   <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center space-x-1.5 space-x-reverse">
-                                      <div className={`w-7 h-7 ${getPriorityColor(item.priority)} rounded-full flex items-center justify-center flex-shrink-0`}>
-                                        <span className="text-white font-bold text-xs leading-none">{item.count}</span>
+                                    <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1 space-x-reverse' : 'space-x-1.5 space-x-reverse'}`}>
+                                      <div className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-7 h-7'} ${getPriorityColor(item.priority)} rounded-full flex items-center justify-center flex-shrink-0`}>
+                                        <span className={`text-white font-bold ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} leading-none`}>{item.count}</span>
                                       </div>
                                       <div>
-                                        <h4 className={`text-xs font-semibold ${colors.text} leading-tight`}>{getPriorityLabel(item.priority)}</h4>
-                                        <p className="text-xs text-gray-600 mt-0.5 leading-tight">{item.count} تذكرة</p>
+                                        <h4 className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold ${colors.text} leading-tight`}>{getPriorityLabel(item.priority)}</h4>
+                                        <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-600 mt-0.5 leading-tight`}>{item.count} تذكرة</p>
                                       </div>
                                     </div>
                                     <div className="text-left">
-                                      <span className={`text-sm font-bold ${colors.text}`}>{percentage.toFixed(1)}%</span>
+                                      <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold ${colors.text}`}>{percentage.toFixed(1)}%</span>
                                     </div>
                                   </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
+                                  <div className={`w-full bg-gray-200 rounded-full ${isMobile || isTablet ? 'h-0.5' : 'h-1'} overflow-hidden`}>
                                     <div 
                                       className={`h-full ${colors.progress} rounded-full transition-all duration-500 ease-out`}
                                       style={{ width: `${percentage}%` }}
@@ -872,85 +939,95 @@ export const ReportsManager: React.FC = () => {
 
                     {/* تفاصيل التذاكر المكتملة */}
                     {processReport.completed_tickets_details && processReport.completed_tickets_details.length > 0 && (
-                      <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                          <FileText className="w-5 h-5 text-purple-500" />
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'} flex items-center space-x-1.5 space-x-reverse`}>
+                          <FileText className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
                           <span>تفاصيل التذاكر المكتملة ({processReport.completed_tickets_details.length})</span>
                         </h3>
                         
                         <div className="overflow-x-auto">
-                          <table className="min-w-full divide-y divide-gray-200">
+                          <table className={`min-w-full divide-y divide-gray-200 ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>
                             <thead className="bg-gray-50">
                               <tr>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم التذكرة</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">العنوان</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأولوية</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المسند إليه</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأيام الفعلية</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأيام المخططة</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفرق</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجراءات</th>
+                                <th className={`${isMobile || isTablet ? 'px-2 py-2 text-[9px]' : 'px-4 py-3 text-xs'} text-right font-medium text-gray-500 uppercase`}>رقم التذكرة</th>
+                                <th className={`${isMobile || isTablet ? 'px-2 py-2 text-[9px]' : 'px-4 py-3 text-xs'} text-right font-medium text-gray-500 uppercase`}>العنوان</th>
+                                {!(isMobile || isTablet) && (
+                                  <>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأولوية</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المسند إليه</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأيام الفعلية</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الأيام المخططة</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الفرق</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الحالة</th>
+                                  </>
+                                )}
+                                <th className={`${isMobile || isTablet ? 'px-2 py-2 text-[9px]' : 'px-4 py-3 text-xs'} text-right font-medium text-gray-500 uppercase`}>إجراءات</th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                               {processReport.completed_tickets_details.map((ticket) => (
                                 <tr key={ticket.id} className="hover:bg-gray-50">
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-900`}>
                                     {ticket.ticket_number}
                                   </td>
-                                  <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-gray-900 ${isMobile || isTablet ? 'max-w-[120px]' : 'max-w-xs'} truncate`}>
                                     {ticket.title}
                                   </td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      ticket.priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                                      ticket.priority === 'high' ? 'bg-orange-100 text-orange-800' :
-                                      ticket.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-green-100 text-green-800'
-                                    }`}>
-                                      {ticket.priority === 'urgent' ? 'عاجل جداً' :
-                                       ticket.priority === 'high' ? 'عاجل' :
-                                       ticket.priority === 'medium' ? 'متوسط' : 'منخفض'}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                    {ticket.assigned_to_name || '-'}
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                    {parseFloat(ticket.actual_days).toFixed(1)} يوم
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                    {parseFloat(ticket.planned_days).toFixed(1)} يوم
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                    <span className={`font-medium ${parseFloat(ticket.variance_days) < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                      {parseFloat(ticket.variance_days).toFixed(1)} يوم
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      ticket.performance_status === 'early' ? 'bg-green-100 text-green-800' :
-                                      ticket.performance_status === 'on_time' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-red-100 text-red-800'
-                                    }`}>
-                                      {ticket.performance_status === 'early' ? 'قريب' :
-                                       ticket.performance_status === 'on_time' ? 'في الوقت' : 'متأخر'}
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                  {!(isMobile || isTablet) && (
+                                    <>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                          ticket.priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                                          ticket.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                                          ticket.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                          'bg-green-100 text-green-800'
+                                        }`}>
+                                          {ticket.priority === 'urgent' ? 'عاجل جداً' :
+                                           ticket.priority === 'high' ? 'عاجل' :
+                                           ticket.priority === 'medium' ? 'متوسط' : 'منخفض'}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                        {ticket.assigned_to_name || '-'}
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                        {parseFloat(ticket.actual_days).toFixed(1)} يوم
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                        {parseFloat(ticket.planned_days).toFixed(1)} يوم
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        <span className={`font-medium ${parseFloat(ticket.variance_days) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                          {parseFloat(ticket.variance_days).toFixed(1)} يوم
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                          ticket.performance_status === 'early' ? 'bg-green-100 text-green-800' :
+                                          ticket.performance_status === 'on_time' ? 'bg-yellow-100 text-yellow-800' :
+                                          'bg-red-100 text-red-800'
+                                        }`}>
+                                          {ticket.performance_status === 'early' ? 'قريب' :
+                                           ticket.performance_status === 'on_time' ? 'في الوقت' : 'متأخر'}
+                                        </span>
+                                      </td>
+                                    </>
+                                  )}
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap`}>
                                     <button
                                       onClick={() => sendNotificationToAssignedUsers(ticket.id, ticket.ticket_number, ticket.title)}
                                       disabled={sendingNotifications[ticket.id]}
-                                      className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      className={`inline-flex items-center ${isMobile || isTablet ? 'px-2 py-1 text-[9px]' : 'px-3 py-1.5 text-xs'} border border-transparent font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed`}
                                       title="إرسال إشعار للمستخدمين المُسندين"
                                     >
                                       {sendingNotifications[ticket.id] ? (
-                                        <Loader className="w-3 h-3 animate-spin ml-1" />
+                                        <Loader className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} animate-spin ml-1`} />
                                       ) : (
-                                        <Send className="w-3 h-3 ml-1" />
+                                        <Send className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} ml-1`} />
                                       )}
-                                      {sendingNotifications[ticket.id] ? 'جاري الإرسال...' : 'إرسال إشعار'}
+                                      {!(isMobile || isTablet) && (
+                                        <span>{sendingNotifications[ticket.id] ? 'جاري الإرسال...' : 'إرسال إشعار'}</span>
+                                      )}
                                     </button>
                                   </td>
                                 </tr>
@@ -963,24 +1040,24 @@ export const ReportsManager: React.FC = () => {
 
                     {/* أفضل الموظفين أداءً */}
                     {processReport.top_performers && processReport.top_performers.length > 0 && (
-                      <div className="bg-white rounded-lg shadow-sm p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
-                          <Award className="w-5 h-5 text-yellow-500" />
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'} flex items-center space-x-1.5 space-x-reverse`}>
+                          <Award className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
                           <span>أفضل الموظفين أداءً</span>
                         </h3>
                         
-                        <div className="space-y-3">
+                        <div className={isMobile || isTablet ? 'space-y-2' : 'space-y-3'}>
                           {processReport.top_performers.map((performer, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg">
-                              <div className="flex items-center space-x-3 space-x-reverse">
-                                <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center">
-                                  <span className="text-white font-bold">{index + 1}</span>
+                            <div key={index} className={`flex items-center justify-between ${isMobile || isTablet ? 'p-2.5' : 'p-4'} bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg`}>
+                              <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'}`}>
+                                <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center`}>
+                                  <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{index + 1}</span>
                                 </div>
-                                <span className="font-medium text-gray-900">{performer.user_name}</span>
+                                <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>{performer.user_name}</span>
                               </div>
-                              <div className="flex items-center space-x-2 space-x-reverse">
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="text-sm font-bold text-gray-900">{performer.completed_tickets} تذكرة مكتملة</span>
+                              <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse' : 'space-x-2 space-x-reverse'}`}>
+                                <CheckCircle className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+                                <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900`}>{performer.completed_tickets} تذكرة مكتملة</span>
                               </div>
                             </div>
                           ))}
@@ -988,12 +1065,13 @@ export const ReportsManager: React.FC = () => {
                       </div>
                     )}
                   </div>
+                </>
                 ) : selectedProcess ? (
-                  <div className="text-center py-12">
-                    <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
-                      <Activity className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد بيانات متاحة</h3>
-                      <p className="text-gray-600 mb-4">لم يتم العثور على تقرير لهذه العملية</p>
+                  <div className={`text-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                    <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-4' : 'p-8'} max-w-md mx-auto`}>
+                      <Activity className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} mx-auto mb-4 text-gray-400`} />
+                      <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-2`}>لا توجد بيانات متاحة</h3>
+                      <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mb-4`}>لم يتم العثور على تقرير لهذه العملية</p>
                       <button
                         onClick={() => fetchProcessReport(selectedProcess.id)}
                         className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
@@ -1016,112 +1094,157 @@ export const ReportsManager: React.FC = () => {
         {activeTab === 'users' && (
           <>
             {/* Right Panel - قائمة المستخدمين */}
-            <div className="w-80 border-l border-gray-200 bg-white overflow-y-auto">
-              <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600">
-                <h3 className="font-bold text-white text-lg">المستخدمين</h3>
-                <p className="text-green-100 text-sm mt-1">اختر مستخدم لعرض التقرير</p>
-              </div>
-
-              {isLoadingUsers ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader className="w-6 h-6 text-green-500 animate-spin" />
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {users.map((user) => (
+            {((isMobile || isTablet) && showUserList) || !(isMobile || isTablet) ? (
+              <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
+                {(isMobile || isTablet) && (
+                  <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600">
+                    <h3 className="font-bold text-white text-base">المستخدمين</h3>
                     <button
-                      key={user.id}
-                      onClick={() => handleUserClick(user)}
-                      className={`w-full p-4 text-right hover:bg-green-50 transition-colors ${
-                        selectedUser?.id === user.id ? 'bg-green-50 border-r-4 border-green-500' : ''
-                      }`}
+                      onClick={() => setShowUserList(false)}
+                      className="p-1.5 rounded-lg hover:bg-white hover:bg-opacity-20 text-white"
                     >
-                      <div className="flex items-center space-x-3 space-x-reverse">
-                        <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
-                          <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 text-sm truncate">{user.name}</h4>
-                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                          <div className="flex items-center space-x-2 space-x-reverse mt-1">
-                            {user.role && (
-                              <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                                {user.role.name}
-                              </span>
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+                {!(isMobile || isTablet) && (
+                  <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600`}>
+                    <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>المستخدمين</h3>
+                    <p className={`text-green-100 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1`}>اختر مستخدم لعرض التقرير</p>
+                  </div>
+                )}
+
+                {isLoadingUsers ? (
+                  <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-green-500 animate-spin`} />
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {users.map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => {
+                          handleUserClick(user);
+                          if (isMobile || isTablet) setShowUserList(false);
+                        }}
+                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right hover:bg-green-50 transition-colors ${
+                          selectedUser?.id === user.id ? 'bg-green-50 border-r-4 border-green-500' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0`}>
+                            <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{user.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`font-semibold text-gray-900 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} truncate`}>{user.name}</h4>
+                            {!(isMobile || isTablet) && (
+                              <p className="text-xs text-gray-500 truncate">{user.email}</p>
                             )}
-                            <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${
-                              user.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                            }`}>
-                              {user.is_active ? 'نشط' : 'غير نشط'}
-                            </span>
+                            <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mt-0.5' : 'space-x-2 space-x-reverse mt-1'}`}>
+                              {user.role && (
+                                <span className={`inline-block ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full bg-purple-100 text-purple-700`}>
+                                  {user.role.name}
+                                </span>
+                              )}
+                              <span className={`inline-block ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
+                                user.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {user.is_active ? 'نشط' : 'غير نشط'}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             {/* Left Panel - التقارير */}
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+            <div className={`${isMobile || isTablet ? 'w-full' : 'flex-1'} overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} bg-gray-50`}>
               {!selectedUser ? (
                 /* رسالة اختيار مستخدم */
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <Users className="w-24 h-24 mx-auto mb-6 text-gray-300" />
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">اختر مستخدم من القائمة</h3>
-                    <p className="text-gray-600">اضغط على أي مستخدم من القائمة اليمنى لعرض التقرير التفصيلي</p>
+                    <Users className={`${isMobile || isTablet ? 'w-16 h-16' : 'w-24 h-24'} mx-auto mb-6 text-gray-300`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 mb-2`}>اختر مستخدم من القائمة</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                      {(isMobile || isTablet) ? 'اضغط على زر المستخدمين لعرض القائمة' : 'اضغط على أي مستخدم من القائمة اليمنى لعرض التقرير التفصيلي'}
+                    </p>
+                    {(isMobile || isTablet) && (
+                      <button
+                        onClick={() => setShowUserList(true)}
+                        className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm"
+                      >
+                        عرض المستخدمين
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : isLoadingUserReport ? (
                 /* تحميل التقرير */
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <Loader className="w-12 h-12 text-green-500 animate-spin mx-auto mb-4" />
-                    <p className="text-gray-600">جاري تحميل التقرير...</p>
+                    <Loader className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-green-500 animate-spin mx-auto mb-4`} />
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري تحميل التقرير...</p>
                   </div>
                 </div>
               ) : userReport && selectedUser ? (
-                  <div className="space-y-6">
+                <>
+                  {/* زر العودة على الجوال */}
+                  {(isMobile || isTablet) && (
+                    <button
+                      onClick={() => {
+                        setSelectedUser(null);
+                        setUserReport(null);
+                        setShowUserList(true);
+                      }}
+                      className="mb-3 flex items-center space-x-2 space-x-reverse text-green-600 hover:text-green-700 text-sm"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>العودة للقائمة</span>
+                    </button>
+                  )}
+                  <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-6'}>
                     {/* Header - Date Range with Filters */}
-                    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                    <div className={`bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden ${isMobile || isTablet ? 'rounded-lg' : ''}`}>
                       {/* Date Filters Section */}
-                      <div className="bg-gray-50 p-6 border-t border-gray-200">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className={`bg-gray-50 ${isMobile || isTablet ? 'p-3' : 'p-6'} border-t border-gray-200`}>
+                        <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-4'}`}>
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1 space-x-reverse">
-                              <Clock className="w-3.5 h-3.5 text-green-600" />
+                            <label className={`block ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'} flex items-center space-x-1 space-x-reverse`}>
+                              <Clock className={isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
                               <span>من تاريخ</span>
                             </label>
                             <input
                               type="date"
                               value={dateFrom}
                               onChange={(e) => setDateFrom(e.target.value)}
-                              className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white hover:border-gray-400"
+                              className={`w-full ${isMobile || isTablet ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'} border-2 border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white hover:border-gray-400`}
                             />
                           </div>
                           
                           <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center space-x-1 space-x-reverse">
-                              <Clock className="w-3.5 h-3.5 text-red-600" />
+                            <label className={`block ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'} flex items-center space-x-1 space-x-reverse`}>
+                              <Clock className={isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
                               <span>إلى تاريخ</span>
                             </label>
                             <input
                               type="date"
                               value={dateTo}
                               onChange={(e) => setDateTo(e.target.value)}
-                              className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white hover:border-gray-400"
+                              className={`w-full ${isMobile || isTablet ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'} border-2 border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white hover:border-gray-400`}
                             />
                           </div>
                           
                           <div className="flex items-end">
                             <button
                               onClick={handleDateChange}
-                              className="w-full bg-green-600 text-white py-2.5 px-4 rounded-lg hover:bg-green-700 transition-all duration-200 text-sm font-semibold flex items-center justify-center space-x-2 space-x-reverse shadow-sm hover:shadow-md"
+                              className={`w-full bg-green-600 text-white ${isMobile || isTablet ? 'py-2 px-3 text-xs' : 'py-2.5 px-4 text-sm'} rounded-lg hover:bg-green-700 transition-all duration-200 font-semibold flex items-center justify-center space-x-1.5 space-x-reverse shadow-sm hover:shadow-md`}
                             >
-                              <RefreshCw className="w-4 h-4" />
-                              <span>تحديث التقرير</span>
+                              <RefreshCw className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+                              <span>تحديث</span>
                             </button>
                           </div>
                         </div>
@@ -1129,46 +1252,46 @@ export const ReportsManager: React.FC = () => {
                     </div>
 
                     {/* الإحصائيات الأساسية */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className={`grid ${isMobile || isTablet ? 'grid-cols-2 gap-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'}`}>
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-600">إجمالي التذاكر</p>
-                            <p className="text-3xl font-bold text-gray-900">{userReport.basic_stats.total_tickets.toString()}</p>
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-600`}>إجمالي التذاكر</p>
+                            <p className={`${isMobile || isTablet ? 'text-xl' : 'text-3xl'} font-bold text-gray-900`}>{userReport.basic_stats.total_tickets.toString()}</p>
                           </div>
-                          <div className="p-3 bg-blue-100 rounded-lg">
-                            <BarChart3 className="w-6 h-6 text-blue-600" />
+                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-blue-100 rounded-lg`}>
+                            <BarChart3 className={isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} />
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-white rounded-lg shadow-sm p-6">
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-600">مكتملة</p>
-                            <p className="text-3xl font-bold text-green-600">{userReport.basic_stats.completed_tickets.toString()}</p>
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-600`}>مكتملة</p>
+                            <p className={`${isMobile || isTablet ? 'text-xl' : 'text-3xl'} font-bold text-green-600`}>{userReport.basic_stats.completed_tickets.toString()}</p>
                           </div>
-                          <div className="p-3 bg-green-100 rounded-lg">
-                            <CheckCircle className="w-6 h-6 text-green-600" />
+                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-green-100 rounded-lg`}>
+                            <CheckCircle className={isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} />
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-white rounded-lg shadow-sm p-6">
+                      <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-600">قيد العمل</p>
-                            <p className="text-3xl font-bold text-blue-600">{userReport.basic_stats.active_tickets.toString()}</p>
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-600`}>قيد العمل</p>
+                            <p className={`${isMobile || isTablet ? 'text-xl' : 'text-3xl'} font-bold text-blue-600`}>{userReport.basic_stats.active_tickets.toString()}</p>
                           </div>
-                          <div className="p-3 bg-blue-100 rounded-lg">
-                            <Clock className="w-6 h-6 text-blue-600" />
+                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-blue-100 rounded-lg`}>
+                            <Clock className={isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} />
                           </div>
                         </div>
                       </div>
 
                       {/* مؤشر الأداء */}
                       {userReport.performance_metrics && userReport.performance_metrics.net_performance_hours !== null ? (
-                        <div className={`rounded-lg shadow-sm p-6 ${
+                        <div className={`rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3 col-span-2' : 'p-6'} ${
                           parseFloat(userReport.performance_metrics.net_performance_hours) > 0 
                             ? 'bg-gradient-to-br from-green-50 to-green-100' 
                             : parseFloat(userReport.performance_metrics.net_performance_hours) < 0
@@ -1177,7 +1300,7 @@ export const ReportsManager: React.FC = () => {
                         }`}>
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-700 mb-1">صافي الأداء</p>
+                              <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-0.5' : 'mb-1'}`}>صافي الأداء</p>
                               {(() => {
                                 const hours = parseFloat(userReport.performance_metrics.net_performance_hours);
                                 const absHours = Math.abs(hours);
@@ -1189,31 +1312,31 @@ export const ReportsManager: React.FC = () => {
                                 return (
                                   <>
                                     {absHours >= 24 ? (
-                                      <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
+                                      <div className={`${isMobile || isTablet ? 'text-lg' : 'text-3xl'} font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
                                         {isPositive ? '+' : isNegative ? '-' : ''}
                                         {days} يوم
                                         {remainingHours > 0 && ` و ${remainingHours} ساعة`}
                                       </div>
                                     ) : (
-                                      <div className={`text-3xl font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
+                                      <div className={`${isMobile || isTablet ? 'text-lg' : 'text-3xl'} font-bold ${isPositive ? 'text-green-700' : isNegative ? 'text-red-700' : 'text-gray-700'}`}>
                                         {isPositive ? '+' : ''}{hours.toFixed(1)} ساعة
                                       </div>
                                     )}
-                                    <p className="text-xs text-gray-600 mt-1">
+                                    <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-600 mt-1`}>
                                       {isPositive ? '✅ متقدم عن الجدول' : isNegative ? '⚠️ متأخر عن الجدول' : '⏱️ حسب الجدول'}
                                     </p>
                                   </>
                                 );
                               })()}
                             </div>
-                            <div className={`p-3 rounded-lg ${
+                            <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} rounded-lg ${
                               parseFloat(userReport.performance_metrics.net_performance_hours) > 0 
                                 ? 'bg-green-200' 
                                 : parseFloat(userReport.performance_metrics.net_performance_hours) < 0
                                 ? 'bg-red-200'
                                 : 'bg-gray-200'
                             }`}>
-                              <TrendingUp className={`w-6 h-6 ${
+                              <TrendingUp className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} ${
                                 parseFloat(userReport.performance_metrics.net_performance_hours) > 0 
                                   ? 'text-green-700' 
                                   : parseFloat(userReport.performance_metrics.net_performance_hours) < 0
@@ -1544,6 +1667,7 @@ export const ReportsManager: React.FC = () => {
                       </div>
                     )}
                   </div>
+                </>
                 ) : selectedUser ? (
                   <div className="text-center py-12">
                     <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
