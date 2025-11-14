@@ -522,9 +522,20 @@ class RecurringController {
       const rule = formatRecurringRule(ruleResult.rows[0]);
       
       // إنشاء تذكرة جديدة من القالب
-      const templateData = typeof rule.template_data === 'string'
-        ? safeParseJSON(rule.template_data, {})
-        : (rule.template_data || {});
+      // التعامل مع البنية الجديدة (title, data) والقديمة (template_data)
+      let templateData = {};
+      if (rule.template_data) {
+        templateData = typeof rule.template_data === 'string'
+          ? safeParseJSON(rule.template_data, {})
+          : rule.template_data;
+      } else if (rule.title || rule.data) {
+        // استخدام البنية الجديدة
+        templateData = {
+          title: rule.title,
+          description: rule.description,
+          data: rule.data || {}
+        };
+      }
       const processedData = processTemplate(templateData);
 
       const stageIdCandidate =
@@ -585,20 +596,52 @@ class RecurringController {
       ]);
       
       // تحديث آخر تنفيذ وحساب التنفيذ التالي
+      const scheduleType = rule.schedule_type || rule.recurrence_type || 'daily';
+      let scheduleConfig = {};
+      
+      if (rule.schedule_config) {
+        scheduleConfig = typeof rule.schedule_config === 'string'
+          ? safeParseJSON(rule.schedule_config, {})
+          : rule.schedule_config;
+      } else if (rule.recurrence_interval) {
+        scheduleConfig = {
+          interval: rule.recurrence_interval || 1,
+          day_of_month: rule.month_day,
+          days_of_week: rule.weekdays || []
+        };
+      }
+      
       const next_execution = calculateNextExecution(
-        rule.schedule_type, 
-        rule.schedule_config, 
-        rule.timezone
+        scheduleType, 
+        scheduleConfig, 
+        rule.timezone || 'Asia/Riyadh'
       );
       
-      await pool.query(`
-        UPDATE recurring_rules 
-        SET 
-          last_executed = NOW(),
-          execution_count = execution_count + 1,
-          next_execution = $1
-        WHERE id = $2
-      `, [next_execution, id]);
+      // محاولة التحديث مع البنية الجديدة أولاً
+      try {
+        await pool.query(`
+          UPDATE recurring_rules 
+          SET 
+            last_execution_date = NOW(),
+            execution_count = execution_count + 1,
+            next_execution_date = $1
+          WHERE id = $2
+        `, [next_execution, id]);
+      } catch (error) {
+        // إذا فشل، جرب البنية القديمة
+        if (error.message && error.message.includes('last_execution_date')) {
+          await pool.query(`
+            UPDATE recurring_rules 
+            SET 
+              last_executed = NOW(),
+              execution_count = execution_count + 1,
+              next_execution = $1
+            WHERE id = $2
+          `, [next_execution, id]);
+        } else {
+          throw error;
+        }
+      }
       
       res.json({
         success: true,

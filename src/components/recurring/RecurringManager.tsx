@@ -267,7 +267,13 @@ export const RecurringManager: React.FC = () => {
         } else {
           // تفاصيل العملية غير متاحة بعد، احفظ البيانات مؤقتاً
           setPendingRuleData(ruleData);
-          // محاولة تحميل البيانات الأساسية (بدون تحويل الحقول المخصصة)
+          // محاولة تحميل تفاصيل العملية أولاً
+          if (ruleData.process_id) {
+            await fetchProcessDetails(ruleData.process_id);
+            // انتظار قليلاً لضمان تحديث selectedProcessDetails
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+          // الآن تحميل البيانات في النموذج
           loadRuleDataToForm(ruleData);
         }
       } else {
@@ -298,45 +304,132 @@ export const RecurringManager: React.FC = () => {
     }
   };
 
+  // تحويل التاريخ من ISO إلى تنسيق datetime-local
+  const convertDateToLocalInput = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      
+      // الحصول على التاريخ والوقت بتنسيق yyyy-MM-ddThh:mm
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (error) {
+      return '';
+    }
+  };
+
   // تحميل بيانات القاعدة في النموذج
   const loadRuleDataToForm = (ruleData: any) => {
+    if (!ruleData) return;
     
     // البيانات موجودة في الجذر مباشرة وليس في template_data
     const templateData = ruleData.template_data || {};
-    const apiDataObject = ruleData.data || templateData.data || {};
+    
+    // معالجة template_data إذا كان string
+    let parsedTemplateData = templateData;
+    if (typeof templateData === 'string') {
+      try {
+        parsedTemplateData = JSON.parse(templateData);
+      } catch (e) {
+        parsedTemplateData = {};
+      }
+    }
+    
+    // الحصول على بيانات الحقول المخصصة
+    // ruleData.data يأتي مباشرة من قاعدة البيانات (JSONB column) مع UUID كـ keys
+    const apiDataObject = ruleData.data || parsedTemplateData.data || {};
+    
+    // معالجة ruleData.data إذا كان string
+    let parsedDataObject = apiDataObject;
+    if (typeof apiDataObject === 'string') {
+      try {
+        parsedDataObject = JSON.parse(apiDataObject);
+      } catch (e) {
+        parsedDataObject = {};
+      }
+    }
 
     // تحويل بيانات الحقول من مفاتيح UUID إلى مفاتيح أسماء الحقول لعرضها في النموذج
     let dataByFieldName: Record<string, any> = {};
     if (selectedProcessDetails?.fields && Array.isArray(selectedProcessDetails.fields)) {
+      // تحويل البيانات من UUID إلى أسماء الحقول
       dataByFieldName = Object.fromEntries(
         selectedProcessDetails.fields
           .filter((field) => !field.is_system_field)
-          .map((field) => [field.name, apiDataObject[field.id]])
+          .map((field) => {
+            // البحث عن القيمة في parsedDataObject باستخدام field.id (UUID)
+            const value = parsedDataObject[field.id];
+            // إرجاع القيمة حتى لو كانت فارغة (لكي تظهر الحقول في النموذج)
+            return [field.name, value !== undefined && value !== null && value !== '' ? value : ''];
+          })
       );
+      
+      // أيضاً، إذا كانت هناك بيانات في parsedTemplateData.data بأسماء الحقول مباشرة، نستخدمها (تتجاوز القيم السابقة)
+      if (parsedTemplateData.data && typeof parsedTemplateData.data === 'object') {
+        Object.keys(parsedTemplateData.data).forEach((key) => {
+          // إذا كان المفتاح اسم حقل (موجود في selectedProcessDetails.fields)، استخدمه
+          if (selectedProcessDetails.fields.some(f => f.name === key && !f.is_system_field)) {
+            const value = parsedTemplateData.data[key];
+            if (value !== undefined && value !== null && value !== '') {
+              dataByFieldName[key] = value;
+            }
+          }
+        });
+      }
     } else {
-      // في حال عدم توفر تفاصيل العملية، نُبقي البيانات كما هي (قد لا تُعرض بشكل كامل حتى يتم تحميل التفاصيل)
-      dataByFieldName = templateData.data || {};
+      // في حال عدم توفر تفاصيل العملية، نُبقي البيانات كما هي
+      dataByFieldName = parsedTemplateData.data || parsedDataObject || {};
     }
+    
+    // تحويل التاريخ من ISO إلى تنسيق datetime-local
+    const dueDateValue = ruleData.due_date || 
+                        ruleData.start_date || 
+                        parsedTemplateData.due_date || 
+                        parsedTemplateData.start_date || 
+                        '';
+    const formattedDueDate = convertDateToLocalInput(dueDateValue);
+    
+    // استخراج بيانات الجدولة
+    const scheduleType = ruleData.recurrence_type || ruleData.schedule_type || 'daily';
+    const scheduleInterval = ruleData.recurrence_interval || 1;
+    const scheduleTime = ruleData.time || '09:00';
+    const scheduleDaysOfWeek = ruleData.weekdays || ruleData.days_of_week || [];
+    const scheduleDayOfMonth = ruleData.month_day || ruleData.day_of_month || 1;
+    
+    // استخراج بيانات التذكرة من أماكن متعددة
+    const ticketTitle = ruleData.title || parsedTemplateData.title || '';
+    const ticketDescription = ruleData.description || ruleData.rule_description || parsedTemplateData.description || '';
+    const ticketPriority = ruleData.priority || parsedTemplateData.priority || 'medium';
+    const ticketAssignedTo = ruleData.assigned_to_id || ruleData.assigned_to || parsedTemplateData.assigned_to || '';
+    const ticketStageId = ruleData.current_stage_id || ruleData.stage_id || parsedTemplateData.stage_id || '';
+    const ticketType = ruleData.ticket_type || parsedTemplateData.ticket_type || 'task';
     
     setRuleForm({
       name: ruleData.name || ruleData.rule_name || '',
       process_id: ruleData.process_id,
       template_data: {
-        title: ruleData.title || templateData.title || '',
-        description: ruleData.description || ruleData.rule_description || templateData.description || '',
-        priority: ruleData.priority || templateData.priority || 'medium',
-        due_date: ruleData.due_date || ruleData.start_date || templateData.due_date || '',
-        assigned_to: ruleData.assigned_to_id || ruleData.assigned_to || templateData.assigned_to || '',
-        stage_id: ruleData.current_stage_id || templateData.stage_id || '',
-        ticket_type: ruleData.ticket_type || templateData.ticket_type || 'task',
+        title: ticketTitle,
+        description: ticketDescription,
+        priority: ticketPriority,
+        due_date: formattedDueDate,
+        assigned_to: ticketAssignedTo,
+        stage_id: ticketStageId,
+        ticket_type: ticketType,
         data: dataByFieldName
       },
       schedule: {
-        type: ruleData.recurrence_type || 'daily',
-        interval: ruleData.recurrence_interval || 1,
-        time: ruleData.time || '09:00',
-        days_of_week: ruleData.weekdays || [],
-        day_of_month: ruleData.month_day || 1
+        type: scheduleType,
+        interval: scheduleInterval,
+        time: scheduleTime,
+        days_of_week: Array.isArray(scheduleDaysOfWeek) ? scheduleDaysOfWeek : [],
+        day_of_month: scheduleDayOfMonth
       },
       is_active: ruleData.is_active !== undefined ? ruleData.is_active : true
     });
@@ -354,22 +447,37 @@ export const RecurringManager: React.FC = () => {
       
       // دالة مساعدة لتحميل البيانات بالترتيب الصحيح
       const loadEditData = async () => {
-        // أولاً: تحميل تفاصيل العملية (مهمة جداً لتحويل UUID إلى أسماء الحقول)
-        if (!selectedProcessDetails || selectedProcessDetails.id !== editingRule.process_id) {
-          await fetchProcessDetails(editingRule.process_id);
+        try {
+          // أولاً: تحميل تفاصيل العملية (مهمة جداً لتحويل UUID إلى أسماء الحقول)
+          if (!selectedProcessDetails || selectedProcessDetails.id !== editingRule.process_id) {
+            await fetchProcessDetails(editingRule.process_id);
+            // انتظار قليلاً لضمان تحديث selectedProcessDetails
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+          
+          // ثانياً: تحميل تفاصيل القاعدة
+          await fetchRuleDetails(editingRule.id);
+        } catch (error) {
+          // في حالة الخطأ، استخدم البيانات المحلية
+          if (editingRule) {
+            loadRuleDataToForm(editingRule);
+          }
         }
-        
-        // ثانياً: تحميل تفاصيل القاعدة
-        fetchRuleDetails(editingRule.id);
       };
       
       loadEditData();
+    } else {
+      // عند إغلاق النموذج، إعادة تعيين البيانات
+      setIsCreating(false);
+      setPendingRuleData(null);
     }
   }, [editingRule]);
 
   // إعادة تحميل البيانات في النموذج عند توفر تفاصيل العملية
   useEffect(() => {
     if (editingRule && pendingRuleData && selectedProcessDetails && selectedProcessDetails.id === editingRule.process_id) {
+      // إعادة تحميل البيانات مع تفاصيل العملية المتاحة الآن
+      // هذا يضمن تحويل الحقول المخصصة بشكل صحيح
       loadRuleDataToForm(pendingRuleData);
       setPendingRuleData(null); // مسح البيانات المؤقتة
     }
@@ -380,37 +488,81 @@ export const RecurringManager: React.FC = () => {
 
     setCreatingRule(true);
     try {
+      // تحويل التاريخ من تنسيق datetime-local إلى ISO إذا كان موجوداً
+      let startDate = new Date().toISOString();
+      if (ruleForm.template_data.due_date) {
+        // إذا كان التاريخ بتنسيق datetime-local (yyyy-MM-ddThh:mm)
+        if (ruleForm.template_data.due_date.includes('T') && !ruleForm.template_data.due_date.includes('Z')) {
+          // تحويل إلى ISO string
+          startDate = new Date(ruleForm.template_data.due_date).toISOString();
+        } else if (ruleForm.template_data.due_date.includes('Z')) {
+          // إذا كان بالفعل بتنسيق ISO
+          startDate = ruleForm.template_data.due_date;
+        } else {
+          // محاولة تحويله
+          startDate = new Date(ruleForm.template_data.due_date).toISOString();
+        }
+      }
+
+      // تحويل الحقول الفارغة إلى null لتجنب أخطاء UUID
+      const assignedTo = ruleForm.template_data.assigned_to && ruleForm.template_data.assigned_to.trim() !== '' 
+        ? ruleForm.template_data.assigned_to 
+        : null;
+      
+      const stageId = ruleForm.template_data.stage_id && ruleForm.template_data.stage_id.trim() !== '' 
+        ? ruleForm.template_data.stage_id 
+        : null;
+
+      // تحضير بيانات الحقول المخصصة - تحويل من أسماء الحقول إلى معرفاتها (UUID)
+      let customFieldsData: Record<string, any> = {};
+      if (selectedProcessDetails?.fields && Array.isArray(selectedProcessDetails.fields)) {
+        const fieldsMap = Object.fromEntries(
+          selectedProcessDetails.fields
+            .filter(field => !field.is_system_field && ruleForm.template_data.data[field.name] !== undefined)
+            .map(field => [field.id, ruleForm.template_data.data[field.name]])
+            .filter(([_, value]) => value !== undefined && value !== null && value !== '')
+        );
+        customFieldsData = fieldsMap;
+      } else if (ruleForm.template_data.data && typeof ruleForm.template_data.data === 'object') {
+        // في حال عدم توفر تفاصيل العملية، نستخدم البيانات كما هي
+        customFieldsData = Object.fromEntries(
+          Object.entries(ruleForm.template_data.data).filter(([_, value]) => value !== undefined && value !== null && value !== '')
+        );
+      }
+
       // إعداد بيانات القاعدة للإرسال إلى API
-      const ruleData = {
+      const ruleData: any = {
         name: ruleForm.name,
         process_id: selectedProcess.id,
         recurrence_type: ruleForm.schedule.type,
         recurrence_interval: ruleForm.schedule.interval,
-        start_date: ruleForm.template_data.due_date || new Date().toISOString(),
-        end_date: null, // يمكن إضافة حقل منفصل لتاريخ النهاية لاحقاً
+        start_date: startDate,
+        end_date: null,
         
         // بيانات التذكرة الأساسية
         title: ruleForm.template_data.title,
-        description: ruleForm.template_data.description,
+        description: ruleForm.template_data.description || '',
         priority: ruleForm.template_data.priority,
-        assigned_to: ruleForm.template_data.assigned_to,
-        stage_id: ruleForm.template_data.stage_id,
-        ticket_type: ruleForm.template_data.ticket_type,
+        ticket_type: ruleForm.template_data.ticket_type || 'task',
         
-        // الحقول المخصصة - تحويل من أسماء الحقول إلى معرفاتها (UUID)
-        data: selectedProcessDetails?.fields ? Object.fromEntries(
-          selectedProcessDetails.fields
-            .filter(field => !field.is_system_field && ruleForm.template_data.data[field.name] !== undefined)
-            .map(field => [field.id, ruleForm.template_data.data[field.name]])
-        ) : (ruleForm.template_data.data || {}),
+        // الحقول المخصصة
+        data: customFieldsData,
         
-        template_data: {
-          ...ruleForm.template_data,
-          process_id: selectedProcess.id
-        },
-        schedule: ruleForm.schedule,
+        // جدول التكرار
+        weekdays: ruleForm.schedule.days_of_week || [],
+        month_day: ruleForm.schedule.day_of_month || null,
+        
         is_active: ruleForm.is_active
       };
+
+      // إضافة الحقول فقط إذا كانت موجودة (ليست null)
+      if (assignedTo) {
+        ruleData.assigned_to = assignedTo;
+      }
+      
+      if (stageId) {
+        ruleData.stage_id = stageId;
+      }
 
 
       // استدعاء API لإنشاء قاعدة التكرار
@@ -691,37 +843,85 @@ export const RecurringManager: React.FC = () => {
 
     setCreatingRule(true);
     try {
+      // تحويل التاريخ من تنسيق datetime-local إلى ISO إذا كان موجوداً
+      let startDate = null;
+      if (ruleForm.template_data.due_date) {
+        // إذا كان التاريخ بتنسيق datetime-local (yyyy-MM-ddThh:mm)
+        if (ruleForm.template_data.due_date.includes('T') && !ruleForm.template_data.due_date.includes('Z')) {
+          // تحويل إلى ISO string
+          startDate = new Date(ruleForm.template_data.due_date).toISOString();
+        } else if (ruleForm.template_data.due_date.includes('Z')) {
+          // إذا كان بالفعل بتنسيق ISO
+          startDate = ruleForm.template_data.due_date;
+        } else {
+          // محاولة تحويله
+          startDate = new Date(ruleForm.template_data.due_date).toISOString();
+        }
+      } else if (editingRule.start_date || editingRule.created_at) {
+        startDate = editingRule.start_date || editingRule.created_at;
+      } else {
+        startDate = new Date().toISOString();
+      }
+
+      // تحويل الحقول الفارغة إلى null لتجنب أخطاء UUID
+      const assignedTo = ruleForm.template_data.assigned_to && ruleForm.template_data.assigned_to.trim() !== '' 
+        ? ruleForm.template_data.assigned_to 
+        : null;
+      
+      const stageId = ruleForm.template_data.stage_id && ruleForm.template_data.stage_id.trim() !== '' 
+        ? ruleForm.template_data.stage_id 
+        : null;
+
+      // تحضير بيانات الحقول المخصصة - تحويل من أسماء الحقول إلى معرفاتها (UUID)
+      let customFieldsData: Record<string, any> = {};
+      if (selectedProcessDetails?.fields && Array.isArray(selectedProcessDetails.fields)) {
+        const fieldsMap = Object.fromEntries(
+          selectedProcessDetails.fields
+            .filter(field => !field.is_system_field && ruleForm.template_data.data[field.name] !== undefined)
+            .map(field => [field.id, ruleForm.template_data.data[field.name]])
+            .filter(([_, value]) => value !== undefined && value !== null && value !== '')
+        );
+        customFieldsData = fieldsMap;
+      } else if (ruleForm.template_data.data && typeof ruleForm.template_data.data === 'object') {
+        // في حال عدم توفر تفاصيل العملية، نستخدم البيانات كما هي
+        customFieldsData = Object.fromEntries(
+          Object.entries(ruleForm.template_data.data).filter(([_, value]) => value !== undefined && value !== null && value !== '')
+        );
+      }
+
       // إعداد بيانات القاعدة للتحديث
-      const ruleData = {
+      const ruleData: any = {
         name: ruleForm.name,
         process_id: editingRule.process_id,
         recurrence_type: ruleForm.schedule.type,
         recurrence_interval: ruleForm.schedule.interval,
-        start_date: ruleForm.template_data.due_date || editingRule.created_at,
+        start_date: startDate,
         end_date: null,
         
         // بيانات التذكرة الأساسية
         title: ruleForm.template_data.title,
-        description: ruleForm.template_data.description,
+        description: ruleForm.template_data.description || '',
         priority: ruleForm.template_data.priority,
-        assigned_to: ruleForm.template_data.assigned_to,
-        stage_id: ruleForm.template_data.stage_id,
-        ticket_type: ruleForm.template_data.ticket_type,
+        ticket_type: ruleForm.template_data.ticket_type || 'task',
         
-        // الحقول المخصصة - تحويل من أسماء الحقول إلى معرفاتها (UUID)
-        data: selectedProcessDetails?.fields ? Object.fromEntries(
-          selectedProcessDetails.fields
-            .filter(field => !field.is_system_field && ruleForm.template_data.data[field.name] !== undefined)
-            .map(field => [field.id, ruleForm.template_data.data[field.name]])
-        ) : (ruleForm.template_data.data || {}),
+        // الحقول المخصصة
+        data: customFieldsData,
         
-        template_data: {
-          ...ruleForm.template_data,
-          process_id: editingRule.process_id
-        },
-        schedule: ruleForm.schedule,
+        // جدول التكرار
+        weekdays: ruleForm.schedule.days_of_week || [],
+        month_day: ruleForm.schedule.day_of_month || null,
+        
         is_active: ruleForm.is_active
       };
+
+      // إضافة الحقول فقط إذا كانت موجودة (ليست null)
+      if (assignedTo) {
+        ruleData.assigned_to = assignedTo;
+      }
+      
+      if (stageId) {
+        ruleData.stage_id = stageId;
+      }
 
 
       // استدعاء API لتحديث قاعدة التكرار

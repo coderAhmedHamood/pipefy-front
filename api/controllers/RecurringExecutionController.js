@@ -30,12 +30,24 @@ class RecurringExecutionController {
       const rule = ruleResult.rows[0];
       
       // 2. تجهيز بيانات التذكرة من القالب
-      const templateData = typeof rule.template_data === 'string'
-        ? safeParseJSON(rule.template_data, {})
-        : (rule.template_data || {});
+      // التعامل مع البنية الجديدة (title, data) والقديمة (template_data)
+      let templateData = {};
+      if (rule.template_data) {
+        templateData = typeof rule.template_data === 'string'
+          ? safeParseJSON(rule.template_data, {})
+          : rule.template_data;
+      } else if (rule.title || rule.data) {
+        // استخدام البنية الجديدة
+        templateData = {
+          title: rule.title,
+          description: rule.description,
+          data: rule.data || {}
+        };
+      }
+      
       const processedTemplate = processTemplate(templateData);
 
-      const title = processedTemplate.title || rule.name || 'تذكرة متكررة';
+      const title = processedTemplate.title || rule.title || rule.name || 'تذكرة متكررة';
       const description = processedTemplate.description || rule.description || '';
 
       const stageIdCandidate =
@@ -107,23 +119,67 @@ class RecurringExecutionController {
       const notificationResult = null;
       
       // 5. تحديث قاعدة التكرار
-      const newExecutionCount = rule.execution_count + 1;
-      const nextExecution = calculateNextExecution(
-        rule.schedule_type,
-        rule.schedule_config,
-        rule.timezone
+      // التعامل مع execution_count - قد يكون null في المرة الأولى
+      const currentExecutionCount = (rule.execution_count !== null && rule.execution_count !== undefined) 
+        ? parseInt(rule.execution_count) 
+        : 0;
+      const newExecutionCount = currentExecutionCount + 1;
+      
+      // حساب next_execution_date
+      let nextExecution;
+      const scheduleType = rule.schedule_type || rule.recurrence_type || 'daily';
+      let scheduleConfig = {};
+      
+      if (rule.schedule_config) {
+        scheduleConfig = typeof rule.schedule_config === 'string'
+          ? safeParseJSON(rule.schedule_config, {})
+          : rule.schedule_config;
+      } else if (rule.recurrence_interval) {
+        // استخدام البنية الجديدة
+        scheduleConfig = {
+          interval: rule.recurrence_interval || 1,
+          day_of_month: rule.month_day,
+          days_of_week: rule.weekdays || [],
+          time: rule.start_date ? new Date(rule.start_date).toTimeString().slice(0, 5) : null
+        };
+      }
+      
+      nextExecution = calculateNextExecution(
+        scheduleType,
+        scheduleConfig,
+        rule.timezone || 'Asia/Riyadh'
       );
       
-      const updateResult = await pool.query(
-        `UPDATE recurring_rules
-         SET execution_count = $1,
-             last_executed = NOW(),
-             next_execution = $2,
-             updated_at = NOW()
-         WHERE id = $3
-         RETURNING *`,
-        [newExecutionCount, nextExecution, rule.id]
-      );
+      // محاولة التحديث مع البنية الجديدة أولاً
+      let updateResult;
+      try {
+        updateResult = await pool.query(
+          `UPDATE recurring_rules
+           SET execution_count = $1,
+               last_execution_date = NOW(),
+               next_execution_date = $2,
+               updated_at = NOW()
+           WHERE id = $3
+           RETURNING *`,
+          [newExecutionCount, nextExecution, rule.id]
+        );
+      } catch (error) {
+        // إذا فشل، جرب البنية القديمة
+        if (error.message && error.message.includes('last_execution_date')) {
+          updateResult = await pool.query(
+            `UPDATE recurring_rules
+             SET execution_count = $1,
+                 last_executed = NOW(),
+                 next_execution = $2,
+                 updated_at = NOW()
+             WHERE id = $3
+             RETURNING *`,
+            [newExecutionCount, nextExecution, rule.id]
+          );
+        } else {
+          throw error;
+        }
+      }
       
       const updatedRule = updateResult.rows[0];
       
