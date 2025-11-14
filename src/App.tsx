@@ -30,7 +30,7 @@ import { Login } from './components/auth/Login';
 import { LoadingSpinner } from './components/ui/LoadingSpinner';
 import { DebugInfo } from './components/debug/DebugInfo';
 import { Menu, X, Edit, Eye, EyeOff, Loader } from 'lucide-react';
-import { userService, roleService } from './services';
+import { userService, roleService, authService } from './services';
 import { useQuickNotifications } from './components/ui/NotificationSystem';
 
 // مكون معلومات المستخدم
@@ -73,12 +73,19 @@ const UserProfileModal: React.FC<{ user: any; onClose: () => void }> = ({ user, 
   const notifications = useQuickNotifications();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [roles, setRoles] = useState<any[]>([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
   const [userForm, setUserForm] = useState({
     name: user.name || '',
     email: user.email || '',
-    password: '',
     phone: user.phone || '',
     role_id: user.role_id || user.role?.id || '',
     is_active: user.is_active !== undefined ? user.is_active : true
@@ -111,11 +118,6 @@ const UserProfileModal: React.FC<{ user: any; onClose: () => void }> = ({ user, 
         is_active: userForm.is_active
       };
 
-      // إضافة كلمة المرور فقط إذا تم إدخالها
-      if (userForm.password.trim()) {
-        updateData.password = userForm.password;
-      }
-
       const updatedUser = await userService.updateUser(currentUser.id, updateData);
 
       // تحديث بيانات المستخدم في localStorage
@@ -126,12 +128,50 @@ const UserProfileModal: React.FC<{ user: any; onClose: () => void }> = ({ user, 
 
       notifications.showSuccess('تم تحديث بياناتك بنجاح');
       setIsEditing(false);
-      setUserForm(prev => ({ ...prev, password: '' })); // مسح كلمة المرور بعد الحفظ
     } catch (error: any) {
       console.error('❌ خطأ في تحديث المستخدم:', error);
       notifications.showError(error.message || 'فشل في تحديث البيانات');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    // التحقق من صحة البيانات
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      notifications.showError('يرجى ملء جميع حقول كلمة المرور');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      notifications.showError('كلمة المرور الجديدة وتأكيدها غير متطابقين');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 6) {
+      notifications.showError('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+
+      await authService.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+
+      notifications.showSuccess('تم تغيير كلمة المرور بنجاح');
+      
+      // مسح حقول كلمة المرور
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+    } catch (error: any) {
+      console.error('❌ خطأ في تغيير كلمة المرور:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'فشل في تغيير كلمة المرور';
+      notifications.showError(errorMessage);
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -184,30 +224,6 @@ const UserProfileModal: React.FC<{ user: any; onClose: () => void }> = ({ user, 
               </div>
             )}
           </div>
-
-          {isEditing && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">كلمة المرور الجديدة (اختياري)</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={userForm.password}
-                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="اتركها فارغة للاحتفاظ بكلمة المرور الحالية"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  disabled={loading}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">رقم الهاتف (اختياري)</label>
@@ -263,6 +279,94 @@ const UserProfileModal: React.FC<{ user: any; onClose: () => void }> = ({ user, 
               مستخدم نشط
             </label>
           </div>
+
+          {/* قسم تغيير كلمة المرور */}
+          <div className="border-t border-gray-200 pt-4 mt-4">
+            <h4 className="text-sm font-semibold text-gray-900 mb-4">تغيير كلمة المرور</h4>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">كلمة المرور الحالية</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="أدخل كلمة المرور الحالية"
+                    disabled={changingPassword}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={changingPassword}
+                  >
+                    {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">كلمة المرور الجديدة</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="أدخل كلمة المرور الجديدة"
+                    disabled={changingPassword}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={changingPassword}
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">تأكيد كلمة المرور الجديدة</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="أعد إدخال كلمة المرور الجديدة"
+                    disabled={changingPassword}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={changingPassword}
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={handleChangePassword}
+                disabled={changingPassword || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}
+                className="w-full px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 space-x-reverse"
+              >
+                {changingPassword ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    <span>جاري التغيير...</span>
+                  </>
+                ) : (
+                  <span>تغيير كلمة المرور</span>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center justify-end space-x-3 space-x-reverse p-6 border-t border-gray-200">
@@ -290,14 +394,18 @@ const UserProfileModal: React.FC<{ user: any; onClose: () => void }> = ({ user, 
                   setUserForm({
                     name: user.name || '',
                     email: user.email || '',
-                    password: '',
                     phone: user.phone || '',
                     role_id: user.role_id || user.role?.id || '',
                     is_active: user.is_active !== undefined ? user.is_active : true
                   });
+                  setPasswordForm({
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: ''
+                  });
                 }}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                disabled={loading}
+                disabled={loading || changingPassword}
               >
                 إلغاء
               </button>
