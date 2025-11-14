@@ -383,7 +383,9 @@ class RecurringController {
         next_execution,
         assigned_to,
         priority,
-        status
+        status,
+        data,
+        title
       } = req.body;
       
       // التحقق من وجود القاعدة أولاً
@@ -544,6 +546,20 @@ class RecurringController {
         paramCount++;
         updateFields.push(`status = $${paramCount}`);
         updateValues.push(status);
+      }
+      
+      // تحديث data مباشرة (إذا تم إرسالها مباشرة وليس في template_data)
+      if (data !== undefined) {
+        paramCount++;
+        updateFields.push(`data = $${paramCount}`);
+        updateValues.push(data);
+      }
+      
+      // تحديث title مباشرة (إذا تم إرساله مباشرة وليس في template_data)
+      if (title !== undefined) {
+        paramCount++;
+        updateFields.push(`title = $${paramCount}`);
+        updateValues.push(title);
       }
       
       // إضافة updated_at دائماً

@@ -515,19 +515,52 @@ export const RecurringManager: React.FC = () => {
 
       // تحضير بيانات الحقول المخصصة - تحويل من أسماء الحقول إلى معرفاتها (UUID)
       let customFieldsData: Record<string, any> = {};
-      if (selectedProcessDetails?.fields && Array.isArray(selectedProcessDetails.fields)) {
-        const fieldsMap = Object.fromEntries(
-          selectedProcessDetails.fields
-            .filter(field => !field.is_system_field && ruleForm.template_data.data[field.name] !== undefined)
-            .map(field => [field.id, ruleForm.template_data.data[field.name]])
-            .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-        );
-        customFieldsData = fieldsMap;
-      } else if (ruleForm.template_data.data && typeof ruleForm.template_data.data === 'object') {
-        // في حال عدم توفر تفاصيل العملية، نستخدم البيانات كما هي
-        customFieldsData = Object.fromEntries(
-          Object.entries(ruleForm.template_data.data).filter(([_, value]) => value !== undefined && value !== null && value !== '')
-        );
+      
+      // التأكد من توفر تفاصيل العملية
+      let processDetails = selectedProcessDetails;
+      if (!processDetails || !processDetails.fields || processDetails.id !== selectedProcess?.id) {
+        if (selectedProcess?.id) {
+          try {
+            const data = await apiRequest(API_ENDPOINTS.PROCESSES.GET_BY_ID(selectedProcess.id));
+            if (data.success && data.data) {
+              processDetails = data.data;
+            }
+          } catch (error) {
+            console.error('خطأ في جلب تفاصيل العملية:', error);
+          }
+        }
+      }
+      
+      if (processDetails?.fields && Array.isArray(processDetails.fields) && ruleForm.template_data.data) {
+        // إنشاء خريطة من اسم الحقل إلى UUID
+        const fieldMap = new Map<string, string>();
+        processDetails.fields
+          .filter(field => !field.is_system_field)
+          .forEach(field => {
+            if (field.name) fieldMap.set(field.name, field.id);
+            if (field.label && field.label !== field.name) fieldMap.set(field.label, field.id);
+          });
+        
+        // تحويل البيانات من أسماء الحقول إلى UUID
+        const formDataEntries = Object.entries(ruleForm.template_data.data || {});
+        formDataEntries.forEach(([fieldName, value]) => {
+          // تخطي القيم الفارغة
+          if (value === undefined || value === null) return;
+          if (typeof value === 'string' && value.trim() === '') return;
+          if (Array.isArray(value) && value.length === 0) return;
+          
+          // البحث عن UUID للحقل
+          const fieldId = fieldMap.get(fieldName);
+          if (fieldId) {
+            customFieldsData[fieldId] = value;
+          } else {
+            // إذا لم يتم العثور على الحقل، قد يكون المفتاح بالفعل UUID
+            // في هذه الحالة، نستخدمه مباشرة
+            if (fieldName.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+              customFieldsData[fieldName] = value;
+            }
+          }
+        });
       }
 
       // إعداد بيانات القاعدة للإرسال إلى API
@@ -874,19 +907,67 @@ export const RecurringManager: React.FC = () => {
 
       // تحضير بيانات الحقول المخصصة - تحويل من أسماء الحقول إلى معرفاتها (UUID)
       let customFieldsData: Record<string, any> = {};
-      if (selectedProcessDetails?.fields && Array.isArray(selectedProcessDetails.fields)) {
-        const fieldsMap = Object.fromEntries(
-          selectedProcessDetails.fields
-            .filter(field => !field.is_system_field && ruleForm.template_data.data[field.name] !== undefined)
-            .map(field => [field.id, ruleForm.template_data.data[field.name]])
-            .filter(([_, value]) => value !== undefined && value !== null && value !== '')
-        );
-        customFieldsData = fieldsMap;
-      } else if (ruleForm.template_data.data && typeof ruleForm.template_data.data === 'object') {
-        // في حال عدم توفر تفاصيل العملية، نستخدم البيانات كما هي
-        customFieldsData = Object.fromEntries(
-          Object.entries(ruleForm.template_data.data).filter(([_, value]) => value !== undefined && value !== null && value !== '')
-        );
+      
+      console.log('📋 البيانات الأصلية في ruleForm.template_data.data:', ruleForm.template_data.data);
+      
+      // التأكد من توفر تفاصيل العملية
+      let processDetails = selectedProcessDetails;
+      if (!processDetails || !processDetails.fields || processDetails.id !== editingRule.process_id) {
+        if (editingRule?.process_id) {
+          try {
+            const data = await apiRequest(API_ENDPOINTS.PROCESSES.GET_BY_ID(editingRule.process_id));
+            if (data.success && data.data) {
+              processDetails = data.data;
+              console.log('✅ تم جلب تفاصيل العملية:', processDetails.fields?.length, 'حقل');
+            }
+          } catch (error) {
+            console.error('❌ خطأ في جلب تفاصيل العملية:', error);
+          }
+        }
+      }
+      
+      if (processDetails?.fields && Array.isArray(processDetails.fields) && ruleForm.template_data.data) {
+        // إنشاء خريطة من اسم الحقل إلى UUID
+        const fieldMap = new Map<string, string>();
+        processDetails.fields
+          .filter(field => !field.is_system_field)
+          .forEach(field => {
+            if (field.name) fieldMap.set(field.name, field.id);
+            if (field.label && field.label !== field.name) fieldMap.set(field.label, field.id);
+          });
+        
+        console.log('🗺️ خريطة الحقول:', Array.from(fieldMap.entries()));
+        
+        // تحويل البيانات من أسماء الحقول إلى UUID
+        const formDataEntries = Object.entries(ruleForm.template_data.data || {});
+        console.log('📝 عدد الحقول في formData:', formDataEntries.length);
+        
+        formDataEntries.forEach(([fieldName, value]) => {
+          // تخطي القيم الفارغة
+          if (value === undefined || value === null) return;
+          if (typeof value === 'string' && value.trim() === '') return;
+          if (Array.isArray(value) && value.length === 0) return;
+          
+          // البحث عن UUID للحقل
+          const fieldId = fieldMap.get(fieldName);
+          if (fieldId) {
+            console.log(`✅ تحويل "${fieldName}" -> ${fieldId}:`, value);
+            customFieldsData[fieldId] = value;
+          } else {
+            // إذا لم يتم العثور على الحقل، قد يكون المفتاح بالفعل UUID
+            // في هذه الحالة، نستخدمه مباشرة
+            if (fieldName.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+              console.log(`✅ المفتاح بالفعل UUID: ${fieldName}`);
+              customFieldsData[fieldName] = value;
+            } else {
+              console.warn(`⚠️ لم يتم العثور على UUID للحقل: "${fieldName}"`);
+            }
+          }
+        });
+        
+        console.log('📦 الحقول المخصصة المحولة:', customFieldsData);
+      } else {
+        console.warn('⚠️ تفاصيل العملية غير متاحة أو ruleForm.template_data.data فارغة');
       }
 
       // إعداد بيانات القاعدة للتحديث
@@ -923,6 +1004,8 @@ export const RecurringManager: React.FC = () => {
         ruleData.stage_id = stageId;
       }
 
+      console.log('📤 البيانات المرسلة إلى API:', JSON.stringify(ruleData, null, 2));
+      console.log('📦 customFieldsData:', customFieldsData);
 
       // استدعاء API لتحديث قاعدة التكرار
       const response = await fetch(buildApiUrl(`/recurring/rules/${editingRule.id}`), {
@@ -933,6 +1016,8 @@ export const RecurringManager: React.FC = () => {
         },
         body: JSON.stringify(ruleData)
       });
+      
+      console.log('📥 استجابة API:', response.status, response.statusText);
 
       if (response.ok) {
         const result = await response.json();
