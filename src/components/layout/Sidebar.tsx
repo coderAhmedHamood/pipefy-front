@@ -180,11 +180,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   to={`/${item.id}`}
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
-                  onClick={(e) => {
-                    // على الجوال/التابلت، إغلاق الـ sidebar بعد النقر
-                    if (window.innerWidth < 1024) {
-                      // سيتم التعامل معه من onViewChange في App.tsx
-                    }
+                  onClick={() => {
+                    // استدعاء onViewChange لإغلاق الـ sidebar تلقائياً على الجوال
+                    onViewChange(item.id);
                   }}
                   className={`
                     w-full flex items-center p-3 rounded-lg transition-all duration-200 relative
@@ -228,7 +226,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Logout */}
       <div className="p-4 border-t border-gray-200 flex-shrink-0">
         <button
-          onClick={logout}
+          onClick={() => {
+            // استدعاء onViewChange لإغلاق الـ sidebar تلقائياً على الجوال قبل تسجيل الخروج
+            onViewChange('logout');
+            logout();
+          }}
           className={`
             w-full flex items-center p-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors
             ${isCollapsed ? 'justify-center' : 'space-x-3 space-x-reverse'}
