@@ -4,6 +4,7 @@ import { useWorkflow } from '../../contexts/WorkflowContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Process, Stage, ProcessField, FieldType } from '../../types/workflow';
 import { useToast, ToastContainer } from '../ui/Toast';
+import { useDeviceType } from '../../hooks/useDeviceType';
 import {
   Plus,
   Edit,
@@ -34,6 +35,7 @@ export const ProcessManager: React.FC = () => {
   const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, updateFieldInProcess, removeFieldFromProcess, addStageToProcess, updateStageInProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
   const { toasts, showSuccess, showError, removeToast } = useToast();
   const { hasPermission, user } = useAuth();
+  const { isMobile, isTablet } = useDeviceType();
   
   // تسجيل تشخيصي للصلاحيات عند تحميل المكون
   useEffect(() => {
@@ -48,6 +50,7 @@ export const ProcessManager: React.FC = () => {
   const [isCreatingStage, setIsCreatingStage] = useState(false);
   const [isUpdatingStage, setIsUpdatingStage] = useState(false);
   const [isDeletingStage, setIsDeletingStage] = useState<string | null>(null);
+  const [showProcessList, setShowProcessList] = useState(false);
 
   const [processForm, setProcessForm] = useState({
     name: '',
@@ -849,136 +852,165 @@ export const ProcessManager: React.FC = () => {
 
   return (
     <div className="h-full bg-gray-50">
-      <div className="bg-white border-b border-gray-200 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">إدارة العمليات</h1>
-            <p className="text-gray-600">إنشاء وتعديل العمليات والمراحل والحقول</p>
+      <div className={`bg-white border-b border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+        <div className={`flex ${isMobile || isTablet ? 'flex-col space-y-3' : 'items-center justify-between'}`}>
+          <div className={`flex ${isMobile || isTablet ? 'items-center justify-between w-full' : 'items-center'}`}>
+            <div>
+              <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900`}>إدارة العمليات</h1>
+              <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>إنشاء وتعديل العمليات والمراحل والحقول</p>
+            </div>
+            {(isMobile || isTablet) && selectedProcess && (
+              <button
+                onClick={() => setShowProcessList(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <FolderOpen className="w-5 h-5 text-gray-600" />
+              </button>
+            )}
           </div>
           
           {hasPermission('processes', 'create') && (
             <button
               onClick={() => setIsCreating(true)}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
+              className={`bg-gradient-to-r from-blue-500 to-purple-600 text-white ${isMobile || isTablet ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'w-full justify-center' : ''}`}
             >
-              <Plus className="w-4 h-4" />
+              <Plus className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
               <span>عملية جديدة</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-140px)] overflow-hidden">
+      <div className={`${isMobile || isTablet ? 'flex-col' : 'flex'} h-[calc(100vh-140px)] ${isMobile || isTablet ? 'overflow-y-auto' : 'overflow-hidden'}`}>
         {/* Process List */}
-        <div className="w-1/3 bg-white border-r border-gray-200 overflow-y-auto">
-          <div className="p-4">
-            <h3 className="font-semibold text-gray-900 mb-4">العمليات ({processes.length})</h3>
-            
-            <div className="space-y-2">
-              {processes.map((process) => (
-                <div
-                  key={process.id}
-                  onClick={() => setSelectedProcess(process)}
-                  className={`
-                    p-4 rounded-lg border cursor-pointer transition-all duration-200
-                    ${selectedProcess?.id === process.id 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }
-                  `}
-                >
-                  <div className="flex items-center space-x-3 space-x-reverse">
-                    <div className={`w-8 h-8 ${process.color} rounded-lg flex items-center justify-center`}>
-                      <span className="text-white font-bold text-sm">{process.name.charAt(0)}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{process.name}</h4>
-                      <p className="text-sm text-gray-500 line-clamp-1">{process.description}</p>
-                      <div className="flex items-center space-x-4 space-x-reverse mt-2 text-xs text-gray-400">
-                        <span>{process.stages.length} مرحلة</span>
-                        <span>{process.fields.length} حقل</span>
-                        <span className={process.is_active ? 'text-green-600' : 'text-red-600'}>
-                          {process.is_active ? 'نشط' : 'معطل'}
-                        </span>
+        {((isMobile || isTablet) && showProcessList) || !(isMobile || isTablet) ? (
+          <div className={`${isMobile || isTablet ? 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-0' : 'w-1/3 bg-white border-r border-gray-200 overflow-y-auto'}`}>
+            <div className={`${isMobile || isTablet ? 'bg-white w-full h-full overflow-y-auto' : ''}`}>
+              <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'}`}>
+                <div className={`flex items-center justify-between mb-4 ${isMobile || isTablet ? 'sticky top-0 bg-white z-10 pb-3 border-b border-gray-200' : ''}`}>
+                  <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900`}>العمليات ({processes.length})</h3>
+                  {(isMobile || isTablet) && (
+                    <button
+                      onClick={() => setShowProcessList(false)}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-600" />
+                    </button>
+                  )}
+                </div>
+                
+                <div className={isMobile || isTablet ? 'space-y-2' : 'space-y-2'}>
+                  {processes.map((process) => (
+                    <div
+                      key={process.id}
+                      onClick={() => {
+                        setSelectedProcess(process);
+                        if (isMobile || isTablet) {
+                          setShowProcessList(false);
+                        }
+                      }}
+                      className={`
+                        ${isMobile || isTablet ? 'p-3' : 'p-4'} rounded-lg border cursor-pointer transition-all duration-200
+                        ${selectedProcess?.id === process.id 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }
+                      `}
+                    >
+                      <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'}`}>
+                        <div className={`${isMobile || isTablet ? 'w-7 h-7' : 'w-8 h-8'} ${process.color} rounded-lg flex items-center justify-center`}>
+                          <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{process.name.charAt(0)}</span>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>{process.name}</h4>
+                          <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500 line-clamp-1`}>{process.description}</p>
+                          <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse mt-1 text-[9px]' : 'space-x-4 space-x-reverse mt-2 text-xs'} text-gray-400`}>
+                            <span>{process.stages.length} مرحلة</span>
+                            <span>{process.fields.length} حقل</span>
+                            <span className={process.is_active ? 'text-green-600' : 'text-red-600'}>
+                              {process.is_active ? 'نشط' : 'معطل'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
           </div>
-        </div>
+        ) : null}
 
         {/* Process Details */}
-        <div className="flex-1 overflow-y-auto">
+        <div className={`${isMobile || isTablet ? 'w-full' : 'flex-1'} ${isMobile || isTablet ? '' : 'overflow-y-auto'}`}>
           {selectedProcess ? (
-            <div className="p-6">
+            <div className={isMobile || isTablet ? 'p-3' : 'p-6'}>
               {/* Process Header */}
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-4 space-x-reverse">
-                    <div className={`w-12 h-12 ${selectedProcess.color} rounded-lg flex items-center justify-center`}>
-                      <span className="text-white font-bold text-lg">{selectedProcess.name.charAt(0)}</span>
+              <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3 mb-3' : 'p-6 mb-6'}`}>
+                <div className={`flex items-center justify-between mb-4 ${isMobile || isTablet ? 'flex-col space-y-3' : ''}`}>
+                  <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse w-full' : 'space-x-4 space-x-reverse'}`}>
+                    <div className={`${isMobile || isTablet ? 'w-10 h-10' : 'w-12 h-12'} ${selectedProcess.color} rounded-lg flex items-center justify-center`}>
+                      <span className={`text-white font-bold ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>{selectedProcess.name.charAt(0)}</span>
                     </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-900">{selectedProcess.name}</h2>
-                      <p className="text-gray-600">{selectedProcess.description}</p>
+                    <div className="flex-1">
+                      <h2 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-bold text-gray-900`}>{selectedProcess.name}</h2>
+                      <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>{selectedProcess.description}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                      <Copy className="w-4 h-4 text-gray-500" />
+                  <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse w-full justify-end' : 'space-x-2 space-x-reverse'}`}>
+                    <button className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100 transition-colors`}>
+                      <Copy className={isMobile || isTablet ? 'w-3.5 h-3.5 text-gray-500' : 'w-4 h-4 text-gray-500'} />
                     </button>
                     {hasPermission('processes', 'update') && (
                       <button
                         onClick={() => handleStartEdit(selectedProcess)}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                        className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100 transition-colors`}
                       >
-                        <Edit className="w-4 h-4 text-gray-500" />
+                        <Edit className={isMobile || isTablet ? 'w-3.5 h-3.5 text-gray-500' : 'w-4 h-4 text-gray-500'} />
                       </button>
                     )}
                     {hasPermission('processes', 'delete') && (
                       <button
                         onClick={() => handleDeleteProcess(selectedProcess.id)}
-                        className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                        className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-red-50 transition-colors`}
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        <Trash2 className={isMobile || isTablet ? 'w-3.5 h-3.5 text-red-500' : 'w-4 h-4 text-red-500'} />
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4 text-center">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-gray-900">{selectedProcess.stages.length}</div>
-                    <div className="text-sm text-gray-500">المراحل</div>
+                <div className={`grid ${isMobile || isTablet ? 'grid-cols-2 gap-2' : 'grid-cols-4 gap-4'} text-center`}>
+                  <div className={`bg-gray-50 rounded-lg ${isMobile || isTablet ? 'p-2' : 'p-3'}`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900`}>{selectedProcess.stages.length}</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>المراحل</div>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-gray-900">{selectedProcess.fields.length}</div>
-                    <div className="text-sm text-gray-500">الحقول</div>
+                  <div className={`bg-gray-50 rounded-lg ${isMobile || isTablet ? 'p-2' : 'p-3'}`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900`}>{selectedProcess.fields.length}</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>الحقول</div>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className={`text-2xl font-bold ${selectedProcess.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                  <div className={`bg-gray-50 rounded-lg ${isMobile || isTablet ? 'p-2' : 'p-3'}`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold ${selectedProcess.is_active ? 'text-green-600' : 'text-red-600'}`}>
                       {selectedProcess.is_active ? 'نشط' : 'معطل'}
                     </div>
-                    <div className="text-sm text-gray-500">الحالة</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>الحالة</div>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <div className="text-2xl font-bold text-blue-600">
+                  <div className={`bg-gray-50 rounded-lg ${isMobile || isTablet ? 'p-2' : 'p-3'}`}>
+                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-blue-600`}>
                       {/* يمكن إضافة عدد التذاكر هنا لاحقاً */}
                       --
                     </div>
-                    <div className="text-sm text-gray-500">التذاكر</div>
+                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>التذاكر</div>
                   </div>
                 </div>
               </div>
 
               {/* Stages Section */}
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
-                    <Layers className="w-5 h-5" />
+              <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3 mb-3' : 'p-6 mb-6'}`}>
+                <div className={`flex items-center justify-between mb-4 ${isMobile || isTablet ? 'flex-col space-y-2' : ''}`}>
+                  <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                    <Layers className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
                     <span>المراحل ({selectedProcess.stages.length})</span>
                   </h3>
                   
@@ -1019,91 +1051,93 @@ export const ProcessManager: React.FC = () => {
                           sla_hours: undefined
                         });
                       }}
-                      className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse text-sm"
+                      className={`text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse ${isMobile || isTablet ? 'text-xs w-full justify-center py-1.5' : 'text-sm'}`}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                       <span>إضافة مرحلة</span>
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-3">
+                <div className={isMobile || isTablet ? 'space-y-2' : 'space-y-3'}>
                   {selectedProcess.stages.map((stage, index) => {
                     // 🔍 سجل تشخيصي لكل مرحلة
                     
                     return (
-                      <div key={stage.id} className="flex items-center space-x-4 space-x-reverse p-3 border border-gray-200 rounded-lg">
-                        <div className="flex items-center space-x-3 space-x-reverse flex-1">
-                          <div className="text-gray-400 font-medium">{index + 1}</div>
-                          <div className={`w-4 h-4 ${stage.color} rounded`}></div>
+                      <div key={stage.id} className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse p-2' : 'space-x-4 space-x-reverse p-3'} border border-gray-200 rounded-lg`}>
+                        <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'} flex-1`}>
+                          <div className={`text-gray-400 font-medium ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{index + 1}</div>
+                          <div className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} ${stage.color} rounded`}></div>
                           <div>
-                            <div className="font-medium text-gray-900">{stage.name}</div>
+                            <div className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>{stage.name}</div>
                             {stage.description && (
-                              <div className="text-sm text-gray-500">{stage.description}</div>
+                              <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>{stage.description}</div>
                             )}
                           </div>
                         </div>
                       
                       {index < selectedProcess.stages.length - 1 && (
-                        <ArrowRight className="w-4 h-4 text-gray-400" />
+                        <ArrowRight className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-gray-400`} />
                       )}
                       
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        {hasPermission('stages', 'update') && (
-                          <button
-                            onClick={() => {
+                      <div className={`flex items-center ${isMobile || isTablet ? 'flex-col space-y-1 space-y-reverse' : 'space-x-2 space-x-reverse'}`}>
+                        <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1 space-x-reverse' : 'space-x-2 space-x-reverse'}`}>
+                          {hasPermission('stages', 'update') && (
+                            <button
+                              onClick={() => {
 
-                              // إعداد حالة المرحلة للتحرير
-                              setEditingStage(stage);
+                                // إعداد حالة المرحلة للتحرير
+                                setEditingStage(stage);
 
-                              // ملء النموذج بالبيانات الحالية للمرحلة
-                              // ✅ إصلاح: استخدام === true بدلاً من || false للحفاظ على القيم الصحيحة
-                              setStageForm({
-                                name: stage.name || '',
-                                description: stage.description || '',
-                                color: stage.color || 'bg-gray-500',
-                                order: stage.order || 1,
-                                priority: stage.priority || 1,
-                                allowed_transitions: stage.allowed_transitions || ((stage as any).transitions ? (stage as any).transitions.map((t: any) => t.to_stage_id) : []),
-                                is_initial: stage.is_initial === true,
-                                is_final: stage.is_final === true,
-                                sla_hours: stage.sla_hours || undefined
-                              });
+                                // ملء النموذج بالبيانات الحالية للمرحلة
+                                // ✅ إصلاح: استخدام === true بدلاً من || false للحفاظ على القيم الصحيحة
+                                setStageForm({
+                                  name: stage.name || '',
+                                  description: stage.description || '',
+                                  color: stage.color || 'bg-gray-500',
+                                  order: stage.order || 1,
+                                  priority: stage.priority || 1,
+                                  allowed_transitions: stage.allowed_transitions || ((stage as any).transitions ? (stage as any).transitions.map((t: any) => t.to_stage_id) : []),
+                                  is_initial: stage.is_initial === true,
+                                  is_final: stage.is_final === true,
+                                  sla_hours: stage.sla_hours || undefined
+                                });
 
-                            }}
-                            className="p-1 rounded hover:bg-gray-100"
-                          >
-                            <Edit className="w-4 h-4 text-gray-500" />
-                          </button>
-                        )}
-                        {selectedProcess.stages.length > 1 && hasPermission('stages', 'delete') && (
-                            <>
-                              <div className="text-gray-400 font-medium">#{stage.priority}</div>
-                              <button
-                                onClick={() => handleDeleteStage(stage.id)}
-                                disabled={isDeletingStage === stage.id}
-                                className="p-1 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                              >
-                                {isDeletingStage === stage.id ? (
-                                  <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                  <Trash2 className="w-4 h-4 text-red-500" />
-                                )}
-                              </button>
-                            </>
-                        )}
-                        {selectedProcess.stages.length > 1 && !hasPermission('stages', 'delete') && (
-                          <div className="text-gray-400 font-medium">#{stage.priority}</div>
-                        )}
-                        <div className="flex items-center space-x-2 space-x-reverse mt-1">
+                              }}
+                              className={`${isMobile || isTablet ? 'p-1' : 'p-1'} rounded hover:bg-gray-100`}
+                            >
+                              <Edit className={isMobile || isTablet ? 'w-3.5 h-3.5 text-gray-500' : 'w-4 h-4 text-gray-500'} />
+                            </button>
+                          )}
+                          {selectedProcess.stages.length > 1 && hasPermission('stages', 'delete') && (
+                              <>
+                                <div className={`text-gray-400 font-medium ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'}`}>#{stage.priority}</div>
+                                <button
+                                  onClick={() => handleDeleteStage(stage.id)}
+                                  disabled={isDeletingStage === stage.id}
+                                  className={`${isMobile || isTablet ? 'p-1' : 'p-1'} rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
+                                >
+                                  {isDeletingStage === stage.id ? (
+                                    <div className={`${isMobile || isTablet ? 'w-3.5 h-3.5 border-2' : 'w-4 h-4 border-2'} border-red-500 border-t-transparent rounded-full animate-spin`}></div>
+                                  ) : (
+                                    <Trash2 className={isMobile || isTablet ? 'w-3.5 h-3.5 text-red-500' : 'w-4 h-4 text-red-500'} />
+                                  )}
+                                </button>
+                              </>
+                          )}
+                          {selectedProcess.stages.length > 1 && !hasPermission('stages', 'delete') && (
+                            <div className={`text-gray-400 font-medium ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'}`}>#{stage.priority}</div>
+                          )}
+                        </div>
+                        <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1 space-x-reverse flex-wrap' : 'space-x-2 space-x-reverse'} ${isMobile || isTablet ? 'mt-1' : 'mt-1'}`}>
                           {stage.is_initial && (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">أولى</span>
+                            <span className={`${isMobile || isTablet ? 'text-[9px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} bg-green-100 text-green-800 rounded`}>أولى</span>
                           )}
                           {stage.is_final && (
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">نهائية</span>
+                            <span className={`${isMobile || isTablet ? 'text-[9px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} bg-blue-100 text-blue-800 rounded`}>نهائية</span>
                           )}
                           {stage.allowed_transitions && stage.allowed_transitions.length > 0 && (
-                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                            <span className={`${isMobile || isTablet ? 'text-[9px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} bg-purple-100 text-purple-800 rounded`}>
                               {stage.allowed_transitions.length} انتقال
                             </span>
                           )}
@@ -1116,58 +1150,58 @@ export const ProcessManager: React.FC = () => {
               </div>
 
               {/* Fields Section */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
-                    <FileText className="w-5 h-5" />
+              <div className={`bg-white rounded-lg shadow-sm ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+                <div className={`flex items-center justify-between mb-4 ${isMobile || isTablet ? 'flex-col space-y-2' : ''}`}>
+                  <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                    <FileText className={isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} />
                     <span>الحقول المخصصة ({selectedProcess.fields.length})</span>
                   </h3>
                   
                   {hasPermission('fields', 'create') && (
                     <button
                       onClick={() => setEditingField({ id: '', name: '', type: 'text', is_required: false, is_system_field: false })}
-                      className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse text-sm"
+                      className={`text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse ${isMobile || isTablet ? 'text-xs w-full justify-center py-1.5' : 'text-sm'}`}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                       <span>إضافة حقل</span>
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-3">
+                <div className={isMobile || isTablet ? 'space-y-2' : 'space-y-3'}>
                   {selectedProcess.fields.map((field) => (
-                    <div key={field.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                      <div className="flex items-center space-x-3 space-x-reverse">
-                        <div className="font-medium text-gray-900">{field.name}</div>
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                    <div key={field.id} className={`flex items-center justify-between ${isMobile || isTablet ? 'p-2' : 'p-3'} border border-gray-200 rounded-lg ${isMobile || isTablet ? 'flex-col space-y-2' : ''}`}>
+                      <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse flex-wrap w-full' : 'space-x-3 space-x-reverse'}`}>
+                        <div className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>{field.name}</div>
+                        <span className={`${isMobile || isTablet ? 'text-[9px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} bg-gray-100 text-gray-600 rounded`}>
                           {fieldTypes.find(t => t.value === (field as any).field_type || field.type)?.label || 'غير محدد'}
                         </span>
                         {field.is_required && (
-                          <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded">إجباري</span>
+                          <span className={`${isMobile || isTablet ? 'text-[9px] px-1.5 py-0.5' : 'text-xs px-2 py-1'} bg-red-100 text-red-600 rounded`}>إجباري</span>
                         )}
                       </div>
                       
-                      <div className="flex items-center space-x-2 space-x-reverse">
+                      <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse w-full justify-end' : 'space-x-2 space-x-reverse'}`}>
                         {hasPermission('fields', 'update') && (
                           <button
                             onClick={() => {
                               setEditingField(field);
                             }}
-                            className="p-1 rounded hover:bg-gray-100"
+                            className={`${isMobile || isTablet ? 'p-1' : 'p-1'} rounded hover:bg-gray-100`}
                           >
-                            <Edit className="w-4 h-4 text-gray-500" />
+                            <Edit className={isMobile || isTablet ? 'w-3.5 h-3.5 text-gray-500' : 'w-4 h-4 text-gray-500'} />
                           </button>
                         )}
                         {hasPermission('fields', 'delete') && (
                           <button
                             onClick={() => handleDeleteField(field.id)}
                             disabled={isDeletingField === field.id}
-                            className="p-1 rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            className={`${isMobile || isTablet ? 'p-1' : 'p-1'} rounded hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
                           >
                             {isDeletingField === field.id ? (
-                              <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                              <div className={`${isMobile || isTablet ? 'w-3.5 h-3.5 border-2' : 'w-4 h-4 border-2'} border-red-500 border-t-transparent rounded-full animate-spin`}></div>
                             ) : (
-                              <Trash2 className="w-4 h-4 text-red-500" />
+                              <Trash2 className={isMobile || isTablet ? 'w-3.5 h-3.5 text-red-500' : 'w-4 h-4 text-red-500'} />
                             )}
                           </button>
                         )}
@@ -1176,10 +1210,10 @@ export const ProcessManager: React.FC = () => {
                   ))}
                   
                   {selectedProcess.fields.length === 0 && (
-                    <div className="text-center py-8 text-gray-400">
-                      <FileText className="w-12 h-12 mx-auto mb-3" />
-                      <p>لا توجد حقول مخصصة</p>
-                      <p className="text-sm">أضف حقول لجمع بيانات إضافية</p>
+                    <div className={`text-center ${isMobile || isTablet ? 'py-6' : 'py-8'} text-gray-400`}>
+                      <FileText className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} mx-auto mb-3`} />
+                      <p className={isMobile || isTablet ? 'text-xs' : 'text-sm'}>لا توجد حقول مخصصة</p>
+                      <p className={isMobile || isTablet ? 'text-[10px]' : 'text-xs'}>أضف حقول لجمع بيانات إضافية</p>
                     </div>
                   )}
                 </div>
@@ -1187,10 +1221,19 @@ export const ProcessManager: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <Settings className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">اختر عملية للتعديل</h3>
-                <p className="text-gray-500">حدد عملية من القائمة لعرض تفاصيلها وتعديلها</p>
+              <div className={`text-center ${isMobile || isTablet ? 'p-4' : ''}`}>
+                <Settings className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} text-gray-300 mx-auto mb-4`} />
+                <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-medium text-gray-900 mb-2`}>اختر عملية للتعديل</h3>
+                <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500 mb-4`}>{(isMobile || isTablet) ? 'اضغط على أيقونة المجلد لاختيار عملية' : 'حدد عملية من القائمة لعرض تفاصيلها وتعديلها'}</p>
+                {(isMobile || isTablet) && (
+                  <button
+                    onClick={() => setShowProcessList(true)}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse mx-auto"
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                    <span>عرض العمليات</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1262,76 +1305,76 @@ export const ProcessManager: React.FC = () => {
 
       {/* Edit Stage Modal */}
       {editingStage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`}>
+          <div className={`bg-white ${isMobile || isTablet ? 'rounded-none w-full h-full max-w-none' : 'rounded-lg shadow-xl max-w-md w-full'} ${isMobile || isTablet ? 'flex flex-col' : ''}`}>
+            <div className={`flex items-center justify-between ${isMobile || isTablet ? 'p-3' : 'p-6'} border-b border-gray-200 flex-shrink-0`}>
+              <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>
                 {editingStage.id ? 'تعديل المرحلة' : 'مرحلة جديدة'}
               </h3>
               <button
                 onClick={() => setEditingStage(null)}
-                className="p-2 rounded-lg hover:bg-gray-100"
+                className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100`}
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className={isMobile || isTablet ? 'w-4 h-4 text-gray-500' : 'w-5 h-5 text-gray-500'} />
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className={`${isMobile || isTablet ? 'flex-1 overflow-y-auto p-3' : 'p-6'} space-y-4`}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم المرحلة</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>اسم المرحلة</label>
                 <input
                   type="text"
                   value={stageForm.name}
                   onChange={(e) => setStageForm({ ...stageForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="مثال: مراجعة"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">الوصف</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الوصف</label>
                 <textarea
                   value={stageForm.description}
                   onChange={(e) => setStageForm({ ...stageForm, description: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={isMobile || isTablet ? 2 : 2}
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="وصف المرحلة..."
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-2 gap-4'}`}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">الأولوية</label>
+                  <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الأولوية</label>
                   <input
                     type="number"
                     min="1"
                     value={stageForm.priority}
                     onChange={(e) => setStageForm({ ...stageForm, priority: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">SLA (ساعات)</label>
+                  <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>SLA (ساعات)</label>
                   <input
                     type="number"
                     min="1"
                     value={stageForm.sla_hours || ''}
                     onChange={(e) => setStageForm({ ...stageForm, sla_hours: e.target.value ? parseInt(e.target.value) : undefined })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     placeholder="اختياري"
                   />
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اللون</label>
-                <div className="flex flex-wrap gap-2">
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>اللون</label>
+                <div className={`flex flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'}`}>
                   {colorOptions.map((color) => (
                     <button
                       key={color}
                       onClick={() => setStageForm({ ...stageForm, color })}
-                      className={`w-8 h-8 ${color} rounded-lg border-2 ${
+                      className={`${isMobile || isTablet ? 'w-7 h-7' : 'w-8 h-8'} ${color} rounded-lg border-2 ${
                         stageForm.color === color ? 'border-gray-900' : 'border-transparent'
                       }`}
                     />
@@ -1340,17 +1383,17 @@ export const ProcessManager: React.FC = () => {
               </div>
               
               {/* Stage Type */}
-              <div className="space-y-3">N
-                <label className="block text-sm font-medium text-gray-700">نوع المرحلة</label>
-                <div className="space-y-2">
+              <div className={isMobile || isTablet ? 'space-y-2' : 'space-y-3'}>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}>نوع المرحلة</label>
+                <div className={isMobile || isTablet ? 'space-y-1.5' : 'space-y-2'}>
                   <label className="flex items-center">
                     <input
                       type="checkbox"
                       checked={stageForm.is_initial}
                       onChange={(e) => setStageForm({ ...stageForm, is_initial: e.target.checked })}
-                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : ''} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-2 text-sm text-gray-700">مرحلة أولى (نقطة البداية)</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700`}>مرحلة أولى (نقطة البداية)</span>
                   </label>
                   
                   <label className="flex items-center">
@@ -1358,9 +1401,9 @@ export const ProcessManager: React.FC = () => {
                       type="checkbox"
                       checked={stageForm.is_final}
                       onChange={(e) => setStageForm({ ...stageForm, is_final: e.target.checked })}
-                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className={`${isMobile || isTablet ? 'w-4 h-4' : ''} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                     />
-                    <span className="mr-2 text-sm text-gray-700">مرحلة نهائية (نقطة الانتهاء)</span>
+                    <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700`}>مرحلة نهائية (نقطة الانتهاء)</span>
                   </label>
                 </div>
               </div>
@@ -1368,10 +1411,10 @@ export const ProcessManager: React.FC = () => {
               {/* Allowed Transitions */}
               {selectedProcess && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                     المراحل المسموحة للانتقال إليها
                   </label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                  <div className={`space-y-2 ${isMobile || isTablet ? 'max-h-24' : 'max-h-32'} overflow-y-auto`}>
                     {selectedProcess.stages
                       .filter(s => s.id !== editingStage?.id)
                       .map((stage) => (
@@ -1394,11 +1437,11 @@ export const ProcessManager: React.FC = () => {
                               });
                             }
                           }}
-                          className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                          className={`${isMobile || isTablet ? 'w-4 h-4' : ''} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                         />
-                        <div className="flex items-center space-x-2 space-x-reverse mr-2">
-                          <div className={`w-3 h-3 ${stage.color} rounded`}></div>
-                          <span className="text-sm text-gray-700">{stage.name}</span>
+                        <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse' : 'space-x-2 space-x-reverse'} mr-2`}>
+                          <div className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} ${stage.color} rounded`}></div>
+                          <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700`}>{stage.name}</span>
                         </div>
                       </label>
                     ))}
@@ -1407,21 +1450,21 @@ export const ProcessManager: React.FC = () => {
               )}
             </div>
             
-            <div className="flex items-center justify-end space-x-3 space-x-reverse p-6 border-t border-gray-200">
+            <div className={`flex items-center ${isMobile || isTablet ? 'flex-col-reverse space-y-2 space-y-reverse p-3' : 'justify-end space-x-3 space-x-reverse p-6'} border-t border-gray-200 flex-shrink-0 ${isMobile || isTablet ? 'sticky bottom-0 bg-white' : ''}`}>
               <button
                 onClick={() => setEditingStage(null)}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                className={`${isMobile || isTablet ? 'w-full px-4 py-2 text-sm' : 'px-4 py-2'} text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50`}
               >
                 إلغاء
               </button>
               <button
                 onClick={editingStage?.id ? handleUpdateStage : handleAddStage}
                 disabled={!stageForm.name || isCreatingStage || isUpdatingStage}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
+                className={`${isMobile || isTablet ? 'w-full px-4 py-2 text-sm' : 'px-4 py-2'} bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 space-x-reverse`}
               >
                 {(isCreatingStage || isUpdatingStage) ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className={`${isMobile || isTablet ? 'w-3.5 h-3.5 border-2' : 'w-4 h-4 border-2'} border-white border-t-transparent rounded-full animate-spin`}></div>
                     <span>{editingStage?.id ? 'جاري التحديث...' : 'جاري الإنشاء...'}</span>
                   </>
                 ) : (
@@ -1435,40 +1478,40 @@ export const ProcessManager: React.FC = () => {
 
       {/* Edit Field Modal */}
       {editingField && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`}>
+          <div className={`bg-white ${isMobile || isTablet ? 'rounded-none w-full h-full max-w-none' : 'rounded-lg shadow-xl max-w-md w-full'} ${isMobile || isTablet ? 'flex flex-col max-h-[90vh]' : 'max-h-[90vh]'} overflow-y-auto`}>
+            <div className={`flex items-center justify-between ${isMobile || isTablet ? 'p-3' : 'p-6'} border-b border-gray-200 flex-shrink-0`}>
+              <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>
                 {editingField.id ? 'تعديل الحقل' : 'حقل جديد'}
               </h3>
               <button
                 onClick={() => setEditingField(null)}
-                className="p-2 rounded-lg hover:bg-gray-100"
+                className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100`}
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className={isMobile || isTablet ? 'w-4 h-4 text-gray-500' : 'w-5 h-5 text-gray-500'} />
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className={`${isMobile || isTablet ? 'flex-1 overflow-y-auto p-3' : 'p-6'} space-y-4`}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">اسم الحقل</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>اسم الحقل</label>
                 <input
                   type="text"
                   value={fieldForm.name}
                   onChange={(e) => setFieldForm({ ...fieldForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                   placeholder="مثال: المبلغ"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">نوع الحقل</label>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>نوع الحقل</label>
                 <select
                   value={fieldForm.type}
                   onChange={(e) => {
                     setFieldForm({ ...fieldForm, type: e.target.value as FieldType });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 >
                   {fieldTypes.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -1484,19 +1527,19 @@ export const ProcessManager: React.FC = () => {
                   id="required"
                   checked={fieldForm.is_required}
                   onChange={(e) => setFieldForm({ ...fieldForm, is_required: e.target.checked })}
-                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  className={`${isMobile || isTablet ? 'w-4 h-4' : ''} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
                 />
-                <label htmlFor="required" className="mr-2 text-sm text-gray-700">
+                <label htmlFor="required" className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700`}>
                   حقل إجباري
                 </label>
               </div>
 
               {(fieldForm.type === 'select' || fieldForm.type === 'multiselect' || fieldForm.type === 'radio') && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">الخيارات</label>
-                  <div className="space-y-2">
+                  <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الخيارات</label>
+                  <div className={isMobile || isTablet ? 'space-y-1.5' : 'space-y-2'}>
                     {fieldForm.options.map((option, index) => (
-                      <div key={index} className="flex items-center space-x-2 space-x-reverse">
+                      <div key={index} className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse' : 'space-x-2 space-x-reverse'}`}>
                         <input
                           type="text"
                           value={option.label}
@@ -1505,7 +1548,7 @@ export const ProcessManager: React.FC = () => {
                             newOptions[index] = { ...option, label: e.target.value, value: e.target.value };
                             setFieldForm({ ...fieldForm, options: newOptions });
                           }}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className={`flex-1 ${isMobile || isTablet ? 'px-2.5 py-1.5 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           placeholder="نص الخيار"
                         />
                         <button
@@ -1513,9 +1556,9 @@ export const ProcessManager: React.FC = () => {
                             const newOptions = fieldForm.options.filter((_, i) => i !== index);
                             setFieldForm({ ...fieldForm, options: newOptions });
                           }}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded"
+                          className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-500 hover:bg-red-50 rounded`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                         </button>
                       </div>
                     ))}
@@ -1526,9 +1569,9 @@ export const ProcessManager: React.FC = () => {
                           options: [...fieldForm.options, { label: '', value: '' }]
                         });
                       }}
-                      className="text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse text-sm"
+                      className={`text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                       <span>إضافة خيار</span>
                     </button>
                   </div>
@@ -1536,10 +1579,10 @@ export const ProcessManager: React.FC = () => {
               )}
             </div>
             
-            <div className="flex items-center justify-end space-x-3 space-x-reverse p-6 border-t border-gray-200">
+            <div className={`flex items-center ${isMobile || isTablet ? 'flex-col-reverse space-y-2 space-y-reverse p-3' : 'justify-end space-x-3 space-x-reverse p-6'} border-t border-gray-200 flex-shrink-0 ${isMobile || isTablet ? 'sticky bottom-0 bg-white' : ''}`}>
               <button
                 onClick={() => setEditingField(null)}
-                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className={`${isMobile || isTablet ? 'w-full px-4 py-2 text-sm' : 'px-4 py-2'} text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50`}
                 disabled={isCreatingField}
               >
                 إلغاء
@@ -1547,10 +1590,10 @@ export const ProcessManager: React.FC = () => {
               <button
                 onClick={handleAddField}
                 disabled={!fieldForm.name.trim() || isCreatingField}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 space-x-reverse"
+                className={`${isMobile || isTablet ? 'w-full px-4 py-2 text-sm' : 'px-4 py-2'} bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 space-x-reverse`}
               >
                 {isCreatingField && (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className={`${isMobile || isTablet ? 'w-3.5 h-3.5 border-2' : 'w-4 h-4 border-2'} border-white border-t-transparent rounded-full animate-spin`}></div>
                 )}
                 <span>
                   {isCreatingField
