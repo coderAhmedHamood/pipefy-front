@@ -528,8 +528,8 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     navigate(`/${view}`);
   };
 
-  // وضع الكانبان ملء الشاشة
-  if (currentView === 'kanban' && !showSidebar) {
+  // وضع الكانبان ملء الشاشة على الجوال/التابلت فقط
+  if ((isMobile || isTablet) && currentView === 'kanban' && !showSidebar) {
     return (
       <div className="h-screen bg-gray-50 overflow-hidden" dir="rtl">
         {/* Kanban Header */}
@@ -612,7 +612,82 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
-  // الوضع العادي مع Sidebar
+  // على الجوال/التابلت: إخفاء الـ sidebar وإظهار زر القائمة
+  if (isMobile || isTablet) {
+    return (
+      <div className="h-screen bg-gray-50 overflow-hidden" dir="rtl">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} flex items-center justify-between`}>
+            <div className="flex items-center space-x-4 space-x-reverse">
+              <button
+                onClick={() => setShowSidebar(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <Menu className="w-5 h-5 text-gray-600" />
+              </button>
+              
+              <CompanyHeader size={isMobile || isTablet ? "medium" : "small"} />
+            </div>
+            
+            <div className="flex items-center space-x-3 space-x-reverse">
+              {/* Process Selector مخفي على الجوال */}
+              {!isMobile && !isTablet && (
+                <HeaderProcessSelector
+                  processes={processes}
+                  selectedProcess={selectedProcess}
+                  onProcessSelect={setSelectedProcess}
+                  compact={true}
+                />
+              )}
+              <NotificationBell />
+              <UserInfo />
+            </div>
+          </div>
+          
+          {/* Latest Notification - منفصل على الجوال فقط */}
+          {(isMobile || isTablet) && (
+            <div className="px-3 pb-3">
+              <LatestNotificationBanner />
+            </div>
+          )}
+        </div>
+
+        {/* المحتوى الرئيسي */}
+        <div className={`${isMobile || isTablet ? 'h-[calc(100vh-73px)]' : 'flex-1 overflow-y-auto'}`}>
+          {children}
+        </div>
+
+        {/* Sidebar Overlay */}
+        {showSidebar && (
+          <>
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setShowSidebar(false)} />
+            <div className="fixed right-0 top-0 h-full z-50">
+              <div className="relative">
+                <Sidebar
+                  isCollapsed={false}
+                  onToggleCollapse={() => {}}
+                  currentView={currentView}
+                  onViewChange={(view) => {
+                    handleViewChange(view);
+                    setShowSidebar(false);
+                  }}
+                />
+                <button
+                  onClick={() => setShowSidebar(false)}
+                  className="absolute top-4 left-4 p-2 rounded-lg hover:bg-gray-100 transition-colors bg-white shadow-lg"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // الوضع العادي مع Sidebar على Desktop
   return (
     <div className="h-screen bg-gray-50 overflow-hidden" dir="rtl">
       <div className="flex h-full">

@@ -180,6 +180,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   to={`/${item.id}`}
                   onMouseEnter={() => setHoveredItem(item.id)}
                   onMouseLeave={() => setHoveredItem(null)}
+                  onClick={(e) => {
+                    // على الجوال/التابلت، إغلاق الـ sidebar بعد النقر
+                    if (window.innerWidth < 1024) {
+                      // سيتم التعامل معه من onViewChange في App.tsx
+                    }
+                  }}
                   className={`
                     w-full flex items-center p-3 rounded-lg transition-all duration-200 relative
                     ${isActive
