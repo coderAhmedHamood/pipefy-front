@@ -525,7 +525,10 @@ const MainApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   // دالة للتنقل بين الصفحات
   const handleViewChange = (view: string) => {
-    navigate(`/${view}`);
+    // إذا كان view هو 'logout'، لا نحتاج للتنقل
+    if (view !== 'logout') {
+      navigate(`/${view}`);
+    }
   };
 
   // وضع الكانبان ملء الشاشة على الجوال/التابلت فقط
