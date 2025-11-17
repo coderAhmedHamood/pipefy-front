@@ -114,6 +114,17 @@ export const UserManagerNew: React.FC = () => {
   const [processingPermission, setProcessingPermission] = useState<string | null>(null);
   const [userProcesses, setUserProcesses] = useState<any[]>([]);
   const [loadingUserProcessesModal, setLoadingUserProcessesModal] = useState(false);
+  const [selectedProcess, setSelectedProcess] = useState<any>(null);
+  const [processPermissions, setProcessPermissions] = useState<{
+    inactive: any[];
+    active: any[];
+    stats: any;
+  }>({
+    inactive: [],
+    active: [],
+    stats: null
+  });
+  const [loadingProcessPermissions, setLoadingProcessPermissions] = useState(false);
 
   // تحميل البيانات الأولية
   useEffect(() => {
@@ -712,6 +723,66 @@ export const UserManagerNew: React.FC = () => {
     }
   };
 
+  // جلب صلاحيات المستخدم في عملية محددة
+  const fetchProcessPermissions = async (userId: string, processId: string) => {
+    setLoadingProcessPermissions(true);
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('رمز الوصول مطلوب');
+      }
+
+      const url = `${API_BASE_URL}/api/users/${userId}/permissions/inactive?process_id=${processId}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success && data.data) {
+        console.log('✅ تم جلب صلاحيات العملية بنجاح:', data.data);
+        setProcessPermissions({
+          inactive: data.data.inactive_permissions || [],
+          active: data.data.active_permissions || [],
+          stats: data.data.stats || null
+        });
+      } else {
+        console.warn('⚠️ لا توجد بيانات صلاحيات في الاستجابة:', data);
+        setProcessPermissions({
+          inactive: [],
+          active: [],
+          stats: null
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في جلب صلاحيات العملية:', error);
+      setProcessPermissions({
+        inactive: [],
+        active: [],
+        stats: null
+      });
+    } finally {
+      setLoadingProcessPermissions(false);
+    }
+  };
+
   // جلب العمليات المرتبطة بمستخدم معين
   const fetchUserProcesses = async (userId: string) => {
     setLoadingUserProcessesModal(true);
@@ -782,6 +853,21 @@ export const UserManagerNew: React.FC = () => {
     setActivePermissions([]);
     setPermissionsStats(null);
     setUserProcesses([]);
+    setSelectedProcess(null);
+    setProcessPermissions({
+      inactive: [],
+      active: [],
+      stats: null
+    });
+  };
+
+  // اختيار عملية وعرض صلاحياتها
+  const handleSelectProcess = async (process: any) => {
+    const processId = process.id || process.process_id;
+    if (!processId || !selectedUserForPermissions) return;
+    
+    setSelectedProcess(process);
+    await fetchProcessPermissions(selectedUserForPermissions.id, processId);
   };
 
   // إضافة صلاحية لمستخدم
@@ -2680,10 +2766,14 @@ export const UserManagerNew: React.FC = () => {
                       </div>
                     ) : (
                       <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-3'}`}>
-                        {userProcesses.map((process: any) => (
+                        {userProcesses.map((process: any) => {
+                          const processId = process.id || process.process_id;
+                          const isSelected = selectedProcess && (selectedProcess.id === processId || selectedProcess.process_id === processId);
+                          return (
                           <div
-                            key={process.id || process.process_id}
-                            className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg hover:shadow-md transition-all`}
+                            key={processId}
+                            onClick={() => handleSelectProcess(process)}
+                            className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-blue-50 to-purple-50 border ${isSelected ? 'border-blue-500 border-2' : 'border-blue-200'} rounded-lg hover:shadow-md transition-all cursor-pointer`}
                           >
                             <div className="flex items-center space-x-2 space-x-reverse">
                               <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} ${process.color || process.process_color || 'bg-blue-500'} rounded-lg flex items-center justify-center flex-shrink-0`}>
@@ -2712,12 +2802,181 @@ export const UserManagerNew: React.FC = () => {
                               </div>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
 
-                  {/* قسم الصلاحيات */}
+                  {/* قسم صلاحيات العملية المحددة */}
+                  {selectedProcess && (
+                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                          <Key className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-purple-600`} />
+                          <span>صلاحيات العملية: {selectedProcess.name || selectedProcess.process_name || 'عملية بدون اسم'}</span>
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setSelectedProcess(null);
+                            setProcessPermissions({
+                              inactive: [],
+                              active: [],
+                              stats: null
+                            });
+                          }}
+                          className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded-lg transition-colors`}
+                          title="إلغاء الاختيار"
+                        >
+                          <X className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-500`} />
+                        </button>
+                      </div>
+                      
+                      {loadingProcessPermissions ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-purple-600 animate-spin`} />
+                        </div>
+                      ) : (
+                        <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
+                          {/* الصلاحيات غير المفعلة */}
+                          <div className="flex flex-col">
+                            <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse`}>
+                              <AlertCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-red-600`} />
+                              <span>غير المفعلة ({processPermissions.inactive.length})</span>
+                            </h4>
+                            <div className="flex-1 overflow-y-auto max-h-64">
+                              {processPermissions.inactive.length === 0 ? (
+                                <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-gray-50 rounded-lg border border-gray-200`}>
+                                  <CheckCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-green-500 mx-auto mb-2`} />
+                                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>جميع الصلاحيات مفعلة</p>
+                                </div>
+                              ) : (
+                                <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-2'}`}>
+                                  {processPermissions.inactive.map((permission: any) => (
+                                    <div
+                                      key={permission.id}
+                                      className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-md transition-all`}
+                                    >
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                          <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1' : 'space-x-2 space-x-reverse'} mb-1`}>
+                                            <h5 className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-900 break-words`}>{permission.name}</h5>
+                                            <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} bg-purple-100 text-purple-700 rounded-full font-medium whitespace-nowrap`}>
+                                              {permission.resource}
+                                            </span>
+                                            <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} bg-blue-100 text-blue-700 rounded-full font-medium whitespace-nowrap`}>
+                                              {permission.action}
+                                            </span>
+                                          </div>
+                                          {permission.description && (
+                                            <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-gray-600 mt-1 break-words`}>{permission.description}</p>
+                                          )}
+                                        </div>
+                                        <button
+                                          onClick={() => handleAddPermission(permission.id)}
+                                          disabled={processingPermission === permission.id}
+                                          className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1' : 'p-1.5'} bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
+                                          title="إضافة الصلاحية"
+                                        >
+                                          {processingPermission === permission.id ? (
+                                            <Loader className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} animate-spin`} />
+                                          ) : (
+                                            <Plus className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
+                                          )}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* الصلاحيات المفعلة */}
+                          <div className="flex flex-col">
+                            <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse`}>
+                              <CheckCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-green-600`} />
+                              <span>المفعلة ({processPermissions.active.length})</span>
+                            </h4>
+                            <div className="flex-1 overflow-y-auto max-h-64">
+                              {processPermissions.active.length === 0 ? (
+                                <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-gray-50 rounded-lg border border-gray-200`}>
+                                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>لا توجد صلاحيات مفعلة</p>
+                                </div>
+                              ) : (
+                                <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-2'}`}>
+                                  {processPermissions.active
+                                    .sort((a, b) => {
+                                      if (a.source === 'direct' && b.source !== 'direct') return -1;
+                                      if (a.source !== 'direct' && b.source === 'direct') return 1;
+                                      return a.name.localeCompare(b.name, 'ar');
+                                    })
+                                    .map((permission: any) => (
+                                      <div
+                                        key={permission.id}
+                                        className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white border rounded-lg hover:shadow-md transition-all ${
+                                          permission.source === 'direct' 
+                                            ? 'border-orange-300 hover:border-orange-400' 
+                                            : 'border-green-200 hover:border-green-300'
+                                        }`}
+                                      >
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1 min-w-0">
+                                            <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1' : 'space-x-2 space-x-reverse'} mb-1`}>
+                                              <h5 className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-900 break-words`}>{permission.name}</h5>
+                                              <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} bg-purple-100 text-purple-700 rounded-full font-medium whitespace-nowrap`}>
+                                                {permission.resource}
+                                              </span>
+                                              <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} bg-blue-100 text-blue-700 rounded-full font-medium whitespace-nowrap`}>
+                                                {permission.action}
+                                              </span>
+                                              {permission.source && (
+                                                <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} rounded-full font-medium whitespace-nowrap ${
+                                                  permission.source === 'role' 
+                                                    ? 'bg-blue-100 text-blue-700' 
+                                                    : 'bg-orange-100 text-orange-700'
+                                                }`}>
+                                                  {permission.source === 'role' ? 'من الدور' : 'مباشرة'}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {permission.description && (
+                                              <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-gray-600 mt-1 break-words`}>{permission.description}</p>
+                                            )}
+                                            {permission.expires_at && (
+                                              <p className={`${isMobile || isTablet ? 'text-[8px]' : 'text-[9px]'} text-orange-600 mt-1`}>
+                                                تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
+                                              </p>
+                                            )}
+                                          </div>
+                                          {permission.source === 'direct' && (
+                                            <button
+                                              onClick={() => handleRemovePermission(permission.id)}
+                                              disabled={processingPermission === permission.id}
+                                              className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1' : 'p-1.5'} text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                                              title="إلغاء الصلاحية"
+                                            >
+                                              {processingPermission === permission.id ? (
+                                                <Loader className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} animate-spin`} />
+                                              ) : (
+                                                <Trash2 className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
+                                              )}
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* قسم الصلاحيات العامة */}
+                  {!selectedProcess && (
                   <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
                   {/* الصلاحيات غير المفعلة - العمود الأول */}
                   <div className="flex flex-col">
@@ -2858,6 +3117,7 @@ export const UserManagerNew: React.FC = () => {
                     </div>
                   </div>
                   </div>
+                  )}
                 </div>
               )}
             </div>
