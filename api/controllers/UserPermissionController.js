@@ -425,6 +425,109 @@ class UserPermissionController {
       });
     }
   }
+
+  // جلب العمليات التي يمتلك المستخدم صلاحيات فيها
+  static async getProcessesByUserPermissions(req, res) {
+    try {
+      const { userId } = req.params;
+      
+      // التحقق من وجود المستخدم
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستخدم غير موجود'
+        });
+      }
+
+      const { pool } = require('../config/database');
+      
+      // جلب العمليات المميزة من user_permissions للمستخدم
+      const processesQuery = `
+        SELECT DISTINCT
+          p.id,
+          p.name,
+          p.description,
+          p.color,
+          p.icon,
+          p.is_active,
+          p.created_at,
+          p.updated_at
+        FROM processes p
+        INNER JOIN user_permissions up ON p.id = up.process_id
+        WHERE up.user_id = $1
+          AND p.deleted_at IS NULL
+          AND (up.expires_at IS NULL OR up.expires_at > NOW())
+        ORDER BY p.name ASC
+      `;
+
+      const { rows: processesRows } = await pool.query(processesQuery, [userId]);
+      
+      // جلب الصلاحيات لكل عملية
+      const processes = await Promise.all(
+        processesRows.map(async (process) => {
+          const permissionsQuery = `
+            SELECT 
+              up.permission_id,
+              up.granted_at,
+              up.expires_at,
+              perm.name as permission_name,
+              perm.resource,
+              perm.action
+            FROM user_permissions up
+            LEFT JOIN permissions perm ON up.permission_id = perm.id
+            WHERE up.user_id = $1
+              AND up.process_id = $2
+              AND (up.expires_at IS NULL OR up.expires_at > NOW())
+            ORDER BY perm.resource, perm.action
+          `;
+          
+          const { rows: permissionsRows } = await pool.query(permissionsQuery, [userId, process.id]);
+          
+          return {
+            id: process.id,
+            name: process.name,
+            description: process.description,
+            color: process.color,
+            icon: process.icon,
+            is_active: process.is_active,
+            created_at: process.created_at,
+            updated_at: process.updated_at,
+            permissions_count: permissionsRows.length,
+            permissions: permissionsRows.map(perm => ({
+              permission_id: perm.permission_id,
+              permission_name: perm.permission_name,
+              resource: perm.resource,
+              action: perm.action,
+              granted_at: perm.granted_at,
+              expires_at: perm.expires_at
+            }))
+          };
+        })
+      );
+
+      res.json({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email
+          },
+          processes: processes,
+          total_processes: processes.length,
+          total_permissions: processes.reduce((sum, p) => sum + p.permissions_count, 0)
+        },
+        message: `تم جلب ${processes.length} عملية للمستخدم`
+      });
+    } catch (error) {
+      console.error('خطأ في جلب العمليات:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'خطأ في جلب العمليات'
+      });
+    }
+  }
 }
 
 module.exports = UserPermissionController;

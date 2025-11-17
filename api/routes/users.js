@@ -1076,4 +1076,128 @@ router.get('/:userId/permissions/inactive',
   UserPermissionController.getInactivePermissions
 );
 
+/**
+ * @swagger
+ * /api/users/{userId}/processes/by-permissions:
+ *   get:
+ *     summary: جلب العمليات التي يمتلك المستخدم صلاحيات فيها
+ *     description: |
+ *       يجلب جميع العمليات المميزة من جدول user_permissions للمستخدم.
+ *       - يجلب فقط العمليات التي يمتلك المستخدم صلاحيات مباشرة فيها
+ *       - يتضمن عدد الصلاحيات لكل عملية
+ *       - يتضمن تفاصيل الصلاحيات لكل عملية
+ *       - يستثني الصلاحيات المنتهية (expires_at < NOW())
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *     responses:
+ *       200:
+ *         description: تم جلب العمليات بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم جلب 3 عملية للمستخدم"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                     processes:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           color:
+ *                             type: string
+ *                           icon:
+ *                             type: string
+ *                           is_active:
+ *                             type: boolean
+ *                           created_at:
+ *                             type: string
+ *                             format: date-time
+ *                           updated_at:
+ *                             type: string
+ *                             format: date-time
+ *                           permissions_count:
+ *                             type: integer
+ *                             description: عدد الصلاحيات في هذه العملية
+ *                           permissions:
+ *                             type: array
+ *                             description: تفاصيل الصلاحيات
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 permission_id:
+ *                                   type: string
+ *                                   format: uuid
+ *                                 permission_name:
+ *                                   type: string
+ *                                 resource:
+ *                                   type: string
+ *                                 action:
+ *                                   type: string
+ *                                 granted_at:
+ *                                   type: string
+ *                                   format: date-time
+ *                                 expires_at:
+ *                                   type: string
+ *                                   format: date-time
+ *                                   nullable: true
+ *                     total_processes:
+ *                       type: integer
+ *                       description: إجمالي عدد العمليات
+ *                     total_permissions:
+ *                       type: integer
+ *                       description: إجمالي عدد الصلاحيات في جميع العمليات
+ *       404:
+ *         description: المستخدم غير موجود
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: خطأ في الخادم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/:userId/processes/by-permissions',
+  authenticateToken,
+  requirePermission('users', 'view'),
+  validateUUID('userId'),
+  UserPermissionController.getProcessesByUserPermissions
+);
+
 module.exports = router;
