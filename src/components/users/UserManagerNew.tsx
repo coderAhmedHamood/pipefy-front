@@ -876,8 +876,24 @@ export const UserManagerNew: React.FC = () => {
 
     setProcessingPermission(permissionId);
     try {
-      const url = `${API_BASE_URL}/api/users/${selectedUserForPermissions.id}/permissions`;
+      // تحديد process_id إذا كانت هناك عملية محددة
+      const processId = selectedProcess ? (selectedProcess.id || selectedProcess.process_id) : null;
+      
+      // بناء البيانات المطلوبة
+      const requestBody: any = {
+        user_id: selectedUserForPermissions.id,
+        permission_id: permissionId
+      };
+      
+      // إضافة process_id فقط إذا كانت هناك عملية محددة
+      if (processId) {
+        requestBody.process_id = processId;
+      }
+
+      const url = `${API_BASE_URL}/api/permissions/users/grant`;
       const headers = getAuthHeaders();
+      
+      console.log('📤 إرسال طلب منح الصلاحية:', requestBody);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -885,7 +901,7 @@ export const UserManagerNew: React.FC = () => {
           ...headers,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ permission_id: permissionId })
+        body: JSON.stringify(requestBody)
       });
 
       const text = await response.text();
@@ -902,12 +918,20 @@ export const UserManagerNew: React.FC = () => {
       }
 
       if (data && data.success) {
+        console.log('✅ تم منح الصلاحية بنجاح:', data);
         setState(prev => ({
           ...prev,
           success: 'تم منح الصلاحية بنجاح'
         }));
+        
         // إعادة جلب الصلاحيات لتحديث البيانات
-        await fetchUserPermissions(selectedUserForPermissions.id);
+        if (processId && selectedProcess) {
+          // إذا كانت هناك عملية محددة، أعد جلب صلاحيات العملية
+          await fetchProcessPermissions(selectedUserForPermissions.id, processId);
+        } else {
+          // إذا لم تكن هناك عملية محددة، أعد جلب الصلاحيات العامة
+          await fetchUserPermissions(selectedUserForPermissions.id);
+        }
       } else {
         throw new Error(data?.message || 'فشل في منح الصلاحية');
       }
