@@ -23,7 +23,8 @@ import {
   Loader,
   Crown,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  FolderOpen
 } from 'lucide-react';
 
 interface UserManagerState {
@@ -111,6 +112,8 @@ export const UserManagerNew: React.FC = () => {
   const [permissionsStats, setPermissionsStats] = useState<any>(null);
   const [loadingInactivePermissions, setLoadingInactivePermissions] = useState(false);
   const [processingPermission, setProcessingPermission] = useState<string | null>(null);
+  const [userProcesses, setUserProcesses] = useState<any[]>([]);
+  const [loadingUserProcessesModal, setLoadingUserProcessesModal] = useState(false);
 
   // تحميل البيانات الأولية
   useEffect(() => {
@@ -709,11 +712,66 @@ export const UserManagerNew: React.FC = () => {
     }
   };
 
+  // جلب العمليات المرتبطة بمستخدم معين
+  const fetchUserProcesses = async (userId: string) => {
+    setLoadingUserProcessesModal(true);
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('رمز الوصول مطلوب');
+      }
+
+      const url = `${API_BASE_URL}/api/users/${userId}/processes`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success && data.data) {
+        const processes = Array.isArray(data.data) ? data.data : [];
+        console.log('✅ تم جلب العمليات بنجاح:', processes);
+        setUserProcesses(processes);
+      } else if (data && Array.isArray(data)) {
+        console.log('✅ تم جلب العمليات بنجاح (مصفوفة مباشرة):', data);
+        setUserProcesses(data);
+      } else {
+        console.warn('⚠️ لا توجد بيانات عمليات في الاستجابة:', data);
+        setUserProcesses([]);
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في جلب العمليات:', error);
+      setUserProcesses([]);
+    } finally {
+      setLoadingUserProcessesModal(false);
+    }
+  };
+
   // فتح Modal الصلاحيات
   const handleOpenInactivePermissions = async (user: any) => {
     setSelectedUserForPermissions(user);
     setShowInactivePermissionsModal(true);
-    await fetchUserPermissions(user.id);
+    await Promise.all([
+      fetchUserPermissions(user.id),
+      fetchUserProcesses(user.id)
+    ]);
   };
 
   // إغلاق Modal الصلاحيات
@@ -723,6 +781,7 @@ export const UserManagerNew: React.FC = () => {
     setInactivePermissions([]);
     setActivePermissions([]);
     setPermissionsStats(null);
+    setUserProcesses([]);
   };
 
   // إضافة صلاحية لمستخدم
@@ -2603,7 +2662,63 @@ export const UserManagerNew: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
+                <div className="space-y-6">
+                  {/* قسم العمليات */}
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse`}>
+                      <FolderOpen className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600`} />
+                      <span>العمليات ({userProcesses.length})</span>
+                    </h3>
+                    {loadingUserProcessesModal ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-blue-600 animate-spin`} />
+                      </div>
+                    ) : userProcesses.length === 0 ? (
+                      <div className={`text-center ${isMobile || isTablet ? 'py-6' : 'py-8'} bg-gray-50 rounded-lg border border-gray-200`}>
+                        <FolderOpen className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-400 mx-auto mb-2`} />
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>لا توجد عمليات</p>
+                      </div>
+                    ) : (
+                      <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-3'}`}>
+                        {userProcesses.map((process: any) => (
+                          <div
+                            key={process.id || process.process_id}
+                            className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg hover:shadow-md transition-all`}
+                          >
+                            <div className="flex items-center space-x-2 space-x-reverse">
+                              <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} ${process.color || process.process_color || 'bg-blue-500'} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                                <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>
+                                  {(process.name || process.process_name || 'ع').charAt(0)}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 truncate`}>
+                                  {process.name || process.process_name || 'عملية بدون اسم'}
+                                </h4>
+                                {(process.description || process.process_description) && (
+                                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 line-clamp-1`}>
+                                    {process.description || process.process_description}
+                                  </p>
+                                )}
+                                <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mt-1' : 'space-x-2 space-x-reverse mt-2'}`}>
+                                  <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500`}>
+                                    {process.stages_count || process.stages?.length || 0} مرحلة
+                                  </span>
+                                  <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500`}>•</span>
+                                  <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500`}>
+                                    {process.fields_count || process.fields?.length || 0} حقل
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* قسم الصلاحيات */}
+                  <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
                   {/* الصلاحيات غير المفعلة - العمود الأول */}
                   <div className="flex flex-col">
                     <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse sticky top-0 bg-white pb-2 z-10`}>
@@ -2741,6 +2856,7 @@ export const UserManagerNew: React.FC = () => {
                         </div>
                       )}
                     </div>
+                  </div>
                   </div>
                 </div>
               )}
