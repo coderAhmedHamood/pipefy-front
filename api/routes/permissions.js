@@ -754,8 +754,15 @@ router.delete('/users/:user_id/:permission_id',
  * @swagger
  * /api/permissions/users/{user_id}:
  *   get:
- *     summary: جلب الصلاحيات الإضافية لمستخدم
+ *     summary: جلب الصلاحيات الإضافية لمستخدم في عملية محددة
+ *     description: |
+ *       يجلب جميع الصلاحيات في النظام مقسمة إلى صلاحيات مفعلة (موجودة في user_permissions للمستخدم والعملية) وصلاحيات غير مفعلة (غير موجودة في user_permissions).
+ *       - يجلب فقط الصلاحيات المباشرة من user_permissions (وليس من الأدوار)
+ *       - يتطلب process_id كمعامل إجباري في query parameters
+ *       - يستثني الصلاحيات المنتهية (expires_at < NOW())
  *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: user_id
@@ -764,6 +771,14 @@ router.delete('/users/:user_id/:permission_id',
  *           type: string
  *           format: uuid
  *         description: معرف المستخدم
+ *       - in: query
+ *         name: process_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف العملية (إجباري)
+ *         example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
  *     responses:
  *       200:
  *         description: تم جلب الصلاحيات الإضافية بنجاح
@@ -775,26 +790,103 @@ router.delete('/users/:user_id/:permission_id',
  *                 success:
  *                   type: boolean
  *                   example: true
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       permission:
- *                         $ref: '#/components/schemas/Permission'
- *                       granted_at:
- *                         type: string
- *                         format: date-time
- *                         description: تاريخ منح الصلاحية
- *                       expires_at:
- *                         type: string
- *                         format: date-time
- *                         description: تاريخ انتهاء الصلاحية
  *                 message:
  *                   type: string
- *                   example: 'تم جلب الصلاحيات الإضافية بنجاح'
+ *                   example: "تم جلب الصلاحيات الإضافية للمستخدم بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     inactive_permissions:
+ *                       type: array
+ *                       description: الصلاحيات غير المفعلة (غير موجودة في user_permissions)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           resource:
+ *                             type: string
+ *                           action:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                     active_permissions:
+ *                       type: array
+ *                       description: الصلاحيات المفعلة (موجودة في user_permissions)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           name:
+ *                             type: string
+ *                           resource:
+ *                             type: string
+ *                           action:
+ *                             type: string
+ *                           description:
+ *                             type: string
+ *                           granted_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: تاريخ منح الصلاحية
+ *                           expires_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: تاريخ انتهاء الصلاحية
+ *                           granted_by:
+ *                             type: string
+ *                             format: uuid
+ *                             nullable: true
+ *                             description: معرف المستخدم الذي منح الصلاحية
+ *                           granted_by_name:
+ *                             type: string
+ *                             nullable: true
+ *                             description: اسم المستخدم الذي منح الصلاحية
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                           description: إجمالي الصلاحيات في النظام
+ *                         active:
+ *                           type: integer
+ *                           description: عدد الصلاحيات المفعلة (موجودة في user_permissions)
+ *                         inactive:
+ *                           type: integer
+ *                           description: عدد الصلاحيات غير المفعلة (غير موجودة في user_permissions)
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                     process:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                           description: اسم العملية
+ *       400:
+ *         description: process_id مفقود في query parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
- *         description: المستخدم غير موجود
+ *         description: المستخدم أو العملية غير موجودة
  *         content:
  *           application/json:
  *             schema:

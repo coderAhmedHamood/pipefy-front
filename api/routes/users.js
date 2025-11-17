@@ -961,8 +961,12 @@ router.delete('/:userId/permissions/:permissionId',
  * @swagger
  * /api/users/{userId}/permissions/inactive:
  *   get:
- *     summary: جلب الصلاحيات المفعلة وغير المفعلة للمستخدم
- *     description: يجلب جميع الصلاحيات في النظام مقسمة إلى صلاحيات مفعلة (موجودة عند المستخدم) وصلاحيات غير مفعلة (غير موجودة عند المستخدم)
+ *     summary: جلب الصلاحيات المفعلة وغير المفعلة للمستخدم في عملية محددة
+ *     description: |
+ *       يجلب جميع الصلاحيات في النظام مقسمة إلى صلاحيات مفعلة (موجودة في user_permissions للمستخدم والعملية) وصلاحيات غير مفعلة (غير موجودة في user_permissions).
+ *       - يجلب فقط الصلاحيات المباشرة من user_permissions (وليس من الأدوار)
+ *       - يتطلب process_id كمعامل إجباري
+ *       - يستثني الصلاحيات المنتهية (expires_at < NOW())
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -974,6 +978,14 @@ router.delete('/:userId/permissions/:permissionId',
  *           type: string
  *           format: uuid
  *         description: معرف المستخدم
+ *       - in: query
+ *         name: process_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف العملية (إجباري)
+ *         example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
  *     responses:
  *       200:
  *         description: تم جلب الصلاحيات بنجاح
@@ -1020,22 +1032,16 @@ router.delete('/:userId/permissions/:permissionId',
  *                             type: string
  *                           action:
  *                             type: string
- *                           description:
- *                             type: string
- *                           source:
- *                             type: string
- *                             enum: [role, direct]
- *                             description: مصدر الصلاحية (role = من الدور، direct = مباشرة)
  *                           granted_at:
  *                             type: string
  *                             format: date-time
  *                             nullable: true
- *                             description: تاريخ منح الصلاحية (إذا كانت مباشرة)
+ *                             description: تاريخ منح الصلاحية
  *                           expires_at:
  *                             type: string
  *                             format: date-time
  *                             nullable: true
- *                             description: تاريخ انتهاء الصلاحية (إذا كانت مباشرة)
+ *                             description: تاريخ انتهاء الصلاحية
  *                     stats:
  *                       type: object
  *                       properties:
@@ -1044,16 +1050,10 @@ router.delete('/:userId/permissions/:permissionId',
  *                           description: إجمالي الصلاحيات في النظام
  *                         active:
  *                           type: integer
- *                           description: عدد الصلاحيات المفعلة
+ *                           description: عدد الصلاحيات المفعلة (موجودة في user_permissions)
  *                         inactive:
  *                           type: integer
- *                           description: عدد الصلاحيات غير المفعلة
- *                         from_role:
- *                           type: integer
- *                           description: عدد الصلاحيات من الدور
- *                         from_direct:
- *                           type: integer
- *                           description: عدد الصلاحيات المباشرة
+ *                           description: عدد الصلاحيات غير المفعلة (غير موجودة في user_permissions)
  *                     user:
  *                       type: object
  *                       properties:
@@ -1063,11 +1063,30 @@ router.delete('/:userId/permissions/:permissionId',
  *                           type: string
  *                         email:
  *                           type: string
+ *                     process:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                           description: اسم العملية
  *                 message:
  *                   type: string
  *                   example: "تم جلب الصلاحيات بنجاح"
+ *       400:
+ *         description: process_id مفقود في query parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
- *         description: المستخدم غير موجود
+ *         description: المستخدم أو العملية غير موجودة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get('/:userId/permissions/inactive',
   authenticateToken,

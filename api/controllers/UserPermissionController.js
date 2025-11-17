@@ -313,10 +313,19 @@ class UserPermissionController {
     }
   }
   
-  // جلب الصلاحيات غير المفعلة والمفعلة للمستخدم
+  // جلب الصلاحيات المفعلة وغير المفعلة للمستخدم في عملية محددة (من user_permissions فقط)
   static async getInactivePermissions(req, res) {
     try {
       const { userId } = req.params;
+      const { process_id } = req.query; // process_id من query parameter
+      
+      // التحقق من وجود process_id
+      if (!process_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'process_id مطلوب في query parameters'
+        });
+      }
       
       // التحقق من وجود المستخدم
       const user = await User.findById(userId);
@@ -326,81 +335,77 @@ class UserPermissionController {
           message: 'المستخدم غير موجود'
         });
       }
+
+      // التحقق من وجود العملية
+      const processQuery = await pool.query('SELECT id, name FROM processes WHERE id = $1 AND deleted_at IS NULL', [process_id]);
+      if (processQuery.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'العملية غير موجودة'
+        });
+      }
+      const process = processQuery.rows[0];
       
-      // جلب جميع الصلاحيات
-      const allPermissions = await PermissionService.getAllPermissions();
+      // جلب جميع الصلاحيات من جدول permissions (الصلاحيات عامة)
+      const allPermissionsQuery = `
+        SELECT id, name, resource, action, description
+        FROM permissions
+        ORDER BY resource, action
+      `;
+      const { rows: allPermissionsRows } = await pool.query(allPermissionsQuery);
       
-      // جلب صلاحيات المستخدم (من الدور + المباشرة)
-      const userPermissions = await user.getPermissions();
-      const userPermissionIds = new Set(userPermissions.map(p => p.id));
+      // جلب الصلاحيات المباشرة من user_permissions للمستخدم والعملية المحددة
+      const userPermissionsQuery = `
+        SELECT 
+          up.permission_id,
+          up.granted_at,
+          up.expires_at,
+          p.name,
+          p.resource,
+          p.action,
+          p.description
+        FROM user_permissions up
+        INNER JOIN permissions p ON up.permission_id = p.id
+        WHERE up.user_id = $1
+          AND up.process_id = $2
+          AND (up.expires_at IS NULL OR up.expires_at > NOW())
+        ORDER BY p.resource, p.action
+      `;
+      const { rows: userPermissionsRows } = await pool.query(userPermissionsQuery, [userId, process_id]);
       
-      // جلب الصلاحيات المباشرة فقط (للمعرفة من أين جاءت)
-      const directUserPermissions = await PermissionService.getUserAdditionalPermissions(userId);
-      const directPermissionIds = new Set(directUserPermissions.map(p => p.id));
-      
-      // جلب صلاحيات الدور
-      const rolePermissionsResult = await pool.query(
-        'SELECT permission_id FROM role_permissions WHERE role_id = $1',
-        [user.role_id]
-      );
-      const rolePermissionIds = new Set(rolePermissionsResult.rows.map(r => r.permission_id));
-      
-      // تحويل الصلاحيات إلى كائنات بسيطة
-      const permissionsArray = Array.isArray(allPermissions) 
-        ? allPermissions.map(p => {
-            if (p && typeof p === 'object' && p.id) {
-              return {
-                id: p.id,
-                name: p.name,
-                resource: p.resource,
-                action: p.action,
-                description: p.description
-              };
-            }
-            return p;
-          })
-        : [];
+      // إنشاء Set للصلاحيات النشطة (الموجودة في user_permissions)
+      const activePermissionIds = new Set(userPermissionsRows.map(p => p.permission_id));
       
       // تصنيف الصلاحيات إلى مفعلة وغير مفعلة
       const activePermissions = [];
       const inactivePermissions = [];
       
-      permissionsArray.forEach(permission => {
-        const permissionId = permission.id || permission.permission_id;
-        const isActive = userPermissionIds.has(permissionId);
-        
+      allPermissionsRows.forEach(permission => {
         const permissionData = {
-          id: permissionId,
+          id: permission.id,
           name: permission.name,
           resource: permission.resource,
           action: permission.action,
           description: permission.description
         };
         
-        if (isActive) {
-          // إضافة معلومات المصدر للصلاحيات المفعلة
-          permissionData.source = directPermissionIds.has(permissionId) ? 'direct' : 'role';
-          
-          // إضافة معلومات الصلاحيات المباشرة
-          if (directPermissionIds.has(permissionId)) {
-            const directPerm = directUserPermissions.find(p => p.id === permissionId || p.permission_id === permissionId);
-            permissionData.granted_at = directPerm?.granted_at || null;
-            permissionData.expires_at = directPerm?.expires_at || null;
-          }
-          
+        if (activePermissionIds.has(permission.id)) {
+          // الصلاحية نشطة (موجودة في user_permissions)
+          const userPerm = userPermissionsRows.find(p => p.permission_id === permission.id);
+          permissionData.granted_at = userPerm?.granted_at || null;
+          permissionData.expires_at = userPerm?.expires_at || null;
           activePermissions.push(permissionData);
         } else {
+          // الصلاحية غير نشطة (غير موجودة في user_permissions)
           inactivePermissions.push(permissionData);
         }
       });
       
       // إحصائيات
       const stats = {
-        total: permissionsArray.length,
+        total: allPermissionsRows.length,
         active: activePermissions.length,
-        inactive: inactivePermissions.length,
-        from_role: activePermissions.filter(p => p.source === 'role').length,
-        from_direct: activePermissions.filter(p => p.source === 'direct').length
+        inactive: inactivePermissions.length
       };
       
       res.json({
@@ -413,6 +418,10 @@ class UserPermissionController {
             id: user.id,
             name: user.name,
             email: user.email
+          },
+          process: {
+            id: process.id,
+            name: process.name
           }
         },
         message: 'تم جلب الصلاحيات بنجاح'
