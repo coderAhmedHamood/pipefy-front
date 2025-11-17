@@ -152,16 +152,34 @@ class PermissionService {
   }
 
   // منح صلاحية إضافية لمستخدم
-  static async grantUserPermission(userId, permissionId, grantedBy, expiresAt = null) {
+  static async grantUserPermission(userId, permissionId, grantedBy, expiresAt = null, processId = null) {
     try {
       const user = await User.findById(userId);
       if (!user) {
         throw new Error('المستخدم غير موجود');
       }
 
-      const permission = await Permission.findById(permissionId);
-      if (!permission) {
-        throw new Error('الصلاحية غير موجودة');
+      const { pool } = require('../config/database');
+      
+      // البحث عن الصلاحية
+      let permission;
+      if (processId) {
+        // إذا تم تحديد process_id، البحث عن الصلاحية بالـ ID و process_id
+        const permQuery = `
+          SELECT * FROM permissions 
+          WHERE id = $1 AND process_id = $2
+        `;
+        const { rows } = await pool.query(permQuery, [permissionId, processId]);
+        if (rows.length === 0) {
+          throw new Error(`الصلاحية غير موجودة في العملية المحددة (process_id: ${processId})`);
+        }
+        permission = new Permission(rows[0]);
+      } else {
+        // إذا لم يتم تحديد process_id، استخدام الصلاحية مباشرة
+        permission = await Permission.findById(permissionId);
+        if (!permission) {
+          throw new Error('الصلاحية غير موجودة');
+        }
       }
 
       const grantedByUser = await User.findById(grantedBy);
@@ -169,12 +187,23 @@ class PermissionService {
         throw new Error('المستخدم المانح غير موجود');
       }
 
-      const { pool } = require('../config/database');
+      // استخدام process_id من الطلب أو من الصلاحية نفسها
+      const finalProcessId = processId || permission.process_id;
       
+      if (!finalProcessId) {
+        throw new Error('process_id مطلوب - يجب تحديد العملية');
+      }
+
+      // التحقق من أن process_id المحدد يطابق process_id في الصلاحية
+      if (processId && permission.process_id && processId !== permission.process_id) {
+        throw new Error(`process_id المحدد (${processId}) لا يطابق process_id في الصلاحية (${permission.process_id})`);
+      }
+
+      // حفظ في user_permissions مع process_id
       const query = `
-        INSERT INTO user_permissions (user_id, permission_id, granted_by, expires_at)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (user_id, permission_id) 
+        INSERT INTO user_permissions (user_id, permission_id, granted_by, expires_at, process_id)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (user_id, permission_id, process_id) 
         DO UPDATE SET 
           granted_by = EXCLUDED.granted_by,
           granted_at = NOW(),
@@ -182,7 +211,7 @@ class PermissionService {
         RETURNING *
       `;
 
-      const { rows } = await pool.query(query, [userId, permissionId, grantedBy, expiresAt]);
+      const { rows } = await pool.query(query, [userId, permission.id, grantedBy, expiresAt, finalProcessId]);
       
       return {
         message: 'تم منح الصلاحية للمستخدم بنجاح',

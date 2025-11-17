@@ -238,7 +238,7 @@ class PermissionController {
   // منح صلاحية إضافية لمستخدم
   static async grantUserPermission(req, res) {
     try {
-      const { user_id, permission_id, expires_at } = req.body;
+      const { user_id, permission_id, expires_at, process_id } = req.body;
       
       if (!user_id || !permission_id) {
         return res.status(400).json({
@@ -252,7 +252,8 @@ class PermissionController {
         user_id, 
         permission_id, 
         req.user.id, 
-        expires_at
+        expires_at,
+        process_id
       );
 
       res.json({
@@ -262,11 +263,13 @@ class PermissionController {
       });
     } catch (error) {
       console.error('خطأ في منح الصلاحية للمستخدم:', error);
-      const statusCode = error.message.includes('غير موجود') ? 404 : 500;
+      const statusCode = error.message.includes('غير موجود') ? 404 : 
+                        error.message.includes('مطلوب') ? 400 : 500;
       res.status(statusCode).json({
         success: false,
         message: error.message,
-        error: statusCode === 404 ? 'NOT_FOUND' : 'SERVER_ERROR'
+        error: statusCode === 404 ? 'NOT_FOUND' : 
+               statusCode === 400 ? 'VALIDATION_ERROR' : 'SERVER_ERROR'
       });
     }
   }

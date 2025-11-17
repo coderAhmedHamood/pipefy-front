@@ -595,8 +595,16 @@ router.post('/bulk',
  * @swagger
  * /api/permissions/users/grant:
  *   post:
- *     summary: منح صلاحية إضافية لمستخدم
+ *     summary: منح صلاحية إضافية لمستخدم في عملية محددة
+ *     description: |
+ *       يمنح صلاحية إضافية لمستخدم في عملية محددة.
+ *       - يمكن تحديد process_id في الطلب
+ *       - إذا تم تحديد process_id، سيتم التحقق من أن الصلاحية موجودة في هذه العملية
+ *       - إذا لم يتم تحديد process_id، سيتم استخدام process_id من الصلاحية نفسها
+ *       - process_id يُحفظ في جدول user_permissions ويربط الصلاحية بالعملية
  *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -611,14 +619,27 @@ router.post('/bulk',
  *                 type: string
  *                 format: uuid
  *                 description: معرف المستخدم
+ *                 example: "9f76b1d9-1318-4c34-b886-c3d185a1f480"
  *               permission_id:
  *                 type: string
  *                 format: uuid
  *                 description: معرف الصلاحية
+ *                 example: "799c3323-541e-443e-ba56-8d3db24d8b59"
+ *               process_id:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *                 description: |
+ *                   معرف العملية (اختياري).
+ *                   إذا تم تحديده، سيتم التحقق من أن الصلاحية موجودة في هذه العملية ويتم حفظه في user_permissions.
+ *                   إذا لم يتم تحديده، سيتم استخدام process_id من الصلاحية نفسها.
+ *                 example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
  *               expires_at:
  *                 type: string
  *                 format: date-time
+ *                 nullable: true
  *                 description: تاريخ انتهاء الصلاحية (اختياري)
+ *                 example: "2025-12-31T23:59:59.000Z"
  *     responses:
  *       200:
  *         description: تم منح الصلاحية للمستخدم بنجاح
@@ -633,8 +654,40 @@ router.post('/bulk',
  *                 message:
  *                   type: string
  *                   example: 'تم منح الصلاحية للمستخدم بنجاح'
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     user_id:
+ *                       type: string
+ *                       format: uuid
+ *                     permission_id:
+ *                       type: string
+ *                       format: uuid
+ *                     process_id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: process_id المحفوظ في user_permissions (يربط الصلاحية بالعملية)
+ *                     granted_by:
+ *                       type: string
+ *                       format: uuid
+ *                     granted_at:
+ *                       type: string
+ *                       format: date-time
+ *                     expires_at:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
  *       400:
  *         description: بيانات غير صحيحة أو صلاحية موجودة بالفعل
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: المستخدم أو الصلاحية غير موجودة
  *         content:
  *           application/json:
  *             schema:
