@@ -722,8 +722,13 @@ router.get('/:userId/permissions',
  * @swagger
  * /api/users/{userId}/permissions:
  *   post:
- *     summary: منح صلاحية مباشرة لمستخدم
- *     description: يمنح صلاحية مباشرة للمستخدم (بالإضافة إلى صلاحيات الدور)
+ *     summary: منح صلاحية مباشرة لمستخدم في عملية محددة
+ *     description: |
+ *       يمنح صلاحية مباشرة للمستخدم في عملية محددة (بالإضافة إلى صلاحيات الدور).
+ *       - process_id إجباري في الطلب
+ *       - الصلاحيات عامة (بدون process_id في جدول permissions)
+ *       - process_id يُحفظ في جدول user_permissions ويربط المستخدم بالصلاحية في عملية محددة
+ *       - هذا يسمح للمستخدم بالحصول على نفس الصلاحية في عمليات مختلفة
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -743,12 +748,21 @@ router.get('/:userId/permissions',
  *             type: object
  *             required:
  *               - permission_id
+ *               - process_id
  *             properties:
  *               permission_id:
  *                 type: string
  *                 format: uuid
  *                 description: معرف الصلاحية
  *                 example: "2eb6e1ba-b804-4164-ade9-539f46a5a531"
+ *               process_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: |
+ *                   معرف العملية (إجباري).
+ *                   يتم حفظه في جدول user_permissions ويربط المستخدم بالصلاحية في هذه العملية.
+ *                   هذا يسمح للمستخدم بالحصول على نفس الصلاحية في عمليات مختلفة.
+ *                 example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
  *               expires_at:
  *                 type: string
  *                 format: date-time
@@ -758,6 +772,43 @@ router.get('/:userId/permissions',
  *     responses:
  *       200:
  *         description: تم منح الصلاحية بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'تم منح الصلاحية للمستخدم بنجاح'
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     user_id:
+ *                       type: string
+ *                       format: uuid
+ *                     permission_id:
+ *                       type: string
+ *                       format: uuid
+ *                     process_id:
+ *                       type: string
+ *                       format: uuid
+ *                       description: process_id المحفوظ في user_permissions
+ *                     granted_by:
+ *                       type: string
+ *                       format: uuid
+ *                     granted_at:
+ *                       type: string
+ *                       format: date-time
+ *                     expires_at:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
  *       400:
  *         description: بيانات غير صحيحة
  *       404:
@@ -774,8 +825,13 @@ router.post('/:userId/permissions',
  * @swagger
  * /api/users/{userId}/permissions/bulk:
  *   post:
- *     summary: منح عدة صلاحيات لمستخدم
- *     description: يمنح عدة صلاحيات مباشرة للمستخدم في عملية واحدة
+ *     summary: منح عدة صلاحيات لمستخدم في عملية محددة
+ *     description: |
+ *       يمنح عدة صلاحيات مباشرة للمستخدم في عملية واحدة.
+ *       - process_id إجباري في الطلب (سيتم تطبيقه على جميع الصلاحيات)
+ *       - الصلاحيات عامة (بدون process_id في جدول permissions)
+ *       - process_id يُحفظ في جدول user_permissions لكل صلاحية
+ *       - هذا يسمح للمستخدم بالحصول على نفس الصلاحية في عمليات مختلفة
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
@@ -795,6 +851,7 @@ router.post('/:userId/permissions',
  *             type: object
  *             required:
  *               - permission_ids
+ *               - process_id
  *             properties:
  *               permission_ids:
  *                 type: array
@@ -803,14 +860,57 @@ router.post('/:userId/permissions',
  *                   format: uuid
  *                 description: قائمة معرفات الصلاحيات
  *                 example: ["2eb6e1ba-b804-4164-ade9-539f46a5a531", "35c1b245-2c4f-4be1-a443-c825e512bbbc"]
+ *               process_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: |
+ *                   معرف العملية (إجباري - سيتم تطبيقه على جميع الصلاحيات).
+ *                   يتم حفظه في جدول user_permissions لكل صلاحية ويربط المستخدم بالصلاحيات في هذه العملية.
+ *                 example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
  *               expires_at:
  *                 type: string
  *                 format: date-time
  *                 nullable: true
- *                 description: تاريخ انتهاء الصلاحيات (اختياري)
+ *                 description: تاريخ انتهاء الصلاحيات (اختياري - سيتم تطبيقه على جميع الصلاحيات)
+ *                 example: "2025-12-31T23:59:59.000Z"
  *     responses:
  *       200:
  *         description: تم منح الصلاحيات بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم منح 2 صلاحية بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     results:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           success:
+ *                             type: boolean
+ *                           permission_id:
+ *                             type: string
+ *                             format: uuid
+ *                           message:
+ *                             type: string
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                         success:
+ *                           type: integer
+ *                         failed:
+ *                           type: integer
  */
 router.post('/:userId/permissions/bulk',
   authenticateToken,

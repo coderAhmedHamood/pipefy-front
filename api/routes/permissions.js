@@ -598,10 +598,11 @@ router.post('/bulk',
  *     summary: منح صلاحية إضافية لمستخدم في عملية محددة
  *     description: |
  *       يمنح صلاحية إضافية لمستخدم في عملية محددة.
- *       - يمكن تحديد process_id في الطلب
- *       - إذا تم تحديد process_id، سيتم التحقق من أن الصلاحية موجودة في هذه العملية
- *       - إذا لم يتم تحديد process_id، سيتم استخدام process_id من الصلاحية نفسها
- *       - process_id يُحفظ في جدول user_permissions ويربط الصلاحية بالعملية
+ *       - process_id إجباري في الطلب
+ *       - الصلاحيات عامة (بدون process_id في جدول permissions)
+ *       - process_id يُحفظ في جدول user_permissions ويربط المستخدم بالصلاحية في عملية محددة
+ *       - هذا يسمح للمستخدم بالحصول على نفس الصلاحية في عمليات مختلفة
+ *       - مثال: المستخدم محمد لديه صلاحية tickets.update في العملية 1 و 3 فقط
  *     tags: [Permissions]
  *     security:
  *       - bearerAuth: []
@@ -614,6 +615,7 @@ router.post('/bulk',
  *             required:
  *               - user_id
  *               - permission_id
+ *               - process_id
  *             properties:
  *               user_id:
  *                 type: string
@@ -628,11 +630,10 @@ router.post('/bulk',
  *               process_id:
  *                 type: string
  *                 format: uuid
- *                 nullable: true
  *                 description: |
- *                   معرف العملية (اختياري).
- *                   إذا تم تحديده، سيتم التحقق من أن الصلاحية موجودة في هذه العملية ويتم حفظه في user_permissions.
- *                   إذا لم يتم تحديده، سيتم استخدام process_id من الصلاحية نفسها.
+ *                   معرف العملية (إجباري).
+ *                   يتم حفظه في جدول user_permissions ويربط المستخدم بالصلاحية في هذه العملية.
+ *                   هذا يسمح للمستخدم بالحصول على نفس الصلاحية في عمليات مختلفة.
  *                 example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
  *               expires_at:
  *                 type: string

@@ -240,10 +240,10 @@ class PermissionController {
     try {
       const { user_id, permission_id, expires_at, process_id } = req.body;
       
-      if (!user_id || !permission_id) {
+      if (!user_id || !permission_id || !process_id) {
         return res.status(400).json({
           success: false,
-          message: 'معرف المستخدم والصلاحية مطلوبان',
+          message: 'معرف المستخدم والصلاحية والعملية مطلوبان',
           error: 'VALIDATION_ERROR'
         });
       }

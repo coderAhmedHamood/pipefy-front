@@ -7,13 +7,20 @@ class UserPermissionController {
   static async grantPermission(req, res) {
     try {
       const { userId } = req.params;
-      const { permission_id, expires_at } = req.body;
+      const { permission_id, expires_at, process_id } = req.body;
       const grantedBy = req.user.id;
       
       if (!permission_id) {
         return res.status(400).json({
           success: false,
           message: 'معرف الصلاحية مطلوب'
+        });
+      }
+      
+      if (!process_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف العملية (process_id) مطلوب'
         });
       }
       
@@ -30,7 +37,8 @@ class UserPermissionController {
         userId,
         permission_id,
         grantedBy,
-        expires_at || null
+        expires_at || null,
+        process_id || null
       );
       
       res.json({
@@ -40,9 +48,13 @@ class UserPermissionController {
       });
     } catch (error) {
       console.error('خطأ في منح الصلاحية:', error);
-      res.status(500).json({
+      const statusCode = error.message.includes('غير موجود') ? 404 : 
+                        error.message.includes('مطلوب') ? 400 : 500;
+      res.status(statusCode).json({
         success: false,
-        message: error.message || 'خطأ في منح الصلاحية'
+        message: error.message || 'خطأ في منح الصلاحية',
+        error: statusCode === 404 ? 'NOT_FOUND' : 
+               statusCode === 400 ? 'VALIDATION_ERROR' : 'SERVER_ERROR'
       });
     }
   }
@@ -227,13 +239,20 @@ class UserPermissionController {
   static async grantMultiplePermissions(req, res) {
     try {
       const { userId } = req.params;
-      const { permission_ids, expires_at } = req.body;
+      const { permission_ids, expires_at, process_id } = req.body;
       const grantedBy = req.user.id;
       
       if (!Array.isArray(permission_ids) || permission_ids.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'قائمة معرفات الصلاحيات مطلوبة'
+        });
+      }
+      
+      if (!process_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف العملية (process_id) مطلوب'
         });
       }
       
@@ -253,7 +272,8 @@ class UserPermissionController {
             userId,
             permissionId,
             grantedBy,
-            expires_at || null
+            expires_at || null,
+            process_id || null
           );
           results.push({ 
             success: true, 
