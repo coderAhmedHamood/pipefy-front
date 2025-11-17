@@ -2707,7 +2707,7 @@ export const UserManagerNew: React.FC = () => {
       {/* Modal الصلاحيات غير المفعلة */}
       {showInactivePermissionsModal && (
         <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`}>
-          <div className={`bg-white ${isMobile || isTablet ? 'rounded-none w-full h-full max-w-none' : 'rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh]'} overflow-hidden flex flex-col`}>
+          <div className={`bg-white ${isMobile || isTablet ? 'rounded-none w-full h-full max-w-none' : 'rounded-lg shadow-xl max-w-7xl w-full max-h-[95vh]'} overflow-hidden flex flex-col`}>
             {/* Header */}
             <div className={`${isMobile || isTablet ? 'p-3' : 'p-6'} border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0`}>
               <div className="flex items-center justify-between">
@@ -2763,7 +2763,7 @@ export const UserManagerNew: React.FC = () => {
             )}
 
             {/* Content */}
-            <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+            <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} ${selectedProcess && !isMobile && !isTablet ? 'overflow-x-hidden' : ''}`}>
               {loadingInactivePermissions ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
@@ -2772,24 +2772,27 @@ export const UserManagerNew: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-6">
+                <div className={selectedProcess && !isMobile && !isTablet ? 'flex gap-6 items-start h-full' : 'space-y-6'}>
                   {/* قسم العمليات */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-4">
-                    <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse`}>
-                      <FolderOpen className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600`} />
+                  <div className={`bg-gradient-to-br from-white to-blue-50 border-2 border-blue-200 rounded-xl ${isMobile || isTablet ? 'p-3' : 'p-4'} shadow-sm ${selectedProcess && !isMobile && !isTablet ? 'flex-1 min-w-0 flex flex-col max-w-[45%]' : 'w-full'}`}>
+                    <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-bold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse flex-shrink-0`}>
+                      <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-blue-100 rounded-lg`}>
+                        <FolderOpen className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600`} />
+                      </div>
                       <span>العمليات ({userProcesses.length})</span>
                     </h3>
-                    {loadingUserProcessesModal ? (
-                      <div className="flex items-center justify-center py-8">
-                        <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-blue-600 animate-spin`} />
-                      </div>
-                    ) : userProcesses.length === 0 ? (
-                      <div className={`text-center ${isMobile || isTablet ? 'py-6' : 'py-8'} bg-gray-50 rounded-lg border border-gray-200`}>
-                        <FolderOpen className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-400 mx-auto mb-2`} />
-                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>لا توجد عمليات</p>
-                      </div>
-                    ) : (
-                      <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-3'}`}>
+                    <div className={`${selectedProcess && !isMobile && !isTablet ? 'flex-1 overflow-y-auto max-h-[calc(100vh-350px)] min-h-0' : ''}`}>
+                      {loadingUserProcessesModal ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-blue-600 animate-spin`} />
+                        </div>
+                      ) : userProcesses.length === 0 ? (
+                        <div className={`text-center ${isMobile || isTablet ? 'py-6' : 'py-8'} bg-gray-50 rounded-lg border border-gray-200`}>
+                          <FolderOpen className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-400 mx-auto mb-2`} />
+                          <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>لا توجد عمليات</p>
+                        </div>
+                      ) : (
+                        <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-2' : selectedProcess ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-4'}`}>
                         {userProcesses.map((process: any) => {
                           const processId = process.id || process.process_id;
                           const isSelected = selectedProcess && (selectedProcess.id === processId || selectedProcess.process_id === processId);
@@ -2797,48 +2800,47 @@ export const UserManagerNew: React.FC = () => {
                           <div
                             key={processId}
                             onClick={() => handleSelectProcess(process)}
-                            className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-blue-50 to-purple-50 border ${isSelected ? 'border-blue-500 border-2' : 'border-blue-200'} rounded-lg hover:shadow-md transition-all cursor-pointer`}
+                            className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-gradient-to-br ${isSelected ? 'from-blue-100 to-purple-100 border-2 border-blue-500 shadow-lg' : 'from-white to-blue-50 border border-blue-200'} rounded-xl hover:shadow-lg hover:border-blue-400 transition-all duration-200 cursor-pointer transform hover:scale-[1.02]`}
                           >
-                            <div className="flex items-center space-x-2 space-x-reverse">
-                              <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} ${process.color || process.process_color || 'bg-blue-500'} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                                <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>
+                            <div className="flex items-center space-x-3 space-x-reverse">
+                              <div className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-14 h-14'} ${process.color || process.process_color || 'bg-gradient-to-br from-blue-500 to-purple-600'} rounded-xl flex items-center justify-center flex-shrink-0 shadow-md`}>
+                                <span className={`text-white font-bold ${isMobile || isTablet ? 'text-sm' : 'text-base'}`}>
                                   {(process.name || process.process_name || 'ع').charAt(0)}
                                 </span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 truncate`}>
+                                <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-bold text-gray-900 truncate mb-1`}>
                                   {process.name || process.process_name || 'عملية بدون اسم'}
                                 </h4>
                                 {(process.description || process.process_description) && (
-                                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 line-clamp-1`}>
+                                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mb-2 line-clamp-2`}>
                                     {process.description || process.process_description}
                                   </p>
                                 )}
-                                <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mt-1' : 'space-x-2 space-x-reverse mt-2'}`}>
-                                  <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500`}>
-                                    {process.stages_count || process.stages?.length || 0} مرحلة
-                                  </span>
-                                  <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500`}>•</span>
-                                  <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500`}>
-                                    {process.fields_count || process.fields?.length || 0} حقل
-                                  </span>
+                                <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'} mt-2`}>
+                                  
                                 </div>
                               </div>
                             </div>
                           </div>
                           );
                         })}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* قسم صلاحيات العملية المحددة */}
                   {selectedProcess && (
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
-                          <Key className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-purple-600`} />
-                          <span>صلاحيات العملية: {selectedProcess.name || selectedProcess.process_name || 'عملية بدون اسم'}</span>
+                    <div className={`bg-gradient-to-br from-purple-50 via-white to-blue-50 border-2 border-purple-300 rounded-xl ${isMobile || isTablet ? 'p-3' : 'p-5'} shadow-lg ${!isMobile && !isTablet ? 'flex-1 min-w-0 flex flex-col' : 'w-full'}`}>
+                      <div className={`flex items-center justify-between ${isMobile || isTablet ? 'mb-3 pb-2' : 'mb-4 pb-3'} border-b border-purple-200 flex-shrink-0`}>
+                        <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-bold text-gray-900 flex items-center space-x-3 space-x-reverse`}>
+                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} bg-purple-100 rounded-lg shadow-sm`}>
+                            <Key className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-purple-600`} />
+                          </div>
+                          <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                            صلاحيات العملية: {selectedProcess.name || selectedProcess.process_name || 'عملية بدون اسم'}
+                          </span>
                         </h3>
                         <button
                           onClick={() => {
@@ -2849,10 +2851,10 @@ export const UserManagerNew: React.FC = () => {
                               stats: null
                             });
                           }}
-                          className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded-lg transition-colors`}
+                          className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} hover:bg-red-100 rounded-lg transition-colors border border-transparent hover:border-red-300`}
                           title="إلغاء الاختيار"
                         >
-                          <X className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-500`} />
+                          <X className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-600`} />
                         </button>
                       </div>
                       
@@ -2861,101 +2863,107 @@ export const UserManagerNew: React.FC = () => {
                           <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-purple-600 animate-spin`} />
                         </div>
                       ) : (
-                        <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
-                          {/* الصلاحيات غير المفعلة */}
-                          <div className="flex flex-col">
-                            <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse`}>
-                              <AlertCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-red-600`} />
-                              <span>غير المفعلة ({processPermissions.inactive.length})</span>
+                        <div className={`flex-1 min-h-0 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-350px)]' : ''}`}>
+                          <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
+                            {/* الصلاحيات غير المفعلة */}
+                            <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm`}>
+                              <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-red-100`}>
+                              <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-red-100 rounded-lg`}>
+                                <AlertCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-red-600`} />
+                              </div>
+                              <span className="text-red-700">غير المفعلة ({processPermissions.inactive.length})</span>
                             </h4>
-                            <div className="flex-1 overflow-y-auto max-h-64">
-                              {processPermissions.inactive.length === 0 ? (
-                                <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-gray-50 rounded-lg border border-gray-200`}>
-                                  <CheckCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-green-500 mx-auto mb-2`} />
-                                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>جميع الصلاحيات مفعلة</p>
-                                </div>
-                              ) : (
-                                <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-2'}`}>
-                                  {processPermissions.inactive.map((permission: any) => (
-                                    <div
-                                      key={permission.id}
-                                      className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-md transition-all`}
-                                    >
-                                      <div className="flex items-start justify-between gap-2">
+                              <div className={`flex-1 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-500px)]' : 'max-h-64'}`}>
+                                {processPermissions.inactive.length === 0 ? (
+                                  <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-green-50 rounded-lg border-2 border-green-200`}>
+                                    <CheckCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-green-500 mx-auto mb-2`} />
+                                    <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-green-700 font-medium`}>جميع الصلاحيات مفعلة</p>
+                                  </div>
+                                ) : (
+                                  <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-2'}`}>
+                                    {processPermissions.inactive.map((permission: any) => (
+                                      <div
+                                        key={permission.id}
+                                        className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-lg transition-all duration-200`}
+                                      >
+                                      <div className="flex items-start justify-between gap-3">
                                         <div className="flex-1 min-w-0">
-                                          <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1' : 'space-x-2 space-x-reverse'} mb-1`}>
-                                            <h5 className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-900 break-words`}>{permission.name}</h5>
-                                            <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} bg-purple-100 text-purple-700 rounded-full font-medium whitespace-nowrap`}>
+                                          <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
+                                            <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{permission.name}</h5>
+                                            <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-purple-100 text-purple-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
                                               {permission.resource}
                                             </span>
-                                            <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} bg-blue-100 text-blue-700 rounded-full font-medium whitespace-nowrap`}>
+                                            <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-blue-100 text-blue-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
                                               {permission.action}
                                             </span>
                                           </div>
                                           {permission.description && (
-                                            <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-gray-600 mt-1 break-words`}>{permission.description}</p>
+                                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{permission.description}</p>
                                           )}
                                         </div>
-                                        <button
-                                          onClick={() => handleAddPermission(permission.id)}
-                                          disabled={processingPermission === permission.id}
-                                          className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1' : 'p-1.5'} bg-green-600 text-white hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
-                                          title="إضافة الصلاحية"
-                                        >
-                                          {processingPermission === permission.id ? (
-                                            <Loader className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} animate-spin`} />
-                                          ) : (
-                                            <Plus className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
-                                          )}
-                                        </button>
+                                          <button
+                                            onClick={() => handleAddPermission(permission.id)}
+                                            disabled={processingPermission === permission.id}
+                                            className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg`}
+                                            title="إضافة الصلاحية"
+                                          >
+                                            {processingPermission === permission.id ? (
+                                              <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                            ) : (
+                                              <Plus className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                            )}
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
 
-                          {/* الصلاحيات المفعلة */}
-                          <div className="flex flex-col">
-                            <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-semibold text-gray-900 mb-3 flex items-center space-x-2 space-x-reverse`}>
-                              <CheckCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-green-600`} />
-                              <span>المفعلة ({processPermissions.active.length})</span>
-                            </h4>
-                            <div className="flex-1 overflow-y-auto max-h-64">
-                              {processPermissions.active.length === 0 ? (
-                                <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-gray-50 rounded-lg border border-gray-200`}>
-                                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>لا توجد صلاحيات مفعلة</p>
+                            {/* الصلاحيات المفعلة */}
+                            <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm`}>
+                              <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-green-100`}>
+                                <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-green-100 rounded-lg`}>
+                                  <CheckCircle className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-green-600`} />
                                 </div>
-                              ) : (
-                                <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-2'}`}>
-                                  {processPermissions.active
-                                    .sort((a, b) => {
-                                      if (a.source === 'direct' && b.source !== 'direct') return -1;
-                                      if (a.source !== 'direct' && b.source === 'direct') return 1;
-                                      return a.name.localeCompare(b.name, 'ar');
-                                    })
-                                    .map((permission: any) => (
-                                      <div
-                                        key={permission.id}
-                                        className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white border rounded-lg hover:shadow-md transition-all ${
-                                          permission.source === 'direct' 
-                                            ? 'border-orange-300 hover:border-orange-400' 
-                                            : 'border-green-200 hover:border-green-300'
-                                        }`}
-                                      >
-                                        <div className="flex items-start justify-between gap-2">
+                                <span className="text-green-700">المفعلة ({processPermissions.active.length})</span>
+                              </h4>
+                              <div className={`flex-1 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-500px)]' : 'max-h-64'}`}>
+                                {processPermissions.active.length === 0 ? (
+                                  <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-gray-50 rounded-lg border-2 border-gray-200`}>
+                                    <AlertCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400 mx-auto mb-2`} />
+                                    <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 font-medium`}>لا توجد صلاحيات مفعلة</p>
+                                  </div>
+                                ) : (
+                                  <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-2'}`}>
+                                    {processPermissions.active
+                                      .sort((a, b) => {
+                                        if (a.source === 'direct' && b.source !== 'direct') return -1;
+                                        if (a.source !== 'direct' && b.source === 'direct') return 1;
+                                        return a.name.localeCompare(b.name, 'ar');
+                                      })
+                                      .map((permission: any) => (
+                                        <div
+                                          key={permission.id}
+                                          className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br rounded-xl hover:shadow-lg transition-all duration-200 ${
+                                            permission.source === 'direct' 
+                                              ? 'from-orange-50 to-white border-2 border-orange-300 hover:border-orange-400' 
+                                              : 'from-green-50 to-white border-2 border-green-200 hover:border-green-300'
+                                          }`}
+                                        >
+                                        <div className="flex items-start justify-between gap-3">
                                           <div className="flex-1 min-w-0">
-                                            <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1' : 'space-x-2 space-x-reverse'} mb-1`}>
-                                              <h5 className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-900 break-words`}>{permission.name}</h5>
-                                              <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} bg-purple-100 text-purple-700 rounded-full font-medium whitespace-nowrap`}>
+                                            <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
+                                              <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{permission.name}</h5>
+                                              <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-purple-100 text-purple-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
                                                 {permission.resource}
                                               </span>
-                                              <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} bg-blue-100 text-blue-700 rounded-full font-medium whitespace-nowrap`}>
+                                              <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-blue-100 text-blue-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
                                                 {permission.action}
                                               </span>
                                               {permission.source && (
-                                                <span className={`${isMobile || isTablet ? 'px-1 py-0.5 text-[9px]' : 'px-1.5 py-0.5 text-[10px]'} rounded-full font-medium whitespace-nowrap ${
+                                                <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} rounded-full font-semibold whitespace-nowrap shadow-sm ${
                                                   permission.source === 'role' 
                                                     ? 'bg-blue-100 text-blue-700' 
                                                     : 'bg-orange-100 text-orange-700'
@@ -2965,33 +2973,34 @@ export const UserManagerNew: React.FC = () => {
                                               )}
                                             </div>
                                             {permission.description && (
-                                              <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-gray-600 mt-1 break-words`}>{permission.description}</p>
+                                              <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{permission.description}</p>
                                             )}
                                             {permission.expires_at && (
-                                              <p className={`${isMobile || isTablet ? 'text-[8px]' : 'text-[9px]'} text-orange-600 mt-1`}>
-                                                تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
+                                              <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-orange-600 mt-2 font-medium bg-orange-50 px-2 py-1 rounded-lg inline-block`}>
+                                                ⏰ تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
                                               </p>
                                             )}
                                           </div>
                                           {permission.source === 'direct' && (
-                                            <button
-                                              onClick={() => handleRemovePermission(permission.id)}
-                                              disabled={processingPermission === permission.id}
-                                              className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1' : 'p-1.5'} text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
-                                              title="إلغاء الصلاحية"
-                                            >
-                                              {processingPermission === permission.id ? (
-                                                <Loader className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'} animate-spin`} />
-                                              ) : (
-                                                <Trash2 className={`${isMobile || isTablet ? 'w-2.5 h-2.5' : 'w-3 h-3'}`} />
-                                              )}
-                                            </button>
-                                          )}
+                                              <button
+                                                onClick={() => handleRemovePermission(permission.id)}
+                                                disabled={processingPermission === permission.id}
+                                                className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-red-300 shadow-sm hover:shadow-md`}
+                                                title="إلغاء الصلاحية"
+                                              >
+                                                {processingPermission === permission.id ? (
+                                                  <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                                ) : (
+                                                  <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                                )}
+                                              </button>
+                                            )}
+                                          </div>
                                         </div>
-                                      </div>
-                                    ))}
-                                </div>
-                              )}
+                                      ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
