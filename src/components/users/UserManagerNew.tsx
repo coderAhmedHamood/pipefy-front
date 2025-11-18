@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../../config/config';
 import { User, UserRole, Permission } from '../../types/workflow';
 import { userService, roleService, permissionService } from '../../services';
@@ -125,6 +125,7 @@ export const UserManagerNew: React.FC = () => {
     stats: null
   });
   const [loadingProcessPermissions, setLoadingProcessPermissions] = useState(false);
+  const permissionsSectionRef = useRef<HTMLDivElement>(null);
 
   // تحميل البيانات الأولية
   useEffect(() => {
@@ -868,6 +869,16 @@ export const UserManagerNew: React.FC = () => {
     
     setSelectedProcess(process);
     await fetchProcessPermissions(selectedUserForPermissions.id, processId);
+    
+    // على الجوال: عمل scroll تلقائي إلى قسم الصلاحيات
+    if ((isMobile || isTablet) && permissionsSectionRef.current) {
+      setTimeout(() => {
+        permissionsSectionRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }, 300); // تأخير بسيط لضمان تحميل البيانات
+    }
   };
 
   // إضافة صلاحية لمستخدم
@@ -2800,7 +2811,7 @@ export const UserManagerNew: React.FC = () => {
                           <div
                             key={processId}
                             onClick={() => handleSelectProcess(process)}
-                            className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-gradient-to-br ${isSelected ? 'from-blue-100 to-purple-100 border-2 border-blue-500 shadow-lg' : 'from-white to-blue-50 border border-blue-200'} rounded-xl hover:shadow-lg hover:border-blue-400 transition-all duration-200 cursor-pointer transform hover:scale-[1.02]`}
+                            className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-gradient-to-br ${isSelected ? 'from-blue-100 to-purple-100 border-2 border-blue-500 shadow-lg ring-2 ring-blue-300' : 'from-white to-blue-50 border border-blue-200'} rounded-xl hover:shadow-lg hover:border-blue-400 transition-all duration-200 cursor-pointer transform hover:scale-[1.02]`}
                           >
                             <div className="flex items-center space-x-3 space-x-reverse">
                               <div className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-14 h-14'} ${process.color || process.process_color || 'bg-gradient-to-br from-blue-500 to-purple-600'} rounded-xl flex items-center justify-center flex-shrink-0 shadow-md`}>
@@ -2832,16 +2843,29 @@ export const UserManagerNew: React.FC = () => {
 
                   {/* قسم صلاحيات العملية المحددة */}
                   {selectedProcess && (
-                    <div className={`bg-gradient-to-br from-purple-50 via-white to-blue-50 border-2 border-purple-300 rounded-xl ${isMobile || isTablet ? 'p-3' : 'p-5'} shadow-lg ${!isMobile && !isTablet ? 'flex-1 min-w-0 flex flex-col' : 'w-full'}`}>
+                    <div 
+                      ref={permissionsSectionRef}
+                      className={`bg-gradient-to-br from-purple-50 via-white to-blue-50 border-2 border-purple-300 rounded-xl ${isMobile || isTablet ? 'p-3' : 'p-5'} shadow-lg ${!isMobile && !isTablet ? 'flex-1 min-w-0 flex flex-col' : 'w-full'} ${isMobile || isTablet ? 'mt-4' : ''}`}
+                    >
                       <div className={`flex items-center justify-between ${isMobile || isTablet ? 'mb-3 pb-2' : 'mb-4 pb-3'} border-b border-purple-200 flex-shrink-0`}>
-                        <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-bold text-gray-900 flex items-center space-x-3 space-x-reverse`}>
-                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} bg-purple-100 rounded-lg shadow-sm`}>
+                        <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
+                          <div className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} bg-purple-100 rounded-lg shadow-sm animate-pulse`}>
                             <Key className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-purple-600`} />
                           </div>
-                          <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                            صلاحيات العملية: {selectedProcess.name || selectedProcess.process_name || 'عملية بدون اسم'}
-                          </span>
-                        </h3>
+                          <div className="flex-1 min-w-0">
+                            <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-xl'} font-bold text-gray-900`}>
+                              <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                                صلاحيات العملية: {selectedProcess.name || selectedProcess.process_name || 'عملية بدون اسم'}
+                              </span>
+                            </h3>
+                            {(isMobile || isTablet) && (
+                              <p className="text-xs text-purple-600 mt-1 flex items-center space-x-1 space-x-reverse">
+                                <span>⬇️</span>
+                                <span>تم التمرير تلقائياً لعرض الصلاحيات</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
                         <button
                           onClick={() => {
                             setSelectedProcess(null);
