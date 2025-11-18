@@ -857,6 +857,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [assignmentRole, setAssignmentRole] = useState('');
   const [assignmentNotes, setAssignmentNotes] = useState('');
   const [reviewerNotes, setReviewerNotes] = useState('');
+  const [assignmentSearchQuery, setAssignmentSearchQuery] = useState('');
+  const [reviewerSearchQuery, setReviewerSearchQuery] = useState('');
+  const [showAssignmentDropdown, setShowAssignmentDropdown] = useState(false);
+  const [showReviewerDropdown, setShowReviewerDropdown] = useState(false);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   
@@ -894,6 +898,26 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       loadAllUsers();
     }
   }, [showAddAssignment, showAddReviewer]);
+
+  // إغلاق القائمة المنسدلة عند النقر خارجها
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showAssignmentDropdown && !target.closest('.assignment-search-container')) {
+        setShowAssignmentDropdown(false);
+      }
+      if (showReviewerDropdown && !target.closest('.reviewer-search-container')) {
+        setShowReviewerDropdown(false);
+      }
+    };
+
+    if (showAssignmentDropdown || showReviewerDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showAssignmentDropdown, showReviewerDropdown]);
 
   // جلب العمليات عند فتح Modal نقل إلى عملية
   useEffect(() => {
@@ -987,6 +1011,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         setSelectedUserId('');
         setAssignmentRole('');
         setAssignmentNotes('');
+        setAssignmentSearchQuery('');
+        setShowAssignmentDropdown(false);
       }
     } catch (error) {
       console.error('خطأ في إضافة الإسناد:', error);
@@ -1023,6 +1049,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         setShowAddReviewer(false);
         setSelectedUserId('');
         setReviewerNotes('');
+        setReviewerSearchQuery('');
+        setShowReviewerDropdown(false);
       }
     } catch (error) {
       console.error('خطأ في إضافة المراجع:', error);
@@ -3326,6 +3354,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   setSelectedUserId('');
                   setAssignmentRole('');
                   setAssignmentNotes('');
+                  setAssignmentSearchQuery('');
+                  setShowAssignmentDropdown(false);
                 }}
                 className="p-2 rounded-lg hover:bg-gray-100"
               >
@@ -3336,18 +3366,102 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">المستخدم</label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">اختر مستخدم</option>
-                  {(allUsers.length > 0 ? allUsers : processUsers).map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} - {user.role.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative assignment-search-container">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={assignmentSearchQuery}
+                      onChange={(e) => {
+                        setAssignmentSearchQuery(e.target.value);
+                        setShowAssignmentDropdown(true);
+                      }}
+                      onFocus={() => setShowAssignmentDropdown(true)}
+                      placeholder="ابحث عن مستخدم..."
+                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  {showAssignmentDropdown && (allUsers.length > 0 || processUsers.length > 0) && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {(() => {
+                        const users = allUsers.length > 0 ? allUsers : processUsers;
+                        const filteredUsers = users.filter((user) => {
+                          const query = assignmentSearchQuery.toLowerCase();
+                          return (
+                            user.name?.toLowerCase().includes(query) ||
+                            user.email?.toLowerCase().includes(query) ||
+                            user.role?.name?.toLowerCase().includes(query)
+                          );
+                        });
+                        
+                        return filteredUsers.length > 0 ? (
+                          filteredUsers.map((user) => (
+                            <div
+                              key={user.id}
+                              onClick={() => {
+                                setSelectedUserId(user.id);
+                                setAssignmentSearchQuery(user.name || '');
+                                setShowAssignmentDropdown(false);
+                              }}
+                              className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${
+                                selectedUserId === user.id ? 'bg-blue-100' : ''
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3 space-x-reverse">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white font-bold text-sm">
+                                    {user.name?.charAt(0) || 'U'}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                                  <div className="text-sm text-gray-600 truncate">{user.email}</div>
+                                  <div className="text-xs text-gray-500">{user.role?.name}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-8 text-center text-gray-500">
+                            <p className="text-sm">لا توجد نتائج</p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+                
+                {selectedUserId && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-blue-900">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name}
+                          </div>
+                          <div className="text-sm text-blue-700">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.role?.name}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedUserId('');
+                          setAssignmentSearchQuery('');
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -3387,6 +3501,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   setSelectedUserId('');
                   setAssignmentRole('');
                   setAssignmentNotes('');
+                  setAssignmentSearchQuery('');
+                  setShowAssignmentDropdown(false);
                 }}
                 className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
               >
@@ -3408,6 +3524,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   setShowAddReviewer(false);
                   setSelectedUserId('');
                   setReviewerNotes('');
+                  setReviewerSearchQuery('');
+                  setShowReviewerDropdown(false);
                 }}
                 className="p-2 rounded-lg hover:bg-gray-100"
               >
@@ -3418,18 +3536,102 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">المراجع</label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                >
-                  <option value="">اختر مراجع</option>
-                  {(allUsers.length > 0 ? allUsers : processUsers).map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} - {user.role.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative reviewer-search-container">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={reviewerSearchQuery}
+                      onChange={(e) => {
+                        setReviewerSearchQuery(e.target.value);
+                        setShowReviewerDropdown(true);
+                      }}
+                      onFocus={() => setShowReviewerDropdown(true)}
+                      placeholder="ابحث عن مراجع..."
+                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  {showReviewerDropdown && (allUsers.length > 0 || processUsers.length > 0) && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {(() => {
+                        const users = allUsers.length > 0 ? allUsers : processUsers;
+                        const filteredUsers = users.filter((user) => {
+                          const query = reviewerSearchQuery.toLowerCase();
+                          return (
+                            user.name?.toLowerCase().includes(query) ||
+                            user.email?.toLowerCase().includes(query) ||
+                            user.role?.name?.toLowerCase().includes(query)
+                          );
+                        });
+                        
+                        return filteredUsers.length > 0 ? (
+                          filteredUsers.map((user) => (
+                            <div
+                              key={user.id}
+                              onClick={() => {
+                                setSelectedUserId(user.id);
+                                setReviewerSearchQuery(user.name || '');
+                                setShowReviewerDropdown(false);
+                              }}
+                              className={`px-4 py-3 cursor-pointer hover:bg-green-50 transition-colors ${
+                                selectedUserId === user.id ? 'bg-green-100' : ''
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3 space-x-reverse">
+                                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white font-bold text-sm">
+                                    {user.name?.charAt(0) || 'R'}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                                  <div className="text-sm text-gray-600 truncate">{user.email}</div>
+                                  <div className="text-xs text-gray-500">{user.role?.name}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-8 text-center text-gray-500">
+                            <p className="text-sm">لا توجد نتائج</p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+                
+                {selectedUserId && (
+                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name?.charAt(0) || 'R'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-green-900">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name}
+                          </div>
+                          <div className="text-sm text-green-700">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.role?.name}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedUserId('');
+                          setReviewerSearchQuery('');
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -3457,6 +3659,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   setShowAddReviewer(false);
                   setSelectedUserId('');
                   setReviewerNotes('');
+                  setReviewerSearchQuery('');
+                  setShowReviewerDropdown(false);
                 }}
                 className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
               >
