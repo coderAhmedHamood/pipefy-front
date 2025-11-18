@@ -968,7 +968,8 @@ export const UserManagerNew: React.FC = () => {
 
     setProcessingPermission(permissionId);
     try {
-      const url = `${API_BASE_URL}/api/users/${selectedUserForPermissions.id}/permissions/${permissionId}`;
+      // استخدام الـ endpoint الجديد: DELETE /api/permissions/users/{user_id}/{permission_id}
+      const url = `${API_BASE_URL}/api/permissions/users/${selectedUserForPermissions.id}/${permissionId}`;
       const headers = getAuthHeaders();
       
       const response = await fetch(url, {
@@ -994,8 +995,15 @@ export const UserManagerNew: React.FC = () => {
           ...prev,
           success: 'تم إلغاء الصلاحية بنجاح'
         }));
-        // إعادة جلب الصلاحيات لتحديث البيانات
-        await fetchUserPermissions(selectedUserForPermissions.id);
+        
+        // إعادة جلب الصلاحيات حسب السياق
+        if (selectedProcess) {
+          // إذا كانت هناك عملية محددة، أعد جلب صلاحيات العملية
+          await fetchProcessPermissions(selectedUserForPermissions.id, selectedProcess.id || selectedProcess.process_id);
+        } else {
+          // إذا لم تكن هناك عملية محددة، أعد جلب الصلاحيات العامة
+          await fetchUserPermissions(selectedUserForPermissions.id);
+        }
       } else {
         throw new Error(data?.message || 'فشل في إلغاء الصلاحية');
       }
@@ -3025,20 +3033,19 @@ export const UserManagerNew: React.FC = () => {
                                               </p>
                                             )}
                                           </div>
-                                          {permission.source === 'direct' && (
-                                              <button
-                                                onClick={() => handleRemovePermission(permission.id)}
-                                                disabled={processingPermission === permission.id}
-                                                className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-red-300 shadow-sm hover:shadow-md`}
-                                                title="إلغاء الصلاحية"
-                                              >
-                                                {processingPermission === permission.id ? (
-                                                  <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
-                                                ) : (
-                                                  <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-                                                )}
-                                              </button>
+                                          {/* زر الحذف - يظهر لجميع الصلاحيات في قسم صلاحيات العملية */}
+                                          <button
+                                            onClick={() => handleRemovePermission(permission.id)}
+                                            disabled={processingPermission === permission.id}
+                                            className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-red-300 shadow-sm hover:shadow-md`}
+                                            title="إلغاء الصلاحية"
+                                          >
+                                            {processingPermission === permission.id ? (
+                                              <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                            ) : (
+                                              <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
                                             )}
+                                          </button>
                                           </div>
                                         </div>
                                       ))}
