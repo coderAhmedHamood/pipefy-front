@@ -23,7 +23,8 @@ import {
   User,
   PlayCircle,
   ChevronLeft,
-  Menu
+  Menu,
+  Search
 } from 'lucide-react';
 
 interface ProcessField {
@@ -81,6 +82,8 @@ export const RecurringManager: React.FC = () => {
   const [loadingRules, setLoadingRules] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [assignedToSearchQuery, setAssignedToSearchQuery] = useState('');
+  const [showAssignedToDropdown, setShowAssignedToDropdown] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [creatingRule, setCreatingRule] = useState(false);
   const [loadingRuleDetails, setLoadingRuleDetails] = useState(false);
@@ -416,6 +419,14 @@ export const RecurringManager: React.FC = () => {
     const ticketStageId = ruleData.current_stage_id || ruleData.stage_id || parsedTemplateData.stage_id || '';
     const ticketType = ruleData.ticket_type || parsedTemplateData.ticket_type || 'task';
     
+    // تعيين اسم المستخدم في حقل البحث
+    if (ticketAssignedTo && users.length > 0) {
+      const assignedUser = users.find(u => u.id === ticketAssignedTo);
+      setAssignedToSearchQuery(assignedUser?.name || '');
+    } else {
+      setAssignedToSearchQuery('');
+    }
+    
     setRuleForm({
       name: ruleData.name || ruleData.rule_name || '',
       process_id: ruleData.process_id,
@@ -487,6 +498,23 @@ export const RecurringManager: React.FC = () => {
       setPendingRuleData(null); // مسح البيانات المؤقتة
     }
   }, [selectedProcessDetails, editingRule, pendingRuleData]);
+
+  // إغلاق القائمة المنسدلة عند النقر خارجها
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showAssignedToDropdown && !target.closest('.assigned-to-search-container')) {
+        setShowAssignedToDropdown(false);
+      }
+    };
+
+    if (showAssignedToDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showAssignedToDropdown]);
 
   const handleCreateRule = async () => {
     if (!selectedProcess || !ruleForm.name || !ruleForm.template_data.title) return;
@@ -654,6 +682,8 @@ export const RecurringManager: React.FC = () => {
   };
 
   const resetForm = () => {
+    setAssignedToSearchQuery('');
+    setShowAssignedToDropdown(false);
     setRuleForm({
       name: '',
       process_id: '',
@@ -1552,21 +1582,90 @@ export const RecurringManager: React.FC = () => {
                               <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>جاري التحميل...</span>
                             </div>
                           ) : (
-                            <select
-                              value={ruleForm.template_data.assigned_to || ''}
-                              onChange={(e) => setRuleForm({
-                                ...ruleForm,
-                                template_data: { ...ruleForm.template_data, assigned_to: e.target.value }
-                              })}
-                              className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                            >
-                              <option value="">اختر المستخدم</option>
-                              {users.map((user) => (
-                                <option key={user.id} value={user.id}>
-                                  {user.name}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="relative assigned-to-search-container">
+                              <div className="relative">
+                                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                  type="text"
+                                  value={assignedToSearchQuery}
+                                  onChange={(e) => {
+                                    setAssignedToSearchQuery(e.target.value);
+                                    setShowAssignedToDropdown(true);
+                                  }}
+                                  onFocus={() => setShowAssignedToDropdown(true)}
+                                  placeholder="ابحث عن مستخدم..."
+                                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 pr-10 text-sm' : 'px-4 py-3 pr-10'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                                />
+                              </div>
+                              
+                              {showAssignedToDropdown && users.length > 0 && (
+                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                  {users.filter((user) => {
+                                    const query = assignedToSearchQuery.toLowerCase();
+                                    return (
+                                      user.name?.toLowerCase().includes(query) ||
+                                      user.email?.toLowerCase().includes(query)
+                                    );
+                                  }).map((user) => (
+                                    <div
+                                      key={user.id}
+                                      onClick={() => {
+                                        setRuleForm({
+                                          ...ruleForm,
+                                          template_data: { ...ruleForm.template_data, assigned_to: user.id }
+                                        });
+                                        setAssignedToSearchQuery(user.name || '');
+                                        setShowAssignedToDropdown(false);
+                                      }}
+                                      className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${
+                                        ruleForm.template_data.assigned_to === user.id ? 'bg-blue-100' : ''
+                                      }`}
+                                    >
+                                      <div className="flex items-center space-x-3 space-x-reverse">
+                                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                          <span className="text-white font-bold text-sm">
+                                            {user.name?.charAt(0) || 'U'}
+                                          </span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                                          <div className="text-sm text-gray-600 truncate">{user.email}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              {ruleForm.template_data.assigned_to && (
+                                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2 space-x-reverse">
+                                      <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                        <span className="text-white font-bold text-xs">
+                                          {users.find(u => u.id === ruleForm.template_data.assigned_to)?.name?.charAt(0) || 'U'}
+                                        </span>
+                                      </div>
+                                      <div className="text-sm font-medium text-blue-900">
+                                        {users.find(u => u.id === ruleForm.template_data.assigned_to)?.name}
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        setRuleForm({
+                                          ...ruleForm,
+                                          template_data: { ...ruleForm.template_data, assigned_to: '' }
+                                        });
+                                        setAssignedToSearchQuery('');
+                                      }}
+                                      className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>

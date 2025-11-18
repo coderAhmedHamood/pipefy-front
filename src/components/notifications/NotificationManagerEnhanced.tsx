@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Bell, Send, Users, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Send, Users, CheckCircle, AlertCircle, Info, AlertTriangle, Search, X } from 'lucide-react';
 import notificationService from '../../services/notificationService';
 import apiClient from '../../lib/api';
 import { UsersList } from './UsersList';
@@ -60,6 +60,8 @@ export const NotificationManagerEnhanced: React.FC = () => {
   const [type, setType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   // حالات التقارير
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -71,6 +73,23 @@ export const NotificationManagerEnhanced: React.FC = () => {
       fetchUsersForSending();
     }
   }, [viewMode]);
+
+  // إغلاق القائمة المنسدلة عند النقر خارجها
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showUserDropdown && !target.closest('.user-search-container')) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    if (showUserDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showUserDropdown]);
 
   const fetchUsersForSending = async () => {
     setIsLoadingUsers(true);
@@ -164,6 +183,8 @@ export const NotificationManagerEnhanced: React.FC = () => {
     setTitle('');
     setMessage('');
     setType('info');
+    setUserSearchQuery('');
+    setShowUserDropdown(false);
   };
 
   const toggleUserSelection = (userId: string) => {
@@ -327,19 +348,85 @@ export const NotificationManagerEnhanced: React.FC = () => {
                         <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>
                           المستخدم <span className="text-red-500">*</span>
                         </label>
-                        <select
-                          value={selectedUserId}
-                          onChange={(e) => setSelectedUserId(e.target.value)}
-                          className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                          disabled={isLoadingUsers}
-                        >
-                          <option value="">اختر مستخدم</option>
-                          {users.map((user) => (
-                            <option key={user.id} value={user.id}>
-                              {user.name} - {user.email}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative user-search-container">
+                          <div className="relative">
+                            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              value={userSearchQuery}
+                              onChange={(e) => {
+                                setUserSearchQuery(e.target.value);
+                                setShowUserDropdown(true);
+                              }}
+                              onFocus={() => setShowUserDropdown(true)}
+                              placeholder="ابحث عن مستخدم..."
+                              disabled={isLoadingUsers}
+                              className={`w-full ${isMobile || isTablet ? 'px-3 py-2 pr-10 text-sm' : 'px-4 py-3 pr-10'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50`}
+                            />
+                          </div>
+                          
+                          {showUserDropdown && users.length > 0 && !isLoadingUsers && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                              {users.filter((user) => {
+                                const query = userSearchQuery.toLowerCase();
+                                return (
+                                  user.name?.toLowerCase().includes(query) ||
+                                  user.email?.toLowerCase().includes(query)
+                                );
+                              }).map((user) => (
+                                <div
+                                  key={user.id}
+                                  onClick={() => {
+                                    setSelectedUserId(user.id);
+                                    setUserSearchQuery(user.name || '');
+                                    setShowUserDropdown(false);
+                                  }}
+                                  className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${
+                                    selectedUserId === user.id ? 'bg-blue-100' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center space-x-3 space-x-reverse">
+                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                      <span className="text-white font-bold text-sm">
+                                        {user.name?.charAt(0) || 'U'}
+                                      </span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                                      <div className="text-sm text-gray-600 truncate">{user.email}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {selectedUserId && (
+                            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2 space-x-reverse">
+                                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white font-bold text-xs">
+                                      {users.find(u => u.id === selectedUserId)?.name?.charAt(0) || 'U'}
+                                    </span>
+                                  </div>
+                                  <div className="text-sm font-medium text-blue-900">
+                                    {users.find(u => u.id === selectedUserId)?.name}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setSelectedUserId('');
+                                    setUserSearchQuery('');
+                                  }}
+                                  className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className={`${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>

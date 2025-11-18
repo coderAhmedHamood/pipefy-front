@@ -95,6 +95,7 @@ export const UserManagerNew: React.FC = () => {
   const [selectedUserForProcesses, setSelectedUserForProcesses] = useState<any>(null);
   const [selectedProcesses, setSelectedProcesses] = useState<string[]>([]);
   const [isAssigningProcesses, setIsAssigningProcesses] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
   const [usersProcessesReport, setUsersProcessesReport] = useState<any[]>([]);
   const [reportStats, setReportStats] = useState<any>(null);
   const [loadingReport, setLoadingReport] = useState(false);
@@ -2528,6 +2529,7 @@ export const UserManagerNew: React.FC = () => {
                   setIsAssigningProcesses(false);
                   setSelectedUserForProcesses(null);
                   setSelectedProcesses([]);
+                  setUserSearchQuery('');
                 }}
                 className="p-2 rounded-lg hover:bg-gray-100"
               >
@@ -2540,8 +2542,25 @@ export const UserManagerNew: React.FC = () => {
                 {/* اختيار المستخدم */}
                 <div>
                   <h4 className="font-medium text-gray-900 mb-3">اختر المستخدم</h4>
+                  <div className="mb-3 relative">
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={userSearchQuery}
+                      onChange={(e) => setUserSearchQuery(e.target.value)}
+                      placeholder="ابحث عن مستخدم..."
+                      className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                   <div className="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                    {state.users.map((user) => (
+                    {state.users.filter((user) => {
+                      const query = userSearchQuery.toLowerCase();
+                      return (
+                        user.name?.toLowerCase().includes(query) ||
+                        user.email?.toLowerCase().includes(query) ||
+                        user.role?.name?.toLowerCase().includes(query)
+                      );
+                    }).map((user) => (
                       <div
                         key={user.id}
                         className={`p-3 rounded-lg cursor-pointer transition-colors ${
@@ -2687,6 +2706,7 @@ export const UserManagerNew: React.FC = () => {
                   setIsAssigningProcesses(false);
                   setSelectedUserForProcesses(null);
                   setSelectedProcesses([]);
+                  setUserSearchQuery('');
                 }}
                 className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
                 disabled={state.loading}
