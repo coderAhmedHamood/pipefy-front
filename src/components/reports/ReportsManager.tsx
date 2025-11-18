@@ -18,7 +18,8 @@ import {
   FileText,
   Bell,
   Send,
-  ChevronLeft
+  ChevronLeft,
+  Search
 } from 'lucide-react';
 import notificationService from '../../services/notificationService';
 import ticketAssignmentService from '../../services/ticketAssignmentService';
@@ -224,6 +225,7 @@ export const ReportsManager: React.FC = () => {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingUserReport, setIsLoadingUserReport] = useState(false);
   const [sendingNotifications, setSendingNotifications] = useState<{ [key: string]: boolean }>({});
+  const [userSearchQuery, setUserSearchQuery] = useState('');
   
   // حقول التاريخ - افتراضياً آخر 30 يوم
   const getDefaultDates = () => {
@@ -1097,20 +1099,46 @@ export const ReportsManager: React.FC = () => {
             {((isMobile || isTablet) && showUserList) || !(isMobile || isTablet) ? (
               <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
                 {(isMobile || isTablet) && (
-                  <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600">
-                    <h3 className="font-bold text-white text-base">المستخدمين</h3>
-                    <button
-                      onClick={() => setShowUserList(false)}
-                      className="p-1.5 rounded-lg hover:bg-white hover:bg-opacity-20 text-white"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                    </button>
+                  <div className="border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600">
+                    <div className="flex items-center justify-between p-3">
+                      <h3 className="font-bold text-white text-base">المستخدمين</h3>
+                      <button
+                        onClick={() => setShowUserList(false)}
+                        className="p-1.5 rounded-lg hover:bg-white hover:bg-opacity-20 text-white"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                    </div>
+                    {/* Search Bar */}
+                    <div className="p-3 pt-0">
+                      <div className="relative">
+                        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={userSearchQuery}
+                          onChange={(e) => setUserSearchQuery(e.target.value)}
+                          placeholder="ابحث عن مستخدم..."
+                          className="w-full px-3 py-2 pr-10 text-sm border border-white border-opacity-30 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:border-transparent"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
                 {!(isMobile || isTablet) && (
                   <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600`}>
                     <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>المستخدمين</h3>
-                    <p className={`text-green-100 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1`}>اختر مستخدم لعرض التقرير</p>
+                    <p className={`text-green-100 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1 mb-3`}>اختر مستخدم لعرض التقرير</p>
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white text-opacity-70" />
+                      <input
+                        type="text"
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        placeholder="ابحث عن مستخدم..."
+                        className="w-full px-3 py-2 pr-10 text-sm border border-white border-opacity-30 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:border-transparent"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -1120,7 +1148,14 @@ export const ReportsManager: React.FC = () => {
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {users.map((user) => (
+                    {users.filter((user) => {
+                      const query = userSearchQuery.toLowerCase();
+                      return (
+                        user.name?.toLowerCase().includes(query) ||
+                        user.email?.toLowerCase().includes(query) ||
+                        user.role?.name?.toLowerCase().includes(query)
+                      );
+                    }).map((user) => (
                       <button
                         key={user.id}
                         onClick={() => {
@@ -1156,6 +1191,21 @@ export const ReportsManager: React.FC = () => {
                         </div>
                       </button>
                     ))}
+                    
+                    {/* رسالة عدم وجود نتائج */}
+                    {users.filter((user) => {
+                      const query = userSearchQuery.toLowerCase();
+                      return (
+                        user.name?.toLowerCase().includes(query) ||
+                        user.email?.toLowerCase().includes(query) ||
+                        user.role?.name?.toLowerCase().includes(query)
+                      );
+                    }).length === 0 && userSearchQuery && users.length > 0 && (
+                      <div className={`${isMobile || isTablet ? 'p-4' : 'p-8'} text-center`}>
+                        <Search className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-300 mx-auto mb-3`} />
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>لا توجد نتائج للبحث</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

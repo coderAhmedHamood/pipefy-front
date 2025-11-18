@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Mail, Shield, Clock, ChevronRight } from 'lucide-react';
+import { User, Mail, Shield, Clock, ChevronRight, Search } from 'lucide-react';
 import apiClient from '../../lib/api';
 import { useDeviceType } from '../../hooks/useDeviceType';
 
@@ -27,6 +27,7 @@ export const UsersList: React.FC<UsersListProps> = ({ onUserSelect, selectedUser
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastUserRef = useRef<HTMLDivElement | null>(null);
 
@@ -129,7 +130,7 @@ export const UsersList: React.FC<UsersListProps> = ({ onUserSelect, selectedUser
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
       {/* Header */}
       <div className={`${isMobile || isTablet ? 'p-2' : 'p-4'} border-b border-gray-200`}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div className={`flex items-center ${isMobile || isTablet ? 'space-x-2 space-x-reverse' : 'space-x-3 space-x-reverse'}`}>
             <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-blue-100 rounded-lg`}>
               <User className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-600`} />
@@ -139,6 +140,18 @@ export const UsersList: React.FC<UsersListProps> = ({ onUserSelect, selectedUser
               <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>إجمالي: {totalUsers} مستخدم</p>
             </div>
           </div>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ابحث عن مستخدم..."
+            className={`w-full ${isMobile || isTablet ? 'px-3 py-2 pr-10 text-xs' : 'px-4 py-2 pr-10 text-sm'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+          />
         </div>
       </div>
 
@@ -151,10 +164,20 @@ export const UsersList: React.FC<UsersListProps> = ({ onUserSelect, selectedUser
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
-            {users.map((user, index) => (
+            {(() => {
+              const filteredUsers = users.filter((user) => {
+                const query = searchQuery.toLowerCase();
+                return (
+                  user.name?.toLowerCase().includes(query) ||
+                  user.email?.toLowerCase().includes(query) ||
+                  user.role?.name?.toLowerCase().includes(query)
+                );
+              });
+              
+              return filteredUsers.map((user, index) => (
               <div
                 key={user.id}
-                ref={index === users.length - 1 ? lastUserRef : null}
+                ref={index === filteredUsers.length - 1 ? lastUserRef : null}
                 onClick={() => onUserSelect(user)}
                 className={`${isMobile || isTablet ? 'p-2' : 'p-4'} hover:bg-gray-50 cursor-pointer transition-colors ${
                   selectedUserId === user.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
@@ -211,7 +234,23 @@ export const UsersList: React.FC<UsersListProps> = ({ onUserSelect, selectedUser
                   <ChevronRight className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400 flex-shrink-0`} />
                 </div>
               </div>
-            ))}
+              ));
+            })()}
+            
+            {/* رسالة عدم وجود نتائج */}
+            {users.filter((user) => {
+              const query = searchQuery.toLowerCase();
+              return (
+                user.name?.toLowerCase().includes(query) ||
+                user.email?.toLowerCase().includes(query) ||
+                user.role?.name?.toLowerCase().includes(query)
+              );
+            }).length === 0 && searchQuery && users.length > 0 && (
+              <div className={`${isMobile || isTablet ? 'p-4' : 'p-8'} text-center`}>
+                <Search className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-300 mx-auto mb-3`} />
+                <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>لا توجد نتائج للبحث</p>
+              </div>
+            )}
 
             {/* مؤشر التحميل */}
             {isLoading && (
