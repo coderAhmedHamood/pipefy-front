@@ -1141,9 +1141,9 @@ export const UserManagerNew: React.FC = () => {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className={`bg-gray-50 ${isMobile || isTablet ? 'h-screen flex flex-col overflow-hidden' : 'min-h-full'}`}>
       {/* Header */}
-      <div className={`bg-white border-b border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+      <div className={`bg-white border-b border-gray-200 flex-shrink-0 ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
         <div className={`flex items-center justify-between ${isMobile || isTablet ? 'flex-col space-y-3' : 'mb-4'}`}>
           <div className={isMobile || isTablet ? 'w-full' : ''}>
             <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900`}>إدارة المستخدمين</h1>
@@ -1277,7 +1277,7 @@ export const UserManagerNew: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className={isMobile || isTablet ? 'p-3' : 'p-6'}>
+      <div className={`${isMobile || isTablet ? 'flex-1 overflow-y-auto p-3' : 'p-6'}`}>
         {state.loading && (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -1691,7 +1691,7 @@ export const UserManagerNew: React.FC = () => {
         {/* Process Permissions Tab */}
         {!state.loading && selectedTab === 'process-permissions' && hasPermission('processes', 'manage_user_permissions') && (
           <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-6">
+            <div className={`${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
              
 
               {/* زر الإضافة */}
