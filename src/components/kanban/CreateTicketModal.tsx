@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, Upload, Calendar, User, Flag, Tag, FileText, AlertCircle, CheckCircle, Clock, Settings, Eye } from 'lucide-react';
+import { X, Save, Plus, Trash2, Upload, Calendar, User, Flag, Tag, FileText, AlertCircle, CheckCircle, Clock, Settings, Eye, Users, Shield, Search } from 'lucide-react';
 import { Process, ProcessField, Priority, Ticket } from '../../types/workflow';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import { getPriorityLabel } from '../../utils/priorityUtils';
-import { ticketService, CreateTicketData } from '../../services';
+import { ticketService, CreateTicketData, userService } from '../../services';
+import ticketAssignmentService from '../../services/ticketAssignmentService';
+import ticketReviewerService from '../../services/ticketReviewerService';
 import { useDeviceType } from '../../hooks/useDeviceType';
 
 interface CreateTicketModalProps {
@@ -34,8 +36,142 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // حالات المستخدمين المسندين والمراجعين (قبل إنشاء التذكرة)
+  interface PendingAssignment {
+    user_id: string;
+    user_name: string;
+    user_email?: string;
+    user_role?: string;
+    role?: string;
+    notes?: string;
+  }
+
+  interface PendingReviewer {
+    reviewer_id: string;
+    reviewer_name: string;
+    reviewer_email?: string;
+    reviewer_role?: string;
+    review_notes?: string;
+  }
+
+  const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([]);
+  const [pendingReviewers, setPendingReviewers] = useState<PendingReviewer[]>([]);
+  
+  // حالات Modal إضافة مستخدم/مراجع
+  const [showAddAssignment, setShowAddAssignment] = useState(false);
+  const [showAddReviewer, setShowAddReviewer] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [assignmentRole, setAssignmentRole] = useState('');
+  const [assignmentNotes, setAssignmentNotes] = useState('');
+  const [reviewerNotes, setReviewerNotes] = useState('');
+  const [assignmentSearchQuery, setAssignmentSearchQuery] = useState('');
+  const [reviewerSearchQuery, setReviewerSearchQuery] = useState('');
+  const [showAssignmentDropdown, setShowAssignmentDropdown] = useState(false);
+  const [showReviewerDropdown, setShowReviewerDropdown] = useState(false);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
   useEffect(() => {
   }, [process, stageId]);
+
+  // جلب المستخدمين عند فتح Modal إضافة مستخدم أو مراجع
+  useEffect(() => {
+    if (showAddAssignment || showAddReviewer) {
+      loadAllUsers();
+    }
+  }, [showAddAssignment, showAddReviewer]);
+
+  // إغلاق القائمة المنسدلة عند النقر خارجها
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showAssignmentDropdown && !target.closest('.assignment-search-container')) {
+        setShowAssignmentDropdown(false);
+      }
+      if (showReviewerDropdown && !target.closest('.reviewer-search-container')) {
+        setShowReviewerDropdown(false);
+      }
+    };
+
+    if (showAssignmentDropdown || showReviewerDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showAssignmentDropdown, showReviewerDropdown]);
+
+  const processUsers = getProcessUsers(process.id);
+
+  const loadAllUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const response = await userService.getAllUsers({ per_page: 100 });
+      
+      if (response.success && response.data) {
+        const users = response.data;
+        setAllUsers(users);
+      } else {
+        setAllUsers([]);
+      }
+    } catch (error) {
+      console.error('خطأ في جلب المستخدمين:', error);
+      setAllUsers([]);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const handleAddPendingAssignment = () => {
+    if (!selectedUserId) return;
+    
+    const users = allUsers.length > 0 ? allUsers : processUsers;
+    const selectedUser = users.find(u => u.id === selectedUserId);
+    
+    if (selectedUser && !pendingAssignments.find(a => a.user_id === selectedUserId)) {
+      setPendingAssignments(prev => [...prev, {
+        user_id: selectedUserId,
+        user_name: selectedUser.name || '',
+        user_email: selectedUser.email,
+        user_role: selectedUser.role?.name,
+        role: assignmentRole || undefined,
+        notes: assignmentNotes || undefined
+      }]);
+      
+      // إعادة تعيين الحقول
+      setSelectedUserId('');
+      setAssignmentRole('');
+      setAssignmentNotes('');
+      setAssignmentSearchQuery('');
+      setShowAssignmentDropdown(false);
+      setShowAddAssignment(false);
+    }
+  };
+
+  const handleAddPendingReviewer = () => {
+    if (!selectedUserId) return;
+    
+    const users = allUsers.length > 0 ? allUsers : processUsers;
+    const selectedUser = users.find(u => u.id === selectedUserId);
+    
+    if (selectedUser && !pendingReviewers.find(r => r.reviewer_id === selectedUserId)) {
+      setPendingReviewers(prev => [...prev, {
+        reviewer_id: selectedUserId,
+        reviewer_name: selectedUser.name || '',
+        reviewer_email: selectedUser.email,
+        reviewer_role: selectedUser.role?.name,
+        review_notes: reviewerNotes || undefined
+      }]);
+      
+      // إعادة تعيين الحقول
+      setSelectedUserId('');
+      setReviewerNotes('');
+      setReviewerSearchQuery('');
+      setShowReviewerDropdown(false);
+      setShowAddReviewer(false);
+    }
+  };
+
   // تحديث البيانات عند تغيير الحقل
   const handleFieldChange = (fieldId: string, value: any) => {
     setFormData(prev => ({
@@ -107,9 +243,63 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
       const response = await ticketService.createTicket(apiTicketData);
 
       if (response.success && response.data) {
+        const createdTicket = response.data;
+        const ticketId = createdTicket.id;
+
+        // إضافة المستخدمين المسندين المختارين مسبقاً (إن وجدوا)
+        if (pendingAssignments.length > 0 && ticketId) {
+          const assignmentPromises = pendingAssignments.map(async (assignment) => {
+            try {
+              const assignmentResponse = await ticketAssignmentService.assignUser({
+                ticket_id: ticketId,
+                user_id: assignment.user_id,
+                role: assignment.role || undefined,
+                notes: assignment.notes || undefined
+              });
+              
+              if (!assignmentResponse.success) {
+                console.error('فشل في إضافة مستخدم مسند:', assignment.user_name, assignmentResponse.message);
+              }
+              
+              return assignmentResponse.success;
+            } catch (error) {
+              console.error('خطأ في إضافة مستخدم مسند:', assignment.user_name, error);
+              return false;
+            }
+          });
+
+          // انتظار إكمال جميع عمليات الإضافة
+          await Promise.all(assignmentPromises);
+        }
+
+        // إضافة المراجعين المختارين مسبقاً (إن وجدوا)
+        if (pendingReviewers.length > 0 && ticketId) {
+          const reviewerPromises = pendingReviewers.map(async (reviewer) => {
+            try {
+              const reviewerResponse = await ticketReviewerService.addReviewer({
+                ticket_id: ticketId,
+                reviewer_id: reviewer.reviewer_id,
+                review_notes: reviewer.review_notes || undefined
+              });
+              
+              if (!reviewerResponse.success) {
+                console.error('فشل في إضافة مراجع:', reviewer.reviewer_name, reviewerResponse.message);
+              }
+              
+              return reviewerResponse.success;
+            } catch (error) {
+              console.error('خطأ في إضافة مراجع:', reviewer.reviewer_name, error);
+              return false;
+            }
+          });
+
+          // انتظار إكمال جميع عمليات الإضافة
+          await Promise.all(reviewerPromises);
+        }
+
         // إعداد بيانات التذكرة للحالة المحلية
         const localTicketData: Partial<Ticket> = {
-          ...response.data,
+          ...createdTicket,
           data: Object.fromEntries(
             process.fields.map(field => [field.id, formData[field.id]])
           ),
@@ -118,6 +308,9 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
         // حفظ في الحالة المحلية أيضاً
         onSave(localTicketData);
+        
+        // إغلاق الـ Modal بعد النجاح
+        onClose();
       } else {
         throw new Error(response.message || 'فشل في إنشاء التذكرة');
       }
@@ -510,6 +703,117 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                 </div>
               </div>
             )}
+
+            {/* المستخدمين المسندين والمراجعين */}
+            <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+              <div className={`grid grid-cols-1 ${isMobile || isTablet ? '' : 'md:grid-cols-2'} gap-6`}>
+                {/* المستخدمين المُسندين */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                      <Users className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
+                      <span>المستخدمين المُسندين ({pendingAssignments.length})</span>
+                    </h3>
+                    <button
+                      onClick={() => setShowAddAssignment(true)}
+                      className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-blue-600 hover:bg-blue-50 rounded-lg transition-colors`}
+                      title="إضافة مستخدم"
+                    >
+                      <Plus className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
+                    </button>
+                  </div>
+
+                  <div className={`space-y-2 ${isMobile || isTablet ? 'max-h-32' : 'max-h-48'} overflow-y-auto`}>
+                    {pendingAssignments.length > 0 ? (
+                      pendingAssignments.map((assignment, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-white font-bold text-xs">
+                                {assignment.user_name?.charAt(0) || 'U'}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-blue-900 text-xs truncate">{assignment.user_name || 'مستخدم'}</div>
+                              {assignment.user_role && (
+                                <div className="text-[10px] text-blue-700 truncate">{assignment.user_role}</div>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setPendingAssignments(prev => prev.filter((_, i) => i !== index));
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                            title="حذف"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-gray-400">
+                        <Users className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} mx-auto mb-2`} />
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>لا يوجد مستخدمين مُسندين</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* المراجعين */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
+                      <Shield className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
+                      <span>المراجعين ({pendingReviewers.length})</span>
+                    </h3>
+                    <button
+                      onClick={() => setShowAddReviewer(true)}
+                      className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-green-600 hover:bg-green-50 rounded-lg transition-colors`}
+                      title="إضافة مراجع"
+                    >
+                      <Plus className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
+                    </button>
+                  </div>
+
+                  <div className={`space-y-2 ${isMobile || isTablet ? 'max-h-32' : 'max-h-48'} overflow-y-auto`}>
+                    {pendingReviewers.length > 0 ? (
+                      pendingReviewers.map((reviewer, index) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-white font-bold text-xs">
+                                {reviewer.reviewer_name?.charAt(0) || 'R'}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-green-900 text-xs truncate">{reviewer.reviewer_name || 'مراجع'}</div>
+                              {reviewer.reviewer_role && (
+                                <div className="text-[10px] text-green-700 truncate">{reviewer.reviewer_role}</div>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setPendingReviewers(prev => prev.filter((_, i) => i !== index));
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                            title="حذف"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-gray-400">
+                        <Shield className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} mx-auto mb-2`} />
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>لا يوجد مراجعين</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
             </div>
 
             {/* Right Panel - Preview & Actions */}
@@ -667,6 +971,335 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Add Assignment Modal */}
+      {showAddAssignment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-4" dir="rtl">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">إضافة مستخدم مُسند</h3>
+              <button
+                onClick={() => {
+                  setShowAddAssignment(false);
+                  setSelectedUserId('');
+                  setAssignmentRole('');
+                  setAssignmentNotes('');
+                  setAssignmentSearchQuery('');
+                  setShowAssignmentDropdown(false);
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">المستخدم</label>
+                <div className="relative assignment-search-container">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={assignmentSearchQuery}
+                      onChange={(e) => {
+                        setAssignmentSearchQuery(e.target.value);
+                        setShowAssignmentDropdown(true);
+                      }}
+                      onFocus={() => setShowAssignmentDropdown(true)}
+                      placeholder="ابحث عن مستخدم..."
+                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  {showAssignmentDropdown && (allUsers.length > 0 || processUsers.length > 0) && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {(() => {
+                        const users = allUsers.length > 0 ? allUsers : processUsers;
+                        const filteredUsers = users.filter((user) => {
+                          const query = assignmentSearchQuery.toLowerCase();
+                          return (
+                            user.name?.toLowerCase().includes(query) ||
+                            user.email?.toLowerCase().includes(query) ||
+                            user.role?.name?.toLowerCase().includes(query)
+                          );
+                        });
+                        
+                        return filteredUsers.length > 0 ? (
+                          filteredUsers.map((user) => (
+                            <div
+                              key={user.id}
+                              onClick={() => {
+                                setSelectedUserId(user.id);
+                                setAssignmentSearchQuery(user.name || '');
+                                setShowAssignmentDropdown(false);
+                              }}
+                              className={`px-4 py-3 cursor-pointer hover:bg-blue-50 transition-colors ${
+                                selectedUserId === user.id ? 'bg-blue-100' : ''
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3 space-x-reverse">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white font-bold text-sm">
+                                    {user.name?.charAt(0) || 'U'}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                                  <div className="text-sm text-gray-600 truncate">{user.email}</div>
+                                  <div className="text-xs text-gray-500">{user.role?.name}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-8 text-center text-gray-500">
+                            <p className="text-sm">لا توجد نتائج</p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+                
+                {selectedUserId && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-blue-900">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name}
+                          </div>
+                          <div className="text-sm text-blue-700">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.role?.name}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedUserId('');
+                          setAssignmentSearchQuery('');
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">الدور (اختياري)</label>
+                <input
+                  type="text"
+                  value={assignmentRole}
+                  onChange={(e) => setAssignmentRole(e.target.value)}
+                  placeholder="مثال: مطور، مصمم، مدير"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات (اختياري)</label>
+                <textarea
+                  value={assignmentNotes}
+                  onChange={(e) => setAssignmentNotes(e.target.value)}
+                  rows={3}
+                  placeholder="أي ملاحظات إضافية..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-3 space-x-reverse mt-6">
+              <button
+                onClick={handleAddPendingAssignment}
+                disabled={!selectedUserId}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                إضافة
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddAssignment(false);
+                  setSelectedUserId('');
+                  setAssignmentRole('');
+                  setAssignmentNotes('');
+                  setAssignmentSearchQuery('');
+                  setShowAssignmentDropdown(false);
+                }}
+                className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Reviewer Modal */}
+      {showAddReviewer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-60 p-4" dir="rtl">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">إضافة مراجع</h3>
+              <button
+                onClick={() => {
+                  setShowAddReviewer(false);
+                  setSelectedUserId('');
+                  setReviewerNotes('');
+                  setReviewerSearchQuery('');
+                  setShowReviewerDropdown(false);
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">المراجع</label>
+                <div className="relative reviewer-search-container">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={reviewerSearchQuery}
+                      onChange={(e) => {
+                        setReviewerSearchQuery(e.target.value);
+                        setShowReviewerDropdown(true);
+                      }}
+                      onFocus={() => setShowReviewerDropdown(true)}
+                      placeholder="ابحث عن مراجع..."
+                      className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  {showReviewerDropdown && (allUsers.length > 0 || processUsers.length > 0) && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {(() => {
+                        const users = allUsers.length > 0 ? allUsers : processUsers;
+                        const filteredUsers = users.filter((user) => {
+                          const query = reviewerSearchQuery.toLowerCase();
+                          return (
+                            user.name?.toLowerCase().includes(query) ||
+                            user.email?.toLowerCase().includes(query) ||
+                            user.role?.name?.toLowerCase().includes(query)
+                          );
+                        });
+                        
+                        return filteredUsers.length > 0 ? (
+                          filteredUsers.map((user) => (
+                            <div
+                              key={user.id}
+                              onClick={() => {
+                                setSelectedUserId(user.id);
+                                setReviewerSearchQuery(user.name || '');
+                                setShowReviewerDropdown(false);
+                              }}
+                              className={`px-4 py-3 cursor-pointer hover:bg-green-50 transition-colors ${
+                                selectedUserId === user.id ? 'bg-green-100' : ''
+                              }`}
+                            >
+                              <div className="flex items-center space-x-3 space-x-reverse">
+                                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white font-bold text-sm">
+                                    {user.name?.charAt(0) || 'R'}
+                                  </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                                  <div className="text-sm text-gray-600 truncate">{user.email}</div>
+                                  <div className="text-xs text-gray-500">{user.role?.name}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-8 text-center text-gray-500">
+                            <p className="text-sm">لا توجد نتائج</p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+                
+                {selectedUserId && (
+                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name?.charAt(0) || 'R'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-green-900">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name}
+                          </div>
+                          <div className="text-sm text-green-700">
+                            {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.role?.name}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedUserId('');
+                          setReviewerSearchQuery('');
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات المراجعة (اختياري)</label>
+                <textarea
+                  value={reviewerNotes}
+                  onChange={(e) => setReviewerNotes(e.target.value)}
+                  rows={3}
+                  placeholder="أي ملاحظات إضافية للمراجعة..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-3 space-x-reverse mt-6">
+              <button
+                onClick={handleAddPendingReviewer}
+                disabled={!selectedUserId}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                إضافة
+              </button>
+              <button
+                onClick={() => {
+                  setShowAddReviewer(false);
+                  setSelectedUserId('');
+                  setReviewerNotes('');
+                  setReviewerSearchQuery('');
+                  setShowReviewerDropdown(false);
+                }}
+                className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
