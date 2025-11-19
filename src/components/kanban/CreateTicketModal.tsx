@@ -214,9 +214,21 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // منع submit تلقائي عند الضغط على Enter
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+      // السماح فقط إذا كان الـ target هو زر submit
+      const target = e.target as HTMLElement;
+      if (target.type !== 'submit') {
+        e.preventDefault();
+      }
+    }
+  };
+
   // حفظ التذكرة
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
 
     if (!validateForm()) return;
 
@@ -338,6 +350,12 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             type="text"
             value={value}
             onChange={(e) => handleFieldChange(field.id, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             className={baseInputClasses}
             placeholder={`أدخل ${field.name}...`}
           />
@@ -349,6 +367,12 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             type="number"
             value={value}
             onChange={(e) => handleFieldChange(field.id, Number(e.target.value))}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             className={baseInputClasses}
             placeholder={`أدخل ${field.name}...`}
           />
@@ -360,6 +384,12 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             type="email"
             value={value}
             onChange={(e) => handleFieldChange(field.id, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             className={baseInputClasses}
             placeholder="example@domain.com"
           />
@@ -371,6 +401,12 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             type="tel"
             value={value}
             onChange={(e) => handleFieldChange(field.id, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             className={baseInputClasses}
             placeholder="+966 50 123 4567"
           />
@@ -401,6 +437,13 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
           <textarea
             value={value}
             onChange={(e) => handleFieldChange(field.id, e.target.value)}
+            onKeyDown={(e) => {
+              // السماح بـ Enter في textarea للأسطر الجديدة، لكن منع Ctrl+Enter أو Shift+Enter من submit
+              if ((e.ctrlKey || e.metaKey || e.shiftKey) && e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
             rows={3}
             className={baseInputClasses}
             placeholder={`أدخل ${field.name}...`}
@@ -589,7 +632,11 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className={`flex flex-col ${isMobile || isTablet ? 'h-[calc(100vh-80px)]' : 'h-[calc(95vh-120px)]'}`}>
+        <form 
+          onSubmit={handleSubmit} 
+          onKeyDown={handleFormKeyDown}
+          className={`flex flex-col ${isMobile || isTablet ? 'h-[calc(100vh-80px)]' : 'h-[calc(95vh-120px)]'}`}
+        >
           <div className={`flex flex-1 min-h-0 ${isMobile || isTablet ? 'flex-col' : ''}`}>
             {/* Left Panel - Form Content */}
             <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} ${isMobile || isTablet ? 'space-y-3' : 'space-y-6'}`}>
@@ -609,6 +656,12 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                       type="text"
                       value={formData.title}
                       onChange={(e) => handleFieldChange('title', e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
                       className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                         errors.title ? 'border-red-500 bg-red-50' : 'border-gray-300'
                       }`}
@@ -629,6 +682,13 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                     <textarea
                       value={formData.description}
                       onChange={(e) => handleFieldChange('description', e.target.value)}
+                      onKeyDown={(e) => {
+                        // السماح بـ Enter في textarea للأسطر الجديدة، لكن منع Ctrl+Enter أو Shift+Enter من submit
+                        if ((e.ctrlKey || e.metaKey || e.shiftKey) && e.key === 'Enter') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
                       rows={isMobile || isTablet ? 3 : 4}
                       className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none`}
                       placeholder="اشرح التفاصيل والمتطلبات بوضوح..."
@@ -715,7 +775,12 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                       <span>المستخدمين المُسندين ({pendingAssignments.length})</span>
                     </h3>
                     <button
-                      onClick={() => setShowAddAssignment(true)}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowAddAssignment(true);
+                      }}
                       className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-blue-600 hover:bg-blue-50 rounded-lg transition-colors`}
                       title="إضافة مستخدم"
                     >
@@ -741,7 +806,10 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                             </div>
                           </div>
                           <button
-                            onClick={() => {
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setPendingAssignments(prev => prev.filter((_, i) => i !== index));
                             }}
                             className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
@@ -768,7 +836,12 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                       <span>المراجعين ({pendingReviewers.length})</span>
                     </h3>
                     <button
-                      onClick={() => setShowAddReviewer(true)}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowAddReviewer(true);
+                      }}
                       className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-green-600 hover:bg-green-50 rounded-lg transition-colors`}
                       title="إضافة مراجع"
                     >
@@ -794,7 +867,10 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                             </div>
                           </div>
                           <button
-                            onClick={() => {
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setPendingReviewers(prev => prev.filter((_, i) => i !== index));
                             }}
                             className="text-red-500 hover:text-red-700 p-1 rounded transition-colors"
