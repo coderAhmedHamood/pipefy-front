@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { MessageSquare, Plus, Clock, Loader2, Edit2, Trash2, Save } from 'lucide-react';
+import { MessageSquare, Plus, Clock, Loader2, Edit2, Trash2, Save, Activity } from 'lucide-react';
 import { useComments } from '../../hooks/useComments';
 import { Comment } from '../../services/commentService';
 import notificationService from '../../services/notificationService';
@@ -160,47 +160,22 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     return name?.split(' ').map(n => n.charAt(0)).join('').toUpperCase() || 'U';
   };
 
-  // تحديد ما إذا كان التعليق تلقائياً من النظام
-  const isSystemComment = (comment: Comment): boolean => {
-    const systemPatterns = [
-      /^تم إنشاء هذه التذكرة/i,
-      /^تم نقل التذكرة/i,
-      /^تم اسناد/i,
-      /^تم إسناد/i,
-      /^تم إضافة مستخدم/i,
-      /^تم إضافة مراجع/i,
-      /^تم حذف/i,
-      /^تم تحديث/i,
-      /^تم نقل/i,
-      /^تم إنشاء/i,
-      /^تم تعديل/i,
-      /^تم تغيير/i,
-      /^This ticket was created/i,
-      /^Ticket was moved/i,
-      /^User assigned/i,
-      /^Reviewer added/i
-    ];
+  // فصل التعليقات الداخلية عن غير الداخلية
+  const { internalComments, activityLogComments } = useMemo(() => {
+    const internal = comments.filter(comment => comment.is_internal === true);
+    const activityLog = comments.filter(comment => comment.is_internal === false);
     
-    return systemPatterns.some(pattern => pattern.test(comment.content));
-  };
-
-  // ترتيب التعليقات: تعليقات المستخدمين أولاً (الأحدث أولاً)، ثم التعليقات التلقائية
-  const sortedComments = useMemo(() => {
-    const userComments = comments.filter(comment => !isSystemComment(comment));
-    const systemComments = comments.filter(comment => isSystemComment(comment));
-    
-    // ترتيب تعليقات المستخدمين حسب التاريخ (الأحدث أولاً)
-    userComments.sort((a, b) => {
+    // ترتيب التعليقات الداخلية حسب التاريخ (الأحدث أولاً)
+    internal.sort((a, b) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     
-    // ترتيب التعليقات التلقائية حسب التاريخ (الأحدث أولاً)
-    systemComments.sort((a, b) => {
+    // ترتيب سجل الأنشطة حسب التاريخ (الأحدث أولاً)
+    activityLog.sort((a, b) => {
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
     
-    // دمج: تعليقات المستخدمين أولاً، ثم التعليقات التلقائية
-    return [...userComments, ...systemComments];
+    return { internalComments: internal, activityLogComments: activityLog };
   }, [comments]);
 
   if (loading && comments.length === 0) {
@@ -215,189 +190,223 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2 space-x-reverse">
-          <MessageSquare className="w-5 h-5 text-purple-500" />
-          <h3 className="text-lg font-semibold text-gray-900">
-            التعليقات ({comments.length})
-          </h3>
-        </div>
-        
-        <div className="flex items-center space-x-2 space-x-reverse">
-          <button
-            onClick={refreshComments}
-            disabled={loading}
-            className="text-gray-500 hover:text-gray-700 p-1 rounded"
-            title="تحديث التعليقات"
-          >
-            <Clock className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+    <div className="space-y-6">
+      {/* قسم التعليقات الداخلية */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2 space-x-reverse">
+            <MessageSquare className="w-5 h-5 text-purple-500" />
+            <h3 className="text-lg font-semibold text-gray-900">
+              التعليقات ({internalComments.length})
+            </h3>
+          </div>
           
-          <button
-            onClick={() => setIsAddingComment(true)}
-            className="text-purple-600 hover:text-purple-700 flex items-center space-x-1 space-x-reverse text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>إضافة تعليق</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-700 text-sm">{error}</p>
-        </div>
-      )}
-
-      {/* Add Comment Form */}
-      {isAddingComment && (
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            rows={3}
-            placeholder="اكتب تعليقك هنا..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-            disabled={isSubmitting}
-          />
-          <div className="flex items-center justify-end space-x-2 space-x-reverse mt-3">
+          <div className="flex items-center space-x-2 space-x-reverse">
             <button
-              onClick={() => {
-                setIsAddingComment(false);
-                setNewComment('');
-              }}
-              disabled={isSubmitting}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+              onClick={refreshComments}
+              disabled={loading}
+              className="text-gray-500 hover:text-gray-700 p-1 rounded"
+              title="تحديث التعليقات"
             >
-              إلغاء
+              <Clock className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
+            
             <button
-              onClick={handleAddComment}
-              disabled={!newComment.trim() || isSubmitting}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center space-x-1 space-x-reverse"
+              onClick={() => setIsAddingComment(true)}
+              className="text-purple-600 hover:text-purple-700 flex items-center space-x-1 space-x-reverse text-sm"
             >
-              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              <span>إضافة</span>
+              <Plus className="w-4 h-4" />
+              <span>إضافة تعليق</span>
             </button>
           </div>
         </div>
-      )}
 
-      {/* Comments List */}
-      <div className="space-y-4 max-h-96 overflow-y-auto">
-        {sortedComments.length > 0 ? (
-          sortedComments.map((comment) => {
-            const isUserComment = !isSystemComment(comment);
-            
-            return (
-            <div key={comment.id} className="flex items-start space-x-3 space-x-reverse">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-xs">
-                  {getInitials(comment.author_name)}
-                </span>
-              </div>
-              <div className="flex-1 bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-900">
-                    {comment.author_name}
-                  </span>
-                  <div className="flex items-center space-x-2 space-x-reverse">
-                    <span className="text-xs text-gray-500">
-                      {formatDate(comment.created_at)}
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Add Comment Form */}
+        {isAddingComment && (
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              rows={3}
+              placeholder="اكتب تعليقك هنا..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+              disabled={isSubmitting}
+            />
+            <div className="flex items-center justify-end space-x-2 space-x-reverse mt-3">
+              <button
+                onClick={() => {
+                  setIsAddingComment(false);
+                  setNewComment('');
+                }}
+                disabled={isSubmitting}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleAddComment}
+                disabled={!newComment.trim() || isSubmitting}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center space-x-1 space-x-reverse"
+              >
+                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>إضافة</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Internal Comments List */}
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {internalComments.length > 0 ? (
+            internalComments.map((comment) => {
+              return (
+                <div key={comment.id} className="flex items-start space-x-3 space-x-reverse">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-xs">
+                      {getInitials(comment.author_name)}
                     </span>
-                    {/* أزرار التحديث والحذف - فقط للتعليقات التي is_internal: true */}
-                    {comment.is_internal && (
-                      <div className="flex items-center space-x-1 space-x-reverse">
-                        <button
-                          type="button"
-                          onClick={() => handleEditComment(comment)}
-                          disabled={isSubmitting || editingCommentId === comment.id}
-                          className="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
-                          title="تعديل التعليق"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteComment(comment.id)}
-                          disabled={isSubmitting}
-                          className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
-                          title="حذف التعليق"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                  </div>
+                  <div className="flex-1 bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-900">
+                        {comment.author_name}
+                      </span>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <span className="text-xs text-gray-500">
+                          {formatDate(comment.created_at)}
+                        </span>
+                        {/* أزرار التحديث والحذف - فقط للتعليقات الداخلية */}
+                        <div className="flex items-center space-x-1 space-x-reverse">
+                          <button
+                            type="button"
+                            onClick={() => handleEditComment(comment)}
+                            disabled={isSubmitting || editingCommentId === comment.id}
+                            className="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
+                            title="تعديل التعليق"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteComment(comment.id)}
+                            disabled={isSubmitting}
+                            className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                            title="حذف التعليق"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
+                    </div>
+
+                    {editingCommentId === comment.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          rows={3}
+                          placeholder="تعديل التعليق..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+                          disabled={isSubmitting}
+                        />
+                        <div className="flex items-center justify-end space-x-2 space-x-reverse">
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            disabled={isSubmitting}
+                            className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm"
+                          >
+                            إلغاء
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSaveEdit(comment.id)}
+                            disabled={!editingContent.trim() || isSubmitting}
+                            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center space-x-1 space-x-reverse"
+                          >
+                            {isSubmitting ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                <span>حفظ...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-3 h-3" />
+                                <span>حفظ</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                        {comment.content}
+                      </p>
                     )}
                   </div>
                 </div>
+              );
+            })
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <MessageSquare className="w-12 h-12 mx-auto mb-2" />
+              <p className="text-sm">لا توجد تعليقات بعد</p>
+              <p className="text-xs mt-1">كن أول من يضيف تعليقاً</p>
+            </div>
+          )}
+        </div>
+      </div>
 
-                {editingCommentId === comment.id ? (
-                  <div className="space-y-2">
-                    <textarea
-                      value={editingContent}
-                      onChange={(e) => setEditingContent(e.target.value)}
-                      rows={3}
-                      placeholder="تعديل التعليق..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
-                      disabled={isSubmitting}
-                    />
-                    <div className="flex items-center justify-end space-x-2 space-x-reverse">
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        disabled={isSubmitting}
-                        className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm"
-                      >
-                        إلغاء
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleSaveEdit(comment.id)}
-                        disabled={!editingContent.trim() || isSubmitting}
-                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center space-x-1 space-x-reverse"
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            <span>حفظ...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-3 h-3" />
-                            <span>حفظ</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                    {comment.content}
-                  </p>
-                )}
+      {/* قسم سجل الأنشطة */}
+      {activityLogComments.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2 space-x-reverse">
+              <Activity className="w-5 h-5 text-blue-500" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                سجل الأنشطة ({activityLogComments.length})
+              </h3>
+            </div>
+          </div>
 
-                {comment.is_internal && (
-                  <div className="mt-2">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                      تعليق داخلي
+          {/* Activity Log List */}
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {activityLogComments.map((comment) => {
+              return (
+                <div key={comment.id} className="flex items-start space-x-3 space-x-reverse">
+                  <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-bold text-xs">
+                      {getInitials(comment.author_name)}
                     </span>
                   </div>
-                )}
-              </div>
-            </div>
-            );
-          })
-        ) : (
-          <div className="text-center py-8 text-gray-400">
-            <MessageSquare className="w-12 h-12 mx-auto mb-2" />
-            <p className="text-sm">لا توجد تعليقات بعد</p>
-            <p className="text-xs mt-1">كن أول من يضيف تعليقاً</p>
+                  <div className="flex-1 bg-gray-50 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-900">
+                        {comment.author_name}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {formatDate(comment.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                      {comment.content}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

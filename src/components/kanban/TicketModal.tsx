@@ -1723,7 +1723,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </>
               ) : (
                 <>
-                  {allowedStages.length > 0 && (
+                  {/* {allowedStages.length > 0 && (
                     <button
                       onClick={() => setShowStageSelector(true)}
                       className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
@@ -1731,7 +1731,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       <ArrowRight className="w-4 h-4" />
                       <span>نقل إلى مرحلة</span>
                     </button>
-                  )}
+                  )} */}
                   
                   <button
                     onClick={() => setShowProcessSelector(true)}
