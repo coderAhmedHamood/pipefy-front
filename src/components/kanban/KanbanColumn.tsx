@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { KanbanCard } from './KanbanCard';
 import { Stage, Ticket } from '../../types/workflow';
 import { Plus, MoreVertical, Loader2 } from 'lucide-react';
@@ -80,7 +79,15 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   }, [hasMore, loadingMore, onLoadMore, stage.name]);
 
   return (
-    <div className="flex flex-col w-80 bg-gray-100 rounded-lg shadow-sm flex-shrink-0">
+    <div 
+      ref={setNodeRef}
+      className={`
+        flex flex-col w-80 rounded-lg shadow-sm flex-shrink-0 transition-all duration-200
+        ${isOver && isDropAllowed ? 'bg-blue-100 border-2 border-blue-400 shadow-lg' : 
+          isOver && !isDropAllowed ? 'bg-red-100 border-2 border-red-400 shadow-lg opacity-60' : 
+          'bg-gray-100'}
+      `}
+    >
       {/* Column Header */}
       <div className="p-4 border-b border-gray-200 bg-white rounded-t-lg">
         <div className="flex items-center justify-between mb-2">
@@ -136,30 +143,31 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
       {/* Column Content */}
       <div 
         ref={(node) => {
-          setNodeRef(node);
           if (node) {
             (scrollContainerRef as React.MutableRefObject<HTMLDivElement>).current = node;
           }
         }}
         className={`
-          flex-1 p-4 space-y-3 min-h-[200px] max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-hidden transition-colors
-          ${isOver && isDropAllowed ? 'bg-blue-50 border-2 border-dashed border-blue-300' : 
-            isOver && !isDropAllowed ? 'bg-red-50 border-2 border-dashed border-red-300' : 
-            'bg-gray-100'}
+          flex-1 p-4 space-y-3 min-h-[200px] max-h-[calc(100vh-280px)] overflow-y-auto overflow-x-hidden transition-colors relative
+          ${isOver && isDropAllowed ? 'bg-blue-50' : 
+            isOver && !isDropAllowed ? 'bg-red-50' : 
+            'bg-transparent'}
         `}
       >
-        <SortableContext items={ticketIds} strategy={verticalListSortingStrategy}>
-          {tickets.map((ticket) => (
+        {tickets.map((ticket) => (
+          <div
+            key={ticket.id}
+            className={draggedTicket?.id === ticket.id ? 'opacity-30' : ''}
+          >
             <KanbanCard
-              key={ticket.id}
               ticket={ticket}
               onClick={() => {
                 onTicketClick(ticket);
               }}
               isDragging={draggedTicket?.id === ticket.id}
             />
-          ))}
-        </SortableContext>
+          </div>
+        ))}
 
         {tickets.length === 0 && !isOver && (
           <div className="text-center py-8 text-gray-400">

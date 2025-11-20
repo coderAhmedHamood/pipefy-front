@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSortable } from '@dnd-kit/sortable';
+import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Ticket } from '../../types/workflow';
 import { Clock, Paperclip, MessageSquare, Calendar, Flag } from 'lucide-react';
@@ -18,24 +18,68 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
     listeners,
     setNodeRef,
     transform,
-    transition,
-    isDragging: isSortableDragging
-  } = useSortable({
+    isDragging: isDraggableDragging
+  } = useDraggable({
     id: ticket.id
   });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging || isSortableDragging ? 0.5 : 1,
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging || isDraggableDragging ? 0.5 : 1,
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    // منع تداخل الأحداث مع السحب والإفلات
-    if (!isSortableDragging && !isDragging) {
-      e.stopPropagation();
-      onClick();
+  // تتبع ما إذا كان المستخدم قد سحب فعلياً
+  const hasDraggedRef = React.useRef(false);
+  const clickTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const previousDraggingStateRef = React.useRef(false);
+
+  // تتبع تغييرات حالة السحب
+  React.useEffect(() => {
+    const isCurrentlyDragging = isDraggableDragging || isDragging;
+    
+    // إذا بدأ السحب
+    if (isCurrentlyDragging && !previousDraggingStateRef.current) {
+      hasDraggedRef.current = true;
+      // إلغاء أي نقر معلق
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+        clickTimeoutRef.current = null;
+      }
     }
+    
+    // إذا انتهى السحب
+    if (!isCurrentlyDragging && previousDraggingStateRef.current) {
+      // كان هناك سحب، نعيد تعيين الحالة بعد تأخير
+      setTimeout(() => {
+        hasDraggedRef.current = false;
+      }, 300);
+    }
+    
+    previousDraggingStateRef.current = isCurrentlyDragging;
+  }, [isDraggableDragging, isDragging]);
+
+  const handleClick = (e: React.MouseEvent) => {
+    // إذا كان هناك سحب، لا ننفذ النقر
+    if (hasDraggedRef.current || isDraggableDragging || isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // تأخير للتأكد من عدم وجود سحب
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+
+    clickTimeoutRef.current = setTimeout(() => {
+      // التحقق مرة أخرى من عدم وجود سحب
+      if (!hasDraggedRef.current && !isDraggableDragging && !isDragging) {
+        onClick();
+      }
+    }, 200);
   };
 
   // تحديد التاريخ المرجعي (تاريخ الإكمال إن وجد، وإلا التاريخ الحالي)
@@ -74,17 +118,18 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`
-        bg-white border-l-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer
-        ${getPriorityColor(ticket.priority)}
-        ${isDragging || isSortableDragging ? 'shadow-lg scale-105' : ''}
-      `}
+      {...listeners}
       onClick={handleClick}
+      className={`
+        bg-white border-l-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200
+        ${isDragging || isDraggableDragging ? 'cursor-grabbing shadow-lg scale-105' : 'cursor-grab'}
+        ${getPriorityColor(ticket.priority)}
+      `}
+      title={isDragging || isDraggableDragging ? 'جاري السحب...' : 'اسحب لنقل التذكرة أو انقر للفتح'}
     >
-      {/* منطقة السحب */}
+      {/* أيقونة السحب */}
       <div
-        {...listeners}
-        className="absolute top-2 left-2 w-6 h-6 cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 transition-opacity"
+        className="absolute top-2 left-2 w-6 h-6 opacity-30 hover:opacity-60 transition-opacity pointer-events-none"
         title="اسحب لنقل التذكرة"
       >
         <div className="w-full h-full flex items-center justify-center">

@@ -260,14 +260,19 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
           .filter(t => t.id !== ticketId);
       }
 
-      // إضافة التذكرة للمرحلة الجديدة
+      // إضافة التذكرة للمرحلة الجديدة (مع التحقق من عدم التكرار)
       if (!updated[newStageId]) {
         updated[newStageId] = [];
       }
-      updated[newStageId].push({
-        ...ticket,
-        current_stage_id: newStageId
-      });
+      
+      // التحقق من عدم وجود التذكرة في المرحلة الجديدة قبل إضافتها
+      const ticketExists = updated[newStageId].some(t => t.id === ticketId);
+      if (!ticketExists) {
+        updated[newStageId].push({
+          ...ticket,
+          current_stage_id: newStageId
+        });
+      }
 
       return updated;
     });
@@ -276,6 +281,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     ticketService.moveTicketSimple(ticketId, newStageId)
       .then((response) => {
         showSuccess('تم نقل التذكرة', `تم نقل "${ticket.title}" إلى "${targetStage.name}" بنجاح مع إضافة تعليق`);
+        // إعادة تحميل البيانات بعد النقل الناجح للتأكد من التزامن
+        loadTickets();
       })
       .catch((error: any) => {
         showError('خطأ في نقل التذكرة', 'حدث خطأ أثناء نقل التذكرة');
