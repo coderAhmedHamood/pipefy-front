@@ -42,7 +42,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     try {
       const comment = await addComment({
         content: newComment.trim(),
-        is_internal: false
+        is_internal: true  // تعليقات المستخدمين المباشرة تكون داخلية
       });
 
       if (comment) {
