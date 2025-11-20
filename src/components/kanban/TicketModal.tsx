@@ -1353,43 +1353,70 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const generateChangeComment = () => {
     const changes: string[] = [];
     
-    // مقارنة العنوان
-    if (ticket.title !== formData.title) {
-      changes.push(`📝 تم تغيير العنوان من: "${ticket.title}" إلى: "${formData.title}"`);
+    // مقارنة العنوان - التحقق من أن القيم مختلفة فعلياً
+    const oldTitle = (ticket.title || '').trim();
+    const newTitle = (formData.title || '').trim();
+    if (oldTitle !== newTitle && oldTitle && newTitle) {
+      changes.push(`📝 تم تغيير العنوان من: "${oldTitle}" إلى: "${newTitle}"`);
     }
     
-    // مقارنة الوصف
-    if (ticket.description !== formData.description) {
+    // مقارنة الوصف - التحقق من أن القيم مختلفة فعلياً
+    const oldDescription = (ticket.description || '').trim();
+    const newDescription = (formData.description || '').trim();
+    if (oldDescription !== newDescription && (oldDescription || newDescription)) {
       changes.push(`📄 تم تحديث الوصف`);
     }
     
-    // مقارنة الأولوية
-    if (ticket.priority !== formData.priority) {
+    // مقارنة الأولوية - التحقق من أن القيم مختلفة فعلياً
+    if (ticket.priority && formData.priority && ticket.priority !== formData.priority) {
       const priorityLabels: Record<string, string> = {
         low: 'منخفض',
         medium: 'متوسط',
         high: 'عالي',
         urgent: 'عاجل'
       };
-      changes.push(`🚩 تم تغيير الأولوية من: "${priorityLabels[ticket.priority]}" إلى: "${priorityLabels[formData.priority]}"`);
+      const oldPriority = priorityLabels[ticket.priority] || ticket.priority;
+      const newPriority = priorityLabels[formData.priority] || formData.priority;
+      if (oldPriority !== newPriority) {
+        changes.push(`🚩 تم تغيير الأولوية من: "${oldPriority}" إلى: "${newPriority}"`);
+      }
     }
     
-    // مقارنة تاريخ الاستحقاق
-    if (ticket.due_date !== formData.due_date) {
-      const oldDate = ticket.due_date ? new Date(ticket.due_date).toLocaleDateString('ar-SA') : 'غير محدد';
-      const newDate = formData.due_date ? new Date(formData.due_date).toLocaleDateString('ar-SA') : 'غير محدد';
-      changes.push(`📅 تم تغيير تاريخ الاستحقاق من: ${oldDate} إلى: ${newDate}`);
+    // مقارنة تاريخ الاستحقاق - التحقق من أن القيم مختلفة فعلياً
+    const oldDueDate = ticket.due_date ? new Date(ticket.due_date).toISOString().split('T')[0] : null;
+    const newDueDate = formData.due_date ? new Date(formData.due_date).toISOString().split('T')[0] : null;
+    
+    // فقط إذا كانت القيم مختلفة فعلياً (وليس كلاهما null/undefined)
+    if (oldDueDate !== newDueDate && (oldDueDate || newDueDate)) {
+      const oldDateStr = oldDueDate ? new Date(ticket.due_date).toLocaleDateString('ar-SA') : 'غير محدد';
+      const newDateStr = newDueDate ? new Date(formData.due_date).toLocaleDateString('ar-SA') : 'غير محدد';
+      // فقط إذا كانت القيم النصية مختلفة
+      if (oldDateStr !== newDateStr) {
+        changes.push(`📅 تم تغيير تاريخ الاستحقاق من: ${oldDateStr} إلى: ${newDateStr}`);
+      }
     }
     
-    // مقارنة الحقول المخصصة
+    // مقارنة الحقول المخصصة - التحقق من أن القيم مختلفة فعلياً
     if (ticket.data && formData.data) {
       Object.keys(formData.data).forEach(key => {
-        if (ticket.data[key] !== formData.data[key]) {
-          changes.push(`🔧 تم تحديث الحقل "${key}"`);
+        const oldValue = ticket.data[key];
+        const newValue = formData.data[key];
+        
+        // التحقق من أن القيم مختلفة فعلياً
+        if (oldValue !== newValue) {
+          // التحقق من أن القيم ليست فارغة أو null بنفس الطريقة
+          const oldValueStr = oldValue !== null && oldValue !== undefined && oldValue !== '' ? String(oldValue).trim() : '';
+          const newValueStr = newValue !== null && newValue !== undefined && newValue !== '' ? String(newValue).trim() : '';
+          
+          // فقط إذا كانت القيم مختلفة فعلياً
+          if (oldValueStr !== newValueStr && (oldValueStr || newValueStr)) {
+            changes.push(`🔧 تم تحديث الحقل "${key}"`);
+          }
         }
       });
     }
     
+    // إذا لم يكن هناك تغييرات فعلية، لا ننشئ تعليق
     if (changes.length === 0) {
       return null;
     }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { MessageSquare, Plus, Clock, Loader2, Edit2, Trash2, Save } from 'lucide-react';
 import { useComments } from '../../hooks/useComments';
 import { Comment } from '../../services/commentService';
@@ -160,6 +160,49 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     return name?.split(' ').map(n => n.charAt(0)).join('').toUpperCase() || 'U';
   };
 
+  // تحديد ما إذا كان التعليق تلقائياً من النظام
+  const isSystemComment = (comment: Comment): boolean => {
+    const systemPatterns = [
+      /^تم إنشاء هذه التذكرة/i,
+      /^تم نقل التذكرة/i,
+      /^تم اسناد/i,
+      /^تم إسناد/i,
+      /^تم إضافة مستخدم/i,
+      /^تم إضافة مراجع/i,
+      /^تم حذف/i,
+      /^تم تحديث/i,
+      /^تم نقل/i,
+      /^تم إنشاء/i,
+      /^تم تعديل/i,
+      /^تم تغيير/i,
+      /^This ticket was created/i,
+      /^Ticket was moved/i,
+      /^User assigned/i,
+      /^Reviewer added/i
+    ];
+    
+    return systemPatterns.some(pattern => pattern.test(comment.content));
+  };
+
+  // ترتيب التعليقات: تعليقات المستخدمين أولاً (الأحدث أولاً)، ثم التعليقات التلقائية
+  const sortedComments = useMemo(() => {
+    const userComments = comments.filter(comment => !isSystemComment(comment));
+    const systemComments = comments.filter(comment => isSystemComment(comment));
+    
+    // ترتيب تعليقات المستخدمين حسب التاريخ (الأحدث أولاً)
+    userComments.sort((a, b) => {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    
+    // ترتيب التعليقات التلقائية حسب التاريخ (الأحدث أولاً)
+    systemComments.sort((a, b) => {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+    
+    // دمج: تعليقات المستخدمين أولاً، ثم التعليقات التلقائية
+    return [...userComments, ...systemComments];
+  }, [comments]);
+
   if (loading && comments.length === 0) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -245,8 +288,11 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
       {/* Comments List */}
       <div className="space-y-4 max-h-96 overflow-y-auto">
-        {comments.length > 0 ? (
-          comments.map((comment) => (
+        {sortedComments.length > 0 ? (
+          sortedComments.map((comment) => {
+            const isUserComment = !isSystemComment(comment);
+            
+            return (
             <div key={comment.id} className="flex items-start space-x-3 space-x-reverse">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-white font-bold text-xs">
@@ -262,27 +308,29 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                     <span className="text-xs text-gray-500">
                       {formatDate(comment.created_at)}
                     </span>
-                    {/* أزرار التحديث والحذف */}
-                    <div className="flex items-center space-x-1 space-x-reverse">
-                      <button
-                        type="button"
-                        onClick={() => handleEditComment(comment)}
-                        disabled={isSubmitting || editingCommentId === comment.id}
-                        className="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
-                        title="تعديل التعليق"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteComment(comment.id)}
-                        disabled={isSubmitting}
-                        className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
-                        title="حذف التعليق"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
+                    {/* أزرار التحديث والحذف - فقط للتعليقات التي is_internal: true */}
+                    {comment.is_internal && (
+                      <div className="flex items-center space-x-1 space-x-reverse">
+                        <button
+                          type="button"
+                          onClick={() => handleEditComment(comment)}
+                          disabled={isSubmitting || editingCommentId === comment.id}
+                          className="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
+                          title="تعديل التعليق"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteComment(comment.id)}
+                          disabled={isSubmitting}
+                          className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                          title="حذف التعليق"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -340,7 +388,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         ) : (
           <div className="text-center py-8 text-gray-400">
             <MessageSquare className="w-12 h-12 mx-auto mb-2" />
