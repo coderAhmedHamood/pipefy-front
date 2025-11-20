@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { DndContext, DragEndEvent, DragStartEvent, closestCenter } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragStartEvent, closestCenter, useSensor, PointerSensor, ActivationConstraint } from '@dnd-kit/core';
 import { KanbanColumn } from './KanbanColumn';
 import { KanbanMobileView } from './KanbanMobileView';
 import { TicketModal } from './TicketModal';
@@ -41,6 +41,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   
   // تتبع آخر تذكرة تم فتحها من URL لتجنب إعادة الفتح
   const lastOpenedTicketIdRef = useRef<string | null>(null);
+
+  // إعداد Sensor للسحب مع threshold للحركة (8px) قبل تفعيل السحب
+  // هذا يسمح للنقر بالعمل بدون تداخل مع السحب
+  const activationConstraint: ActivationConstraint = {
+    distance: 8, // يجب تحريك المؤشر 8 بكسل قبل تفعيل السحب
+  };
+  
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint,
+  });
   
   // Lazy Loading State
   const [stageOffsets, setStageOffsets] = useState<Record<string, number>>({});
@@ -787,6 +797,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
       {!loading && !error && (
         <div className="flex-1 p-6 overflow-x-auto overflow-y-hidden">
           <DndContext
+            sensors={[pointerSensor]}
             collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}

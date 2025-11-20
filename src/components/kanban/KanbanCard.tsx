@@ -15,7 +15,7 @@ interface KanbanCardProps {
 export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragging }) => {
   const {
     attributes,
-    listeners,
+    listeners: dragListeners,
     setNodeRef,
     transform,
     isDragging: isDraggableDragging
@@ -28,58 +28,33 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
     opacity: isDragging || isDraggableDragging ? 0.5 : 1,
   };
 
-  // تتبع ما إذا كان المستخدم قد سحب فعلياً
+  // تتبع ما إذا كان هناك سحب فعلي
   const hasDraggedRef = React.useRef(false);
-  const clickTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  const previousDraggingStateRef = React.useRef(false);
 
   // تتبع تغييرات حالة السحب
   React.useEffect(() => {
     const isCurrentlyDragging = isDraggableDragging || isDragging;
     
-    // إذا بدأ السحب
-    if (isCurrentlyDragging && !previousDraggingStateRef.current) {
+    if (isCurrentlyDragging) {
       hasDraggedRef.current = true;
-      // إلغاء أي نقر معلق
-      if (clickTimeoutRef.current) {
-        clearTimeout(clickTimeoutRef.current);
-        clickTimeoutRef.current = null;
-      }
-    }
-    
-    // إذا انتهى السحب
-    if (!isCurrentlyDragging && previousDraggingStateRef.current) {
-      // كان هناك سحب، نعيد تعيين الحالة بعد تأخير
+    } else {
+      // إعادة تعيين بعد انتهاء السحب
       setTimeout(() => {
         hasDraggedRef.current = false;
-      }, 300);
+      }, 100);
     }
-    
-    previousDraggingStateRef.current = isCurrentlyDragging;
   }, [isDraggableDragging, isDragging]);
 
   const handleClick = (e: React.MouseEvent) => {
-    // إذا كان هناك سحب، لا ننفذ النقر
-    if (hasDraggedRef.current || isDraggableDragging || isDragging) {
+    // إذا كان هناك سحب حالياً، لا ننفذ النقر
+    if (isDraggableDragging || isDragging || hasDraggedRef.current) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
-
-    // تأخير للتأكد من عدم وجود سحب
-    e.preventDefault();
-    e.stopPropagation();
     
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-    }
-
-    clickTimeoutRef.current = setTimeout(() => {
-      // التحقق مرة أخرى من عدم وجود سحب
-      if (!hasDraggedRef.current && !isDraggableDragging && !isDragging) {
-        onClick();
-      }
-    }, 200);
+    // تنفيذ النقر للمعاينة
+    onClick();
   };
 
   // تحديد التاريخ المرجعي (تاريخ الإكمال إن وجد، وإلا التاريخ الحالي)
@@ -118,11 +93,11 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
+      {...dragListeners}
       onClick={handleClick}
       className={`
         bg-white border-l-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-200
-        ${isDragging || isDraggableDragging ? 'cursor-grabbing shadow-lg scale-105' : 'cursor-grab'}
+        ${isDragging || isDraggableDragging ? 'cursor-grabbing shadow-lg scale-105' : 'cursor-pointer'}
         ${getPriorityColor(ticket.priority)}
       `}
       title={isDragging || isDraggableDragging ? 'جاري السحب...' : 'اسحب لنقل التذكرة أو انقر للفتح'}
