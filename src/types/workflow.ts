@@ -24,6 +24,7 @@ export interface Permission {
   resource: string;
   action: string;
   description: string;
+  process_id?: string; // معرف العملية المرتبطة بالصلاحية (اختياري للتوافق مع الصلاحيات العامة)
 }
 
 export interface Process {
@@ -377,4 +378,5 @@ export interface ApiIntegration {
   trigger_events: string[];
   is_active: boolean;
   created_at: string;
+}
 }

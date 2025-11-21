@@ -826,7 +826,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   onDelete
 }) => {
   const { getProcessUsers, processes } = useWorkflow();
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasProcessPermission } = useAuth();
   const notifications = useQuickNotifications();
   const { moveTicket, isMoving } = useSimpleMove();
   const { deleteTicket, isDeleting } = useSimpleDelete();
@@ -1686,7 +1686,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     <span>عملية</span>
                   </button>
 
-                  {hasPermission('tickets', 'update') && (
+                  {hasProcessPermission('tickets', 'update', process.id) && (
                     <button
                       onClick={() => setIsEditing(!isEditing)}
                       className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-1.5 rounded-lg transition-colors shadow-sm"
@@ -1745,7 +1745,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
 
 
-                  {hasPermission('tickets', 'update') && (
+                  {hasProcessPermission('tickets', 'update', process.id) && (
                     <button
                       onClick={() => setIsEditing(!isEditing)}
                       className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-2 rounded-lg transition-colors shadow-sm"

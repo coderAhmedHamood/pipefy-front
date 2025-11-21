@@ -984,7 +984,7 @@ class Ticket {
 
       // ✅ التحقق من أن المرحلة المستهدفة هي مرحلة نهائية
       const isFinalStage = targetStage.is_final === true;
-
+      
       // تحديث التذكرة - إذا كانت المرحلة نهائية، نضع completed_at
       const updateQuery = `
         UPDATE tickets

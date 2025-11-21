@@ -135,6 +135,19 @@ class AuthService {
     );
   }
 
+  // التحقق من الصلاحية بناءً على العملية (process_id)
+  hasProcessPermission(resource: string, action: string, processId: string): boolean {
+    const user = this.getCurrentUser();
+    if (!user || !user.permissions) return false;
+    
+    // البحث عن صلاحية تطابق resource و action و process_id
+    return user.permissions.some(permission => 
+      permission.resource === resource && 
+      permission.action === action &&
+      permission.process_id === processId
+    );
+  }
+
   // التحقق من الدور
   hasRole(roleName: string): boolean {
     const user = this.getCurrentUser();

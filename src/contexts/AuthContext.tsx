@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   hasPermission: (resource: string, action: string) => boolean;
+  hasProcessPermission: (resource: string, action: string, processId: string) => boolean;
   hasRole: (roleName: string) => boolean;
   isAdmin: () => boolean;
   refreshToken: () => Promise<boolean>;
@@ -171,6 +172,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authService.hasPermission(resource, action);
   };
 
+  const hasProcessPermission = (resource: string, action: string, processId: string): boolean => {
+    return authService.hasProcessPermission(resource, action, processId);
+  };
+
   const hasRole = (roleName: string): boolean => {
     return authService.hasRole(roleName);
   };
@@ -186,6 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading: state.loading,
     isAuthenticated: state.isAuthenticated,
     hasPermission,
+    hasProcessPermission,
     hasRole,
     isAdmin,
     refreshToken,
