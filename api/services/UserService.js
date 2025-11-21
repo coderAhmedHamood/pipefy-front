@@ -96,8 +96,61 @@ class UserService {
         throw new Error('المستخدم غير موجود');
       }
 
-      // جلب الصلاحيات
-      const permissions = await user.getPermissions();
+      // جلب الصلاحيات من الدور (بدون process_id)
+      const { pool } = require('../config/database');
+      const rolePermissionsQuery = `
+        SELECT DISTINCT p.id, p.name, p.resource, p.action, p.description
+        FROM permissions p
+        INNER JOIN role_permissions rp ON p.id = rp.permission_id
+        WHERE rp.role_id = $1
+        ORDER BY p.resource, p.action
+      `;
+      const { rows: rolePermissionsRows } = await pool.query(rolePermissionsQuery, [user.role_id]);
+      
+      // جلب الصلاحيات من user_permissions مع process_id
+      const userPermissionsQuery = `
+        SELECT 
+          p.id,
+          p.name,
+          p.resource,
+          p.action,
+          p.description,
+          up.process_id
+        FROM user_permissions up
+        INNER JOIN permissions p ON up.permission_id = p.id
+        WHERE up.user_id = $1
+          AND (up.expires_at IS NULL OR up.expires_at > NOW())
+        ORDER BY p.resource, p.action, up.process_id
+      `;
+      const { rows: userPermissionsRows } = await pool.query(userPermissionsQuery, [id]);
+      
+      // دمج الصلاحيات: صلاحيات الدور (بدون process_id) + صلاحيات user_permissions (مع process_id)
+      const permissions = [];
+      
+      // إضافة صلاحيات الدور (بدون process_id)
+      rolePermissionsRows.forEach(perm => {
+        permissions.push({
+          id: perm.id,
+          name: perm.name,
+          resource: perm.resource,
+          action: perm.action,
+          description: perm.description,
+          process_id: null // صلاحيات الدور بدون process_id
+        });
+      });
+      
+      // إضافة صلاحيات user_permissions (مع process_id)
+      userPermissionsRows.forEach(perm => {
+        permissions.push({
+          id: perm.id,
+          name: perm.name,
+          resource: perm.resource,
+          action: perm.action,
+          description: perm.description,
+          process_id: perm.process_id // صلاحيات user_permissions مع process_id
+        });
+      });
+      
       user.permissions = permissions;
 
       return user;
@@ -114,11 +167,8 @@ class UserService {
         return null;
       }
 
-      // جلب الصلاحيات
-      const permissions = await user.getPermissions();
-      user.permissions = permissions;
-
-      return user;
+      // استخدام نفس منطق getUserById لجلب الصلاحيات
+      return await this.getUserById(user.id);
     } catch (error) {
       throw new Error(`خطأ في جلب المستخدم: ${error.message}`);
     }
