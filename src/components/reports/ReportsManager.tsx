@@ -227,6 +227,13 @@ export const ReportsManager: React.FC = () => {
   const [sendingNotifications, setSendingNotifications] = useState<{ [key: string]: boolean }>({});
   const [userSearchQuery, setUserSearchQuery] = useState('');
   
+  // حالات التبويبة الجديدة (تقرير تذاكر المستخدم)
+  const [completedTicketsUsers, setCompletedTicketsUsers] = useState<User[]>([]);
+  const [selectedCompletedTicketsUser, setSelectedCompletedTicketsUser] = useState<User | null>(null);
+  const [isLoadingCompletedTicketsUsers, setIsLoadingCompletedTicketsUsers] = useState(false);
+  const [completedTicketsUserSearchQuery, setCompletedTicketsUserSearchQuery] = useState('');
+  const [showCompletedTicketsUserList, setShowCompletedTicketsUserList] = useState(false);
+  
   // حقول التاريخ - افتراضياً آخر 30 يوم
   const getDefaultDates = () => {
     const today = new Date();
@@ -248,6 +255,8 @@ export const ReportsManager: React.FC = () => {
       fetchProcesses();
     } else if (activeTab === 'users') {
       fetchUsers();
+    } else if (activeTab === 'development') {
+      fetchCompletedTicketsUsers();
     }
   }, [activeTab]);
 
@@ -483,6 +492,33 @@ export const ReportsManager: React.FC = () => {
     fetchUserReport(user.id);
   };
 
+  // جلب المستخدمين للتبويبة الجديدة (تقرير تذاكر المستخدم)
+  const fetchCompletedTicketsUsers = async () => {
+    setIsLoadingCompletedTicketsUsers(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setCompletedTicketsUsers(result.data);
+        } else if (Array.isArray(result)) {
+          setCompletedTicketsUsers(result);
+        }
+      }
+    } catch (error) {
+      console.error('خطأ في جلب المستخدمين:', error);
+    } finally {
+      setIsLoadingCompletedTicketsUsers(false);
+    }
+  };
+
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
@@ -567,7 +603,7 @@ export const ReportsManager: React.FC = () => {
           >
             <div className="flex items-center space-x-1.5 space-x-reverse">
               <Settings className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
-              <span>{isMobile || isTablet ? 'قيد التطوير' : 'قيد التطوير'}</span>
+              <span>{isMobile || isTablet ? 'تذاكر المستخدم' : 'تقرير تذاكر المستخدم'}</span>
             </div>
           </button>
         </div>
@@ -1742,15 +1778,164 @@ export const ReportsManager: React.FC = () => {
           </>
         )}
 
-        {/* تبويبة قيد التطوير */}
+        {/* تبويبة تقرير تذاكر المستخدم */}
         {activeTab === 'development' && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center py-12">
-              <Zap className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">ميزات قيد التطوير</h3>
-              <p className="text-gray-600">المزيد من التقارير والإحصائيات قادمة قريباً</p>
+          <>
+            {/* Right Panel - قائمة المستخدمين */}
+            {((isMobile || isTablet) && showCompletedTicketsUserList) || !(isMobile || isTablet) ? (
+              <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
+                {(isMobile || isTablet) && (
+                  <div className="border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600">
+                    <div className="flex items-center justify-between p-3">
+                      <h3 className="font-bold text-white text-base">المستخدمين</h3>
+                      <button
+                        onClick={() => setShowCompletedTicketsUserList(false)}
+                        className="p-1.5 rounded-lg hover:bg-white hover:bg-opacity-20 text-white"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                    </div>
+                    {/* Search Bar */}
+                    <div className="p-3 pt-0">
+                      <div className="relative">
+                        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={completedTicketsUserSearchQuery}
+                          onChange={(e) => setCompletedTicketsUserSearchQuery(e.target.value)}
+                          placeholder="ابحث عن مستخدم..."
+                          className="w-full px-3 py-2 pr-10 text-sm border border-white border-opacity-30 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {!(isMobile || isTablet) && (
+                  <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600`}>
+                    <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>المستخدمين</h3>
+                    <p className={`text-blue-100 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1 mb-3`}>اختر مستخدم لعرض التقرير</p>
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white text-opacity-70" />
+                      <input
+                        type="text"
+                        value={completedTicketsUserSearchQuery}
+                        onChange={(e) => setCompletedTicketsUserSearchQuery(e.target.value)}
+                        placeholder="ابحث عن مستخدم..."
+                        className="w-full px-3 py-2 pr-10 text-sm border border-white border-opacity-30 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {isLoadingCompletedTicketsUsers ? (
+                  <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-blue-500 animate-spin`} />
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {completedTicketsUsers.filter((user) => {
+                      const query = completedTicketsUserSearchQuery.toLowerCase();
+                      return (
+                        user.name?.toLowerCase().includes(query) ||
+                        user.email?.toLowerCase().includes(query) ||
+                        user.role?.name?.toLowerCase().includes(query)
+                      );
+                    }).map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => {
+                          setSelectedCompletedTicketsUser(user);
+                          if (isMobile || isTablet) setShowCompletedTicketsUserList(false);
+                        }}
+                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right hover:bg-blue-50 transition-colors ${
+                          selectedCompletedTicketsUser?.id === user.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0`}>
+                            <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{user.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`font-semibold text-gray-900 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} truncate`}>{user.name}</h4>
+                            {!(isMobile || isTablet) && (
+                              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                            )}
+                            <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mt-0.5' : 'space-x-2 space-x-reverse mt-1'}`}>
+                              {user.role && (
+                                <span className={`inline-block ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full bg-purple-100 text-purple-700`}>
+                                  {user.role.name}
+                                </span>
+                              )}
+                              <span className={`inline-block ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
+                                user.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {user.is_active ? 'نشط' : 'غير نشط'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    
+                    {/* رسالة عدم وجود نتائج */}
+                    {completedTicketsUsers.filter((user) => {
+                      const query = completedTicketsUserSearchQuery.toLowerCase();
+                      return (
+                        user.name?.toLowerCase().includes(query) ||
+                        user.email?.toLowerCase().includes(query) ||
+                        user.role?.name?.toLowerCase().includes(query)
+                      );
+                    }).length === 0 && completedTicketsUserSearchQuery && completedTicketsUsers.length > 0 && (
+                      <div className={`${isMobile || isTablet ? 'p-4' : 'p-8'} text-center`}>
+                        <Search className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-300 mx-auto mb-3`} />
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>لا توجد نتائج للبحث</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* Left Panel - التقارير */}
+            <div className={`${isMobile || isTablet ? 'w-full' : 'flex-1'} overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} bg-gray-50`}>
+              {!selectedCompletedTicketsUser ? (
+                /* رسالة اختيار مستخدم */
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Users className={`${isMobile || isTablet ? 'w-16 h-16' : 'w-24 h-24'} mx-auto mb-6 text-gray-300`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 mb-2`}>اختر مستخدم من القائمة</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                      {(isMobile || isTablet) ? 'اضغط على زر المستخدمين لعرض القائمة' : 'اضغط على أي مستخدم من القائمة اليمنى لعرض التقرير التفصيلي'}
+                    </p>
+                    {(isMobile || isTablet) && (
+                      <button
+                        onClick={() => setShowCompletedTicketsUserList(true)}
+                        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                      >
+                        عرض المستخدمين
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <FileText className={`${isMobile || isTablet ? 'w-16 h-16' : 'w-24 h-24'} mx-auto mb-6 text-blue-300`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 mb-2`}>
+                      {selectedCompletedTicketsUser.name}
+                    </h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mb-4`}>
+                      {selectedCompletedTicketsUser.email}
+                    </p>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                      تقرير التذاكر المنتهية قيد التطوير
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
