@@ -205,6 +205,80 @@ interface UserReport {
 
 type TabType = 'users' | 'processes' | 'development';
 
+interface CompletedTicketsReport {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  period: {
+    from: string;
+    to: string;
+    days: number;
+  };
+  stats: {
+    total_completed_tickets: number;
+    early_completion: number;
+    on_time_completion: number;
+    late_completion: number;
+    tickets_with_evaluation: number;
+    tickets_without_evaluation: number;
+    tickets_with_reviewers: number;
+    tickets_with_assignees: number;
+    average_time_difference_hours: number;
+  };
+  report: Array<{
+    ticket_id: string;
+    ticket_number: string;
+    ticket_title: string;
+    ticket_description: string;
+    ticket_priority: string;
+    ticket_status: string;
+    ticket_created_at: string;
+    ticket_due_date: string | null;
+    ticket_completed_at: string;
+    ticket_process_id: string;
+    ticket_process_name: string;
+    ticket_stage_name: string;
+    ticket_stage_is_final: boolean;
+    time_difference_hours: number | null;
+    performance_status: string;
+    evaluation_overall_rating: string | null;
+    evaluation_average_score: number | null;
+    evaluation_total_reviewers: number;
+    evaluation_completed_reviews: number;
+    evaluation_data: {
+      last_updated: string;
+      criteria_summary: any[];
+    };
+    primary_assignee_id: string;
+    primary_assignee_name: string;
+    primary_assignee_email: string;
+    primary_assignee_avatar: string | null;
+    additional_assignees: Array<{
+      id: string;
+      name: string;
+      email: string;
+      avatar_url: string | null;
+      role: string | null;
+      assigned_at: string;
+    }>;
+    reviewers: Array<{
+      id: string;
+      reviewer_id: string;
+      reviewer_name: string;
+      reviewer_email: string;
+      reviewer_avatar: string | null;
+      review_status: string;
+      review_notes: string | null;
+      reviewed_at: string;
+      rate: string;
+      added_at: string;
+    }>;
+    evaluations: any[];
+  }>;
+}
+
 export const ReportsManager: React.FC = () => {
   const notifications = useQuickNotifications();
   const { isMobile, isTablet } = useDeviceType();
@@ -227,13 +301,6 @@ export const ReportsManager: React.FC = () => {
   const [sendingNotifications, setSendingNotifications] = useState<{ [key: string]: boolean }>({});
   const [userSearchQuery, setUserSearchQuery] = useState('');
   
-  // حالات التبويبة الجديدة (تقرير تذاكر المستخدم)
-  const [completedTicketsUsers, setCompletedTicketsUsers] = useState<User[]>([]);
-  const [selectedCompletedTicketsUser, setSelectedCompletedTicketsUser] = useState<User | null>(null);
-  const [isLoadingCompletedTicketsUsers, setIsLoadingCompletedTicketsUsers] = useState(false);
-  const [completedTicketsUserSearchQuery, setCompletedTicketsUserSearchQuery] = useState('');
-  const [showCompletedTicketsUserList, setShowCompletedTicketsUserList] = useState(false);
-  
   // حقول التاريخ - افتراضياً آخر 30 يوم
   const getDefaultDates = () => {
     const today = new Date();
@@ -248,6 +315,19 @@ export const ReportsManager: React.FC = () => {
   
   const [dateFrom, setDateFrom] = useState(getDefaultDates().dateFrom);
   const [dateTo, setDateTo] = useState(getDefaultDates().dateTo);
+  
+  // حالات التبويبة الجديدة (تقرير تذاكر المستخدم)
+  const [completedTicketsUsers, setCompletedTicketsUsers] = useState<User[]>([]);
+  const [selectedCompletedTicketsUser, setSelectedCompletedTicketsUser] = useState<User | null>(null);
+  const [completedTicketsReport, setCompletedTicketsReport] = useState<CompletedTicketsReport | null>(null);
+  const [isLoadingCompletedTicketsUsers, setIsLoadingCompletedTicketsUsers] = useState(false);
+  const [isLoadingCompletedTicketsReport, setIsLoadingCompletedTicketsReport] = useState(false);
+  const [completedTicketsUserSearchQuery, setCompletedTicketsUserSearchQuery] = useState('');
+  const [showCompletedTicketsUserList, setShowCompletedTicketsUserList] = useState(false);
+  
+  // حقول التاريخ للتبويبة الجديدة - افتراضياً آخر 30 يوم
+  const [completedTicketsDateFrom, setCompletedTicketsDateFrom] = useState(getDefaultDates().dateFrom);
+  const [completedTicketsDateTo, setCompletedTicketsDateTo] = useState(getDefaultDates().dateTo);
 
   // جلب البيانات حسب التبويبة النشطة
   useEffect(() => {
@@ -516,6 +596,61 @@ export const ReportsManager: React.FC = () => {
       console.error('خطأ في جلب المستخدمين:', error);
     } finally {
       setIsLoadingCompletedTicketsUsers(false);
+    }
+  };
+
+  // جلب تقرير التذاكر المنتهية لمستخدم معين
+  const fetchCompletedTicketsReport = async (userId: string, customDateFrom?: string, customDateTo?: string) => {
+    setIsLoadingCompletedTicketsReport(true);
+    setCompletedTicketsReport(null);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const from = customDateFrom || completedTicketsDateFrom;
+      const to = customDateTo || completedTicketsDateTo;
+      
+      // بناء URL مع التواريخ
+      const url = `${API_BASE_URL}/api/reports/users/${userId}/completed-tickets?date_from=${from}&date_to=${to}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setCompletedTicketsReport(result.data);
+        } else {
+          console.error('❌ البيانات غير صحيحة:', result);
+          alert('فشل في جلب التقرير: البيانات غير صحيحة');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ خطأ في الاستجابة:', errorData);
+        alert(`فشل في جلب التقرير: ${errorData.message || 'خطأ غير معروف'}`);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في جلب تقرير التذاكر المنتهية:', error);
+      alert('حدث خطأ أثناء جلب التقرير');
+    } finally {
+      setIsLoadingCompletedTicketsReport(false);
+    }
+  };
+
+  const handleCompletedTicketsUserClick = (user: User) => {
+    setSelectedCompletedTicketsUser(user);
+    fetchCompletedTicketsReport(user.id);
+  };
+
+  const handleCompletedTicketsDateChange = () => {
+    if (selectedCompletedTicketsUser) {
+      fetchCompletedTicketsReport(
+        selectedCompletedTicketsUser.id,
+        completedTicketsDateFrom,
+        completedTicketsDateTo
+      );
     }
   };
 
@@ -1845,7 +1980,7 @@ export const ReportsManager: React.FC = () => {
                       <button
                         key={user.id}
                         onClick={() => {
-                          setSelectedCompletedTicketsUser(user);
+                          handleCompletedTicketsUserClick(user);
                           if (isMobile || isTablet) setShowCompletedTicketsUserList(false);
                         }}
                         className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right hover:bg-blue-50 transition-colors ${
@@ -1918,19 +2053,272 @@ export const ReportsManager: React.FC = () => {
                     )}
                   </div>
                 </div>
+              ) : isLoadingCompletedTicketsReport ? (
+                /* تحميل التقرير */
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-blue-500 animate-spin mx-auto mb-4`} />
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري تحميل التقرير...</p>
+                  </div>
+                </div>
+              ) : completedTicketsReport && selectedCompletedTicketsUser ? (
+                <>
+                  {/* زر العودة على الجوال */}
+                  {(isMobile || isTablet) && (
+                    <button
+                      onClick={() => {
+                        setSelectedCompletedTicketsUser(null);
+                        setCompletedTicketsReport(null);
+                        setShowCompletedTicketsUserList(true);
+                      }}
+                      className="mb-3 flex items-center space-x-2 space-x-reverse text-blue-600 hover:text-blue-700 text-sm"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>العودة للقائمة</span>
+                    </button>
+                  )}
+                  <div className={isMobile || isTablet ? 'space-y-3' : 'space-y-4'}>
+                    {/* Header - معلومات المستخدم والتواريخ */}
+                    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-3'}`}>
+                      <div className="flex items-center justify-between gap-4">
+                        {/* اليسار: التواريخ وزر التحديث */}
+                        <div className="flex-1 flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <label className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-medium text-gray-700 whitespace-nowrap`}>
+                              من:
+                            </label>
+                            <input
+                              type="date"
+                              value={completedTicketsDateFrom}
+                              onChange={(e) => setCompletedTicketsDateFrom(e.target.value)}
+                              className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'} border border-gray-300 rounded text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white`}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <label className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-medium text-gray-700 whitespace-nowrap`}>
+                              إلى:
+                            </label>
+                            <input
+                              type="date"
+                              value={completedTicketsDateTo}
+                              onChange={(e) => setCompletedTicketsDateTo(e.target.value)}
+                              className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-2.5 py-1.5 text-xs'} border border-gray-300 rounded text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white`}
+                            />
+                          </div>
+                          
+                          <button
+                            onClick={handleCompletedTicketsDateChange}
+                            className={`bg-blue-600 text-white ${isMobile || isTablet ? 'py-1 px-2 text-xs' : 'py-1.5 px-3 text-xs'} rounded hover:bg-blue-700 transition-colors font-medium flex items-center gap-1 whitespace-nowrap`}
+                          >
+                            <RefreshCw className={isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} />
+                            <span>تحديث</span>
+                          </button>
+                        </div>
+
+                        {/* اليمين: معلومات المستخدم */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0`}>
+                            <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{selectedCompletedTicketsUser.name.charAt(0)}</span>
+                          </div>
+                          <div className="text-right">
+                            <h2 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 truncate max-w-[150px]`} title={selectedCompletedTicketsUser.name}>
+                              {selectedCompletedTicketsUser.name}
+                            </h2>
+                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 truncate max-w-[150px]`} title={selectedCompletedTicketsUser.email}>
+                              {selectedCompletedTicketsUser.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* قائمة التذاكر المنتهية */}
+                    {completedTicketsReport.report && completedTicketsReport.report.length > 0 && (
+                      <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} print:shadow-none print:border-0`}>
+                        <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 mb-3 print:text-base`}>
+                          التذاكر المنتهية ({completedTicketsReport.report.length})
+                        </h3>
+                        <div className="space-y-2 print:space-y-3">
+                          {completedTicketsReport.report.map((ticket) => {
+                            // حساب الفروقات الزمنية
+                            const createdDate = new Date(ticket.ticket_created_at);
+                            const completedDate = new Date(ticket.ticket_completed_at);
+                            const dueDate = ticket.ticket_due_date ? new Date(ticket.ticket_due_date) : null;
+                            
+                            // الفارق بين الإنشاء والإكمال
+                            const creationToCompletionDiff = completedDate.getTime() - createdDate.getTime();
+                            const creationToCompletionHours = Math.round(creationToCompletionDiff / (1000 * 60 * 60));
+                            const creationToCompletionDays = Math.round(creationToCompletionDiff / (1000 * 60 * 60 * 24));
+                            
+                            // الفارق بين الإكمال والاستحقاق (إن وجد)
+                            let completionToDueDiff = null;
+                            let completionToDueHours = null;
+                            let completionToDueDays = null;
+                            if (dueDate) {
+                              completionToDueDiff = completedDate.getTime() - dueDate.getTime();
+                              completionToDueHours = Math.round(completionToDueDiff / (1000 * 60 * 60));
+                              completionToDueDays = Math.round(completionToDueDiff / (1000 * 60 * 60 * 24));
+                            }
+                            
+                            // تنسيق التاريخ الميلادي بشكل أوضح
+                            const formatDate = (date: Date) => {
+                              const year = date.getFullYear();
+                              const month = String(date.getMonth() + 1).padStart(2, '0');
+                              const day = String(date.getDate()).padStart(2, '0');
+                              const hours = String(date.getHours()).padStart(2, '0');
+                              const minutes = String(date.getMinutes()).padStart(2, '0');
+                              return `${year}-${month}-${day} ${hours}:${minutes}`;
+                            };
+                            
+                            return (
+                              <div
+                                key={ticket.ticket_id}
+                                className={`border-2 border-gray-300 rounded ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gray-50 hover:bg-gray-100 transition-colors print:break-inside-avoid print:border-gray-600 print:mb-2 print:bg-white`}
+                              >
+                                {/* العنوان والوصف */}
+                                <div className="mb-2 pb-2 border-b border-gray-300 print:border-gray-600">
+                                  <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 mb-1 print:text-base print:font-bold`}>
+                                    {ticket.ticket_title}
+                                  </h4>
+                                  {ticket.ticket_description && (
+                                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 line-clamp-2 print:text-sm`}>
+                                      {ticket.ticket_description}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* التواريخ والفروقات */}
+                                <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-1.5' : 'grid-cols-2 gap-2'} mb-2 text-xs print:text-sm print:grid-cols-2`}>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600 font-medium whitespace-nowrap">إنشاء:</span>
+                                    <span className="text-gray-900 font-mono text-[11px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
+                                      {formatDate(createdDate)}
+                                    </span>
+                                  </div>
+                                  {dueDate && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-600 font-medium whitespace-nowrap">استحقاق:</span>
+                                      <span className="text-gray-900 font-mono text-[11px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
+                                        {formatDate(dueDate)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600 font-medium whitespace-nowrap">إكمال:</span>
+                                    <span className="text-gray-900 font-mono text-[11px] bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
+                                      {formatDate(completedDate)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-gray-600 font-medium whitespace-nowrap">فارق (إنشاء-إكمال):</span>
+                                    <span className={`font-semibold text-[11px] ${
+                                      creationToCompletionDays >= 0 ? 'text-blue-600' : 'text-gray-600'
+                                    } print:text-black`}>
+                                      {creationToCompletionDays !== 0 
+                                        ? `${creationToCompletionDays > 0 ? '+' : ''}${creationToCompletionDays} يوم (${creationToCompletionHours > 0 ? '+' : ''}${creationToCompletionHours} س)`
+                                        : `${creationToCompletionHours} س`
+                                      }
+                                    </span>
+                                  </div>
+                                  {dueDate && completionToDueDays !== null && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-600 font-medium whitespace-nowrap">فارق (إكمال-استحقاق):</span>
+                                      <span className={`font-semibold text-[11px] ${
+                                        completionToDueDays < 0 ? 'text-green-600' : 
+                                        completionToDueDays > 0 ? 'text-red-600' : 'text-blue-600'
+                                      } print:text-black`}>
+                                        {completionToDueDays !== 0 
+                                          ? `${completionToDueDays > 0 ? '+' : ''}${completionToDueDays} يوم (${completionToDueHours > 0 ? '+' : ''}${completionToDueHours} س)`
+                                          : `${completionToDueHours} س`
+                                        }
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* المسندين والمراجعين جنباً إلى جنب */}
+                                <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-2' : 'grid-cols-2 gap-4'} mb-2 print:grid-cols-2`}>
+                                  {/* المسندين - على اليسار */}
+                                  <div className="border-l-2 border-blue-300 pl-2 print:border-blue-600">
+                                    <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-700 mb-1 print:text-sm`}>المسندين:</p>
+                                    <div className="flex flex-col gap-1">
+                                      {ticket.primary_assignee_name && (
+                                        <span className={`${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} bg-blue-100 text-blue-800 rounded font-medium print:text-sm print:bg-transparent print:text-black print:border-b print:border-gray-300`}>
+                                          {ticket.primary_assignee_name}
+                                        </span>
+                                      )}
+                                      {ticket.additional_assignees && ticket.additional_assignees.length > 0 && ticket.additional_assignees.map((assignee) => (
+                                        <span
+                                          key={assignee.id}
+                                          className={`${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} bg-blue-50 text-blue-700 rounded border border-blue-200 print:text-sm print:bg-transparent print:text-black print:border-b print:border-gray-300`}
+                                        >
+                                          {assignee.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  {/* المراجعين مع التقييم - على اليمين */}
+                                  {ticket.reviewers && ticket.reviewers.length > 0 && (
+                                    <div className="border-r-2 border-purple-300 pr-2 print:border-purple-600" dir="rtl">
+                                      <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-700 mb-1 print:text-sm text-right`}>المراجعين:</p>
+                                      <div className="flex flex-col gap-1">
+                                        {ticket.reviewers.map((reviewer) => (
+                                          <div 
+                                            key={reviewer.id} 
+                                            className={`${isMobile || isTablet ? 'p-1' : 'p-1.5'} bg-gray-100 rounded border border-gray-300 print:bg-transparent print:border-b print:border-gray-300`}
+                                          >
+                                            <div className="flex items-center justify-end gap-2 flex-row-reverse">
+                                              <span className={`${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
+                                                reviewer.review_status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                'bg-gray-200 text-gray-700'
+                                              } print:bg-transparent print:text-black`}>
+                                                {reviewer.review_status === 'completed' ? '✓' : '...'}
+                                              </span>
+                                              {reviewer.review_status === 'completed' && reviewer.rate && (
+                                                <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-purple-700 font-semibold print:text-sm print:text-black`}>
+                                                  {reviewer.rate}
+                                                </span>
+                                              )}
+                                              <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900 print:text-sm`}>
+                                                {reviewer.reviewer_name}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* رسالة عدم وجود تذاكر */}
+                    {completedTicketsReport.report && completedTicketsReport.report.length === 0 && (
+                      <div className={`bg-white rounded-xl shadow-md border border-gray-200 ${isMobile || isTablet ? 'p-6' : 'p-12'} text-center`}>
+                        <CheckCircle className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} mx-auto mb-4 text-gray-300`} />
+                        <p className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} text-gray-600`}>لا توجد تذاكر منتهية في الفترة المحددة</p>
+                      </div>
+                    )}
+                  </div>
+                </>
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <FileText className={`${isMobile || isTablet ? 'w-16 h-16' : 'w-24 h-24'} mx-auto mb-6 text-blue-300`} />
-                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 mb-2`}>
-                      {selectedCompletedTicketsUser.name}
-                    </h3>
-                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mb-4`}>
-                      {selectedCompletedTicketsUser.email}
-                    </p>
-                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>
-                      تقرير التذاكر المنتهية قيد التطوير
-                    </p>
+                    <AlertTriangle className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} mx-auto mb-4 text-red-400`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-xl'} font-semibold text-gray-900 mb-2`}>حدث خطأ</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mb-4`}>فشل في جلب التقرير</p>
+                    <button
+                      onClick={() => selectedCompletedTicketsUser && fetchCompletedTicketsReport(selectedCompletedTicketsUser.id)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      إعادة المحاولة
+                    </button>
                   </div>
                 </div>
               )}
