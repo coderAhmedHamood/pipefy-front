@@ -1021,6 +1021,136 @@ export const UserManagerNew: React.FC = () => {
     }
   };
 
+  // منح جميع الصلاحيات لمستخدم في عملية محددة
+  const handleGrantAllPermissions = async () => {
+    if (!selectedUserForPermissions || !selectedProcess) return;
+    
+    const processId = selectedProcess.id || selectedProcess.process_id;
+    if (!processId) {
+      setState(prev => ({
+        ...prev,
+        error: 'معرف العملية غير متوفر'
+      }));
+      return;
+    }
+
+    if (!confirm(`هل أنت متأكد من منح جميع الصلاحيات للمستخدم "${selectedUserForPermissions.name}" في العملية "${selectedProcess.name || selectedProcess.process_name}"؟`)) {
+      return;
+    }
+
+    setProcessingPermission('grant-all');
+    try {
+      const url = `${API_BASE_URL}/api/permissions/processes/${processId}/grant-all`;
+      const headers = getAuthHeaders();
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: selectedUserForPermissions.id
+        })
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success) {
+        setState(prev => ({
+          ...prev,
+          success: 'تم منح جميع الصلاحيات بنجاح'
+        }));
+        
+        // إعادة جلب الصلاحيات لتحديث البيانات
+        await fetchProcessPermissions(selectedUserForPermissions.id, processId);
+      } else {
+        throw new Error(data?.message || 'فشل في منح جميع الصلاحيات');
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في منح جميع الصلاحيات:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'فشل في منح جميع الصلاحيات'
+      }));
+    } finally {
+      setProcessingPermission(null);
+    }
+  };
+
+  // حذف جميع الصلاحيات من مستخدم في عملية محددة
+  const handleDeleteAllPermissions = async () => {
+    if (!selectedUserForPermissions || !selectedProcess) return;
+    
+    const processId = selectedProcess.id || selectedProcess.process_id;
+    if (!processId) {
+      setState(prev => ({
+        ...prev,
+        error: 'معرف العملية غير متوفر'
+      }));
+      return;
+    }
+
+    if (!confirm(`هل أنت متأكد من حذف جميع الصلاحيات من المستخدم "${selectedUserForPermissions.name}" في العملية "${selectedProcess.name || selectedProcess.process_name}"؟\n\nهذه العملية لا يمكن التراجع عنها.`)) {
+      return;
+    }
+
+    setProcessingPermission('delete-all');
+    try {
+      const url = `${API_BASE_URL}/api/permissions/processes/${processId}/users/${selectedUserForPermissions.id}`;
+      const headers = getAuthHeaders();
+      
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success) {
+        setState(prev => ({
+          ...prev,
+          success: 'تم حذف جميع الصلاحيات بنجاح'
+        }));
+        
+        // إعادة جلب الصلاحيات لتحديث البيانات
+        await fetchProcessPermissions(selectedUserForPermissions.id, processId);
+      } else {
+        throw new Error(data?.message || 'فشل في حذف جميع الصلاحيات');
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في حذف جميع الصلاحيات:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'فشل في حذف جميع الصلاحيات'
+      }));
+    } finally {
+      setProcessingPermission(null);
+    }
+  };
+
   // حذف ربط عملية من مستخدم
   const handleDeleteUserProcess = async (linkId: string) => {
     if (!expandedUserId) return;
@@ -2897,20 +3027,51 @@ export const UserManagerNew: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            setSelectedProcess(null);
-                            setProcessPermissions({
-                              inactive: [],
-                              active: [],
-                              stats: null
-                            });
-                          }}
-                          className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} hover:bg-red-100 rounded-lg transition-colors border border-transparent hover:border-red-300`}
-                          title="إلغاء الاختيار"
-                        >
-                          <X className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-600`} />
-                        </button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {/* زر منح جميع الصلاحيات */}
+                          <button
+                            onClick={handleGrantAllPermissions}
+                            disabled={processingPermission === 'grant-all'}
+                            className={`${isMobile || isTablet ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'} bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-md hover:shadow-lg`}
+                            title="منح جميع الصلاحيات"
+                          >
+                            {processingPermission === 'grant-all' ? (
+                              <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
+                            ) : (
+                              <CheckCircle className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                            )}
+                            {!isMobile && !isTablet && <span>منح الكل</span>}
+                          </button>
+                          {/* زر حذف جميع الصلاحيات */}
+                          <button
+                            onClick={handleDeleteAllPermissions}
+                            disabled={processingPermission === 'delete-all'}
+                            className={`${isMobile || isTablet ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'} bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-md hover:shadow-lg`}
+                            title="حذف جميع الصلاحيات"
+                          >
+                            {processingPermission === 'delete-all' ? (
+                              <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} animate-spin`} />
+                            ) : (
+                              <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                            )}
+                            {!isMobile && !isTablet && <span>حذف الكل</span>}
+                          </button>
+                          {/* زر إلغاء الاختيار */}
+                          <button
+                            onClick={() => {
+                              setSelectedProcess(null);
+                              setProcessPermissions({
+                                inactive: [],
+                                active: [],
+                                stats: null
+                              });
+                            }}
+                            className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} hover:bg-red-100 rounded-lg transition-colors border border-transparent hover:border-red-300`}
+                            title="إلغاء الاختيار"
+                          >
+                            <X className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-red-600`} />
+                          </button>
+                        </div>
                       </div>
                       
                       {loadingProcessPermissions ? (

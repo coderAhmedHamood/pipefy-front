@@ -291,6 +291,123 @@ class PermissionService {
       throw new Error(`خطأ في جلب الصلاحيات حسب المورد: ${error.message}`);
     }
   }
+
+  // حذف جميع الصلاحيات من مستخدم معين في عملية محددة
+  static async deleteAllPermissionsFromProcess(processId, userId) {
+    try {
+      const { pool } = require('../config/database');
+      
+      // التحقق من وجود العملية
+      const processQuery = await pool.query(
+        'SELECT id, name FROM processes WHERE id = $1 AND deleted_at IS NULL', 
+        [processId]
+      );
+      if (processQuery.rows.length === 0) {
+        throw new Error('العملية غير موجودة');
+      }
+
+      // التحقق من وجود المستخدم
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('المستخدم غير موجود');
+      }
+
+      // حذف جميع الصلاحيات من المستخدم في العملية المحددة
+      const deleteQuery = `
+        DELETE FROM user_permissions 
+        WHERE process_id = $1 AND user_id = $2
+        RETURNING *
+      `;
+      
+      const { rows } = await pool.query(deleteQuery, [processId, userId]);
+      
+      return {
+        message: `تم حذف جميع الصلاحيات من المستخدم في العملية بنجاح`,
+        deleted_count: rows.length,
+        process: processQuery.rows[0],
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        }
+      };
+    } catch (error) {
+      throw new Error(`خطأ في حذف الصلاحيات من العملية: ${error.message}`);
+    }
+  }
+
+  // منح جميع الصلاحيات لمستخدم معين في عملية محددة
+  static async grantAllPermissionsToProcess(processId, userId, grantedBy) {
+    try {
+      const { pool } = require('../config/database');
+      
+      // التحقق من وجود العملية
+      const processQuery = await pool.query(
+        'SELECT id, name FROM processes WHERE id = $1 AND deleted_at IS NULL', 
+        [processId]
+      );
+      if (processQuery.rows.length === 0) {
+        throw new Error('العملية غير موجودة');
+      }
+
+      // التحقق من وجود المستخدم المانح
+      const grantedByUser = await User.findById(grantedBy);
+      if (!grantedByUser) {
+        throw new Error('المستخدم المانح غير موجود');
+      }
+
+      // التحقق من وجود المستخدم المستهدف
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new Error('المستخدم غير موجود');
+      }
+
+      // جلب جميع الصلاحيات من النظام
+      const allPermissions = await Permission.findAll();
+      
+      if (allPermissions.length === 0) {
+        throw new Error('لا توجد صلاحيات في النظام');
+      }
+
+      // منح جميع الصلاحيات للمستخدم
+      let totalGranted = 0;
+      const errors = [];
+
+      for (const permission of allPermissions) {
+        try {
+          const query = `
+            INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id, permission_id, process_id) 
+            DO UPDATE SET 
+              granted_by = EXCLUDED.granted_by,
+              granted_at = NOW()
+            RETURNING *
+          `;
+          
+          await pool.query(query, [userId, permission.id, grantedBy, processId]);
+          totalGranted++;
+        } catch (error) {
+          errors.push(`خطأ في منح الصلاحية ${permission.name}: ${error.message}`);
+        }
+      }
+
+      return {
+        message: `تم منح جميع الصلاحيات للمستخدم في العملية بنجاح`,
+        process: processQuery.rows[0],
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        },
+        total_permissions: allPermissions.length,
+        total_granted: totalGranted,
+        errors: errors.length > 0 ? errors : undefined
+      };
+    } catch (error) {
+      throw new Error(`خطأ في منح الصلاحيات للعملية: ${error.message}`);
+    }
+  }
 }
 
 module.exports = PermissionService;

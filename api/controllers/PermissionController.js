@@ -470,6 +470,76 @@ class PermissionController {
       });
     }
   }
+
+  // حذف جميع الصلاحيات من مستخدم معين في عملية محددة
+  static async deleteAllPermissionsFromProcess(req, res) {
+    try {
+      const { process_id, user_id } = req.params;
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'user_id مطلوب في path parameters',
+          error: 'VALIDATION_ERROR'
+        });
+      }
+      
+      const result = await PermissionService.deleteAllPermissionsFromProcess(process_id, user_id);
+
+      res.json({
+        success: true,
+        data: result,
+        message: result.message
+      });
+    } catch (error) {
+      console.error('خطأ في حذف الصلاحيات من العملية:', error);
+      const statusCode = error.message.includes('غير موجود') ? 404 : 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message,
+        error: statusCode === 404 ? 'NOT_FOUND' : 'SERVER_ERROR'
+      });
+    }
+  }
+
+  // منح جميع الصلاحيات لمستخدم معين في عملية محددة
+  static async grantAllPermissionsToProcess(req, res) {
+    try {
+      const { process_id } = req.params;
+      const { user_id } = req.body; // إجباري - معرف المستخدم الذي سيتم منحه جميع الصلاحيات
+      const grantedBy = req.user.id; // المستخدم الحالي الذي يقوم بالعملية
+      
+      if (!user_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'user_id مطلوب في request body',
+          error: 'VALIDATION_ERROR'
+        });
+      }
+      
+      const result = await PermissionService.grantAllPermissionsToProcess(
+        process_id, 
+        user_id, 
+        grantedBy
+      );
+
+      res.json({
+        success: true,
+        data: result,
+        message: result.message
+      });
+    } catch (error) {
+      console.error('خطأ في منح الصلاحيات للعملية:', error);
+      const statusCode = error.message.includes('غير موجود') ? 404 : 
+                        error.message.includes('لا توجد') ? 400 : 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message,
+        error: statusCode === 404 ? 'NOT_FOUND' : 
+               statusCode === 400 ? 'VALIDATION_ERROR' : 'SERVER_ERROR'
+      });
+    }
+  }
 }
 
 module.exports = PermissionController;

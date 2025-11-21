@@ -899,4 +899,213 @@ router.get('/users/:user_id',
   PermissionController.getUserAdditionalPermissions
 );
 
+/**
+ * @swagger
+ * /api/permissions/processes/{process_id}/users/{user_id}:
+ *   delete:
+ *     summary: حذف جميع الصلاحيات من مستخدم معين في عملية محددة
+ *     description: |
+ *       يحذف جميع الصلاحيات الإضافية (user_permissions) لمستخدم محدد في عملية محددة.
+ *       - يحذف جميع السجلات من جدول user_permissions حيث process_id = {process_id} AND user_id = {user_id}
+ *       - لا يؤثر على صلاحيات الأدوار (role_permissions)
+ *       - لا يؤثر على صلاحيات المستخدم في عمليات أخرى
+ *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: process_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف العملية
+ *         example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *         example: "a00a2f8e-2843-41da-8080-6eb4cd0a706b"
+ *     responses:
+ *       200:
+ *         description: تم حذف جميع الصلاحيات من المستخدم في العملية بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم حذف جميع الصلاحيات من المستخدم في العملية بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                     deleted_count:
+ *                       type: integer
+ *                       description: عدد الصلاحيات المحذوفة
+ *                     process:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *       400:
+ *         description: user_id مفقود في path parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: العملية أو المستخدم غير موجود
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: خطأ في الخادم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.delete('/processes/:process_id/users/:user_id',
+  authenticateToken,
+  requirePermission('permissions', 'manage'),
+  validateUUID('process_id'),
+  validateUUID('user_id'),
+  PermissionController.deleteAllPermissionsFromProcess
+);
+
+/**
+ * @swagger
+ * /api/permissions/processes/{process_id}/grant-all:
+ *   post:
+ *     summary: منح جميع الصلاحيات لمستخدم معين في عملية محددة
+ *     description: |
+ *       يمنح جميع الصلاحيات المتاحة في النظام لمستخدم محدد في عملية محددة.
+ *       - user_id إجباري في request body
+ *       - يتم منح جميع الصلاحيات من جدول permissions للمستخدم المحدد في العملية المحددة
+ *       - إذا كانت الصلاحية موجودة بالفعل، يتم تحديثها
+ *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: process_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف العملية
+ *         example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - user_id
+ *             properties:
+ *               user_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: |
+ *                   معرف المستخدم (إجباري).
+ *                   سيتم منح جميع الصلاحيات لهذا المستخدم في العملية المحددة.
+ *                 example: "a00a2f8e-2843-41da-8080-6eb4cd0a706b"
+ *     responses:
+ *       200:
+ *         description: تم منح جميع الصلاحيات للمستخدم في العملية بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم منح جميع الصلاحيات للمستخدم في العملية بنجاح"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                     process:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                     total_permissions:
+ *                       type: integer
+ *                       description: إجمالي عدد الصلاحيات في النظام
+ *                     total_granted:
+ *                       type: integer
+ *                       description: إجمالي عدد السجلات المضافة/المحدثة
+ *                     errors:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: قائمة بالأخطاء إن وجدت (اختياري)
+ *       400:
+ *         description: user_id مفقود في request body أو لا توجد صلاحيات في النظام
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: العملية أو المستخدم غير موجود
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: خطأ في الخادم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/processes/:process_id/grant-all',
+  authenticateToken,
+  requirePermission('permissions', 'manage'),
+  validateUUID('process_id'),
+  PermissionController.grantAllPermissionsToProcess
+);
+
 module.exports = router;
