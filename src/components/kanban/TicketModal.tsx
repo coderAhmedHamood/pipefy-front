@@ -1696,7 +1696,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </button>
                   )}
 
-                  {hasPermission('tickets', 'delete') && (
+                  {hasProcessPermission('tickets', 'delete', process.id) && (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
                       disabled={isDeleting}
@@ -1755,7 +1755,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </button>
                   )}
 
-                  {hasPermission('tickets', 'delete') && (
+                  {hasProcessPermission('tickets', 'delete', process.id) && (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
                       disabled={isDeleting}
@@ -2323,7 +2323,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       <Users className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
                       <span>المستخدمين المُسندين ({assignments.length})</span>
                     </h3>
-                    {hasPermission('ticket_assignees', 'create') && (
+                    {hasProcessPermission('ticket_assignees', 'create', process.id) && (
                       <button
                         onClick={() => setShowAddAssignment(true)}
                         className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-blue-600 hover:bg-blue-50 rounded-lg transition-colors`}
@@ -2375,14 +2375,14 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
 
                 {/* المراجعين */}
-                {hasPermission('ticket_reviewers', 'view') && (
+                {hasProcessPermission('ticket_reviewers', 'view', process.id) && (
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
                         <Shield className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
                         <span>المراجعين ({reviewers.length})</span>
                       </h3>
-                      {hasPermission('ticket_reviewers', 'create') && (
+                      {hasProcessPermission('ticket_reviewers', 'create', process.id) && (
                         <button
                           onClick={() => setShowAddReviewer(true)}
                           className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-green-600 hover:bg-green-50 rounded-lg transition-colors`}
