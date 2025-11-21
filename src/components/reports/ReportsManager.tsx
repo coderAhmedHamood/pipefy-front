@@ -2143,8 +2143,8 @@ export const ReportsManager: React.FC = () => {
                         <h3 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 mb-3 print:text-base`}>
                           التذاكر المنتهية ({completedTicketsReport.report.length})
                         </h3>
-                        <div className="space-y-2 print:space-y-3">
-                          {completedTicketsReport.report.map((ticket) => {
+                        <div className={`${isMobile || isTablet ? 'space-y-4' : 'space-y-6'} print:space-y-4`}>
+                          {completedTicketsReport.report.map((ticket, index) => {
                             // حساب الفروقات الزمنية
                             const createdDate = new Date(ticket.ticket_created_at);
                             const completedDate = new Date(ticket.ticket_completed_at);
@@ -2178,13 +2178,18 @@ export const ReportsManager: React.FC = () => {
                             return (
                               <div
                                 key={ticket.ticket_id}
-                                className={`border-2 border-gray-300 rounded ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gray-50 hover:bg-gray-100 transition-colors print:break-inside-avoid print:border-gray-600 print:mb-2 print:bg-white`}
+                                className={`border-2 ${index % 2 === 0 ? 'border-blue-400' : 'border-indigo-400'} rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-4'} ${index % 2 === 0 ? 'bg-blue-50' : 'bg-indigo-50'} hover:shadow-md transition-all shadow-sm print:break-inside-avoid print:border-gray-600 print:mb-2 print:bg-white`}
                               >
                                 {/* العنوان والوصف */}
-                                <div className="mb-2 pb-2 border-b border-gray-300 print:border-gray-600">
-                                  <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 mb-1 print:text-base print:font-bold`}>
-                                    {ticket.ticket_title}
-                                  </h4>
+                                <div className={`mb-3 pb-3 border-b-2 ${index % 2 === 0 ? 'border-blue-300' : 'border-indigo-300'} print:border-gray-600`}>
+                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                    <h4 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-bold ${index % 2 === 0 ? 'text-blue-900' : 'text-indigo-900'} print:text-base print:font-bold print:text-black flex-1`}>
+                                      {ticket.ticket_title}
+                                    </h4>
+                                    <span className={`${isMobile || isTablet ? 'text-xs px-2 py-0.5' : 'text-sm px-2.5 py-1'} ${index % 2 === 0 ? 'bg-blue-200 text-blue-800' : 'bg-indigo-200 text-indigo-800'} rounded-full font-semibold flex-shrink-0 print:bg-gray-200 print:text-black`}>
+                                      #{index + 1}
+                                    </span>
+                                  </div>
                                   {ticket.ticket_description && (
                                     <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 line-clamp-2 print:text-sm`}>
                                       {ticket.ticket_description}
