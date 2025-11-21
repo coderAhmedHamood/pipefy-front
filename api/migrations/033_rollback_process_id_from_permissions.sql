@@ -24,3 +24,4 @@ SELECT
   COUNT(*) as total_permissions
 FROM permissions;
 
+
