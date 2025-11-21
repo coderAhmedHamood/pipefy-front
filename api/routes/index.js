@@ -245,6 +245,7 @@ router.get('/docs', (req, res) => {
       'GET /api/reports/overdue': 'تقرير التذاكر المتأخرة',
       'GET /api/reports/usage': 'تقرير استخدام النظام',
       'GET /api/reports/export': 'تصدير التقارير',
+      'GET /api/reports/users/{user_id}/completed-tickets': 'تقرير التذاكر المنتهية لمستخدم معين',
 
       // User Process Permissions
       'GET /api/user-processes/report/users-with-processes': 'تقرير شامل - جلب جميع المستخدمين مع العمليات التي يمتلكونها',

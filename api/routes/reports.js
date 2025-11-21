@@ -671,4 +671,313 @@ router.get('/process/:process_id', authenticateToken, ReportController.getProces
  */
 router.get('/user/:user_id', authenticateToken, ReportController.getUserReport);
 
+/**
+ * @swagger
+ * /api/reports/users/{user_id}/completed-tickets:
+ *   get:
+ *     summary: تقرير التذاكر المنتهية لمستخدم معين
+ *     description: |
+ *       يجلب جميع التذاكر المنتهية لمستخدم معين خلال فترة زمنية محددة.
+ *       التذكرة تعتبر منتهية إذا:
+ *       - `completed_at` له قيمة (NOT NULL)
+ *       - أو المرحلة الحالية `is_final = true`
+ *       
+ *       كل تذكرة في صف واحد يتضمن:
+ *       - بيانات التذكرة الأساسية
+ *       - المسند الأساسي والمسندين الإضافيين
+ *       - المراجعين وتقييماتهم
+ *       - التقييم العام للتذكرة
+ *       يتضمن:
+ *       - بيانات التذكرة (رقم، عنوان، أولوية، حالة)
+ *       - تاريخ الإنشاء وتاريخ الاستحقاق وتاريخ الإكمال
+ *       - الفارق الزمني بين تاريخ الاستحقاق وتاريخ الإكمال (موجب = تم قبل الموعد، سالب = تأخر)
+ *       - حالة الأداء (early, on_time, late)
+ *       - التقييمات إن وجدت
+ *       - جميع المسندين (من assigned_to و ticket_assignments)
+ *       - جميع المراجعين
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *       - in: query
+ *         name: date_from
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: تاريخ البداية - افتراضي آخر 30 يوم
+ *         example: "2025-10-20T00:00:00.000Z"
+ *       - in: query
+ *         name: date_to
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: تاريخ النهاية - افتراضي الآن
+ *         example: "2025-11-19T23:59:59.999Z"
+ *     responses:
+ *       200:
+ *         description: تم جلب التذاكر المنتهية بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "تم جلب 15 تذكرة منتهية للمستخدم"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           format: uuid
+ *                         name:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                     period:
+ *                       type: object
+ *                       properties:
+ *                         from:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-10-20T00:00:00.000Z"
+ *                         to:
+ *                           type: string
+ *                           format: date-time
+ *                           example: "2025-11-19T23:59:59.999Z"
+ *                         days:
+ *                           type: integer
+ *                           description: عدد الأيام في الفترة
+ *                           example: 30
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         total_completed_tickets:
+ *                           type: integer
+ *                           description: إجمالي التذاكر المنتهية
+ *                           example: 15
+ *                         early_completion:
+ *                           type: integer
+ *                           description: عدد التذاكر المكتملة قبل الموعد
+ *                           example: 5
+ *                         on_time_completion:
+ *                           type: integer
+ *                           description: عدد التذاكر المكتملة في الموعد
+ *                           example: 7
+ *                         late_completion:
+ *                           type: integer
+ *                           description: عدد التذاكر المكتملة بعد الموعد
+ *                           example: 3
+ *                         tickets_with_evaluation:
+ *                           type: integer
+ *                           description: عدد التذاكر التي لديها تقييم
+ *                           example: 10
+ *                         tickets_without_evaluation:
+ *                           type: integer
+ *                           description: عدد التذاكر التي لا لديها تقييم
+ *                           example: 5
+ *                         tickets_with_reviewers:
+ *                           type: integer
+ *                           description: عدد التذاكر التي لديها مراجعين
+ *                           example: 12
+ *                         tickets_with_assignees:
+ *                           type: integer
+ *                           description: عدد التذاكر التي لديها مسندين
+ *                           example: 15
+ *                         average_time_difference_hours:
+ *                           type: number
+ *                           description: متوسط الفارق الزمني بالساعات
+ *                           example: 2.5
+ *                     report:
+ *                       type: array
+ *                       description: تقرير التذاكر - كل تذكرة في صف واحد مع جميع البيانات
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           ticket_id:
+ *                             type: string
+ *                             format: uuid
+ *                           ticket_number:
+ *                             type: string
+ *                           ticket_title:
+ *                             type: string
+ *                           ticket_description:
+ *                             type: string
+ *                           ticket_priority:
+ *                             type: string
+ *                           ticket_status:
+ *                             type: string
+ *                           ticket_created_at:
+ *                             type: string
+ *                             format: date-time
+ *                           ticket_due_date:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                           ticket_completed_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                           ticket_process_id:
+ *                             type: string
+ *                             format: uuid
+ *                           ticket_process_name:
+ *                             type: string
+ *                           ticket_stage_name:
+ *                             type: string
+ *                           ticket_stage_is_final:
+ *                             type: boolean
+ *                           time_difference_hours:
+ *                             type: number
+ *                             nullable: true
+ *                             description: |
+ *                               الفارق الزمني بالساعات بين تاريخ الإكمال وتاريخ الاستحقاق.
+ *                               موجب = تم قبل الموعد، سالب = تأخر
+ *                           performance_status:
+ *                             type: string
+ *                             enum: [early, on_time, late, completed_no_due, unknown]
+ *                           evaluation_overall_rating:
+ *                             type: string
+ *                             nullable: true
+ *                           evaluation_average_score:
+ *                             type: number
+ *                             nullable: true
+ *                           evaluation_total_reviewers:
+ *                             type: integer
+ *                           evaluation_completed_reviews:
+ *                             type: integer
+ *                           evaluation_data:
+ *                             type: object
+ *                             nullable: true
+ *                           primary_assignee_id:
+ *                             type: string
+ *                             format: uuid
+ *                             nullable: true
+ *                           primary_assignee_name:
+ *                             type: string
+ *                             nullable: true
+ *                           primary_assignee_email:
+ *                             type: string
+ *                             nullable: true
+ *                           primary_assignee_avatar:
+ *                             type: string
+ *                             nullable: true
+ *                           additional_assignees:
+ *                             type: array
+ *                             description: المسندين الإضافيين من ticket_assignments
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                   format: uuid
+ *                                 name:
+ *                                   type: string
+ *                                 email:
+ *                                   type: string
+ *                                 avatar_url:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 role:
+ *                                   type: string
+ *                                 assigned_at:
+ *                                   type: string
+ *                                   format: date-time
+ *                           reviewers:
+ *                             type: array
+ *                             description: المراجعين من ticket_reviewers
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                   format: uuid
+ *                                 reviewer_id:
+ *                                   type: string
+ *                                   format: uuid
+ *                                 reviewer_name:
+ *                                   type: string
+ *                                 reviewer_email:
+ *                                   type: string
+ *                                 reviewer_avatar:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 review_status:
+ *                                   type: string
+ *                                 review_notes:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 reviewed_at:
+ *                                   type: string
+ *                                   format: date-time
+ *                                   nullable: true
+ *                                 rate:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 added_at:
+ *                                   type: string
+ *                                   format: date-time
+ *                           evaluations:
+ *                             type: array
+ *                             description: تقييمات المراجعين من ticket_evaluations
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 id:
+ *                                   type: string
+ *                                   format: uuid
+ *                                 reviewer_id:
+ *                                   type: string
+ *                                   format: uuid
+ *                                 reviewer_name:
+ *                                   type: string
+ *                                 criteria_id:
+ *                                   type: string
+ *                                   format: uuid
+ *                                 criteria_name:
+ *                                   type: string
+ *                                 criteria_name_ar:
+ *                                   type: string
+ *                                 rating:
+ *                                   type: string
+ *                                 score:
+ *                                   type: number
+ *                                   nullable: true
+ *                                 notes:
+ *                                   type: string
+ *                                   nullable: true
+ *                                 evaluated_at:
+ *                                   type: string
+ *                                   format: date-time
+ *       404:
+ *         description: المستخدم غير موجود
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: خطأ في الخادم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/users/:user_id/completed-tickets',
+  authenticateToken,
+  ReportController.getCompletedTicketsReport
+);
+
 module.exports = router;

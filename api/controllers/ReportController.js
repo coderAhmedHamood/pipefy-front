@@ -1447,6 +1447,255 @@ class ReportController {
     }
   }
 
+  // جلب التذاكر المنتهية لمستخدم معين مع تقرير شامل
+  static async getCompletedTicketsReport(req, res) {
+    try {
+      const { user_id } = req.params;
+      const {
+        date_from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        date_to = new Date().toISOString()
+      } = req.query;
+
+      // التحقق من وجود المستخدم
+      const userCheck = await pool.query('SELECT id, name, email FROM users WHERE id = $1', [user_id]);
+      if (userCheck.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'المستخدم غير موجود'
+        });
+      }
+      const user = userCheck.rows[0];
+
+      // جلب التذاكر المنتهية للمستخدم مع جميع البيانات في استعلام واحد
+      // التذكرة منتهية إذا: completed_at IS NOT NULL أو is_final = true
+      const ticketsQuery = `
+        SELECT
+          -- بيانات التذكرة
+          t.id,
+          t.ticket_number,
+          t.title,
+          t.description,
+          t.priority,
+          t.status,
+          t.created_at,
+          t.due_date,
+          t.completed_at,
+          t.assigned_to,
+          t.process_id,
+          p.name as process_name,
+          s.name as stage_name,
+          s.is_final,
+          -- حساب الفارق الزمني بالساعات (موجب = تم قبل الموعد، سالب = تأخر)
+          CASE 
+            WHEN t.due_date IS NOT NULL AND t.completed_at IS NOT NULL THEN
+              ROUND(EXTRACT(EPOCH FROM (t.completed_at - t.due_date)) / 3600, 2)
+            ELSE NULL
+          END as time_difference_hours,
+          -- حالة الأداء
+          CASE 
+            WHEN t.completed_at IS NOT NULL AND t.due_date IS NOT NULL AND t.completed_at < t.due_date THEN 'early'
+            WHEN t.completed_at IS NOT NULL AND t.due_date IS NOT NULL AND t.completed_at = t.due_date THEN 'on_time'
+            WHEN t.completed_at IS NOT NULL AND t.due_date IS NOT NULL AND t.completed_at > t.due_date THEN 'late'
+            WHEN t.completed_at IS NOT NULL AND t.due_date IS NULL THEN 'completed_no_due'
+            ELSE 'unknown'
+          END as performance_status,
+          -- بيانات التقييم (من ticket_evaluation_summary)
+          tes.overall_rating,
+          tes.average_score,
+          tes.total_reviewers as evaluation_total_reviewers,
+          tes.completed_reviews as evaluation_completed_reviews,
+          tes.evaluation_data,
+          -- بيانات المسند الأساسي (من assigned_to)
+          u_primary.id as primary_assignee_id,
+          u_primary.name as primary_assignee_name,
+          u_primary.email as primary_assignee_email,
+          u_primary.avatar_url as primary_assignee_avatar,
+          -- بيانات المسندين الإضافيين (من ticket_assignments) - كـ JSON
+          COALESCE(
+            (
+              SELECT JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'id', u_add.id,
+                  'name', u_add.name,
+                  'email', u_add.email,
+                  'avatar_url', u_add.avatar_url,
+                  'role', ta_add.role,
+                  'assigned_at', ta_add.assigned_at
+                )
+              )
+              FROM ticket_assignments ta_add
+              JOIN users u_add ON ta_add.user_id = u_add.id
+              WHERE ta_add.ticket_id = t.id
+                AND ta_add.is_active = true
+            ),
+            '[]'::json
+          ) as additional_assignees,
+          -- بيانات المراجعين - كـ JSON
+          COALESCE(
+            (
+              SELECT JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'id', tr.id,
+                  'reviewer_id', tr.reviewer_id,
+                  'reviewer_name', u_rev.name,
+                  'reviewer_email', u_rev.email,
+                  'reviewer_avatar', u_rev.avatar_url,
+                  'review_status', tr.review_status,
+                  'review_notes', tr.review_notes,
+                  'reviewed_at', tr.reviewed_at,
+                  'rate', tr.rate,
+                  'added_at', tr.added_at
+                )
+              )
+              FROM ticket_reviewers tr
+              JOIN users u_rev ON tr.reviewer_id = u_rev.id
+              WHERE tr.ticket_id = t.id
+                AND tr.is_active = true
+            ),
+            '[]'::json
+          ) as reviewers,
+          -- تقييمات المراجعين (من ticket_evaluations) - كـ JSON
+          COALESCE(
+            (
+              SELECT JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'id', te.id,
+                  'reviewer_id', te.reviewer_id,
+                  'reviewer_name', u_eval.name,
+                  'criteria_id', te.criteria_id,
+                  'criteria_name', ec.name,
+                  'criteria_name_ar', ec.name_ar,
+                  'rating', te.rating,
+                  'score', te.score,
+                  'notes', te.notes,
+                  'evaluated_at', te.evaluated_at
+                )
+              )
+              FROM ticket_evaluations te
+              JOIN users u_eval ON te.reviewer_id = u_eval.id
+              LEFT JOIN evaluation_criteria ec ON te.criteria_id = ec.id
+              WHERE te.ticket_id = t.id
+            ),
+            '[]'::json
+          ) as evaluations
+        FROM tickets t
+        LEFT JOIN processes p ON t.process_id = p.id
+        LEFT JOIN stages s ON t.current_stage_id = s.id
+        LEFT JOIN users u_primary ON t.assigned_to = u_primary.id
+        LEFT JOIN ticket_evaluation_summary tes ON t.id = tes.ticket_id
+        WHERE (
+          t.assigned_to = $1 
+          OR EXISTS (
+            SELECT 1 
+            FROM ticket_assignments ta 
+            WHERE ta.ticket_id = t.id 
+              AND ta.user_id = $1 
+              AND ta.is_active = true
+          )
+        )
+        AND (
+          t.completed_at IS NOT NULL 
+          OR s.is_final = true
+        )
+        AND t.created_at BETWEEN $2 AND $3
+        AND t.deleted_at IS NULL
+        GROUP BY 
+          t.id, t.ticket_number, t.title, t.description, t.priority, t.status,
+          t.created_at, t.due_date, t.completed_at, t.assigned_to, t.process_id,
+          p.name, s.name, s.is_final,
+          tes.overall_rating, tes.average_score, tes.total_reviewers, tes.completed_reviews, tes.evaluation_data,
+          u_primary.id, u_primary.name, u_primary.email, u_primary.avatar_url
+        ORDER BY t.completed_at DESC NULLS LAST, t.created_at DESC
+      `;
+
+      const { rows: tickets } = await pool.query(ticketsQuery, [user_id, date_from, date_to]);
+
+      // تنسيق البيانات - كل تذكرة في صف واحد مع جميع البيانات
+      const ticketsReport = tickets.map(ticket => ({
+        // بيانات التذكرة
+        ticket_id: ticket.id,
+        ticket_number: ticket.ticket_number,
+        ticket_title: ticket.title,
+        ticket_description: ticket.description,
+        ticket_priority: ticket.priority,
+        ticket_status: ticket.status,
+        ticket_created_at: ticket.created_at,
+        ticket_due_date: ticket.due_date,
+        ticket_completed_at: ticket.completed_at,
+        ticket_process_id: ticket.process_id,
+        ticket_process_name: ticket.process_name,
+        ticket_stage_name: ticket.stage_name,
+        ticket_stage_is_final: ticket.is_final,
+        // الفارق الزمني والأداء
+        time_difference_hours: ticket.time_difference_hours,
+        performance_status: ticket.performance_status,
+        // بيانات التقييم العام
+        evaluation_overall_rating: ticket.overall_rating,
+        evaluation_average_score: ticket.average_score ? parseFloat(ticket.average_score) : null,
+        evaluation_total_reviewers: parseInt(ticket.evaluation_total_reviewers) || 0,
+        evaluation_completed_reviews: parseInt(ticket.evaluation_completed_reviews) || 0,
+        evaluation_data: ticket.evaluation_data,
+        // بيانات المسند الأساسي
+        primary_assignee_id: ticket.primary_assignee_id,
+        primary_assignee_name: ticket.primary_assignee_name,
+        primary_assignee_email: ticket.primary_assignee_email,
+        primary_assignee_avatar: ticket.primary_assignee_avatar,
+        // بيانات المسندين الإضافيين
+        additional_assignees: ticket.additional_assignees || [],
+        // بيانات المراجعين
+        reviewers: ticket.reviewers || [],
+        // تقييمات المراجعين
+        evaluations: ticket.evaluations || []
+      }));
+
+      // إحصائيات
+      const stats = {
+        total_completed_tickets: ticketsReport.length,
+        early_completion: ticketsReport.filter(t => t.performance_status === 'early').length,
+        on_time_completion: ticketsReport.filter(t => t.performance_status === 'on_time').length,
+        late_completion: ticketsReport.filter(t => t.performance_status === 'late').length,
+        tickets_with_evaluation: ticketsReport.filter(t => t.evaluation_overall_rating !== null).length,
+        tickets_without_evaluation: ticketsReport.filter(t => t.evaluation_overall_rating === null).length,
+        tickets_with_reviewers: ticketsReport.filter(t => t.reviewers && t.reviewers.length > 0).length,
+        tickets_with_assignees: ticketsReport.filter(t => 
+          t.primary_assignee_id !== null || (t.additional_assignees && t.additional_assignees.length > 0)
+        ).length,
+        average_time_difference_hours: ticketsReport
+          .filter(t => t.time_difference_hours !== null)
+          .length > 0 ? ticketsReport
+          .filter(t => t.time_difference_hours !== null)
+          .reduce((sum, t) => sum + parseFloat(t.time_difference_hours || 0), 0) / 
+          ticketsReport.filter(t => t.time_difference_hours !== null).length : 0
+      };
+
+      res.json({
+        success: true,
+        data: {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email
+          },
+          period: {
+            from: date_from,
+            to: date_to,
+            days: Math.ceil((new Date(date_to) - new Date(date_from)) / (1000 * 60 * 60 * 24))
+          },
+          stats: stats,
+          report: ticketsReport
+        },
+        message: `تم جلب ${ticketsReport.length} تذكرة منتهية للمستخدم`
+      });
+    } catch (error) {
+      console.error('خطأ في جلب تقرير التذاكر المنتهية:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في جلب تقرير التذاكر المنتهية',
+        error: error.message
+      });
+    }
+  }
+
   // تصدير التقارير
   static async exportReport(req, res) {
     try {
