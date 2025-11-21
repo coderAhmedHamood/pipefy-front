@@ -641,7 +641,11 @@ export const ReportsManager: React.FC = () => {
 
   const handleCompletedTicketsUserClick = (user: User) => {
     setSelectedCompletedTicketsUser(user);
-    fetchCompletedTicketsReport(user.id);
+    // استخدام التواريخ الافتراضية (آخر 30 يوم)
+    const defaultDates = getDefaultDates();
+    setCompletedTicketsDateFrom(defaultDates.dateFrom);
+    setCompletedTicketsDateTo(defaultDates.dateTo);
+    fetchCompletedTicketsReport(user.id, defaultDates.dateFrom, defaultDates.dateTo);
   };
 
   const handleCompletedTicketsDateChange = () => {
@@ -2264,29 +2268,49 @@ export const ReportsManager: React.FC = () => {
                                     <div className="border-r-2 border-purple-300 pr-2 print:border-purple-600" dir="rtl">
                                       <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-semibold text-gray-700 mb-1 print:text-sm text-right`}>المراجعين:</p>
                                       <div className="flex flex-col gap-1">
-                                        {ticket.reviewers.map((reviewer) => (
-                                          <div 
-                                            key={reviewer.id} 
-                                            className={`${isMobile || isTablet ? 'p-1' : 'p-1.5'} bg-gray-100 rounded border border-gray-300 print:bg-transparent print:border-b print:border-gray-300`}
-                                          >
-                                            <div className="flex items-center justify-end gap-2 flex-row-reverse">
-                                              <span className={`${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
-                                                reviewer.review_status === 'completed' ? 'bg-green-100 text-green-700' :
-                                                'bg-gray-200 text-gray-700'
-                                              } print:bg-transparent print:text-black`}>
-                                                {reviewer.review_status === 'completed' ? '✓' : '...'}
-                                              </span>
-                                              {reviewer.review_status === 'completed' && reviewer.rate && (
-                                                <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-purple-700 font-semibold print:text-sm print:text-black`}>
-                                                  {reviewer.rate}
+                                        {ticket.reviewers.map((reviewer) => {
+                                          // تحديد لون التقييم
+                                          const getRateColor = (rate: string | null) => {
+                                            if (!rate) return 'text-gray-700 bg-gray-100';
+                                            const rateLower = rate.toLowerCase();
+                                            if (rateLower.includes('ممتاز') || rateLower.includes('excellent')) {
+                                              return 'text-green-800 bg-green-100 border-green-300';
+                                            } else if (rateLower.includes('جيد جدا') || rateLower.includes('very good')) {
+                                              return 'text-blue-800 bg-blue-100 border-blue-300';
+                                            } else if (rateLower.includes('جيد') || rateLower.includes('good')) {
+                                              return 'text-yellow-800 bg-yellow-100 border-yellow-300';
+                                            } else if (rateLower.includes('ضعيف') || rateLower.includes('weak') || rateLower.includes('poor')) {
+                                              return 'text-red-800 bg-red-100 border-red-300';
+                                            }
+                                            return 'text-gray-700 bg-gray-100 border-gray-300';
+                                          };
+                                          
+                                          const rateColorClass = getRateColor(reviewer.rate);
+                                          
+                                          return (
+                                            <div 
+                                              key={reviewer.id} 
+                                              className={`${isMobile || isTablet ? 'p-1' : 'p-1.5'} bg-gray-100 rounded border border-gray-300 print:bg-transparent print:border-b print:border-gray-300`}
+                                            >
+                                              <div className="flex items-center justify-end gap-2 flex-row-reverse">
+                                                <span className={`${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
+                                                  reviewer.review_status === 'completed' ? 'bg-green-100 text-green-700' :
+                                                  'bg-gray-200 text-gray-700'
+                                                } print:bg-transparent print:text-black`}>
+                                                  {reviewer.review_status === 'completed' ? '✓' : '...'}
                                                 </span>
-                                              )}
-                                              <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900 print:text-sm`}>
-                                                {reviewer.reviewer_name}
-                                              </span>
+                                                {reviewer.review_status === 'completed' && reviewer.rate && (
+                                                  <span className={`${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} font-semibold rounded border ${rateColorClass} print:text-sm print:text-black print:bg-transparent print:border-gray-300`}>
+                                                    {reviewer.rate}
+                                                  </span>
+                                                )}
+                                                <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900 print:text-sm`}>
+                                                  {reviewer.reviewer_name}
+                                                </span>
+                                              </div>
                                             </div>
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   )}
