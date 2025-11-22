@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Plus, Search, Filter, Building2, Menu } from 'l
 import { getPriorityColor, getPriorityLabel } from '../../utils/priorityUtils';
 import { formatDate } from '../../utils/dateUtils';
 import { useDeviceType } from '../../hooks/useDeviceType';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface KanbanMobileViewProps {
   process: Process;
@@ -41,6 +42,7 @@ export const KanbanMobileView: React.FC<KanbanMobileViewProps> = ({
   loadingMoreStages = {},
   onLoadMore
 }) => {
+  const { hasProcessPermission } = useAuth();
   // توسيع المراحل التي تحتوي على تذاكر تلقائياً
   const { isMobile } = useDeviceType();
   const [expandedStages, setExpandedStages] = useState<Set<string>>(() => {
@@ -294,7 +296,7 @@ export const KanbanMobileView: React.FC<KanbanMobileViewProps> = ({
               </button>
 
               {/* زر إضافة تذكرة */}
-              {hasPermission('tickets', 'create') && (
+              {hasProcessPermission('tickets', 'create', process.id) && (
                 <div className="px-4 py-2 border-t border-gray-100">
                   <button
                     onClick={() => onCreateTicket(stage.id)}

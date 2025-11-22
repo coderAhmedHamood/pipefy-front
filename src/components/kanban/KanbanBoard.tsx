@@ -21,7 +21,7 @@ interface KanbanBoardProps {
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const { processes, setSelectedProcess } = useWorkflow();
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasProcessPermission } = useAuth();
   const { showSuccess, showError } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile, isTablet } = useDeviceType();
@@ -534,7 +534,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                 </button>
               </div>
               
-              {hasPermission('tickets', 'create') && (
+              {hasProcessPermission('tickets', 'create', process.id) && (
                 <button
                   type="button"
                   onClick={() => setIsCreatingTicket(true)}
@@ -692,16 +692,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{process.name}</h1>
             <div className="flex items-center space-x-4 space-x-reverse text-sm text-gray-600">
-              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
-                إجمالي: {statistics?.total_tickets || allTickets.length}
-              </span>
-              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
-                مكتملة: {allTickets.filter(t =>
-                  process.stages.find(s => s.id === t.current_stage_id)?.is_final
-                ).length}
-              </span>
+              
               <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-medium">
-                قيد التنفيذ: {allTickets.filter(t =>
+                 إجمالي: {allTickets.filter(t =>
                   !process.stages.find(s => s.id === t.current_stage_id)?.is_final
                 ).length}
               </span>
@@ -732,7 +725,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
               </button>
             </div>
             
-             {hasPermission('tickets', 'create') && (
+             {hasProcessPermission('tickets', 'create', process.id) && (
                <button
               onClick={handleCreateTicketFromHeader}
               className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse"
@@ -815,6 +808,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                   hasMore={stageHasMore[stage.id] || false}
                   loadingMore={loadingMoreStages[stage.id] || false}
                   onLoadMore={() => loadMoreTickets(stage.id)}
+                  processId={process.id}
                 />
               ))}
             </div>

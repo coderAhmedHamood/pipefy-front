@@ -34,7 +34,7 @@ import {
 export const ProcessManager: React.FC = () => {
   const { processes, createProcess, updateProcess, deleteProcess, addFieldToProcess, updateFieldInProcess, removeFieldFromProcess, addStageToProcess, updateStageInProcess, removeStageFromProcess, selectedProcess, setSelectedProcess } = useWorkflow();
   const { toasts, showSuccess, showError, removeToast } = useToast();
-  const { hasPermission, user } = useAuth();
+  const { hasPermission, hasProcessPermission, user } = useAuth();
   const { isMobile, isTablet } = useDeviceType();
   
   // تسجيل تشخيصي للصلاحيات عند تحميل المكون
@@ -868,8 +868,8 @@ export const ProcessManager: React.FC = () => {
               </button>
             )}
           </div>
+          {selectedProcess && hasProcessPermission('processes', 'create', selectedProcess.id) && (
           
-          {hasPermission('processes', 'create') && (
             <button
               onClick={() => setIsCreating(true)}
               className={`bg-gradient-to-r from-blue-500 to-purple-600 text-white ${isMobile || isTablet ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center space-x-2 space-x-reverse ${isMobile || isTablet ? 'w-full justify-center' : ''}`}
@@ -959,10 +959,8 @@ export const ProcessManager: React.FC = () => {
                   </div>
                   
                   <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse w-full justify-end' : 'space-x-2 space-x-reverse'}`}>
-                    <button className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100 transition-colors`}>
-                      <Copy className={isMobile || isTablet ? 'w-3.5 h-3.5 text-gray-500' : 'w-4 h-4 text-gray-500'} />
-                    </button>
-                    {hasPermission('processes', 'update') && (
+                  
+                    {selectedProcess && hasProcessPermission('processes', 'update', selectedProcess.id) && (
                       <button
                         onClick={() => handleStartEdit(selectedProcess)}
                         className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100 transition-colors`}
@@ -970,7 +968,7 @@ export const ProcessManager: React.FC = () => {
                         <Edit className={isMobile || isTablet ? 'w-3.5 h-3.5 text-gray-500' : 'w-4 h-4 text-gray-500'} />
                       </button>
                     )}
-                    {hasPermission('processes', 'delete') && (
+                    {selectedProcess && hasProcessPermission('processes', 'delete', selectedProcess.id) && (
                       <button
                         onClick={() => handleDeleteProcess(selectedProcess.id)}
                         className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-red-50 transition-colors`}
@@ -990,19 +988,8 @@ export const ProcessManager: React.FC = () => {
                     <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900`}>{selectedProcess.fields.length}</div>
                     <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>الحقول</div>
                   </div>
-                  <div className={`bg-gray-50 rounded-lg ${isMobile || isTablet ? 'p-2' : 'p-3'}`}>
-                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold ${selectedProcess.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                      {selectedProcess.is_active ? 'نشط' : 'معطل'}
-                    </div>
-                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>الحالة</div>
-                  </div>
-                  <div className={`bg-gray-50 rounded-lg ${isMobile || isTablet ? 'p-2' : 'p-3'}`}>
-                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-blue-600`}>
-                      {/* يمكن إضافة عدد التذاكر هنا لاحقاً */}
-                      --
-                    </div>
-                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>التذاكر</div>
-                  </div>
+               
+                 
                 </div>
               </div>
 
@@ -1014,7 +1001,7 @@ export const ProcessManager: React.FC = () => {
                     <span>المراحل ({selectedProcess.stages.length})</span>
                   </h3>
                   
-                  {hasPermission('stages', 'create') && (
+                  {selectedProcess && hasProcessPermission('stages', 'create', selectedProcess.id) && (
                     <button
                       onClick={() => {
                         const maxPriority = selectedProcess.stages.length > 0
@@ -1082,7 +1069,7 @@ export const ProcessManager: React.FC = () => {
                       
                       <div className={`flex items-center ${isMobile || isTablet ? 'flex-col space-y-1 space-y-reverse' : 'space-x-2 space-x-reverse'}`}>
                         <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1 space-x-reverse' : 'space-x-2 space-x-reverse'}`}>
-                          {hasPermission('stages', 'update') && (
+                          {selectedProcess && hasProcessPermission('stages', 'update', selectedProcess.id) && (
                             <button
                               onClick={() => {
 
@@ -1109,7 +1096,7 @@ export const ProcessManager: React.FC = () => {
                               <Edit className={isMobile || isTablet ? 'w-3.5 h-3.5 text-gray-500' : 'w-4 h-4 text-gray-500'} />
                             </button>
                           )}
-                          {selectedProcess.stages.length > 1 && hasPermission('stages', 'delete') && (
+                          {selectedProcess && selectedProcess.stages.length > 1 && hasProcessPermission('stages', 'delete', selectedProcess.id) && (
                               <>
                                 <div className={`text-gray-400 font-medium ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'}`}>#{stage.priority}</div>
                                 <button
@@ -1125,7 +1112,7 @@ export const ProcessManager: React.FC = () => {
                                 </button>
                               </>
                           )}
-                          {selectedProcess.stages.length > 1 && !hasPermission('stages', 'delete') && (
+                          {selectedProcess && selectedProcess.stages.length > 1 && !hasProcessPermission('stages', 'delete', selectedProcess.id) && (
                             <div className={`text-gray-400 font-medium ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'}`}>#{stage.priority}</div>
                           )}
                         </div>
@@ -1157,7 +1144,7 @@ export const ProcessManager: React.FC = () => {
                     <span>الحقول المخصصة ({selectedProcess.fields.length})</span>
                   </h3>
                   
-                  {hasPermission('fields', 'create') && (
+                  {selectedProcess && hasProcessPermission('fields', 'create', selectedProcess.id) && (
                     <button
                       onClick={() => setEditingField({ id: '', name: '', type: 'text', is_required: false, is_system_field: false })}
                       className={`text-blue-600 hover:text-blue-700 flex items-center space-x-1 space-x-reverse ${isMobile || isTablet ? 'text-xs w-full justify-center py-1.5' : 'text-sm'}`}
@@ -1182,7 +1169,7 @@ export const ProcessManager: React.FC = () => {
                       </div>
                       
                       <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse w-full justify-end' : 'space-x-2 space-x-reverse'}`}>
-                        {hasPermission('fields', 'update') && (
+                        {selectedProcess && hasProcessPermission('fields', 'update', selectedProcess.id) && (
                           <button
                             onClick={() => {
                               setEditingField(field);
@@ -1192,7 +1179,7 @@ export const ProcessManager: React.FC = () => {
                             <Edit className={isMobile || isTablet ? 'w-3.5 h-3.5 text-gray-500' : 'w-4 h-4 text-gray-500'} />
                           </button>
                         )}
-                        {hasPermission('fields', 'delete') && (
+                        {selectedProcess && hasProcessPermission('fields', 'delete', selectedProcess.id) && (
                           <button
                             onClick={() => handleDeleteField(field.id)}
                             disabled={isDeletingField === field.id}

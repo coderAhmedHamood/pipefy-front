@@ -15,6 +15,7 @@ interface KanbanColumnProps {
   hasMore: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
+  processId: string;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -26,9 +27,10 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   allowedDropStages,
   hasMore,
   loadingMore,
-  onLoadMore
+  onLoadMore,
+  processId
 }) => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, hasProcessPermission } = useAuth();
   const { setNodeRef, isOver } = useDroppable({
     id: stage.id
   });
@@ -129,7 +131,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
             </span>
           )}
         </div>
-        {hasPermission('tickets', 'create') && (
+        {hasProcessPermission('tickets', 'create', processId) && (
           <button
             onClick={onCreateTicket}
             className="w-full flex items-center justify-center space-x-2 space-x-reverse p-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-700"
