@@ -17,33 +17,109 @@ async function createAdmin() {
     await client.query('BEGIN');
     
     console.log('═══════════════════════════════════════════════════════════════════');
-    console.log('🚀 إنشاء مستخدم Super Admin مع جميع الصلاحيات');
+    console.log('🚀 إنشاء مستخدم وعملية مع جميع الصلاحيات');
     console.log('═══════════════════════════════════════════════════════════════════\n');
     
-    // 1. البحث عن دور Admin
-    console.log('1️⃣  البحث عن دور Admin...');
+    // 0. إنشاء جدول user_processes إذا لم يكن موجوداً
+    console.log('0️⃣  التحقق من وجود جدول user_processes...');
+    const tableCheck = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'user_processes'
+      )
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      console.log('   ⚠️  جدول user_processes غير موجود، جاري إنشاؤه...');
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS user_processes (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          process_id UUID NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
+          role VARCHAR(50) DEFAULT 'member',
+          is_active BOOLEAN DEFAULT TRUE,
+          added_by UUID REFERENCES users(id),
+          added_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW(),
+          UNIQUE(user_id, process_id)
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_user_processes_user ON user_processes(user_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_user_processes_process ON user_processes(process_id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_user_processes_active ON user_processes(is_active)`);
+      console.log('   ✅ تم إنشاء جدول user_processes بنجاح\n');
+    } else {
+      console.log('   ✅ جدول user_processes موجود\n');
+    }
+    
+    // 1. البحث عن أي دور (لإلزام role_id في users)
+    console.log('1️⃣  البحث عن دور افتراضي...');
     const roleResult = await client.query(
-      "SELECT id, name FROM roles WHERE name ILIKE '%admin%' ORDER BY is_system_role DESC LIMIT 1"
+      "SELECT id, name FROM roles ORDER BY is_system_role DESC, created_at ASC LIMIT 1"
     );
     
     if (roleResult.rows.length === 0) {
-      throw new Error('❌ Admin role not found. Please run migrations first.');
+      throw new Error('❌ لا يوجد أي دور في النظام. يرجى تشغيل migrations أولاً.');
     }
     
-    const adminRole = roleResult.rows[0];
-    console.log(`   ✅ تم العثور على الدور: ${adminRole.name} (${adminRole.id})\n`);
+    const defaultRole = roleResult.rows[0];
+    console.log(`   ✅ تم العثور على الدور: ${defaultRole.name} (${defaultRole.id})\n`);
     
-    // 2. حذف المستخدم الموجود إن وجد
+    // 2. حذف المستخدم الموجود إن وجد (مع حذف الصلاحيات المرتبطة)
     console.log('2️⃣  التحقق من المستخدم الموجود...');
-    await client.query('DELETE FROM users WHERE email = $1', ['admin@pipefy.com']);
-    console.log('   ✅ تم حذف المستخدم القديم (إن وجد)\n');
+    const existingUser = await client.query('SELECT id FROM users WHERE email = $1', ['admin@pipefy.com']);
+    
+    if (existingUser.rows.length > 0) {
+      const userId = existingUser.rows[0].id;
+      console.log(`   ⚠️  تم العثور على مستخدم قديم: ${userId}`);
+      
+      // حذف الصلاحيات المرتبطة
+      await client.query('DELETE FROM user_permissions WHERE user_id = $1', [userId]);
+      console.log('   ✅ تم حذف الصلاحيات المرتبطة');
+      
+      // حذف ربط المستخدم بالعمليات
+      await client.query('DELETE FROM user_processes WHERE user_id = $1', [userId]);
+      console.log('   ✅ تم حذف ربط المستخدم بالعمليات');
+      
+      // البحث عن عمليات مرتبطة بالمستخدم كـ created_by
+      const processesResult = await client.query('SELECT id, name FROM processes WHERE created_by = $1', [userId]);
+      
+      if (processesResult.rows.length > 0) {
+        console.log(`   ⚠️  تم العثور على ${processesResult.rows.length} عملية مرتبطة بالمستخدم`);
+        
+        // حذف المراحل والانتقالات المرتبطة بالعمليات
+        for (const process of processesResult.rows) {
+          // حذف الانتقالات المرتبطة بالمراحل في هذه العملية
+          await client.query(`
+            DELETE FROM stage_transitions 
+            WHERE from_stage_id IN (SELECT id FROM stages WHERE process_id = $1)
+               OR to_stage_id IN (SELECT id FROM stages WHERE process_id = $1)
+          `, [process.id]);
+          
+          // حذف المراحل المرتبطة بالعملية
+          await client.query('DELETE FROM stages WHERE process_id = $1', [process.id]);
+        }
+        console.log('   ✅ تم حذف المراحل والانتقالات المرتبطة');
+        
+        // حذف العمليات المرتبطة
+        await client.query('DELETE FROM processes WHERE created_by = $1', [userId]);
+        console.log('   ✅ تم حذف العمليات المرتبطة');
+      }
+      
+      // حذف المستخدم
+      await client.query('DELETE FROM users WHERE id = $1', [userId]);
+      console.log('   ✅ تم حذف المستخدم القديم\n');
+    } else {
+      console.log('   ✅ لا يوجد مستخدم قديم\n');
+    }
     
     // 3. تشفير كلمة المرور
     console.log('3️⃣  تشفير كلمة المرور...');
     const hashedPassword = await bcrypt.hash('admin123', 10);
     console.log('   ✅ تم تشفير كلمة المرور\n');
     
-    // 4. إنشاء المستخدم الجديد
+    // 4. إنشاء المستخدم الجديد (بدون ربطه بدور محدد)
     console.log('4️⃣  إنشاء المستخدم...');
     const userResult = await client.query(`
       INSERT INTO users (
@@ -60,10 +136,10 @@ async function createAdmin() {
         NOW(), NOW()
       ) RETURNING id, name, email
     `, [
-      'مدير النظام الرئيسي',
+      'مدير النظام العام المليح',
       'admin@pipefy.com',
       hashedPassword,
-      adminRole.id
+      defaultRole.id
     ]);
     
     const adminUser = userResult.rows[0];
@@ -71,46 +147,272 @@ async function createAdmin() {
     console.log(`   📧 البريد: ${adminUser.email}`);
     console.log(`   🆔 المعرف: ${adminUser.id}\n`);
     
-    // 5. جلب جميع الصلاحيات
-    console.log('5️⃣  جلب جميع الصلاحيات...');
+    // 5. إنشاء العملية
+    console.log('5️⃣  إنشاء العملية...');
+    const processResult = await client.query(`
+      INSERT INTO processes (
+        id, name, description, color, icon, settings, created_by, created_at, updated_at
+      ) VALUES (
+        uuid_generate_v4(), $1, $2, $3, $4, $5, $6, NOW(), NOW()
+      ) RETURNING id, name
+    `, [
+      'العملية الرئيسية',
+      'العملية الرئيسية للنظام',
+      '#3B82F6',
+      'FolderOpen',
+      '{}',
+      adminUser.id
+    ]);
+    
+    const process = processResult.rows[0];
+    console.log(`   ✅ تم إنشاء العملية: ${process.name}`);
+    console.log(`   🆔 معرف العملية: ${process.id}\n`);
+    
+    // 6. إنشاء المراحل الافتراضية الثلاث
+    console.log('6️⃣  إنشاء المراحل الافتراضية...');
+    const stageQueries = [
+      {
+        name: 'مرحلة جديدة',
+        description: 'المرحلة الأولى للعملية',
+        color: '#6B7280',
+        order_index: 1,
+        priority: 1,
+        is_initial: true,
+        is_final: false
+      },
+      {
+        name: 'قيد المراجعة',
+        description: 'مرحلة مراجعة الطلب',
+        color: '#F59E0B',
+        order_index: 2,
+        priority: 2,
+        is_initial: false,
+        is_final: false
+      },
+      {
+        name: 'مكتملة',
+        description: 'المرحلة النهائية',
+        color: '#10B981',
+        order_index: 3,
+        priority: 3,
+        is_initial: false,
+        is_final: true
+      }
+    ];
+    
+    const createdStages = [];
+    for (const stageData of stageQueries) {
+      const stageResult = await client.query(`
+        INSERT INTO stages (process_id, name, description, color, order_index, priority, is_initial, is_final)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, name, order_index
+      `, [
+        process.id,
+        stageData.name,
+        stageData.description,
+        stageData.color,
+        stageData.order_index,
+        stageData.priority,
+        stageData.is_initial,
+        stageData.is_final
+      ]);
+      createdStages.push(stageResult.rows[0]);
+      console.log(`   ✅ تم إنشاء المرحلة: ${stageData.name} (ترتيب: ${stageData.order_index})`);
+    }
+    console.log(`   ✅ تم إنشاء ${createdStages.length} مرحلة افتراضية\n`);
+    
+    // 7. إنشاء الانتقالات الافتراضية
+    console.log('7️⃣  إنشاء الانتقالات الافتراضية...');
+    const transitionQueries = [
+      {
+        from_stage_id: createdStages[0].id,
+        to_stage_id: createdStages[1].id,
+        display_name: 'إرسال للمراجعة',
+        is_default: true,
+        button_color: '#3B82F6',
+        order_index: 1
+      },
+      {
+        from_stage_id: createdStages[1].id,
+        to_stage_id: createdStages[2].id,
+        display_name: 'موافقة',
+        is_default: true,
+        button_color: '#3B82F6',
+        order_index: 1
+      },
+      {
+        from_stage_id: createdStages[1].id,
+        to_stage_id: createdStages[0].id,
+        display_name: 'رفض',
+        is_default: false,
+        button_color: '#EF4444',
+        order_index: 2
+      }
+    ];
+    
+    for (const transitionData of transitionQueries) {
+      await client.query(`
+        INSERT INTO stage_transitions (from_stage_id, to_stage_id, display_name, is_default, button_color, order_index)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [
+        transitionData.from_stage_id,
+        transitionData.to_stage_id,
+        transitionData.display_name,
+        transitionData.is_default,
+        transitionData.button_color,
+        transitionData.order_index
+      ]);
+      console.log(`   ✅ تم إنشاء الانتقال: ${transitionData.display_name}`);
+    }
+    console.log(`   ✅ تم إنشاء ${transitionQueries.length} انتقال افتراضي\n`);
+    
+    // 8. ربط المستخدم بالعملية في جدول user_processes
+    console.log('8️⃣  ربط المستخدم بالعملية...');
+    const userProcessResult = await client.query(`
+      INSERT INTO user_processes (user_id, process_id, role, added_by, is_active, added_at, updated_at)
+      VALUES ($1, $2, $3, $4, true, NOW(), NOW())
+      ON CONFLICT (user_id, process_id) DO UPDATE SET 
+        role = EXCLUDED.role,
+        is_active = true,
+        updated_at = NOW()
+      RETURNING id, user_id, process_id, role, is_active
+    `, [adminUser.id, process.id, 'admin', adminUser.id]);
+    
+    const userProcess = userProcessResult.rows[0];
+    console.log(`   ✅ تم ربط المستخدم بالعملية`);
+    console.log(`   🆔 معرف الربط: ${userProcess.id}`);
+    console.log(`   👤 المستخدم: ${adminUser.name}`);
+    console.log(`   🏢 العملية: ${process.name}`);
+    console.log(`   🎭 الدور في العملية: ${userProcess.role}`);
+    console.log(`   ✅ الحالة: ${userProcess.is_active ? 'نشط' : 'غير نشط'}\n`);
+    
+    // التحقق من ربط المستخدم بالعملية
+    const verifyLink = await client.query(`
+      SELECT id, user_id, process_id, role, is_active
+      FROM user_processes
+      WHERE user_id = $1 AND process_id = $2
+    `, [adminUser.id, process.id]);
+    
+    if (verifyLink.rows.length > 0) {
+      console.log('   ✅ التحقق: المستخدم مرتبط بالعملية بنجاح\n');
+    } else {
+      throw new Error('❌ فشل التحقق من ربط المستخدم بالعملية');
+    }
+    
+    // 9. جلب جميع الصلاحيات
+    console.log('9️⃣  جلب جميع الصلاحيات...');
     const permissionsResult = await client.query('SELECT id, name, resource, action FROM permissions');
     const allPermissions = permissionsResult.rows;
     console.log(`   ✅ تم العثور على ${allPermissions.length} صلاحية\n`);
     
-    // 6. ربط الدور بجميع الصلاحيات
-    console.log('6️⃣  ربط الدور بجميع الصلاحيات...');
+    // 10. إعطاء جميع الصلاحيات للمستخدم في العملية
+    console.log('🔟 إعطاء جميع الصلاحيات للمستخدم في العملية...');
     
-    // حذف الصلاحيات القديمة للدور
-    await client.query('DELETE FROM role_permissions WHERE role_id = $1', [adminRole.id]);
+    // حذف الصلاحيات القديمة للمستخدم في هذه العملية
+    await client.query('DELETE FROM user_permissions WHERE user_id = $1 AND process_id = $2', [
+      adminUser.id,
+      process.id
+    ]);
     
     // إضافة جميع الصلاحيات
     let addedCount = 0;
     for (const permission of allPermissions) {
       await client.query(`
-        INSERT INTO role_permissions (id, role_id, permission_id, created_at)
-        VALUES (uuid_generate_v4(), $1, $2, NOW())
-        ON CONFLICT DO NOTHING
-      `, [adminRole.id, permission.id]);
+        INSERT INTO user_permissions (
+          id, user_id, permission_id, process_id, granted_by, granted_at
+        )
+        VALUES (uuid_generate_v4(), $1, $2, $3, $4, NOW())
+        ON CONFLICT (user_id, permission_id, process_id) DO UPDATE SET
+          granted_by = EXCLUDED.granted_by,
+          granted_at = NOW()
+      `, [adminUser.id, permission.id, process.id, adminUser.id]);
       addedCount++;
     }
     
-    console.log(`   ✅ تم ربط ${addedCount} صلاحية بالدور\n`);
+    console.log(`   ✅ تم إعطاء ${addedCount} صلاحية للمستخدم في العملية\n`);
     
-    // 7. التحقق من الصلاحيات
-    console.log('7️⃣  التحقق من الصلاحيات...');
+    // 11. التحقق من صلاحية manage_user_permissions
+    console.log('1️⃣1️⃣  التحقق من صلاحية إدارة ربط المستخدمين بالعمليات...');
+    const manageUserPermResult = await client.query(`
+      SELECT p.id, p.name, p.resource, p.action
+      FROM permissions p
+      WHERE p.resource = 'processes' AND p.action = 'manage_user_permissions'
+    `);
+    
+    if (manageUserPermResult.rows.length > 0) {
+      const manageUserPerm = manageUserPermResult.rows[0];
+      console.log(`   ✅ تم العثور على الصلاحية: ${manageUserPerm.name}`);
+      
+      // التحقق من أن الصلاحية ممنوحة للمستخدم في العملية
+      const checkUserPerm = await client.query(`
+        SELECT id, user_id, permission_id, process_id
+        FROM user_permissions
+        WHERE user_id = $1 
+          AND permission_id = $2 
+          AND process_id = $3
+      `, [adminUser.id, manageUserPerm.id, process.id]);
+      
+      if (checkUserPerm.rows.length > 0) {
+        console.log(`   ✅ الصلاحية ممنوحة للمستخدم في العملية`);
+        console.log(`   🆔 معرف الصلاحية: ${manageUserPerm.id}`);
+        console.log(`   📝 الاسم: ${manageUserPerm.name}`);
+        console.log(`   📦 المورد: ${manageUserPerm.resource}`);
+        console.log(`   ⚙️  الإجراء: ${manageUserPerm.action}\n`);
+      } else {
+        // إعطاء الصلاحية إذا لم تكن موجودة
+        console.log(`   ⚠️  الصلاحية غير ممنوحة، جاري إعطائها...`);
+        await client.query(`
+          INSERT INTO user_permissions (
+            id, user_id, permission_id, process_id, granted_by, granted_at
+          )
+          VALUES (uuid_generate_v4(), $1, $2, $3, $4, NOW())
+          ON CONFLICT (user_id, permission_id, process_id) DO UPDATE SET
+            granted_by = EXCLUDED.granted_by,
+            granted_at = NOW()
+        `, [adminUser.id, manageUserPerm.id, process.id, adminUser.id]);
+        console.log(`   ✅ تم إعطاء الصلاحية بنجاح\n`);
+      }
+    } else {
+      console.log(`   ⚠️  صلاحية manage_user_permissions غير موجودة في النظام\n`);
+    }
+    
+    // 12. التحقق من الصلاحيات
+    console.log('1️⃣2️⃣  التحقق من جميع الصلاحيات...');
     const verifyResult = await client.query(`
       SELECT COUNT(*) as count
-      FROM role_permissions rp
-      WHERE rp.role_id = $1
-    `, [adminRole.id]);
+      FROM user_permissions
+      WHERE user_id = $1 AND process_id = $2
+    `, [adminUser.id, process.id]);
     
     const permissionCount = parseInt(verifyResult.rows[0].count);
-    console.log(`   ✅ الدور لديه ${permissionCount} صلاحية\n`);
+    console.log(`   ✅ المستخدم لديه ${permissionCount} صلاحية في العملية\n`);
+    
+    // التحقق من صلاحية manage_user_permissions بشكل نهائي
+    const finalCheck = await client.query(`
+      SELECT 
+        up.id,
+        p.name as permission_name,
+        p.resource,
+        p.action
+      FROM user_permissions up
+      INNER JOIN permissions p ON up.permission_id = p.id
+      WHERE up.user_id = $1 
+        AND up.process_id = $2
+        AND p.resource = 'processes' 
+        AND p.action = 'manage_user_permissions'
+    `, [adminUser.id, process.id]);
+    
+    if (finalCheck.rows.length > 0) {
+      console.log(`   ✅ صلاحية إدارة ربط المستخدمين بالعمليات مفعلة`);
+      console.log(`   📝 يمكن للمستخدم الآن استخدام endpoint: POST /api/user-processes\n`);
+    } else {
+      console.log(`   ⚠️  تحذير: صلاحية manage_user_permissions غير مفعلة\n`);
+    }
     
     await client.query('COMMIT');
     
     console.log('═══════════════════════════════════════════════════════════════════');
-    console.log('✅ تم إنشاء Super Admin بنجاح!');
+    console.log('✅ تم إنشاء المستخدم والعملية والصلاحيات بنجاح!');
     console.log('═══════════════════════════════════════════════════════════════════\n');
     
     console.log('📋 معلومات تسجيل الدخول:');
@@ -118,8 +420,9 @@ async function createAdmin() {
     console.log(`📧 البريد الإلكتروني: admin@pipefy.com`);
     console.log(`🔑 كلمة المرور: admin123`);
     console.log(`👤 الاسم: ${adminUser.name}`);
-    console.log(`🆔 المعرف: ${adminUser.id}`);
-    console.log(`🎭 الدور: ${adminRole.name}`);
+    console.log(`🆔 معرف المستخدم: ${adminUser.id}`);
+    console.log(`🏢 العملية: ${process.name}`);
+    console.log(`🆔 معرف العملية: ${process.id}`);
     console.log(`🔐 عدد الصلاحيات: ${permissionCount}`);
     console.log('─'.repeat(70));
     
