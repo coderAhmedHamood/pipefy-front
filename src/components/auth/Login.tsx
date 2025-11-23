@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSystemSettings, useCompanyInfo } from '../../contexts/SystemSettingsContext';
 import { useThemeColors } from '../../contexts/ThemeContext';
 import { buildAssetUrl } from '../../config/config';
-import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle, TrendingUp, Shield, Clock } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('admin@pipefy.com');
@@ -105,53 +105,154 @@ export const Login: React.FC = () => {
         background: `linear-gradient(to bottom right, ${colors.primary}, ${colors.secondary}, ${colors.primaryDark})`
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
+        {/* القسم التعريفي - الجهة اليمنى */}
         <div 
-          className="p-8 text-center"
+          className="hidden lg:flex flex-col justify-center p-16 text-white relative overflow-hidden"
           style={{
-            background: `linear-gradient(to right, ${colors.primary}, ${colors.secondary})`
+            background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 50%, ${colors.secondary} 100%)`
           }}
         >
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
-            {logoUrl ? (
-              <img 
-                src={logoUrl} 
-                alt={companyName || settings.company_name || 'شعار الشركة'} 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // في حالة فشل تحميل الشعار، إظهار الحرف الأول
-                  const target = e.currentTarget;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent) {
-                    const fallback = document.createElement('span');
-                    fallback.className = 'text-2xl font-bold';
-                    fallback.style.color = colors.primaryDark;
-                    fallback.textContent = (companyName || settings.company_name || '🏢').charAt(0);
-                    parent.appendChild(fallback);
-                  }
-                }}
-              />
-            ) : (
-              <span 
-                className="text-2xl font-bold"
-                style={{ color: colors.primaryDark }}
-              >
-                {(companyName || settings.company_name || '🏢').charAt(0)}
-              </span>
-            )}
+          {/* عناصر زخرفية - دوائر متدرجة */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div 
+              className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-15"
+              style={{ backgroundColor: 'white', filter: 'blur(120px)', transform: 'translate(30%, -30%)' }}
+            ></div>
+            <div 
+              className="absolute bottom-0 left-0 w-80 h-80 rounded-full opacity-10"
+              style={{ backgroundColor: 'white', filter: 'blur(100px)', transform: 'translate(-30%, 30%)' }}
+            ></div>
+            <div 
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-5"
+              style={{ backgroundColor: 'white', filter: 'blur(140px)' }}
+            ></div>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">
-            {companyName || settings.company_name || 'تسجيل الدخول'}
-          </h1>
-          <p className="text-white opacity-90">
-            {companyName || settings.company_name ? `نظام إدارة العمليات - ${companyName || settings.company_name}` : 'إدارة متقدمة للعمليات والمهام'}
-          </p>
+
+          {/* المحتوى الرئيسي */}
+          <div className="relative z-10 max-w-lg flex flex-col h-full justify-center">
+            {/* الشعار */}
+            <div className="mb-10">
+              {logoUrl ? (
+                <div className="w-28 h-28 bg-white rounded-3xl p-5 mb-8 shadow-2xl">
+                  <img 
+                    src={logoUrl} 
+                    alt={companyName || settings.company_name || 'شعار الشركة'} 
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('div');
+                        fallback.className = 'w-full h-full flex items-center justify-center';
+                        fallback.style.color = colors.primaryDark;
+                        fallback.innerHTML = `<span class="text-5xl font-bold">${(companyName || settings.company_name || '🏢').charAt(0)}</span>`;
+                        parent.appendChild(fallback);
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div 
+                  className="w-28 h-28 rounded-3xl flex items-center justify-center mb-8 shadow-2xl"
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', backdropFilter: 'blur(10px)' }}
+                >
+                  <span 
+                    className="text-5xl font-bold"
+                    style={{ color: 'white' }}
+                  >
+                    {(companyName || settings.company_name || '🏢').charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* العنوان الرئيسي - كبير وبارز */}
+            <h1 className="text-6xl font-bold mb-6 leading-tight" style={{ 
+              textShadow: '0 4px 30px rgba(0,0,0,0.2)',
+              lineHeight: '1.1'
+            }}>
+              مرحباً بك في
+              <br />
+              <span style={{ 
+                color: 'rgba(255, 255, 255, 0.98)',
+                display: 'block',
+                marginTop: '0.5rem'
+              }}>
+                {companyName || settings.company_name || 'نظام إدارة العمليات'}
+              </span>
+            </h1>
+
+            {/* النص الوصفي */}
+            <p className="text-xl text-white opacity-90 leading-relaxed mb-16 font-light" style={{ 
+              textShadow: '0 2px 15px rgba(0,0,0,0.15)',
+              lineHeight: '1.8'
+            }}>
+              منصة متكاملة لإدارة العمليات والمهام بكفاءة واحترافية
+            </p>
+
+            {/* نص إضافي - بخط مائل */}
+            <div className="mt-auto">
+              <p className="text-lg text-white opacity-85 leading-relaxed" style={{ 
+                textShadow: '0 1px 10px rgba(0,0,0,0.1)',
+                fontStyle: 'italic'
+              }}>
+                "ابدأ رحلتك نحو إدارة أكثر كفاءة واحترافية"
+              </p>
+            </div>
+          </div>
         </div>
 
+        {/* نموذج تسجيل الدخول - الجهة اليسرى */}
+        <div className="bg-white overflow-hidden flex flex-col">
+          {/* Header بسيط */}
+          <div className="p-8 pb-6 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-6">
+              {logoUrl ? (
+                <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm">
+                  <img 
+                    src={logoUrl} 
+                    alt={companyName || settings.company_name || 'شعار الشركة'} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const fallback = document.createElement('div');
+                        fallback.className = 'w-full h-full flex items-center justify-center';
+                        fallback.style.backgroundColor = colors.primary;
+                        fallback.style.color = 'white';
+                        fallback.innerHTML = `<span class="text-xl font-bold">${(companyName || settings.company_name || '🏢').charAt(0)}</span>`;
+                        parent.appendChild(fallback);
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ backgroundColor: colors.primary }}
+                >
+                  <span 
+                    className="text-xl font-bold text-white"
+                  >
+                    {(companyName || settings.company_name || '🏢').charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              تسجيل الدخول
+            </h1>
+            <p className="text-gray-600">
+              أدخل بياناتك للوصول إلى حسابك
+            </p>
+          </div>
+
         {/* Login Form */}
-        <div className="p-8">
+        <div className="flex-1 p-8 flex flex-col justify-center">
           {/* رسائل النجاح والخطأ */}
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3 space-x-reverse">
@@ -236,7 +337,7 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center">
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -250,21 +351,6 @@ export const Login: React.FC = () => {
                 />
                 <span className="mr-2 text-sm text-gray-600">تذكرني</span>
               </label>
-              <a 
-                href="#" 
-                className="text-sm hover:underline transition-colors"
-                style={{ 
-                  color: colors.primary,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = colors.primaryDark;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = colors.primary;
-                }}
-              >
-                نسيت كلمة المرور؟
-              </a>
             </div>
 
             <button
@@ -301,6 +387,7 @@ export const Login: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
