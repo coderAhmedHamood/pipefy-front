@@ -127,6 +127,11 @@ export const UserManagerNew: React.FC = () => {
   });
   const [loadingProcessPermissions, setLoadingProcessPermissions] = useState(false);
   const permissionsSectionRef = useRef<HTMLDivElement>(null);
+  
+  // تصفية الصلاحيات حسب النوع
+  const [inactivePermissionsFilters, setInactivePermissionsFilters] = useState<Set<string>>(
+    new Set(['fields', 'processes', 'stages', 'ticket_assignees', 'ticket_reviewers', 'tickets'])
+  );
 
   // تحميل البيانات الأولية
   useEffect(() => {
@@ -3084,56 +3089,141 @@ export const UserManagerNew: React.FC = () => {
                             {/* الصلاحيات غير المفعلة */}
                             <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm`}>
                               <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-red-100`}>
-                              <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-red-100 rounded-lg`}>
-                                <AlertCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-red-600`} />
-                              </div>
-                              <span className="text-red-700">غير المفعلة ({processPermissions.inactive.length})</span>
+                                <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-red-100 rounded-lg`}>
+                                  <AlertCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-red-600`} />
+                                </div>
+                                <span className="text-red-700">غير المفعلة ({processPermissions.inactive.length})</span>
                             </h4>
+                              {/* أزرار التصفية */}
+                              <div className={`${isMobile || isTablet ? 'mb-2' : 'mb-3'} flex flex-wrap gap-2`}>
+                                {['fields', 'processes', 'stages', 'ticket_assignees', 'ticket_reviewers', 'tickets'].map((resource) => {
+                                  const isActive = inactivePermissionsFilters.has(resource);
+                                  return (
+                                    <button
+                                      key={resource}
+                                      onClick={() => {
+                                        const newFilters = new Set(inactivePermissionsFilters);
+                                        if (isActive) {
+                                          newFilters.delete(resource);
+                                        } else {
+                                          newFilters.add(resource);
+                                        }
+                                        setInactivePermissionsFilters(newFilters);
+                                      }}
+                                      className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} rounded-lg transition-all duration-200 ${
+                                        isActive
+                                          ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md'
+                                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                      }`}
+                                    >
+                                      {resource}
+                                    </button>
+                                  );
+                                })}
+                                {/* زر "ما تبقى" */}
+                                {(() => {
+                                  const hasOtherResources = processPermissions.inactive.some((p: any) => 
+                                    !['fields', 'processes', 'stages', 'ticket_assignees', 'ticket_reviewers', 'tickets'].includes(p.resource)
+                                  );
+                                  if (!hasOtherResources) return null;
+                                  const isActive = inactivePermissionsFilters.has('other');
+                                  return (
+                                    <button
+                                      onClick={() => {
+                                        const newFilters = new Set(inactivePermissionsFilters);
+                                        if (isActive) {
+                                          newFilters.delete('other');
+                                        } else {
+                                          newFilters.add('other');
+                                        }
+                                        setInactivePermissionsFilters(newFilters);
+                                      }}
+                                      className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} rounded-lg transition-all duration-200 ${
+                                        isActive
+                                          ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md'
+                                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                      }`}
+                                    >
+                                      ما تبقى
+                                    </button>
+                                  );
+                                })()}
+                              </div>
                               <div className={`flex-1 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-500px)]' : 'max-h-64'}`}>
                                 {processPermissions.inactive.length === 0 ? (
                                   <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-green-50 rounded-lg border-2 border-green-200`}>
                                     <CheckCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-green-500 mx-auto mb-2`} />
                                     <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-green-700 font-medium`}>جميع الصلاحيات مفعلة</p>
                                   </div>
-                                ) : (
-                                  <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-2'}`}>
-                                    {processPermissions.inactive.map((permission: any) => (
-                                      <div
-                                        key={permission.id}
-                                        className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-lg transition-all duration-200`}
-                                      >
-                                      <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-1 min-w-0">
-                                          <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
-                                            <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{permission.name}</h5>
-                                            <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-purple-100 text-purple-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
-                                              {permission.resource}
-                                            </span>
-                                            <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-blue-100 text-blue-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
-                                              {permission.action}
-                                            </span>
-                                          </div>
-                                          {permission.description && (
-                                            <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{permission.description}</p>
-                                          )}
+                                ) : (() => {
+                                  // تصفية الصلاحيات حسب الأزرار المحددة
+                                  const filteredInactive = processPermissions.inactive.filter((permission: any) => {
+                                    const resource = permission.resource || 'أخرى';
+                                    if (['fields', 'processes', 'stages', 'ticket_assignees', 'ticket_reviewers', 'tickets'].includes(resource)) {
+                                      return inactivePermissionsFilters.has(resource);
+                                    } else {
+                                      return inactivePermissionsFilters.has('other');
+                                    }
+                                  });
+                                  
+                                  // تجميع الصلاحيات حسب النوع (resource)
+                                  const groupedInactive = filteredInactive.reduce((acc: any, permission: any) => {
+                                    const resource = permission.resource || 'أخرى';
+                                    if (!acc[resource]) {
+                                      acc[resource] = [];
+                                    }
+                                    acc[resource].push(permission);
+                                    return acc;
+                                  }, {});
+
+                                  return (
+                                    <div className={`${isMobile || isTablet ? 'space-y-4' : 'space-y-4'}`}>
+                                      {Object.entries(groupedInactive).map(([resource, permissions]: [string, any]) => (
+                                        <div key={resource} className="space-y-2">
+                                          <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 mb-2 pb-1 border-b border-gray-200 flex items-center space-x-2 space-x-reverse`}>
+                                            <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md">{resource}</span>
+                                            <span className="text-gray-500 text-xs">({permissions.length})</span>
+                                          </h5>
+                                          {permissions.map((permission: any) => (
+                                            <div
+                                              key={permission.id}
+                                              className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-lg transition-all duration-200`}
+                                            >
+                                              <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                  <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
+                                                    <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{permission.name}</span>
+                                                    <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-purple-100 text-purple-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
+                                                      {permission.resource}
+                                                    </span>
+                                                    <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-blue-100 text-blue-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
+                                                      {permission.action}
+                                                    </span>
+                                                  </div>
+                                                  {permission.description && (
+                                                    <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{permission.description}</p>
+                                                  )}
+                                                </div>
+                                                <button
+                                                  onClick={() => handleAddPermission(permission.id)}
+                                                  disabled={processingPermission === permission.id}
+                                                  className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg`}
+                                                  title="إضافة الصلاحية"
+                                                >
+                                                  {processingPermission === permission.id ? (
+                                                    <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                                  ) : (
+                                                    <Plus className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                                  )}
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ))}
                                         </div>
-                                          <button
-                                            onClick={() => handleAddPermission(permission.id)}
-                                            disabled={processingPermission === permission.id}
-                                            className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg`}
-                                            title="إضافة الصلاحية"
-                                          >
-                                            {processingPermission === permission.id ? (
-                                              <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
-                                            ) : (
-                                              <Plus className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-                                            )}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
 
@@ -3151,70 +3241,90 @@ export const UserManagerNew: React.FC = () => {
                                     <AlertCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400 mx-auto mb-2`} />
                                     <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 font-medium`}>لا توجد صلاحيات مفعلة</p>
                                   </div>
-                                ) : (
-                                  <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-2'}`}>
-                                    {processPermissions.active
-                                      .sort((a, b) => {
-                                        if (a.source === 'direct' && b.source !== 'direct') return -1;
-                                        if (a.source !== 'direct' && b.source === 'direct') return 1;
-                                        return a.name.localeCompare(b.name, 'ar');
-                                      })
-                                      .map((permission: any) => (
-                                        <div
-                                          key={permission.id}
-                                          className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br rounded-xl hover:shadow-lg transition-all duration-200 ${
-                                            permission.source === 'direct' 
-                                              ? 'from-orange-50 to-white border-2 border-orange-300 hover:border-orange-400' 
-                                              : 'from-green-50 to-white border-2 border-green-200 hover:border-green-300'
-                                          }`}
-                                        >
-                                        <div className="flex items-start justify-between gap-3">
-                                          <div className="flex-1 min-w-0">
-                                            <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
-                                              <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{permission.name}</h5>
-                                              <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-purple-100 text-purple-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
-                                                {permission.resource}
-                                              </span>
-                                              <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-blue-100 text-blue-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
-                                                {permission.action}
-                                              </span>
-                                              {permission.source && (
-                                                <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} rounded-full font-semibold whitespace-nowrap shadow-sm ${
-                                                  permission.source === 'role' 
-                                                    ? 'bg-blue-100 text-blue-700' 
-                                                    : 'bg-orange-100 text-orange-700'
-                                                }`}>
-                                                  {permission.source === 'role' ? 'من الدور' : 'مباشرة'}
-                                                </span>
-                                              )}
-                                            </div>
-                                            {permission.description && (
-                                              <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{permission.description}</p>
-                                            )}
-                                            {permission.expires_at && (
-                                              <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-orange-600 mt-2 font-medium bg-orange-50 px-2 py-1 rounded-lg inline-block`}>
-                                                ⏰ تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
-                                              </p>
-                                            )}
-                                          </div>
-                                          {/* زر الحذف - يظهر لجميع الصلاحيات في قسم صلاحيات العملية */}
-                                          <button
-                                            onClick={() => handleRemovePermission(permission.id)}
-                                            disabled={processingPermission === permission.id}
-                                            className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-red-300 shadow-sm hover:shadow-md`}
-                                            title="إلغاء الصلاحية"
-                                          >
-                                            {processingPermission === permission.id ? (
-                                              <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
-                                            ) : (
-                                              <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
-                                            )}
-                                          </button>
-                                          </div>
+                                ) : (() => {
+                                  // تجميع الصلاحيات حسب النوع (resource)
+                                  const groupedActive = processPermissions.active.reduce((acc: any, permission: any) => {
+                                    const resource = permission.resource || 'أخرى';
+                                    if (!acc[resource]) {
+                                      acc[resource] = [];
+                                    }
+                                    acc[resource].push(permission);
+                                    return acc;
+                                  }, {});
+
+                                  return (
+                                    <div className={`${isMobile || isTablet ? 'space-y-4' : 'space-y-4'}`}>
+                                      {Object.entries(groupedActive).map(([resource, permissions]: [string, any]) => (
+                                        <div key={resource} className="space-y-2">
+                                          <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 mb-2 pb-1 border-b border-gray-200 flex items-center space-x-2 space-x-reverse`}>
+                                            <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-md">{resource}</span>
+                                            <span className="text-gray-500 text-xs">({permissions.length})</span>
+                                          </h5>
+                                          {permissions
+                                            .sort((a: any, b: any) => {
+                                              if (a.source === 'direct' && b.source !== 'direct') return -1;
+                                              if (a.source !== 'direct' && b.source === 'direct') return 1;
+                                              return a.name.localeCompare(b.name, 'ar');
+                                            })
+                                            .map((permission: any) => (
+                                              <div
+                                                key={permission.id}
+                                                className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br rounded-xl hover:shadow-lg transition-all duration-200 ${
+                                                  permission.source === 'direct' 
+                                                    ? 'from-orange-50 to-white border-2 border-orange-300 hover:border-orange-400' 
+                                                    : 'from-green-50 to-white border-2 border-green-200 hover:border-green-300'
+                                                }`}
+                                              >
+                                                <div className="flex items-start justify-between gap-3">
+                                                  <div className="flex-1 min-w-0">
+                                                    <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
+                                                      <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{permission.name}</span>
+                                                      <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-purple-100 text-purple-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
+                                                        {permission.resource}
+                                                      </span>
+                                                      <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-blue-100 text-blue-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
+                                                        {permission.action}
+                                                      </span>
+                                                      {permission.source && (
+                                                        <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} rounded-full font-semibold whitespace-nowrap shadow-sm ${
+                                                          permission.source === 'role' 
+                                                            ? 'bg-blue-100 text-blue-700' 
+                                                            : 'bg-orange-100 text-orange-700'
+                                                        }`}>
+                                                          {permission.source === 'role' ? 'من الدور' : 'مباشرة'}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    {permission.description && (
+                                                      <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{permission.description}</p>
+                                                    )}
+                                                    {permission.expires_at && (
+                                                      <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-orange-600 mt-2 font-medium bg-orange-50 px-2 py-1 rounded-lg inline-block`}>
+                                                        ⏰ تنتهي في: {new Date(permission.expires_at).toLocaleDateString('ar-SA')}
+                                                      </p>
+                                                    )}
+                                                  </div>
+                                                  {/* زر الحذف - يظهر لجميع الصلاحيات في قسم صلاحيات العملية */}
+                                                  <button
+                                                    onClick={() => handleRemovePermission(permission.id)}
+                                                    disabled={processingPermission === permission.id}
+                                                    className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-red-300 shadow-sm hover:shadow-md`}
+                                                    title="إلغاء الصلاحية"
+                                                  >
+                                                    {processingPermission === permission.id ? (
+                                                      <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                                    ) : (
+                                                      <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                                    )}
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            ))}
                                         </div>
                                       ))}
-                                  </div>
-                                )}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
                           </div>
