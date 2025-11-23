@@ -18,7 +18,7 @@ FROM permissions p
 WHERE p.resource = 'tickets' AND p.action = 'view_scope'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- ربط الصلاحية بجميع الأدوار التي لديها صلاحية tickets.view_all
+-- ربط الصلاحية بجميع الأدوار التي لديها صلاحية tickets.manage (بدلاً من view_all المحذوفة)
 INSERT INTO role_permissions (id, role_id, permission_id, created_at)
 SELECT DISTINCT
   gen_random_uuid(),
@@ -28,7 +28,7 @@ SELECT DISTINCT
 FROM role_permissions rp
 INNER JOIN permissions p ON p.resource = 'tickets' AND p.action = 'view_scope'
 INNER JOIN permissions p2 ON rp.permission_id = p2.id
-WHERE p2.resource = 'tickets' AND p2.action = 'view_all'
+WHERE p2.resource = 'tickets' AND p2.action = 'manage'
   AND rp.role_id != '550e8400-e29b-41d4-a716-446655440001'::uuid
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions 
