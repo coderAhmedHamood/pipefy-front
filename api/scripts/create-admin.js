@@ -136,7 +136,7 @@ async function createAdmin() {
         NOW(), NOW()
       ) RETURNING id, name, email
     `, [
-      'مدير النظام العام المليح',
+      'مدير النظام العام ',
       'admin@pipefy.com',
       hashedPassword,
       defaultRole.id
