@@ -17,6 +17,7 @@ import notificationService from '../../services/notificationService';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { useQuickNotifications } from '../ui/NotificationSystem';
 import { useDeviceType } from '../../hooks/useDeviceType';
+import { useThemeColors, useTheme } from '../../contexts/ThemeContext';
 import { 
   X, 
   Save, 
@@ -832,6 +833,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const { deleteTicket, isDeleting } = useSimpleDelete();
   const { updateTicket, isUpdating } = useSimpleUpdate();
   const { isMobile, isTablet } = useDeviceType();
+  const colors = useThemeColors();
+  const { currentTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [showStageSelector, setShowStageSelector] = useState(false);
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
@@ -1591,13 +1594,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'created': return <Plus className="w-4 h-4 text-blue-500" />;
-      case 'stage_changed': return <ArrowRight className="w-4 h-4 text-green-500" />;
+      case 'stage_changed': return <ArrowRight className="w-4 h-4" style={{ color: colors.primary }} />;
       case 'comment_added': return <MessageSquare className="w-4 h-4 text-purple-500" />;
       case 'field_updated': return <Edit className="w-4 h-4 text-orange-500" />;
       case 'priority_changed': return <Flag className="w-4 h-4 text-red-500" />;
       case 'due_date_changed': return <Calendar className="w-4 h-4 text-blue-500" />;
       case 'reviewer_assigned': return <User className="w-4 h-4 text-indigo-500" />;
-      case 'completed': return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'completed': return <CheckCircle className="w-4 h-4" style={{ color: colors.primary }} />;
       default: return <ActivityIcon className="w-4 h-4 text-gray-500" />;
     }
   };
@@ -1638,7 +1641,12 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     <div className={`fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 ${isMobile || isTablet ? 'p-0' : 'p-4'}`} dir="rtl">
       <div className={`bg-white shadow-2xl w-full overflow-hidden ${isMobile || isTablet ? 'h-full rounded-none' : 'rounded-xl max-w-7xl max-h-[95vh]'}`}>
         {/* Header */}
-        <div className={`bg-[#00B8A9] text-white ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
+        <div 
+          className={`text-white ${isMobile || isTablet ? 'p-3' : 'p-6'}`}
+          style={{ 
+            backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary 
+          }}
+        >
           <div className={`flex ${isMobile || isTablet ? 'flex-col space-y-3' : 'items-center justify-between'}`}>
             <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
               <div className={`${isMobile || isTablet ? 'w-10 h-10' : 'w-12 h-12'} ${currentStage?.color || 'bg-gray-500'} rounded-xl flex items-center justify-center flex-shrink-0`}>
@@ -1669,7 +1677,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   {allowedStages.length > 0 && (
                     <button
                       onClick={() => setShowStageSelector(true)}
-                      className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-2 py-1.5 rounded-lg transition-colors flex items-center space-x-1 space-x-reverse shadow-sm text-xs flex-1 justify-center"
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 px-2 py-1.5 rounded-lg transition-colors flex items-center space-x-1 space-x-reverse shadow-sm text-xs flex-1 justify-center"
+                      style={{ 
+                        color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                      }}
                       title="نقل إلى مرحلة"
                     >
                       <ArrowRight className="w-3 h-3" />
@@ -1679,8 +1690,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   
                   <button
                     onClick={() => setShowProcessSelector(true)}
-                    className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-2 py-1.5 rounded-lg transition-colors flex items-center space-x-1 space-x-reverse shadow-sm text-xs flex-1 justify-center"
-                    title="نقل إلى عملية"
+                    className="bg-white bg-opacity-90 hover:bg-opacity-100 px-2 py-1.5 rounded-lg transition-colors flex items-center space-x-1 space-x-reverse shadow-sm text-xs flex-1 justify-center"
+                      style={{ 
+                        color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                      }}
+                      title="نقل إلى عملية"
                   >
                     <RefreshCw className="w-3 h-3" />
                     <span>عملية</span>
@@ -1689,7 +1703,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   {hasProcessPermission('tickets', 'update', process.id) && (
                     <button
                       onClick={() => setIsEditing(!isEditing)}
-                      className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-1.5 rounded-lg transition-colors shadow-sm"
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 p-1.5 rounded-lg transition-colors shadow-sm"
+                      style={{ 
+                        color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                      }}
                       title={isEditing ? "إلغاء التعديل" : "تعديل التذكرة"}
                     >
                       <Edit className="w-4 h-4" />
@@ -1715,8 +1732,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
                   <button
                     onClick={onClose}
-                    className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-1.5 rounded-lg transition-colors shadow-sm"
-                    title="إغلاق"
+                    className="bg-white bg-opacity-90 hover:bg-opacity-100 p-1.5 rounded-lg transition-colors shadow-sm"
+                      style={{ 
+                        color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                      }}
+                      title="إغلاق"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -1726,7 +1746,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   {/* {allowedStages.length > 0 && (
                     <button
                       onClick={() => setShowStageSelector(true)}
-                      className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
+                      style={{ 
+                        color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                      }}
                     >
                       <ArrowRight className="w-4 h-4" />
                       <span>نقل إلى مرحلة</span>
@@ -1735,7 +1758,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   
                   <button
                     onClick={() => setShowProcessSelector(true)}
-                    className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
+                    className="bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
+                    style={{ 
+                      color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                    }}
                   >
                     <RefreshCw className="w-4 h-4" />
                     <span>نقل إلى عملية</span>
@@ -1748,7 +1774,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   {hasProcessPermission('tickets', 'update', process.id) && (
                     <button
                       onClick={() => setIsEditing(!isEditing)}
-                      className="bg-white bg-opacity-90 hover:bg-opacity-100 text-[#006D5B] p-2 rounded-lg transition-colors shadow-sm"
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 p-2 rounded-lg transition-colors shadow-sm"
+                      style={{ 
+                        color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                      }}
                       title={isEditing ? "إلغاء التعديل" : "تعديل التذكرة"}
                     >
                       <Edit className="w-5 h-5" />
@@ -1853,9 +1882,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     <button
                       onClick={handleSave}
                       disabled={isUpdating}
-                      className={`bg-gradient-to-r from-green-500 to-emerald-600 text-white py-1.5 px-3 text-xs rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-1 space-x-reverse font-medium ${
-                        isUpdating ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      style={{
+                        background: `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`,
+                      }}
+                      className="text-white py-1.5 px-3 text-xs rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-1 space-x-reverse font-medium"
+                      disabled={isUpdating}
                     >
                       <Save className="w-3 h-3" />
                       <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ'}</span>
@@ -1981,17 +2012,17 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   
                   {/* عرض تاريخ الإكمال فقط إذا كانت التذكرة في مرحلة نهائية */}
                   {currentStage?.is_final && ticket.completed_at && (
-                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="mt-4 p-4 rounded-lg border" style={{ backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}40` }}>
                       <div className="flex items-center space-x-3 space-x-reverse">
                         <div className="flex-shrink-0">
-                          <CheckCircle className="w-6 h-6 text-green-600" />
+                          <CheckCircle className="w-6 h-6" style={{ color: colors.primary }} />
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 space-x-reverse">
-                            <span className="text-sm font-semibold text-green-900">تم إكمال التذكرة</span>
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">مكتملة</span>
+                            <span className="text-sm font-semibold" style={{ color: colors.textPrimary }}>تم إكمال التذكرة</span>
+                            <span className="text-xs px-2 py-1 rounded-full" style={{ backgroundColor: `${colors.primary}30`, color: colors.primaryDark }}>مكتملة</span>
                           </div>
-                          <div className="flex items-center space-x-2 space-x-reverse mt-1 text-sm text-green-700">
+                          <div className="flex items-center space-x-2 space-x-reverse mt-1 text-sm" style={{ color: colors.primaryDark }}>
                             <Clock className="w-4 h-4" />
                             <span>تاريخ الإكمال:</span>
                             <span className="font-medium">
@@ -2012,7 +2043,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               process.fields.length > 0 && (
               <div className={`bg-white border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
                 <div className="flex items-center space-x-2 space-x-reverse mb-4">
-                  <Settings className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
+                  <Settings className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} style={{ color: colors.primary }} />
                   <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>حقول {process.name}</h3>
                 </div>
                 
@@ -2379,13 +2410,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse`}>
-                        <Shield className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
+                        <Shield className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} style={{ color: colors.primary }} />
                         <span>المراجعين ({reviewers.length})</span>
                       </h3>
                       {hasProcessPermission('ticket_reviewers', 'create', process.id) && (
                         <button
                           onClick={() => setShowAddReviewer(true)}
-                          className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-green-600 hover:bg-green-50 rounded-lg transition-colors`}
+                          className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg transition-colors`}
+                          style={{ color: colors.primary }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${colors.primary}15`}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                           title="إضافة مراجع"
                         >
                           <Plus className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
@@ -2396,24 +2430,24 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   <div className={`space-y-2 ${isMobile || isTablet ? 'max-h-48' : 'max-h-64'} overflow-y-auto`}>
                     {isLoadingReviewers ? (
                       <div className="text-center py-4 text-gray-400">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto mb-2"></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 mx-auto mb-2" style={{ borderColor: colors.primary }}></div>
                         <p className="text-xs">جاري التحميل...</p>
                       </div>
                     ) : reviewers.length > 0 ? (
                       reviewers.map((reviewer) => (
-                        <div key={reviewer.id} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div key={reviewer.id} className="p-3 rounded-lg border" style={{ backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}40` }}>
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-3 space-x-reverse">
-                              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})` }}>
                                 <span className="text-white font-bold text-sm">
                                   {reviewer.reviewer_name?.charAt(0) || 'R'}
                                 </span>
                               </div>
                               <div>
-                                <div className="font-medium text-green-900">{reviewer.reviewer_name || 'مراجع'}</div>
-                                <div className="text-xs text-green-700">
+                                <div className="font-medium" style={{ color: colors.textPrimary }}>{reviewer.reviewer_name || 'مراجع'}</div>
+                                <div className="text-xs" style={{ color: colors.primaryDark }}>
                                   <span className={`px-2 py-0.5 rounded ${
-                                    reviewer.review_status === 'completed' ? 'bg-green-200' :
+                                    reviewer.review_status === 'completed' ? '' :
                                     reviewer.review_status === 'in_progress' ? 'bg-yellow-200' :
                                     reviewer.review_status === 'skipped' ? 'bg-gray-200' :
                                     'bg-blue-200'
@@ -2448,7 +2482,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               {reviewer.review_status === 'in_progress' && (
                                 <button
                                   onClick={() => handleUpdateReviewStatus(reviewer.id, 'completed')}
-                                  className="flex-1 text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 transition-colors"
+                                  className="flex-1 text-xs text-white px-2 py-1 rounded transition-colors"
+                                  style={{ backgroundColor: colors.primary }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.primaryDark}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.primary}
                                 >
                                   إكمال المراجعة
                                 </button>
@@ -2469,7 +2506,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               <div className="grid grid-cols-2 gap-2">
                                 <button
                                   onClick={() => handleUpdateReviewRate(reviewer.id, 'ممتاز')}
-                                  className="text-xs bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 transition-colors"
+                                  className="text-xs text-white px-3 py-2 rounded transition-colors"
+                                  style={{ backgroundColor: colors.primary }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.primaryDark}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.primary}
                                 >
                                   ⭐ ممتاز
                                 </button>
@@ -2500,12 +2540,21 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                             <div className="mt-2 p-2 bg-gray-100 border border-gray-200 rounded-lg">
                               <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium text-gray-700">التقييم:</span>
-                                <span className={`text-sm px-2 py-1 rounded ${
-                                  reviewer.rate === 'ممتاز' ? 'bg-green-200 text-green-800' :
-                                  reviewer.rate === 'جيد جدا' ? 'bg-blue-200 text-blue-800' :
-                                  reviewer.rate === 'جيد' ? 'bg-yellow-200 text-yellow-800' :
-                                  'bg-red-200 text-red-800'
-                                }`}>
+                                <span className="text-sm px-2 py-1 rounded"
+                                  style={reviewer.rate === 'ممتاز' ? {
+                                    backgroundColor: `${colors.primary}30`,
+                                    color: colors.primaryDark
+                                  } : reviewer.rate === 'جيد جدا' ? {
+                                    backgroundColor: '#DBEAFE',
+                                    color: '#1E40AF'
+                                  } : reviewer.rate === 'جيد' ? {
+                                    backgroundColor: '#FEF3C7',
+                                    color: '#854D0E'
+                                  } : {
+                                    backgroundColor: '#FEE2E2',
+                                    color: '#991B1B'
+                                  }}
+                                >
                                   {reviewer.rate === 'ممتاز' ? '⭐ ممتاز' :
                                    reviewer.rate === 'جيد جدا' ? '👍 جيد جداً' :
                                    reviewer.rate === 'جيد' ? '👌 جيد' :
@@ -2559,9 +2608,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   <button
                     onClick={handleSave}
                     disabled={isUpdating}
-                    className={`w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white ${isMobile || isTablet ? 'py-2 px-3 text-xs' : 'py-2 px-4 text-sm'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium ${
-                      isUpdating ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    style={{
+                      background: `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`,
+                    }}
+                    className={`w-full text-white ${isMobile || isTablet ? 'py-2 px-3 text-xs' : 'py-2 px-4 text-sm'} rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium`}
+                    disabled={isUpdating}
                   >
                     <Save className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'}`} />
                     <span>{isUpdating ? 'جاري الحفظ...' : 'حفظ'}</span>
@@ -2640,7 +2691,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                                   <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                                 )}
                                 {file.status === 'success' && (
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                  <CheckCircle className="w-4 h-4" style={{ color: colors.primary }} />
                                 )}
                                 {file.status === 'error' && (
                                   <AlertTriangle className="w-4 h-4 text-red-600" />
@@ -2656,16 +2707,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
-                              className={`h-2 rounded-full transition-all duration-300 ${
-                                file.status === 'success' ? 'bg-green-500' :
-                                file.status === 'error' ? 'bg-red-500' :
-                                'bg-blue-600'
-                              }`}
-                              style={{ width: `${file.progress}%` }}
+                              className="h-2 rounded-full transition-all duration-300"
+                              style={{
+                                width: `${file.progress}%`,
+                                backgroundColor: file.status === 'success' ? colors.primary : file.status === 'error' ? '#EF4444' : '#2563EB'
+                              }}
                             />
                           </div>
                           {file.status === 'success' && (
-                            <p className="text-xs text-green-600 mt-1">✓ تم الرفع بنجاح</p>
+                            <p className="text-xs mt-1" style={{ color: colors.primary }}>✓ تم الرفع بنجاح</p>
                           )}
                           {file.status === 'error' && (
                             <p className="text-xs text-red-600 mt-1">✗ فشل الرفع</p>
@@ -2821,7 +2871,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                                   e.stopPropagation();
                                   handleDownloadFile();
                                 }}
-                                className={`text-green-600 hover:text-green-700 ${isMobile || isTablet ? 'p-0.5' : 'p-1'} rounded transition-colors`}
+                                className={`${isMobile || isTablet ? 'p-0.5' : 'p-1'} rounded transition-colors`}
+                                style={{ color: colors.primary }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = colors.primaryDark}
+                                onMouseLeave={(e) => e.currentTarget.style.color = colors.primary}
                                 title="تحميل الملف"
                               >
                                 <Download className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
@@ -3068,19 +3121,34 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   const isPassed = stage.priority < (currentStage?.priority || 0);
                   
                   return (
-                    <div key={stage.id} className={`
-                      flex items-center space-x-3 space-x-reverse p-3 rounded-lg transition-colors
-                      ${isCurrentStage ? 'bg-blue-100 border border-blue-300' : 
-                        isPassed ? 'bg-green-50 border border-green-200' :
-                        isAllowedTransition ? 'bg-yellow-50 border border-yellow-200' :
-                        'bg-gray-50 border border-gray-200'}
-                    `}>
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        isCurrentStage ? 'bg-blue-500 text-white' :
-                        isPassed ? 'bg-green-500 text-white' :
-                        isAllowedTransition ? 'bg-yellow-500 text-white' :
-                        'bg-gray-300 text-gray-600'
-                      }`}>
+                    <div key={stage.id} 
+                      className="flex items-center space-x-3 space-x-reverse p-3 rounded-lg transition-colors border"
+                      style={isPassed ? {
+                        backgroundColor: `${colors.primary}15`,
+                        borderColor: `${colors.primary}40`
+                      } : isCurrentStage ? {
+                        backgroundColor: '#DBEAFE',
+                        borderColor: '#93C5FD'
+                      } : isAllowedTransition ? {
+                        backgroundColor: '#FEF3C7',
+                        borderColor: '#FDE047'
+                      } : {
+                        backgroundColor: '#F9FAFB',
+                        borderColor: '#E5E7EB'
+                      }}
+                    >
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        style={isPassed ? {
+                          backgroundColor: colors.primary
+                        } : isCurrentStage ? {
+                          backgroundColor: '#3B82F6'
+                        } : isAllowedTransition ? {
+                          backgroundColor: '#EAB308'
+                        } : {
+                          backgroundColor: '#D1D5DB',
+                          color: '#4B5563'
+                        }}
+                      >
                         {isCurrentStage ? <Target className="w-3 h-3" /> :
                          isPassed ? <CheckCircle className="w-3 h-3" /> :
                          stage.priority}
@@ -3089,7 +3157,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       <div className="flex-1">
                         <div className={`text-sm font-medium ${
                           isCurrentStage ? 'text-blue-900' :
-                          isPassed ? 'text-green-900' :
+                          isPassed ? '' :
                           isAllowedTransition ? 'text-yellow-900' :
                           'text-gray-600'
                         }`}>
@@ -3250,7 +3318,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                             مسموح
                           </span>
                           {stage.is_final && (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                            <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: `${colors.primary}30`, color: colors.primaryDark }}>
                               نهائي
                             </span>
                           )}
@@ -3278,7 +3346,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               <button
                 onClick={handleStageMove}
                 disabled={selectedStages.length === 0 || isMoving}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  background: `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`,
+                }}
+                className="w-full text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isMoving ? (
                   <>
@@ -3592,12 +3663,23 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                                 setReviewerSearchQuery(user.name || '');
                                 setShowReviewerDropdown(false);
                               }}
-                              className={`px-4 py-3 cursor-pointer hover:bg-green-50 transition-colors ${
-                                selectedUserId === user.id ? 'bg-green-100' : ''
-                              }`}
+                              className="px-4 py-3 cursor-pointer transition-colors"
+                              style={{
+                                backgroundColor: selectedUserId === user.id ? `${colors.primary}20` : 'transparent',
+                              }}
+                              onMouseEnter={(e) => {
+                                if (selectedUserId !== user.id) {
+                                  e.currentTarget.style.backgroundColor = `${colors.primary}10`;
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (selectedUserId !== user.id) {
+                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                }
+                              }}
                             >
                               <div className="flex items-center space-x-3 space-x-reverse">
-                                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})` }}>
                                   <span className="text-white font-bold text-sm">
                                     {user.name?.charAt(0) || 'R'}
                                   </span>
@@ -3621,19 +3703,19 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
                 
                 {selectedUserId && (
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="mt-2 p-3 rounded-lg border" style={{ backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}40` }}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3 space-x-reverse">
-                        <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})` }}>
                           <span className="text-white font-bold text-sm">
                             {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name?.charAt(0) || 'R'}
                           </span>
                         </div>
                         <div>
-                          <div className="font-medium text-green-900">
+                          <div className="font-medium" style={{ color: colors.textPrimary }}>
                             {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.name}
                           </div>
-                          <div className="text-sm text-green-700">
+                          <div className="text-sm" style={{ color: colors.primaryDark }}>
                             {(allUsers.length > 0 ? allUsers : processUsers).find(u => u.id === selectedUserId)?.role?.name}
                           </div>
                         </div>
@@ -3659,7 +3741,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               <button
                 onClick={handleAddReviewer}
                 disabled={!selectedUserId}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 text-white py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: colors.primary }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.primaryDark}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = colors.primary}
               >
                 إضافة
               </button>
@@ -3849,7 +3934,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                                   {proc.stages?.length || 0} مرحلة
                                 </span>
                                 {proc.is_active && (
-                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                  <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: `${colors.primary}30`, color: colors.primaryDark }}>
                                     نشط
                                   </span>
                                 )}
