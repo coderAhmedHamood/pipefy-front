@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS ticket_reviewers (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   assigned_by UUID NOT NULL REFERENCES users(id),
   assigned_at TIMESTAMPTZ DEFAULT NOW(),
-  status VARCHAR(50) DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'skipped', 'reviewed', 'rejected')),
+  status VARCHAR(50) DEFAULT 'pending',
   reviewed_at TIMESTAMPTZ,
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
