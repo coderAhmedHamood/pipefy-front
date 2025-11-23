@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useSystemSettings } from '../../contexts/SystemSettingsContext';
+import { useSystemSettings, useCompanyInfo } from '../../contexts/SystemSettingsContext';
+import { useThemeColors } from '../../contexts/ThemeContext';
+import { buildAssetUrl } from '../../config/config';
 import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle } from 'lucide-react';
 
 export const Login: React.FC = () => {
@@ -13,6 +15,11 @@ export const Login: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const { settings } = useSystemSettings();
+  const { companyLogo, companyName } = useCompanyInfo();
+  const colors = useThemeColors();
+  
+  // بناء URL الشعار
+  const logoUrl = companyLogo ? buildAssetUrl(companyLogo) : null;
 
   // إعادة توجيه إذا كان المستخدم مسجل دخول بالفعل
   useEffect(() => {
@@ -91,20 +98,55 @@ export const Login: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-blue-800 flex items-center justify-center p-4" dir="rtl">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4" 
+      dir="rtl"
+      style={{
+        background: `linear-gradient(to bottom right, ${colors.primary}, ${colors.secondary}, ${colors.primaryDark})`
+      }}
+    >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-8 text-center">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl font-bold text-blue-600">
-              {settings.company_name ? settings.company_name.charAt(0) : '🏢'}
-            </span>
+        <div 
+          className="p-8 text-center"
+          style={{
+            background: `linear-gradient(to right, ${colors.primary}, ${colors.secondary})`
+          }}
+        >
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden">
+            {logoUrl ? (
+              <img 
+                src={logoUrl} 
+                alt={companyName || settings.company_name || 'شعار الشركة'} 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // في حالة فشل تحميل الشعار، إظهار الحرف الأول
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    const fallback = document.createElement('span');
+                    fallback.className = 'text-2xl font-bold';
+                    fallback.style.color = colors.primaryDark;
+                    fallback.textContent = (companyName || settings.company_name || '🏢').charAt(0);
+                    parent.appendChild(fallback);
+                  }
+                }}
+              />
+            ) : (
+              <span 
+                className="text-2xl font-bold"
+                style={{ color: colors.primaryDark }}
+              >
+                {(companyName || settings.company_name || '🏢').charAt(0)}
+              </span>
+            )}
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">
-            {settings.company_name || 'تسجيل الدخول'}
+            {companyName || settings.company_name || 'تسجيل الدخول'}
           </h1>
-          <p className="text-blue-100">
-            {settings.company_name ? `نظام إدارة العمليات - ${settings.company_name}` : 'إدارة متقدمة للعمليات والمهام'}
+          <p className="text-white opacity-90">
+            {companyName || settings.company_name ? `نظام إدارة العمليات - ${companyName || settings.company_name}` : 'إدارة متقدمة للعمليات والمهام'}
           </p>
         </div>
 
@@ -135,9 +177,20 @@ export const Login: React.FC = () => {
                   setEmail(e.target.value);
                   setError(null);
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                className={`w-full px-4 py-3 border rounded-lg transition-colors ${
                   error && !email.trim() ? 'border-red-300' : 'border-gray-300'
                 }`}
+                style={{
+                  borderColor: error && !email.trim() ? '#fca5a5' : '#d1d5db'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = colors.primary;
+                  e.target.style.boxShadow = `0 0 0 2px ${colors.primary}33`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = error && !email.trim() ? '#fca5a5' : '#d1d5db';
+                  e.target.style.boxShadow = 'none';
+                }}
                 placeholder="أدخل بريدك الإلكتروني"
                 disabled={isLoading}
                 required
@@ -154,9 +207,20 @@ export const Login: React.FC = () => {
                     setPassword(e.target.value);
                     setError(null);
                   }}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors pl-12 ${
+                  className={`w-full px-4 py-3 border rounded-lg transition-colors pl-12 ${
                     error && !password.trim() ? 'border-red-300' : 'border-gray-300'
                   }`}
+                  style={{
+                    borderColor: error && !password.trim() ? '#fca5a5' : '#d1d5db'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = colors.primary;
+                    e.target.style.boxShadow = `0 0 0 2px ${colors.primary}33`;
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = error && !password.trim() ? '#fca5a5' : '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
                   placeholder="أدخل كلمة المرور"
                   disabled={isLoading}
                   required
@@ -178,18 +242,38 @@ export const Login: React.FC = () => {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  className="rounded border-gray-300 shadow-sm"
+                  style={{
+                    accentColor: colors.primary
+                  }}
                   disabled={isLoading}
                 />
                 <span className="mr-2 text-sm text-gray-600">تذكرني</span>
               </label>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-700">نسيت كلمة المرور؟</a>
+              <a 
+                href="#" 
+                className="text-sm hover:underline transition-colors"
+                style={{ 
+                  color: colors.primary,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = colors.primaryDark;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = colors.primary;
+                }}
+              >
+                نسيت كلمة المرور؟
+              </a>
             </div>
 
             <button
               type="submit"
               disabled={isLoading || !email.trim() || !password.trim()}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full text-white py-3 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                background: `linear-gradient(to right, ${colors.primary}, ${colors.secondary})`
+              }}
             >
               {isLoading ? (
                 <>
