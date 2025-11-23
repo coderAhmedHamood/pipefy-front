@@ -1180,17 +1180,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات (اختياري)</label>
-                <textarea
-                  value={assignmentNotes}
-                  onChange={(e) => setAssignmentNotes(e.target.value)}
-                  rows={3}
-                  placeholder="أي ملاحظات إضافية..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                />
-              </div>
+                
             </div>
 
             <div className="flex space-x-3 space-x-reverse mt-6">
@@ -1340,16 +1330,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                 )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات المراجعة (اختياري)</label>
-                <textarea
-                  value={reviewerNotes}
-                  onChange={(e) => setReviewerNotes(e.target.value)}
-                  rows={3}
-                  placeholder="أي ملاحظات إضافية للمراجعة..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
-                />
-              </div>
+            
             </div>
 
             <div className="flex space-x-3 space-x-reverse mt-6">
