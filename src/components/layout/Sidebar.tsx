@@ -155,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }
 
             // إخفاء تبويبة التذاكر المتكررة إذا لم يكن لديه صلاحية الإدارة
-            if (item.id === 'recurring' && !hasPermission('tickets', 'recurring')) {
+            if (item.id === 'recurring' && !hasPermission('recurring_rules', 'manage')) {
               return null;
             }
 

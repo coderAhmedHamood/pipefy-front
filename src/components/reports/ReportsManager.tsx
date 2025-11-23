@@ -24,6 +24,7 @@ import {
 import notificationService from '../../services/notificationService';
 import ticketAssignmentService from '../../services/ticketAssignmentService';
 import { useQuickNotifications } from '../ui/NotificationSystem';
+import { useThemeColors, useTheme } from '../../contexts/ThemeContext';
 
 interface Process {
   id: string;
@@ -282,6 +283,8 @@ interface CompletedTicketsReport {
 export const ReportsManager: React.FC = () => {
   const notifications = useQuickNotifications();
   const { isMobile, isTablet } = useDeviceType();
+  const colors = useThemeColors();
+  const { currentTheme } = useTheme();
   
   const [activeTab, setActiveTab] = useState<TabType>('processes');
   const [showProcessList, setShowProcessList] = useState(false);
@@ -757,7 +760,14 @@ export const ReportsManager: React.FC = () => {
             {((isMobile || isTablet) && showProcessList) || !(isMobile || isTablet) ? (
               <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
                 {(isMobile || isTablet) && (
-                  <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600">
+                  <div 
+                    className="flex items-center justify-between p-3 border-b border-gray-200"
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
                     <h3 className="font-bold text-white text-base">العمليات</h3>
                     <button
                       onClick={() => setShowProcessList(false)}
@@ -768,15 +778,22 @@ export const ReportsManager: React.FC = () => {
                   </div>
                 )}
                 {!(isMobile || isTablet) && (
-                  <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600`}>
+                  <div 
+                    className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200`}
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
                     <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>العمليات</h3>
-                    <p className={`text-blue-100 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1`}>اختر عملية لعرض التقرير</p>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1`} style={{ color: 'rgba(255, 255, 255, 0.9)' }}>اختر عملية لعرض التقرير</p>
                   </div>
                 )}
 
                 {isLoading ? (
                   <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
-                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-blue-500 animate-spin`} />
+                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} animate-spin`} style={{ color: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary }} />
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
@@ -787,9 +804,27 @@ export const ReportsManager: React.FC = () => {
                           handleProcessClick(process);
                           if (isMobile || isTablet) setShowProcessList(false);
                         }}
-                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right hover:bg-blue-50 transition-colors ${
-                          selectedProcess?.id === process.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
+                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right transition-colors border-r-4 ${
+                          selectedProcess?.id === process.id ? '' : 'border-transparent'
                         }`}
+                        style={{
+                          backgroundColor: selectedProcess?.id === process.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A915' : `${colors.primary}15`)
+                            : 'transparent',
+                          borderColor: selectedProcess?.id === process.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary)
+                            : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedProcess?.id !== process.id) {
+                            e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A910' : `${colors.primary}10`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedProcess?.id !== process.id) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
                       >
                         <div className="flex items-center space-x-2 space-x-reverse">
                           <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} ${process.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
@@ -801,8 +836,13 @@ export const ReportsManager: React.FC = () => {
                               <p className="text-xs text-gray-500 truncate">{process.description}</p>
                             )}
                             <span className={`inline-block mt-1 ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
-                              process.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                            }`}>
+                              process.is_active ? '' : 'bg-gray-100 text-gray-700'
+                            }`}
+                            style={process.is_active ? {
+                              backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A930' : `${colors.primary}30`,
+                              color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark
+                            } : {}}
+                            >
                               {process.is_active ? 'نشط' : 'غير نشط'}
                             </span>
                           </div>
@@ -828,7 +868,12 @@ export const ReportsManager: React.FC = () => {
                     {(isMobile || isTablet) && (
                       <button
                         onClick={() => setShowProcessList(true)}
-                        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                        className="mt-4 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                        style={{ 
+                          backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary 
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary}
                       >
                         عرض العمليات
                       </button>
@@ -1274,7 +1319,14 @@ export const ReportsManager: React.FC = () => {
             {((isMobile || isTablet) && showUserList) || !(isMobile || isTablet) ? (
               <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
                 {(isMobile || isTablet) && (
-                  <div className="border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600">
+                  <div 
+                    className="border-b border-gray-200"
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
                     <div className="flex items-center justify-between p-3">
                       <h3 className="font-bold text-white text-base">المستخدمين</h3>
                       <button
@@ -1293,25 +1345,32 @@ export const ReportsManager: React.FC = () => {
                           value={userSearchQuery}
                           onChange={(e) => setUserSearchQuery(e.target.value)}
                           placeholder="ابحث عن مستخدم..."
-                          className="w-full px-3 py-2 pr-10 text-sm border border-white border-opacity-30 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:border-transparent"
+                          className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
                     </div>
                   </div>
                 )}
                 {!(isMobile || isTablet) && (
-                  <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 bg-gradient-to-r from-green-500 to-teal-600`}>
+                  <div 
+                    className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200`}
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
                     <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>المستخدمين</h3>
-                    <p className={`text-green-100 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1 mb-3`}>اختر مستخدم لعرض التقرير</p>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1 mb-3`} style={{ color: 'rgba(255, 255, 255, 0.9)' }}>اختر مستخدم لعرض التقرير</p>
                     {/* Search Bar */}
                     <div className="relative">
-                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white text-opacity-70" />
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
                         value={userSearchQuery}
                         onChange={(e) => setUserSearchQuery(e.target.value)}
                         placeholder="ابحث عن مستخدم..."
-                        className="w-full px-3 py-2 pr-10 text-sm border border-white border-opacity-30 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:border-transparent"
+                        className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   </div>
@@ -1319,7 +1378,7 @@ export const ReportsManager: React.FC = () => {
 
                 {isLoadingUsers ? (
                   <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
-                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-green-500 animate-spin`} />
+                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} animate-spin`} style={{ color: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary }} />
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
@@ -1337,12 +1396,37 @@ export const ReportsManager: React.FC = () => {
                           handleUserClick(user);
                           if (isMobile || isTablet) setShowUserList(false);
                         }}
-                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right hover:bg-green-50 transition-colors ${
-                          selectedUser?.id === user.id ? 'bg-green-50 border-r-4 border-green-500' : ''
+                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right transition-colors border-r-4 ${
+                          selectedUser?.id === user.id ? '' : 'border-transparent'
                         }`}
+                        style={{
+                          backgroundColor: selectedUser?.id === user.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A915' : `${colors.primary}15`)
+                            : 'transparent',
+                          borderColor: selectedUser?.id === user.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary)
+                            : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedUser?.id !== user.id) {
+                            e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A910' : `${colors.primary}10`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedUser?.id !== user.id) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
                       >
                         <div className="flex items-center space-x-2 space-x-reverse">
-                          <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-green-400 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0`}>
+                          <div 
+                            className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center flex-shrink-0`}
+                            style={{
+                              background: currentTheme.name === 'cleanlife'
+                                ? 'linear-gradient(to bottom right, #00B8A9, #006D5B)'
+                                : `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})`
+                            }}
+                          >
                             <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{user.name.charAt(0)}</span>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -1400,7 +1484,12 @@ export const ReportsManager: React.FC = () => {
                     {(isMobile || isTablet) && (
                       <button
                         onClick={() => setShowUserList(true)}
-                        className="mt-4 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm"
+                        className="mt-4 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                        style={{ 
+                          backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary 
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary}
                       >
                         عرض المستخدمين
                       </button>
@@ -1411,7 +1500,7 @@ export const ReportsManager: React.FC = () => {
                 /* تحميل التقرير */
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <Loader className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-green-500 animate-spin mx-auto mb-4`} />
+                    <Loader className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} animate-spin mx-auto mb-4`} style={{ color: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary }} />
                     <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري تحميل التقرير...</p>
                   </div>
                 </div>
@@ -1425,7 +1514,10 @@ export const ReportsManager: React.FC = () => {
                         setUserReport(null);
                         setShowUserList(true);
                       }}
-                      className="mb-3 flex items-center space-x-2 space-x-reverse text-green-600 hover:text-green-700 text-sm"
+                      className="mb-3 flex items-center space-x-2 space-x-reverse text-sm"
+                      style={{ color: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark}
+                      onMouseLeave={(e) => e.currentTarget.style.color = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary}
                     >
                       <ChevronLeft className="w-4 h-4" />
                       <span>العودة للقائمة</span>
@@ -1446,7 +1538,19 @@ export const ReportsManager: React.FC = () => {
                               type="date"
                               value={dateFrom}
                               onChange={(e) => setDateFrom(e.target.value)}
-                              className={`w-full ${isMobile || isTablet ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'} border-2 border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white hover:border-gray-400`}
+                              className={`w-full ${isMobile || isTablet ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'} border-2 border-gray-300 rounded-lg text-gray-900 transition-all bg-white hover:border-gray-400`}
+                              style={{
+                                '--focus-color': currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary
+                              } as React.CSSProperties}
+                              onFocus={(e) => {
+                                const focusColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary;
+                                e.currentTarget.style.borderColor = focusColor;
+                                e.currentTarget.style.boxShadow = `0 0 0 2px ${focusColor}40`;
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderColor = '';
+                                e.currentTarget.style.boxShadow = '';
+                              }}
                             />
                           </div>
                           
@@ -1459,14 +1563,31 @@ export const ReportsManager: React.FC = () => {
                               type="date"
                               value={dateTo}
                               onChange={(e) => setDateTo(e.target.value)}
-                              className={`w-full ${isMobile || isTablet ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'} border-2 border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all bg-white hover:border-gray-400`}
+                              className={`w-full ${isMobile || isTablet ? 'px-2.5 py-2 text-xs' : 'px-3 py-2.5 text-sm'} border-2 border-gray-300 rounded-lg text-gray-900 transition-all bg-white hover:border-gray-400`}
+                              style={{
+                                '--focus-color': currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary
+                              } as React.CSSProperties}
+                              onFocus={(e) => {
+                                const focusColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary;
+                                e.currentTarget.style.borderColor = focusColor;
+                                e.currentTarget.style.boxShadow = `0 0 0 2px ${focusColor}40`;
+                              }}
+                              onBlur={(e) => {
+                                e.currentTarget.style.borderColor = '';
+                                e.currentTarget.style.boxShadow = '';
+                              }}
                             />
                           </div>
                           
                           <div className="flex items-end">
                             <button
                               onClick={handleDateChange}
-                              className={`w-full bg-green-600 text-white ${isMobile || isTablet ? 'py-2 px-3 text-xs' : 'py-2.5 px-4 text-sm'} rounded-lg hover:bg-green-700 transition-all duration-200 font-semibold flex items-center justify-center space-x-1.5 space-x-reverse shadow-sm hover:shadow-md`}
+                              className={`w-full text-white ${isMobile || isTablet ? 'py-2 px-3 text-xs' : 'py-2.5 px-4 text-sm'} rounded-lg transition-all duration-200 font-semibold flex items-center justify-center space-x-1.5 space-x-reverse shadow-sm hover:shadow-md`}
+                              style={{ 
+                                backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary 
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary}
                             >
                               <RefreshCw className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
                               <span>تحديث</span>
@@ -1494,7 +1615,7 @@ export const ReportsManager: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} font-medium text-gray-600`}>مكتملة</p>
-                            <p className={`${isMobile || isTablet ? 'text-xl' : 'text-3xl'} font-bold text-green-600`}>{userReport.basic_stats.completed_tickets.toString()}</p>
+                            <p className={`${isMobile || isTablet ? 'text-xl' : 'text-3xl'} font-bold`} style={{ color: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary }}>{userReport.basic_stats.completed_tickets.toString()}</p>
                           </div>
                           <div className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-green-100 rounded-lg`}>
                             <CheckCircle className={isMobile || isTablet ? 'w-4 h-4' : 'w-6 h-6'} />
@@ -1608,7 +1729,12 @@ export const ReportsManager: React.FC = () => {
                                   </div>
                                   <div className="w-full bg-gray-200 rounded-full h-1.5">
                                     <div 
-                                      className="bg-gradient-to-r from-green-500 to-teal-600 h-1.5 rounded-full"
+                                      className="h-1.5 rounded-full"
+                                      style={{
+                                        background: currentTheme.name === 'cleanlife'
+                                          ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                                          : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                                      }}
                                       style={{ width: `${item.percentage || 0}%` }}
                                     ></div>
                                   </div>
@@ -1682,15 +1808,27 @@ export const ReportsManager: React.FC = () => {
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           {/* ممتاز */}
-                          <div className="bg-white rounded-lg p-3 border-2 border-green-300 shadow-sm hover:shadow-md transition-all">
+                          <div 
+                            className="bg-white rounded-lg p-3 border-2 shadow-sm hover:shadow-md transition-all"
+                            style={{
+                              borderColor: currentTheme.name === 'cleanlife' ? '#00B8A950' : `${colors.primary}50`
+                            }}
+                          >
                             <div className="flex items-center justify-between mb-2">
-                              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                              <div 
+                                className="w-10 h-10 rounded-full flex items-center justify-center"
+                                style={{
+                                  background: currentTheme.name === 'cleanlife'
+                                    ? 'linear-gradient(to bottom right, #00B8A9, #006D5B)'
+                                    : `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})`
+                                }}
+                              >
                                 <span className="text-white font-bold text-base">
                                   {userReport.evaluation_stats.excellent.count}
                                 </span>
                               </div>
                               <div className="text-left">
-                                <span className="text-lg font-bold text-green-700">
+                                <span className="text-lg font-bold" style={{ color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark }}>
                                   {userReport.evaluation_stats.excellent.percentage.toFixed(1)}%
                                 </span>
                               </div>
@@ -1703,7 +1841,12 @@ export const ReportsManager: React.FC = () => {
                             </p>
                             <div className="w-full bg-gray-200 rounded-full h-1.5">
                               <div 
-                                className="bg-gradient-to-r from-green-500 to-emerald-600 h-1.5 rounded-full transition-all duration-500"
+                                className="h-1.5 rounded-full transition-all duration-500"
+                                style={{
+                                  background: currentTheme.name === 'cleanlife'
+                                    ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                                    : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                                }}
                                 style={{ width: `${userReport.evaluation_stats.excellent.percentage}%` }}
                               ></div>
                             </div>
@@ -1901,7 +2044,12 @@ export const ReportsManager: React.FC = () => {
                       <p className="text-gray-600 mb-4">لم يتم العثور على تقرير لهذا المستخدم</p>
                       <button
                         onClick={() => fetchUserReport(selectedUser.id)}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                        className="px-4 py-2 text-white rounded-lg transition-colors"
+                        style={{ 
+                          backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary 
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary}
                       >
                         إعادة المحاولة
                       </button>
@@ -1924,7 +2072,14 @@ export const ReportsManager: React.FC = () => {
             {((isMobile || isTablet) && showCompletedTicketsUserList) || !(isMobile || isTablet) ? (
               <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
                 {(isMobile || isTablet) && (
-                  <div className="border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600">
+                  <div 
+                    className="border-b border-gray-200"
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
                     <div className="flex items-center justify-between p-3">
                       <h3 className="font-bold text-white text-base">المستخدمين</h3>
                       <button
@@ -1943,25 +2098,32 @@ export const ReportsManager: React.FC = () => {
                           value={completedTicketsUserSearchQuery}
                           onChange={(e) => setCompletedTicketsUserSearchQuery(e.target.value)}
                           placeholder="ابحث عن مستخدم..."
-                          className="w-full px-3 py-2 pr-10 text-sm border border-white border-opacity-30 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:border-transparent"
+                          className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
                     </div>
                   </div>
                 )}
                 {!(isMobile || isTablet) && (
-                  <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600`}>
+                  <div 
+                    className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200`}
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
                     <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>المستخدمين</h3>
-                    <p className={`text-blue-100 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1 mb-3`}>اختر مستخدم لعرض التقرير</p>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1 mb-3`} style={{ color: 'rgba(255, 255, 255, 0.9)' }}>اختر مستخدم لعرض التقرير</p>
                     {/* Search Bar */}
                     <div className="relative">
-                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white text-opacity-70" />
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <input
                         type="text"
                         value={completedTicketsUserSearchQuery}
                         onChange={(e) => setCompletedTicketsUserSearchQuery(e.target.value)}
                         placeholder="ابحث عن مستخدم..."
-                        className="w-full px-3 py-2 pr-10 text-sm border border-white border-opacity-30 rounded-lg bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 focus:ring-2 focus:ring-white focus:border-transparent"
+                        className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   </div>
@@ -1969,7 +2131,7 @@ export const ReportsManager: React.FC = () => {
 
                 {isLoadingCompletedTicketsUsers ? (
                   <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
-                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-blue-500 animate-spin`} />
+                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} animate-spin`} style={{ color: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary }} />
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
@@ -1987,12 +2149,37 @@ export const ReportsManager: React.FC = () => {
                           handleCompletedTicketsUserClick(user);
                           if (isMobile || isTablet) setShowCompletedTicketsUserList(false);
                         }}
-                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right hover:bg-blue-50 transition-colors ${
-                          selectedCompletedTicketsUser?.id === user.id ? 'bg-blue-50 border-r-4 border-blue-500' : ''
+                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right transition-colors border-r-4 ${
+                          selectedCompletedTicketsUser?.id === user.id ? '' : 'border-transparent'
                         }`}
+                        style={{
+                          backgroundColor: selectedCompletedTicketsUser?.id === user.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A915' : `${colors.primary}15`)
+                            : 'transparent',
+                          borderColor: selectedCompletedTicketsUser?.id === user.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary)
+                            : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedCompletedTicketsUser?.id !== user.id) {
+                            e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A910' : `${colors.primary}10`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedCompletedTicketsUser?.id !== user.id) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
                       >
                         <div className="flex items-center space-x-2 space-x-reverse">
-                          <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0`}>
+                          <div 
+                            className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center flex-shrink-0`}
+                            style={{
+                              background: currentTheme.name === 'cleanlife'
+                                ? 'linear-gradient(to bottom right, #00B8A9, #006D5B)'
+                                : `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})`
+                            }}
+                          >
                             <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{user.name.charAt(0)}</span>
                           </div>
                           <div className="flex-1 min-w-0">
@@ -2007,8 +2194,13 @@ export const ReportsManager: React.FC = () => {
                                 </span>
                               )}
                               <span className={`inline-block ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
-                                user.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                              }`}>
+                                user.is_active ? '' : 'bg-gray-100 text-gray-700'
+                              }`}
+                              style={user.is_active ? {
+                                backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A930' : `${colors.primary}30`,
+                                color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark
+                              } : {}}
+                              >
                                 {user.is_active ? 'نشط' : 'غير نشط'}
                               </span>
                             </div>
@@ -2050,7 +2242,12 @@ export const ReportsManager: React.FC = () => {
                     {(isMobile || isTablet) && (
                       <button
                         onClick={() => setShowCompletedTicketsUserList(true)}
-                        className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                        className="mt-4 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                        style={{ 
+                          backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary 
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary}
                       >
                         عرض المستخدمين
                       </button>
@@ -2122,7 +2319,14 @@ export const ReportsManager: React.FC = () => {
 
                         {/* اليمين: معلومات المستخدم */}
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0`}>
+                          <div 
+                            className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center flex-shrink-0`}
+                            style={{
+                              background: currentTheme.name === 'cleanlife'
+                                ? 'linear-gradient(to bottom right, #00B8A9, #006D5B)'
+                                : `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})`
+                            }}
+                          >
                             <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{selectedCompletedTicketsUser.name.charAt(0)}</span>
                           </div>
                           <div className="text-right">
