@@ -603,6 +603,7 @@ export const RecurringManager: React.FC = () => {
         name: ruleForm.name,
         process_id: selectedProcess.id,
         recurrence_type: ruleForm.schedule.type || 'daily', // نوع التكرار (يومي، أسبوعي، شهري، سنوي، مخصص)
+        schedule_type: ruleForm.schedule.type || 'daily', // نوع التكرار للـ API (schedule_type)
         recurrence_interval: ruleForm.schedule.interval,
         start_date: startDate,
         end_date: null,
@@ -1022,7 +1023,8 @@ export const RecurringManager: React.FC = () => {
       const ruleData: any = {
         name: ruleForm.name,
         process_id: editingRule.process_id,
-        recurrence_type: ruleForm.schedule.type,
+        recurrence_type: ruleForm.schedule.type || 'daily',
+        schedule_type: ruleForm.schedule.type || 'daily', // نوع التكرار للـ API (schedule_type)
         recurrence_interval: ruleForm.schedule.interval,
         start_date: startDate,
         end_date: null,
