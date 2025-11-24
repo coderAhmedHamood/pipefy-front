@@ -288,16 +288,21 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *                 description: المنطقة الزمنية
  *                 default: "Asia/Riyadh"
  *                 example: "Asia/Riyadh"
- *               is_active:
- *                 type: boolean
- *                 description: حالة تفعيل القاعدة
- *                 default: true
- *                 example: true
- *               next_execution:
- *                 type: string
- *                 format: date-time
- *                 description: موعد التنفيذ التالي (اختياري، سيتم حسابه تلقائياً إذا لم يتم تحديده)
- *                 example: "2024-01-01T09:00:00Z"
+     *               is_active:
+     *                 type: boolean
+     *                 description: حالة تفعيل القاعدة
+     *                 default: true
+     *                 example: true
+     *               next_execution:
+     *                 type: string
+     *                 format: date-time
+     *                 description: موعد التنفيذ التالي (اختياري، سيتم حسابه تلقائياً إذا لم يتم تحديده)
+     *                 example: "2024-01-01T09:00:00Z"
+     *               max_executions:
+     *                 type: integer
+     *                 description: الحد الأقصى لعدد مرات التنفيذ (NULL = لا نهائي)
+     *                 example: 10
+     *                 default: null
  *           examples:
  *             monthly:
  *               summary: مثال - تقرير شهري

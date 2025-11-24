@@ -174,7 +174,8 @@ class RecurringController {
         next_execution,
         assigned_to,
         priority = 'medium',
-        status = 'active'
+        status = 'active',
+        max_executions = null
       } = req.body;
       
       // التأكد من وجود الحقول المطلوبة
@@ -265,9 +266,10 @@ class RecurringController {
             created_by,
             assigned_to,
             priority,
-            status
+            status,
+            max_executions
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
           RETURNING *
         `, [
           name,
@@ -285,7 +287,8 @@ class RecurringController {
           req.user.id,
           assigned_to || null,
           priority,
-          status
+          status,
+          max_executions || null
         ]);
       } catch (error) {
         // إذا فشل، جرب البنية القديمة (schedule_type, template_data, etc.)
@@ -301,9 +304,10 @@ class RecurringController {
               timezone,
               is_active,
               next_execution,
-              created_by
+              created_by,
+              max_executions
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
           `, [
             name,
@@ -315,7 +319,8 @@ class RecurringController {
             timezone,
             is_active,
             nextExecutionDate,
-            req.user.id
+            req.user.id,
+            max_executions || null
           ]);
         } else {
           throw error;

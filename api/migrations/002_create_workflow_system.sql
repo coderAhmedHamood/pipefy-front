@@ -298,6 +298,7 @@ CREATE TABLE IF NOT EXISTS recurring_rules (
   next_execution TIMESTAMPTZ NOT NULL,
   last_executed TIMESTAMPTZ,
   execution_count INTEGER DEFAULT 0,
+  max_executions INTEGER, -- الحد الأقصى لعدد مرات التنفيذ (NULL = لا نهائي)
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -308,6 +309,7 @@ CREATE INDEX IF NOT EXISTS idx_recurring_process ON recurring_rules(process_id);
 CREATE INDEX IF NOT EXISTS idx_recurring_next_execution ON recurring_rules(next_execution);
 CREATE INDEX IF NOT EXISTS idx_recurring_active ON recurring_rules(is_active);
 CREATE INDEX IF NOT EXISTS idx_recurring_type ON recurring_rules(schedule_type);
+CREATE INDEX IF NOT EXISTS idx_recurring_max_executions ON recurring_rules(max_executions);
 
 -- دالة لتوليد رقم التذكرة
 CREATE OR REPLACE FUNCTION generate_ticket_number(p_process_id UUID)

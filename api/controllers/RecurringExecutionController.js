@@ -29,6 +29,37 @@ class RecurringExecutionController {
       
       const rule = ruleResult.rows[0];
       
+      // 1.5. التحقق من الحد الأقصى لعدد التنفيذات قبل التنفيذ
+      const maxExecutions = rule.max_executions !== null && rule.max_executions !== undefined
+        ? parseInt(rule.max_executions)
+        : null;
+      const currentExecutionCount = (rule.execution_count !== null && rule.execution_count !== undefined) 
+        ? parseInt(rule.execution_count) 
+        : 0;
+      
+      if (maxExecutions !== null && currentExecutionCount >= maxExecutions) {
+        // تحديث is_active إلى false إذا لم يكن كذلك
+        if (rule.is_active) {
+          await pool.query(
+            `UPDATE recurring_rules SET is_active = false, updated_at = NOW() WHERE id = $1`,
+            [rule.id]
+          );
+        }
+        
+        return res.status(400).json({
+          success: false,
+          message: `تم الوصول للحد الأقصى من التنفيذات (${maxExecutions}/${maxExecutions}). القاعدة معطلة.`,
+          data: {
+            rule: { ...rule, is_active: false },
+            execution_info: {
+              current_execution: currentExecutionCount,
+              max_executions: maxExecutions,
+              is_completed: true
+            }
+          }
+        });
+      }
+      
       // 2. تجهيز بيانات التذكرة من القالب
       // التعامل مع البنية الجديدة (title, data) والقديمة (template_data)
       let templateData = {};
@@ -119,11 +150,14 @@ class RecurringExecutionController {
       const notificationResult = null;
       
       // 5. تحديث قاعدة التكرار
-      // التعامل مع execution_count - قد يكون null في المرة الأولى
-      const currentExecutionCount = (rule.execution_count !== null && rule.execution_count !== undefined) 
-        ? parseInt(rule.execution_count) 
-        : 0;
+      // استخدام القيم المحسوبة مسبقاً
       const newExecutionCount = currentExecutionCount + 1;
+      
+      // تحديد حالة is_active بناءً على الحد الأقصى
+      let shouldBeActive = true;
+      if (maxExecutions !== null && newExecutionCount >= maxExecutions) {
+        shouldBeActive = false;
+      }
       
       // حساب next_execution_date
       let nextExecution;
@@ -158,10 +192,11 @@ class RecurringExecutionController {
            SET execution_count = $1,
                last_execution_date = NOW(),
                next_execution_date = $2,
+               is_active = $4,
                updated_at = NOW()
            WHERE id = $3
            RETURNING *`,
-          [newExecutionCount, nextExecution, rule.id]
+          [newExecutionCount, nextExecution, rule.id, shouldBeActive]
         );
       } catch (error) {
         // إذا فشل، جرب البنية القديمة
@@ -171,10 +206,11 @@ class RecurringExecutionController {
              SET execution_count = $1,
                  last_executed = NOW(),
                  next_execution = $2,
+                 is_active = $4,
                  updated_at = NOW()
              WHERE id = $3
              RETURNING *`,
-            [newExecutionCount, nextExecution, rule.id]
+            [newExecutionCount, nextExecution, rule.id, shouldBeActive]
           );
         } else {
           throw error;
@@ -183,10 +219,16 @@ class RecurringExecutionController {
       
       const updatedRule = updateResult.rows[0];
       
+      // رسالة تحذيرية إذا تم الوصول للحد الأقصى
+      let completionMessage = '';
+      if (maxExecutions !== null && newExecutionCount >= maxExecutions) {
+        completionMessage = `تم الوصول للحد الأقصى من التنفيذات (${maxExecutions}). تم تعطيل القاعدة تلقائياً.`;
+      }
+      
       // إرجاع النتيجة
       res.json({
         success: true,
-        message: 'تم تنفيذ قاعدة التكرار بنجاح',
+        message: completionMessage || 'تم تنفيذ قاعدة التكرار بنجاح',
         data: {
           rule: updatedRule,
           ticket: createdTicket,
@@ -194,7 +236,11 @@ class RecurringExecutionController {
           notification: notificationResult,
           execution_info: {
             current_execution: newExecutionCount,
-            next_execution_date: nextExecution
+            max_executions: maxExecutions,
+            total_executions: maxExecutions || 'لا نهائي',
+            is_completed: maxExecutions !== null && newExecutionCount >= maxExecutions,
+            next_execution_date: shouldBeActive ? nextExecution : null,
+            is_active: shouldBeActive
           }
         }
       });
@@ -256,6 +302,37 @@ class RecurringExecutionController {
           success: false,
           message: 'قاعدة التكرار غير نشطة',
           data: rule
+        });
+      }
+      
+      // التحقق من الحد الأقصى لعدد التنفيذات
+      const maxExecutions = rule.max_executions !== null && rule.max_executions !== undefined
+        ? parseInt(rule.max_executions)
+        : null;
+      const currentExecutionCount = (rule.execution_count !== null && rule.execution_count !== undefined) 
+        ? parseInt(rule.execution_count) 
+        : 0;
+      
+      if (maxExecutions !== null && currentExecutionCount >= maxExecutions) {
+        // تحديث is_active إلى false إذا لم يكن كذلك
+        if (rule.is_active) {
+          await pool.query(
+            `UPDATE recurring_rules SET is_active = false, updated_at = NOW() WHERE id = $1`,
+            [rule.id]
+          );
+        }
+        
+        return res.status(400).json({
+          success: false,
+          message: `تم الوصول للحد الأقصى من التنفيذات (${maxExecutions}). القاعدة معطلة.`,
+          data: {
+            rule: { ...rule, is_active: false },
+            execution_info: {
+              current_execution: currentExecutionCount,
+              max_executions: maxExecutions,
+              is_completed: true
+            }
+          }
         });
       }
       
