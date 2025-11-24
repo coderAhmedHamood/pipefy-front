@@ -110,6 +110,7 @@ export const RecurringManager: React.FC = () => {
       days_of_week: [],
       day_of_month: 1
     },
+    max_executions: null as number | null,
     is_active: true
   });
 
@@ -205,8 +206,8 @@ export const RecurringManager: React.FC = () => {
   const fetchRecurringRules = async (processId: string) => {
     setLoadingRules(true);
     try {
-      // استخدام نفس المعاملات من المثال المقدم
-      const url = `${API_ENDPOINTS.RECURRING.RULES}?page=1&limit=50&process_id=${processId}`;
+      // إرسال max_executions كمعامل في API call
+      const url = `${API_ENDPOINTS.RECURRING.RULES}?page=1&limit=50&process_id=${processId}&max_executions=true`;
       const data = await apiRequest(url);
       
       if (data.success && data.data) {
@@ -447,6 +448,7 @@ export const RecurringManager: React.FC = () => {
         days_of_week: Array.isArray(scheduleDaysOfWeek) ? scheduleDaysOfWeek : [],
         day_of_month: scheduleDayOfMonth
       },
+      max_executions: ruleData.max_executions || null,
       is_active: ruleData.is_active !== undefined ? ruleData.is_active : true
     });
   };
@@ -600,7 +602,7 @@ export const RecurringManager: React.FC = () => {
       const ruleData: any = {
         name: ruleForm.name,
         process_id: selectedProcess.id,
-        recurrence_type: ruleForm.schedule.type,
+        recurrence_type: ruleForm.schedule.type || 'daily', // نوع التكرار (يومي، أسبوعي، شهري، سنوي، مخصص)
         recurrence_interval: ruleForm.schedule.interval,
         start_date: startDate,
         end_date: null,
@@ -618,6 +620,9 @@ export const RecurringManager: React.FC = () => {
         weekdays: ruleForm.schedule.days_of_week || [],
         month_day: ruleForm.schedule.day_of_month || null,
         
+        // عدد التكرارات
+        max_executions: ruleForm.max_executions || null,
+        
         is_active: ruleForm.is_active
       };
 
@@ -630,6 +635,13 @@ export const RecurringManager: React.FC = () => {
         ruleData.stage_id = stageId;
       }
 
+      // التأكد من إرسال نوع التكرار
+      console.log('📤 إرسال بيانات قاعدة التكرار:', {
+        recurrence_type: ruleData.recurrence_type,
+        recurrence_interval: ruleData.recurrence_interval,
+        max_executions: ruleData.max_executions,
+        ...ruleData
+      });
 
       // استدعاء API لإنشاء قاعدة التكرار
       const response = await fetch(API_ENDPOINTS.RECURRING.CREATE_RULE, {
@@ -704,6 +716,7 @@ export const RecurringManager: React.FC = () => {
         days_of_week: [],
         day_of_month: 1
       },
+      max_executions: null as number | null,
       is_active: true
     });
     setSelectedProcessDetails(null);
@@ -1027,6 +1040,9 @@ export const RecurringManager: React.FC = () => {
         weekdays: ruleForm.schedule.days_of_week || [],
         month_day: ruleForm.schedule.day_of_month || null,
         
+        // عدد التكرارات
+        max_executions: ruleForm.max_executions || null,
+        
         is_active: ruleForm.is_active
       };
 
@@ -1272,9 +1288,12 @@ export const RecurringManager: React.FC = () => {
                   .filter(rule => rule.process_id === selectedProcess.id)
                   .map((rule, index) => {
                     const executionCount = (rule as any).execution_count || 0;
+                    const maxExecutions = (rule as any).max_executions || null;
                     const recurrenceInterval = (rule as any).recurrence_interval || 0;
-                    const progressPercentage = recurrenceInterval > 0 
-                      ? Math.min(100, Math.round((executionCount / recurrenceInterval) * 100))
+                    // استخدام max_executions إذا كان موجوداً، وإلا استخدام recurrenceInterval
+                    const totalExecutions = maxExecutions !== null ? maxExecutions : recurrenceInterval;
+                    const progressPercentage = totalExecutions > 0 
+                      ? Math.min(100, Math.round((executionCount / totalExecutions) * 100))
                       : 0;
                     const isEven = index % 2 === 0;
                     const bgColor = isEven ? 'bg-white' : 'bg-gray-50';
@@ -1297,7 +1316,7 @@ export const RecurringManager: React.FC = () => {
                               <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 truncate`}>{(rule as any).title}</div>
                             )}
                             <div className="flex items-center justify-between text-[10px] text-gray-600">
-                              <span>التنفيذات: {executionCount}/{recurrenceInterval || '∞'}</span>
+                              <span>التنفيذات: {executionCount}/{maxExecutions !== null ? maxExecutions : (recurrenceInterval || '∞')}</span>
                               <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-blue-500" style={{ width: `${progressPercentage}%` }} />
                               </div>
@@ -1347,7 +1366,7 @@ export const RecurringManager: React.FC = () => {
                             <div className="md:col-span-3">
                               <div className="flex items-center justify-between text-sm text-gray-600">
                                 <span>التنفيذات</span>
-                                <span className="font-medium text-gray-800">{executionCount}/{recurrenceInterval || '∞'}</span>
+                                <span className="font-medium text-gray-800">{executionCount}/{maxExecutions !== null ? maxExecutions : (recurrenceInterval || '∞')}</span>
                               </div>
                               <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
                                 <div className="h-full bg-blue-500" style={{ width: `${progressPercentage}%` }} />
@@ -1367,7 +1386,7 @@ export const RecurringManager: React.FC = () => {
                                 <Calendar className="w-4 h-4 text-orange-600" />
                                 <span className="font-medium">الانتهاء:</span>
                                 <span className="truncate">
-                                  {(rule as any).end_date ? new Date((rule as any).end_date).toLocaleDateString('ar', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'مستمر'}
+                                  {maxExecutions !== null ? `${maxExecutions} تنفيذ` : ((rule as any).end_date ? new Date((rule as any).end_date).toLocaleDateString('ar', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'مستمر')}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5 mt-1">
@@ -1751,19 +1770,31 @@ export const RecurringManager: React.FC = () => {
                             ))}
                           </select>
                         </div>
-                        
+                   
+                            
+
+
+
+
+                            
                         <div>
-                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>التكرار </label>
+                          <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>
+                            عدد التكرارات 
+                          </label>
                           <input
                             type="number"
                             min="1"
-                            value={ruleForm.schedule.interval}
+                            value={ruleForm.max_executions || ''}
                             onChange={(e) => setRuleForm({
                               ...ruleForm,
-                              schedule: { ...ruleForm.schedule, interval: parseInt(e.target.value) }
+                              max_executions: e.target.value ? parseInt(e.target.value) : null
                             })}
+                            placeholder="اتركه فارغاً للاستمرار بدون نهاية"
                             className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                           />
+                          <p className={`mt-1 ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
+                            حدد العدد الأقصى لمرات التنفيذ (اتركه فارغاً للاستمرار بدون نهاية)
+                          </p>
                         </div>
                         
                         <div>
