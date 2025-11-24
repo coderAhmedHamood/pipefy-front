@@ -1035,6 +1035,15 @@ export const RecurringManager: React.FC = () => {
         priority: ruleForm.template_data.priority,
         ticket_type: ruleForm.template_data.ticket_type || 'task',
         
+        // template_data للـ API (يحتوي على بيانات التذكرة)
+        template_data: {
+          title: ruleForm.template_data.title,
+          description: ruleForm.template_data.description || '',
+          priority: ruleForm.template_data.priority,
+          ticket_type: ruleForm.template_data.ticket_type || 'task',
+          data: customFieldsData
+        },
+        
         // الحقول المخصصة
         data: customFieldsData,
         
