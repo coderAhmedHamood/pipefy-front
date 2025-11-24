@@ -3,6 +3,7 @@ import { MessageSquare, Plus, Clock, Loader2, Edit2, Trash2, Save, Activity } fr
 import { useComments } from '../../hooks/useComments';
 import { Comment } from '../../services/commentService';
 import notificationService from '../../services/notificationService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface CommentsSectionProps {
   ticketId: string;
@@ -19,6 +20,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   reviewerUserIds = [],
   onCommentAdded 
 }) => {
+  const { user } = useAuth();
   const {
     comments,
     loading,
@@ -144,7 +146,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleString('ar-SA', {
+      return new Date(dateString).toLocaleString('ar', {
+        calendar: 'gregory',
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -283,27 +286,29 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                         <span className="text-xs text-gray-500">
                           {formatDate(comment.created_at)}
                         </span>
-                        {/* أزرار التحديث والحذف - فقط للتعليقات الداخلية */}
-                        <div className="flex items-center space-x-1 space-x-reverse">
-                          <button
-                            type="button"
-                            onClick={() => handleEditComment(comment)}
-                            disabled={isSubmitting || editingCommentId === comment.id}
-                            className="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
-                            title="تعديل التعليق"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteComment(comment.id)}
-                            disabled={isSubmitting}
-                            className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
-                            title="حذف التعليق"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
+                        {/* أزرار التحديث والحذف - فقط للتعليقات التي تعود للمستخدم الحالي */}
+                        {user && comment.user_id === user.id && (
+                          <div className="flex items-center space-x-1 space-x-reverse">
+                            <button
+                              type="button"
+                              onClick={() => handleEditComment(comment)}
+                              disabled={isSubmitting || editingCommentId === comment.id}
+                              className="text-gray-400 hover:text-blue-600 p-1 rounded transition-colors"
+                              title="تعديل التعليق"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(comment.id)}
+                              disabled={isSubmitting}
+                              className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                              title="حذف التعليق"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
