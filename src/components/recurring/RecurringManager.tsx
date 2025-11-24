@@ -1782,60 +1782,9 @@ export const RecurringManager: React.FC = () => {
                           />
                         </div>
 
-                        {ruleForm.schedule.type === 'weekly' && (
-                          <div>
-                            <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>أيام الأسبوع</label>
-                            <div className={`flex flex-wrap ${isMobile || isTablet ? 'gap-2' : 'gap-3'}`}>
-                              {daysOfWeek.map((day) => (
-                                <label key={day.value} className="flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={ruleForm.schedule.days_of_week?.includes(day.value) || false}
-                                    onChange={(e) => {
-                                      const days = ruleForm.schedule.days_of_week || [];
-                                      if (e.target.checked) {
-                                        setRuleForm({
-                                          ...ruleForm,
-                                          schedule: {
-                                            ...ruleForm.schedule,
-                                            days_of_week: [...days, day.value]
-                                          }
-                                        });
-                                      } else {
-                                        setRuleForm({
-                                          ...ruleForm,
-                                          schedule: {
-                                            ...ruleForm.schedule,
-                                            days_of_week: days.filter(d => d !== day.value)
-                                          }
-                                        });
-                                      }
-                                    }}
-                                    className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : ''} rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50`}
-                                  />
-                                  <span className={`mr-2 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700`}>{day.label}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                       
 
-                        {ruleForm.schedule.type === 'monthly' && (
-                          <div>
-                            <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 ${isMobile || isTablet ? 'mb-1.5' : 'mb-2'}`}>يوم الشهر</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="31"
-                              value={ruleForm.schedule.day_of_month}
-                              onChange={(e) => setRuleForm({
-                                ...ruleForm,
-                                schedule: { ...ruleForm.schedule, day_of_month: parseInt(e.target.value) }
-                              })}
-                              className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                            />
-                          </div>
-                        )}
+                        
 
                         {/* تفعيل القاعدة */}
                         <div className={`flex items-center ${isMobile || isTablet ? 'p-2.5' : 'p-4'} bg-gray-50 rounded-lg`}>
