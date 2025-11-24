@@ -363,21 +363,26 @@ router.post('/rules', authenticateToken, RecurringController.create);
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               template_data:
- *                 type: object
- *               schedule_type:
- *                 type: string
- *               schedule_config:
- *                 type: object
- *               timezone:
- *                 type: string
- *               is_active:
- *                 type: boolean
+     *             properties:
+     *               name:
+     *                 type: string
+     *               description:
+     *                 type: string
+     *               template_data:
+     *                 type: object
+     *               schedule_type:
+     *                 type: string
+     *               schedule_config:
+     *                 type: object
+     *               timezone:
+     *                 type: string
+     *               is_active:
+     *                 type: boolean
+     *               max_executions:
+     *                 type: integer
+     *                 nullable: true
+     *                 description: الحد الأقصى لعدد مرات التنفيذ (NULL = لا نهائي)
+     *                 example: 10
  *     responses:
  *       200:
  *         description: تم تحديث قاعدة التكرار بنجاح

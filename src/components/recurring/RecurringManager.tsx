@@ -621,8 +621,10 @@ export const RecurringManager: React.FC = () => {
         weekdays: ruleForm.schedule.days_of_week || [],
         month_day: ruleForm.schedule.day_of_month || null,
         
-        // عدد التكرارات
-        max_executions: ruleForm.max_executions || null,
+        // عدد التكرارات (يتم إرساله حتى لو كان 0)
+        max_executions: ruleForm.max_executions !== null && ruleForm.max_executions !== undefined && ruleForm.max_executions !== '' 
+          ? (typeof ruleForm.max_executions === 'number' ? ruleForm.max_executions : parseInt(ruleForm.max_executions.toString())) 
+          : null,
         
         is_active: ruleForm.is_active
       };
@@ -1051,8 +1053,10 @@ export const RecurringManager: React.FC = () => {
         weekdays: ruleForm.schedule.days_of_week || [],
         month_day: ruleForm.schedule.day_of_month || null,
         
-        // عدد التكرارات
-        max_executions: ruleForm.max_executions || null,
+        // عدد التكرارات (يتم إرساله حتى لو كان 0)
+        max_executions: ruleForm.max_executions !== null && ruleForm.max_executions !== undefined && ruleForm.max_executions !== '' 
+          ? (typeof ruleForm.max_executions === 'number' ? ruleForm.max_executions : parseInt(ruleForm.max_executions.toString())) 
+          : null,
         
         is_active: ruleForm.is_active
       };
@@ -1066,7 +1070,9 @@ export const RecurringManager: React.FC = () => {
         ruleData.stage_id = stageId;
       }
 
+      // التأكد من إرسال max_executions
       console.log('📤 البيانات المرسلة إلى API:', JSON.stringify(ruleData, null, 2));
+      console.log('🔢 max_executions value:', ruleForm.max_executions, '→ ruleData.max_executions:', ruleData.max_executions);
       console.log('📦 customFieldsData:', customFieldsData);
 
       // استدعاء API لتحديث قاعدة التكرار

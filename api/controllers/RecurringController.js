@@ -390,7 +390,8 @@ class RecurringController {
         priority,
         status,
         data,
-        title
+        title,
+        max_executions
       } = req.body;
       
       // التحقق من وجود القاعدة أولاً
@@ -567,6 +568,13 @@ class RecurringController {
         updateValues.push(title);
       }
       
+      // تحديث max_executions
+      if (max_executions !== undefined) {
+        paramCount++;
+        updateFields.push(`max_executions = $${paramCount}`);
+        updateValues.push(max_executions === null ? null : parseInt(max_executions));
+      }
+      
       // إضافة updated_at دائماً
       updateFields.push('updated_at = NOW()');
       
@@ -652,6 +660,11 @@ class RecurringController {
             oldUpdateFields.push(`next_execution = $${oldParamCount}`);
             oldUpdateValues.push(new Date(next_execution));
           }
+          if (max_executions !== undefined) {
+            oldParamCount++;
+            oldUpdateFields.push(`max_executions = $${oldParamCount}`);
+            oldUpdateValues.push(max_executions === null ? null : parseInt(max_executions));
+          }
           
           oldUpdateFields.push('updated_at = NOW()');
           oldParamCount++;
@@ -676,10 +689,44 @@ class RecurringController {
         });
       }
       
+      const updatedRule = formatRecurringRule(result.rows[0]);
+      
+      // التحقق من max_executions بعد التحديث
+      // إذا تم تحديث max_executions وكان execution_count >= max_executions، تعطيل القاعدة
+      if (max_executions !== undefined) {
+        const currentExecutionCount = (updatedRule.execution_count !== null && updatedRule.execution_count !== undefined) 
+          ? parseInt(updatedRule.execution_count) 
+          : 0;
+        const newMaxExecutions = max_executions === null ? null : parseInt(max_executions);
+        
+        if (newMaxExecutions !== null && currentExecutionCount >= newMaxExecutions && updatedRule.is_active) {
+          // تحديث is_active إلى false
+          await pool.query(
+            `UPDATE recurring_rules SET is_active = false, updated_at = NOW() WHERE id = $1`,
+            [id]
+          );
+          
+          // جلب القاعدة المحدثة مرة أخرى
+          const finalResult = await pool.query(
+            'SELECT * FROM recurring_rules WHERE id = $1',
+            [id]
+          );
+          
+          if (finalResult.rows.length > 0) {
+            const finalRule = formatRecurringRule(finalResult.rows[0]);
+            return res.json({
+              success: true,
+              message: `تم تحديث قاعدة التكرار بنجاح. تم تعطيل القاعدة تلقائياً لأن عدد التنفيذات الحالي (${currentExecutionCount}) وصل أو تجاوز الحد الأقصى (${newMaxExecutions})`,
+              data: finalRule
+            });
+          }
+        }
+      }
+      
       res.json({
         success: true,
         message: 'تم تحديث قاعدة التكرار بنجاح',
-        data: formatRecurringRule(result.rows[0])
+        data: updatedRule
       });
     } catch (error) {
       console.error('خطأ في تحديث قاعدة التكرار:', error);
