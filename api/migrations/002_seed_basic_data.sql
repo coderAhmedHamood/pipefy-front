@@ -3,9 +3,10 @@
 
 -- إدراج الأدوار الأساسية
 INSERT INTO roles (id, name, description, is_system_role) VALUES
-  ('550e8400-e29b-41d4-a716-446655440001', 'admin', 'مدير النظام', TRUE),
-  ('550e8400-e29b-41d4-a716-446655440002', 'member', 'عضو', TRUE),
-  ('550e8400-e29b-41d4-a716-446655440003', 'guest', 'ضيف', TRUE)
+  ('550e8400-e29b-41d4-a716-446655440001', 'admin', 'أدمن', TRUE),
+  ('550e8400-e29b-41d4-a716-446655440002', 'member', 'مشرف', TRUE),
+  ('550e8400-e29b-41d4-a716-446655440003', 'guest', 'عضو', TRUE),
+  ('550e8400-e29b-41d4-a716-446655440004', 'default', 'الدور الافتراضي', TRUE)
 ON CONFLICT (name) DO NOTHING;
 
 -- إدراج الصلاحيات الأساسية الكاملة (40 صلاحية)
@@ -82,32 +83,74 @@ INSERT INTO permissions (name, resource, action, description) VALUES
   ('إدارة الصلاحيات', 'permissions', 'manage', 'إدارة الصلاحيات')
 ON CONFLICT (resource, action) DO NOTHING;
 
--- ربط صلاحيات دور المدير (admin)
+-- ربط صلاحيات دور المدير (admin) - جميع الصلاحيات ماعدا tickets.view_scope
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 
   '550e8400-e29b-41d4-a716-446655440001',
   p.id
 FROM permissions p
+WHERE NOT (p.resource = 'tickets' AND p.action = 'view_scope')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- ربط صلاحيات دور العضو (member)
+-- ربط صلاحيات دور المشرف (member)
+-- fields: create, delete, update, read
+-- stages: create, delete, update, read
+-- tickets: create, delete, update, read
+-- system.logos
+-- ticket_assignees.create
+-- ticket_reviewers.create
+-- ticket_reviewers.view
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 
   '550e8400-e29b-41d4-a716-446655440002',
   p.id
 FROM permissions p
-WHERE p.resource IN ('tickets', 'processes') 
-  AND p.action IN ('create', 'edit', 'view')
+WHERE 
+  -- Fields: create, delete, update, read
+  (p.resource = 'fields' AND p.action IN ('create', 'delete', 'update', 'read'))
+  -- Stages: create, delete, update, read
+  OR (p.resource = 'stages' AND p.action IN ('create', 'delete', 'update', 'read'))
+  -- Tickets: create, delete, update, read
+  OR (p.resource = 'tickets' AND p.action IN ('create', 'delete', 'update', 'read'))
+  -- System.logos
+  OR (p.resource = 'system' AND p.action = 'logos')
+  -- ticket_assignees.create
+  OR (p.resource = 'ticket_assignees' AND p.action = 'create')
+  -- ticket_reviewers.create
+  OR (p.resource = 'ticket_reviewers' AND p.action = 'create')
+  -- ticket_reviewers.view
+  OR (p.resource = 'ticket_reviewers' AND p.action = 'view')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- ربط صلاحيات دور الضيف (guest)
+-- ربط صلاحيات دور العضو (guest)
+-- ticket_reviewers.view
+-- ticket_assignees.create
+-- tickets: create, delete, update, read
+-- tickets.view_scope
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 
   '550e8400-e29b-41d4-a716-446655440003',
   p.id
 FROM permissions p
-WHERE p.resource IN ('tickets', 'processes') 
-  AND p.action IN ('view')
+WHERE 
+  -- ticket_reviewers.view
+  (p.resource = 'ticket_reviewers' AND p.action = 'view')
+  -- ticket_assignees.create
+  OR (p.resource = 'ticket_assignees' AND p.action = 'create')
+  -- tickets: create, delete, update, read
+  OR (p.resource = 'tickets' AND p.action IN ('create', 'delete', 'update', 'read'))
+  -- tickets.view_scope
+  OR (p.resource = 'tickets' AND p.action = 'view_scope')
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
+-- ربط صلاحيات الدور الافتراضي (default)
+-- tickets: create, delete, update, read
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 
+  '550e8400-e29b-41d4-a716-446655440004',
+  p.id
+FROM permissions p
+WHERE p.resource = 'tickets' AND p.action IN ('create', 'delete', 'update', 'read')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- إنشاء مستخدم مدير افتراضي
