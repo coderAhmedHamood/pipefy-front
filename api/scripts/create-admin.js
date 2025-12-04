@@ -299,11 +299,15 @@ async function createAdmin() {
       throw new Error('❌ فشل التحقق من ربط المستخدم بالعملية');
     }
     
-    // 9. جلب جميع الصلاحيات
-    console.log('9️⃣  جلب جميع الصلاحيات...');
-    const permissionsResult = await client.query('SELECT id, name, resource, action FROM permissions');
+    // 9. جلب جميع الصلاحيات (ماعدا tickets.view_scope)
+    console.log('9️⃣  جلب جميع الصلاحيات (ماعدا tickets.view_scope)...');
+    const permissionsResult = await client.query(`
+      SELECT id, name, resource, action 
+      FROM permissions 
+      WHERE NOT (resource = 'tickets' AND action = 'view_scope')
+    `);
     const allPermissions = permissionsResult.rows;
-    console.log(`   ✅ تم العثور على ${allPermissions.length} صلاحية\n`);
+    console.log(`   ✅ تم العثور على ${allPermissions.length} صلاحية (تم استبعاد tickets.view_scope)\n`);
     
     // 10. إعطاء جميع الصلاحيات للمستخدم في العملية
     console.log('🔟 إعطاء جميع الصلاحيات للمستخدم في العملية...');
