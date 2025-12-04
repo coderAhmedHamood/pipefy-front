@@ -207,23 +207,99 @@ class PermissionService {
   }
 
   // إلغاء صلاحية إضافية من مستخدم
-  static async revokeUserPermission(userId, permissionId) {
+  static async revokeUserPermission(userId, permissionId, processId) {
     try {
       const { pool } = require('../config/database');
       
-      const query = `
+      // التحقق من وجود العملية
+      const processCheck = await pool.query(
+        'SELECT id, name FROM processes WHERE id = $1 AND deleted_at IS NULL',
+        [processId]
+      );
+      
+      if (processCheck.rows.length === 0) {
+        throw new Error('العملية غير موجودة');
+      }
+      
+      // التحقق من وجود المستخدم
+      const userCheck = await pool.query(
+        'SELECT id, name FROM users WHERE id = $1 AND deleted_at IS NULL',
+        [userId]
+      );
+      
+      if (userCheck.rows.length === 0) {
+        throw new Error('المستخدم غير موجود');
+      }
+      
+      // التحقق من وجود الصلاحية
+      const permissionCheck = await pool.query(
+        'SELECT id, name, resource, action FROM permissions WHERE id = $1',
+        [permissionId]
+      );
+      
+      if (permissionCheck.rows.length === 0) {
+        throw new Error('الصلاحية غير موجودة');
+      }
+      
+      // التحقق من وجود السجل قبل الحذف
+      const beforeDeleteCheck = await pool.query(
+        `SELECT id, user_id, permission_id, process_id, granted_at 
+         FROM user_permissions 
+         WHERE user_id = $1 AND permission_id = $2 AND process_id = $3`,
+        [userId, permissionId, processId]
+      );
+      
+      if (beforeDeleteCheck.rows.length === 0) {
+        // محاولة البحث عن السجلات المشابهة للمساعدة في التشخيص
+        const similarRecords = await pool.query(
+          `SELECT id, user_id, permission_id, process_id, granted_at 
+           FROM user_permissions 
+           WHERE user_id = $1 AND permission_id = $2`,
+          [userId, permissionId]
+        );
+        
+        if (similarRecords.rows.length > 0) {
+          const processIds = similarRecords.rows.map(r => r.process_id).join(', ');
+          throw new Error(`الصلاحية غير مرتبطة بالمستخدم في هذه العملية. الصلاحية موجودة في العمليات: ${processIds}`);
+        } else {
+          throw new Error('الصلاحية غير مرتبطة بالمستخدم في هذه العملية');
+        }
+      }
+      
+      // حذف الصلاحية من العملية المحددة فقط
+      const deleteQuery = `
         DELETE FROM user_permissions 
-        WHERE user_id = $1 AND permission_id = $2
-        RETURNING *
+        WHERE user_id = $1 
+          AND permission_id = $2
+          AND process_id = $3
+        RETURNING id, user_id, permission_id, process_id, granted_at
       `;
 
-      const { rows } = await pool.query(query, [userId, permissionId]);
+      const { rows } = await pool.query(deleteQuery, [userId, permissionId, processId]);
       
       if (rows.length === 0) {
-        throw new Error('الصلاحية غير مرتبطة بالمستخدم');
+        throw new Error('فشل حذف الصلاحية - لم يتم العثور على السجل');
+      }
+      
+      // التحقق من الحذف النهائي
+      const afterDeleteCheck = await pool.query(
+        `SELECT id FROM user_permissions 
+         WHERE user_id = $1 AND permission_id = $2 AND process_id = $3`,
+        [userId, permissionId, processId]
+      );
+      
+      if (afterDeleteCheck.rows.length > 0) {
+        throw new Error('فشل حذف الصلاحية - السجل ما زال موجوداً بعد الحذف');
       }
 
-      return { message: 'تم إلغاء الصلاحية من المستخدم بنجاح' };
+      return { 
+        message: 'تم إلغاء الصلاحية من المستخدم في العملية بنجاح',
+        deleted_count: rows.length,
+        deleted_record: rows[0],
+        user: userCheck.rows[0],
+        permission: permissionCheck.rows[0],
+        process: processCheck.rows[0]
+      };
     } catch (error) {
       throw new Error(`خطأ في إلغاء الصلاحية من المستخدم: ${error.message}`);
     }

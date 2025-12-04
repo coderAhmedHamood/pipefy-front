@@ -704,8 +704,15 @@ router.post('/users/grant',
  * @swagger
  * /api/permissions/users/{user_id}/{permission_id}:
  *   delete:
- *     summary: إلغاء صلاحية إضافية من مستخدم
+ *     summary: إلغاء صلاحية إضافية من مستخدم في عملية محددة
+ *     description: |
+ *       يحذف صلاحية إضافية من مستخدم في عملية محددة فقط.
+ *       - يتطلب process_id كمعامل إجباري في query parameters
+ *       - يحذف الصلاحية فقط من العملية المحددة وليس من جميع العمليات
+ *       - إذا كانت الصلاحية موجودة في عمليات أخرى، ستبقى موجودة هناك
  *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: user_id
@@ -714,6 +721,7 @@ router.post('/users/grant',
  *           type: string
  *           format: uuid
  *         description: معرف المستخدم
+ *         example: "c5397ee4-1380-4daf-b99b-559a0675c992"
  *       - in: path
  *         name: permission_id
  *         required: true
@@ -721,9 +729,18 @@ router.post('/users/grant',
  *           type: string
  *           format: uuid
  *         description: معرف الصلاحية
+ *         example: "b6fc985f-9f90-435f-a486-1f7bd38cfc4f"
+ *       - in: query
+ *         name: process_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف العملية (إجباري - سيتم حذف الصلاحية من هذه العملية فقط)
+ *         example: "5e9fd46f-947b-4f5c-94c1-aa34ce40d04a"
  *     responses:
  *       200:
- *         description: تم إلغاء الصلاحية من المستخدم بنجاح
+ *         description: تم إلغاء الصلاحية من المستخدم في العملية بنجاح
  *         content:
  *           application/json:
  *             schema:
@@ -734,9 +751,34 @@ router.post('/users/grant',
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: 'تم إلغاء الصلاحية من المستخدم بنجاح'
+ *                   example: 'تم إلغاء الصلاحية من المستخدم في العملية بنجاح'
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deleted_count:
+ *                       type: integer
+ *                       description: عدد السجلات المحذوفة
+ *                       example: 1
+ *                     deleted_record:
+ *                       type: object
+ *                       description: السجل المحذوف
+ *                     user:
+ *                       type: object
+ *                       description: معلومات المستخدم
+ *                     permission:
+ *                       type: object
+ *                       description: معلومات الصلاحية
+ *                     process:
+ *                       type: object
+ *                       description: معلومات العملية
+ *       400:
+ *         description: معرف العملية (process_id) مطلوب أو غير صحيح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
- *         description: المستخدم أو الصلاحية غير موجودة
+ *         description: المستخدم أو الصلاحية أو العملية غير موجودة، أو الصلاحية غير مرتبطة بالمستخدم في هذه العملية
  *         content:
  *           application/json:
  *             schema:
@@ -747,6 +789,27 @@ router.delete('/users/:user_id/:permission_id',
   requirePermission('permissions', 'manage'),
   validateUUID('user_id'),
   validateUUID('permission_id'),
+  (req, res, next) => {
+    // التحقق من process_id في query parameters
+    const { process_id } = req.query;
+    if (!process_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف العملية (process_id) مطلوب في query parameters',
+        error: 'VALIDATION_ERROR'
+      });
+    }
+    // التحقق من صحة UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(process_id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف العملية (process_id) غير صحيح',
+        error: 'VALIDATION_ERROR'
+      });
+    }
+    next();
+  },
   PermissionController.revokeUserPermission
 );
 

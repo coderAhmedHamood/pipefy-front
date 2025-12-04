@@ -274,24 +274,53 @@ class PermissionController {
     }
   }
 
-  // إلغاء صلاحية إضافية من مستخدم
+  // إلغاء صلاحية إضافية من مستخدم في عملية محددة
   static async revokeUserPermission(req, res) {
     try {
       const { user_id, permission_id } = req.params;
+      const { process_id } = req.query; // قراءة process_id من query parameter
       
-      const result = await PermissionService.revokeUserPermission(user_id, permission_id);
+      // التحقق من وجود process_id
+      if (!process_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف العملية (process_id) مطلوب في query parameters',
+          error: 'VALIDATION_ERROR'
+        });
+      }
+      
+      // التحقق من صحة UUID لـ process_id
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(process_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف العملية (process_id) غير صحيح',
+          error: 'VALIDATION_ERROR'
+        });
+      }
+      
+      const result = await PermissionService.revokeUserPermission(user_id, permission_id, process_id);
 
       res.json({
         success: true,
-        message: result.message
+        message: result.message,
+        data: {
+          deleted_count: result.deleted_count,
+          deleted_record: result.deleted_record,
+          user: result.user,
+          permission: result.permission,
+          process: result.process
+        }
       });
     } catch (error) {
       console.error('خطأ في إلغاء الصلاحية من المستخدم:', error);
-      const statusCode = error.message.includes('غير مرتبطة') ? 404 : 500;
+      const statusCode = error.message.includes('غير مرتبطة') || error.message.includes('غير موجودة') ? 404 : 
+                        error.message.includes('مطلوب') ? 400 : 500;
       res.status(statusCode).json({
         success: false,
         message: error.message,
-        error: statusCode === 404 ? 'NOT_FOUND' : 'SERVER_ERROR'
+        error: statusCode === 404 ? 'NOT_FOUND' : 
+               statusCode === 400 ? 'VALIDATION_ERROR' : 'SERVER_ERROR'
       });
     }
   }
