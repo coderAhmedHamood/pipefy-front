@@ -129,16 +129,6 @@ export const UserManagerNew: React.FC = () => {
   const [loadingProcessPermissions, setLoadingProcessPermissions] = useState(false);
   const permissionsSectionRef = useRef<HTMLDivElement>(null);
   
-  // تصفية الصلاحيات حسب النوع - الافتراضي: tickets فقط
-  const [inactivePermissionsFilters, setInactivePermissionsFilters] = useState<Set<string>>(
-    new Set(['tickets'])
-  );
-  
-  // حالة الأنواع المطوية/المفتوحة (collapsed/expanded)
-  const [expandedResources, setExpandedResources] = useState<Set<string>>(
-    new Set(['tickets']) // tickets مفتوح افتراضياً
-  );
-  
   // عرض صلاحيات الدور
   const [viewingRolePermissions, setViewingRolePermissions] = useState<UserRole | null>(null);
 
@@ -3112,75 +3102,6 @@ export const UserManagerNew: React.FC = () => {
                                 </div>
                                 <span className="text-red-700">غير المفعلة ({processPermissions.inactive.length})</span>
                             </h4>
-                              {/* أزرار التصفية - تحسين للجوال */}
-                              <div className={`${isMobile || isTablet ? 'mb-2' : 'mb-3'}`}>
-                                <div className={`flex flex-wrap gap-2 ${isMobile || isTablet ? 'gap-1.5' : ''}`}>
-                                  {['fields', 'processes', 'stages', 'ticket_assignees', 'ticket_reviewers', 'tickets'].map((resource) => {
-                                    const isExpanded = expandedResources.has(resource);
-                                    const isCollapsible = ['fields', 'processes', 'stages', 'ticket_assignees', 'ticket_reviewers'].includes(resource);
-                                    const isTickets = resource === 'tickets';
-                                    
-                                    return (
-                                      <button
-                                        key={resource}
-                                        onClick={() => {
-                                          if (isCollapsible) {
-                                            // للأنواع القابلة للطي: إظهار/إخفاء الصلاحيات
-                                            const newExpanded = new Set(expandedResources);
-                                            if (isExpanded) {
-                                              newExpanded.delete(resource);
-                                            } else {
-                                              newExpanded.add(resource);
-                                            }
-                                            setExpandedResources(newExpanded);
-                                          }
-                                          // لـ tickets: لا شيء (دائماً مفتوح)
-                                        }}
-                                        className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} rounded-lg transition-all duration-200 flex items-center gap-1 ${
-                                          isExpanded || isTickets
-                                            ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                        title={isCollapsible ? (isExpanded ? 'إخفاء الصلاحيات' : 'إظهار الصلاحيات') : ''}
-                                      >
-                                        {isCollapsible && (
-                                          <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
-                                        )}
-                                        <span>{resource}</span>
-                                      </button>
-                                    );
-                                  })}
-                                  {/* زر "ما تبقى" */}
-                                  {(() => {
-                                    const hasOtherResources = processPermissions.inactive.some((p: any) => 
-                                      !['fields', 'processes', 'stages', 'ticket_assignees', 'ticket_reviewers', 'tickets'].includes(p.resource)
-                                    );
-                                    if (!hasOtherResources) return null;
-                                    const isExpanded = expandedResources.has('other');
-                                    return (
-                                      <button
-                                        onClick={() => {
-                                          const newExpanded = new Set(expandedResources);
-                                          if (isExpanded) {
-                                            newExpanded.delete('other');
-                                          } else {
-                                            newExpanded.add('other');
-                                          }
-                                          setExpandedResources(newExpanded);
-                                        }}
-                                        className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} rounded-lg transition-all duration-200 flex items-center gap-1 ${
-                                          isExpanded
-                                            ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                      >
-                                        <span className="text-xs">{isExpanded ? '▼' : '▶'}</span>
-                                        <span>ما تبقى</span>
-                                      </button>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
                               <div className={`flex-1 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-500px)]' : 'max-h-64'}`}>
                                 {processPermissions.inactive.length === 0 ? (
                                   <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-green-50 rounded-lg border-2 border-green-200`}>
@@ -3201,42 +3122,15 @@ export const UserManagerNew: React.FC = () => {
                                   return (
                                     <div className={`${isMobile || isTablet ? 'space-y-3' : 'space-y-4'}`}>
                                       {Object.entries(allGroupedInactive).map(([resource, permissions]: [string, any]) => {
-                                        const isExpanded = expandedResources.has(resource);
-                                        const isTickets = resource === 'tickets';
-                                        const isCollapsible = ['fields', 'processes', 'stages', 'ticket_assignees', 'ticket_reviewers'].includes(resource);
-                                        
-                                        // إظهار فقط إذا كان tickets أو إذا كان النوع مفتوح
-                                        if (!isTickets && !isExpanded) {
-                                          return null;
-                                        }
-                                        
                                         return (
                                           <div key={resource} className="space-y-2">
-                                            <div 
-                                              className={`flex items-center justify-between ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-2 pb-1'} border-b border-gray-200 ${isCollapsible ? 'cursor-pointer hover:bg-gray-50 rounded-lg px-2 py-1' : ''}`}
-                                              onClick={() => {
-                                                if (isCollapsible) {
-                                                  const newExpanded = new Set(expandedResources);
-                                                  if (isExpanded) {
-                                                    newExpanded.delete(resource);
-                                                  } else {
-                                                    newExpanded.add(resource);
-                                                  }
-                                                  setExpandedResources(newExpanded);
-                                                }
-                                              }}
-                                            >
+                                            <div className={`flex items-center justify-between ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-2 pb-1'} border-b border-gray-200`}>
                                               <div className="flex items-center space-x-2 space-x-reverse">
-                                                {isCollapsible && (
-                                                  <span className={`text-gray-500 ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>
-                                                    {isExpanded ? '▼' : '▶'}
-                                                  </span>
-                                                )}
                                                 <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md`}>{resource}</span>
                                                 <span className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500`}>({permissions.length})</span>
                                               </div>
                                             </div>
-                                            {(isExpanded || isTickets) && permissions.map((permission: any) => (
+                                            {permissions.map((permission: any) => (
                                             <div
                                               key={permission.id}
                                               className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-white to-gray-50 border-2 border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-lg transition-all duration-200`}
