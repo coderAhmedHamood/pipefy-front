@@ -971,14 +971,32 @@ export const UserManagerNew: React.FC = () => {
   const handleRemovePermission = async (permissionId: string) => {
     if (!selectedUserForPermissions || processingPermission) return;
 
-    if (!confirm('هل أنت متأكد من إلغاء هذه الصلاحية من المستخدم؟')) {
+    // التحقق من وجود عملية محددة
+    if (!selectedProcess) {
+      setState(prev => ({
+        ...prev,
+        error: 'يجب اختيار عملية أولاً'
+      }));
+      return;
+    }
+
+    const processId = selectedProcess.id || selectedProcess.process_id;
+    if (!processId) {
+      setState(prev => ({
+        ...prev,
+        error: 'معرف العملية غير موجود'
+      }));
+      return;
+    }
+
+    if (!confirm(`هل أنت متأكد من إلغاء هذه الصلاحية من المستخدم في العملية "${selectedProcess.name || 'المحددة'}"؟`)) {
       return;
     }
 
     setProcessingPermission(permissionId);
     try {
-      // استخدام الـ endpoint الجديد: DELETE /api/permissions/users/{user_id}/{permission_id}
-      const url = `${API_BASE_URL}/api/permissions/users/${selectedUserForPermissions.id}/${permissionId}`;
+      // استخدام الـ endpoint الجديد: DELETE /api/permissions/users/{user_id}/{permission_id}?process_id={process_id}
+      const url = `${API_BASE_URL}/api/permissions/users/${selectedUserForPermissions.id}/${permissionId}?process_id=${processId}`;
       const headers = getAuthHeaders();
       
       const response = await fetch(url, {
