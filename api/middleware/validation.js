@@ -2,7 +2,7 @@
 
 // التحقق من صحة بيانات المستخدم
 const validateUser = (req, res, next) => {
-  const { name, email, password, role_id } = req.body;
+  const { name, email, password, role_id, process_id } = req.body;
   const errors = [];
 
   // التحقق من الاسم
@@ -26,6 +26,19 @@ const validateUser = (req, res, next) => {
   // التحقق من الدور
   if (!role_id || typeof role_id !== 'string') {
     errors.push('الدور مطلوب');
+  }
+
+  // التحقق من العملية (process_id) - مطلوب عند إنشاء مستخدم جديد
+  if (req.method === 'POST') {
+    if (!process_id || typeof process_id !== 'string') {
+      errors.push('معرف العملية (process_id) مطلوب');
+    } else {
+      // التحقق من صحة UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(process_id)) {
+        errors.push('معرف العملية (process_id) غير صحيح');
+      }
+    }
   }
 
   if (errors.length > 0) {

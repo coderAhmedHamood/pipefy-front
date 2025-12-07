@@ -175,8 +175,10 @@ class UserService {
   }
 
   // إنشاء مستخدم جديد
-  static async createUser(userData) {
+  static async createUser(userData, grantedBy) {
     try {
+      const { pool } = require('../config/database');
+      
       // التحقق من وجود البريد الإلكتروني
       const existingUser = await User.findByEmail(userData.email);
       if (existingUser) {
@@ -187,6 +189,25 @@ class UserService {
       const role = await Role.findById(userData.role_id);
       if (!role) {
         throw new Error('الدور المحدد غير موجود');
+      }
+
+      // التحقق من وجود العملية إذا تم توفير process_id
+      if (userData.process_id) {
+        const processCheck = await pool.query(
+          'SELECT id, name FROM processes WHERE id = $1 AND deleted_at IS NULL',
+          [userData.process_id]
+        );
+        
+        if (processCheck.rows.length === 0) {
+          throw new Error('العملية المحددة غير موجودة');
+        }
+      } else {
+        throw new Error('معرف العملية (process_id) مطلوب');
+      }
+
+      // التحقق من وجود grantedBy
+      if (!grantedBy) {
+        throw new Error('معرف المستخدم المانح (grantedBy) مطلوب');
       }
 
       // تشفير كلمة المرور
@@ -201,7 +222,45 @@ class UserService {
       // إنشاء المستخدم
       const user = await User.create(userData);
       
-      // جلب المستخدم مع بيانات الدور
+      // جلب جميع الصلاحيات من الدور
+      const rolePermissionsQuery = `
+        SELECT p.id, p.name, p.resource, p.action
+        FROM permissions p
+        INNER JOIN role_permissions rp ON p.id = rp.permission_id
+        WHERE rp.role_id = $1
+      `;
+      
+      const { rows: rolePermissions } = await pool.query(rolePermissionsQuery, [userData.role_id]);
+      
+      // إضافة جميع صلاحيات الدور إلى user_permissions مع process_id
+      if (rolePermissions.length > 0) {
+        const insertPermissionsQuery = `
+          INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id)
+          VALUES ($1, $2, $3, $4)
+          ON CONFLICT (user_id, permission_id, process_id) 
+          DO UPDATE SET 
+            granted_by = EXCLUDED.granted_by,
+            granted_at = NOW()
+        `;
+        
+        for (const permission of rolePermissions) {
+          try {
+            await pool.query(insertPermissionsQuery, [
+              user.id,
+              permission.id,
+              grantedBy,
+              userData.process_id
+            ]);
+          } catch (error) {
+            console.error(`خطأ في إضافة الصلاحية ${permission.name} للمستخدم:`, error.message);
+            // نستمر في إضافة الصلاحيات الأخرى حتى لو فشلت واحدة
+          }
+        }
+        
+        console.log(`✅ تم إضافة ${rolePermissions.length} صلاحية من الدور إلى المستخدم في العملية`);
+      }
+      
+      // جلب المستخدم مع بيانات الدور والصلاحيات
       return await this.getUserById(user.id);
     } catch (error) {
       throw new Error(`خطأ في إنشاء المستخدم: ${error.message}`);

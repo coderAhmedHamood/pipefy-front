@@ -73,7 +73,9 @@ class UserController {
   static async createUser(req, res) {
     try {
       const userData = req.body;
-      const user = await UserService.createUser(userData);
+      const grantedBy = req.user.id; // المستخدم الذي ينشئ المستخدم الجديد
+      
+      const user = await UserService.createUser(userData, grantedBy);
 
       res.status(201).json({
         success: true,
@@ -82,7 +84,8 @@ class UserController {
       });
     } catch (error) {
       console.error('خطأ في إنشاء المستخدم:', error);
-      const statusCode = error.message.includes('مستخدم') || error.message.includes('موجود') ? 400 : 500;
+      const statusCode = error.message.includes('مستخدم') || error.message.includes('موجود') || 
+                        error.message.includes('عملية') || error.message.includes('دور') ? 400 : 500;
       res.status(statusCode).json({
         success: false,
         message: error.message,
