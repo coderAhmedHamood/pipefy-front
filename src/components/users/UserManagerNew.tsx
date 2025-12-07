@@ -83,7 +83,8 @@ export const UserManagerNew: React.FC = () => {
     password: '',
     role_id: '',
     phone: '',
-    is_active: true
+    is_active: true,
+    process_id: ''
   });
 
   const [roleForm, setRoleForm] = useState({
@@ -211,7 +212,8 @@ export const UserManagerNew: React.FC = () => {
       password: '',
       phone: '',
       role_id: '',
-      is_active: true
+      is_active: true,
+      process_id: ''
     });
     setShowPassword(false);
   };
@@ -241,6 +243,11 @@ export const UserManagerNew: React.FC = () => {
       // إضافة الهاتف فقط إذا تم إدخاله
       if (userForm.phone && userForm.phone.trim()) {
         userData.phone = userForm.phone.trim();
+      }
+
+      // إضافة process_id فقط إذا تم اختياره
+      if (userForm.process_id && userForm.process_id.trim()) {
+        userData.process_id = userForm.process_id.trim();
       }
 
       await userService.createUser(userData);
@@ -288,7 +295,8 @@ export const UserManagerNew: React.FC = () => {
       password: '', // لا نعرض كلمة المرور الحالية
       phone: user.phone || '',
       role_id: user.role_id,
-      is_active: user.is_active
+      is_active: user.is_active,
+      process_id: user.process_id || ''
     });
   };
 
@@ -311,6 +319,11 @@ export const UserManagerNew: React.FC = () => {
         updateData.password = userForm.password;
       }
 
+      // إضافة process_id فقط إذا تم اختياره
+      if (userForm.process_id && userForm.process_id.trim()) {
+        updateData.process_id = userForm.process_id.trim();
+      }
+
       await userService.updateUser(editingUser.id, updateData);
 
       setState(prev => ({
@@ -326,7 +339,8 @@ export const UserManagerNew: React.FC = () => {
         password: '',
         phone: '',
         role_id: '',
-        is_active: true
+        is_active: true,
+        process_id: ''
       });
       loadUsers();
 
@@ -2273,6 +2287,23 @@ export const UserManagerNew: React.FC = () => {
                 </select>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">العملية (اختياري)</label>
+                <select
+                  value={userForm.process_id}
+                  onChange={(e) => setUserForm({ ...userForm, process_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={state.loading}
+                >
+                  <option value="">اختر العملية</option>
+                  {state.processes.map((process) => (
+                    <option key={process.id} value={process.id}>
+                      {process.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -2334,7 +2365,8 @@ export const UserManagerNew: React.FC = () => {
                     password: '',
                     phone: '',
                     role_id: '',
-                    is_active: true
+                    is_active: true,
+                    process_id: ''
                   });
                 }}
                 className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} rounded-lg hover:bg-gray-100`}
@@ -2420,6 +2452,23 @@ export const UserManagerNew: React.FC = () => {
                 </select>
               </div>
 
+              <div>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>العملية (اختياري)</label>
+                <select
+                  value={userForm.process_id}
+                  onChange={(e) => setUserForm({ ...userForm, process_id: e.target.value })}
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  disabled={state.loading}
+                >
+                  <option value="">اختر العملية</option>
+                  {state.processes.map((process) => (
+                    <option key={process.id} value={process.id}>
+                      {process.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -2446,7 +2495,8 @@ export const UserManagerNew: React.FC = () => {
                     password: '',
                     phone: '',
                     role_id: '',
-                    is_active: true
+                    is_active: true,
+                    process_id: ''
                   });
                 }}
                 className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-2'} text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors`}
