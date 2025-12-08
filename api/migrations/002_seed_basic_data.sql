@@ -20,7 +20,7 @@ INSERT INTO permissions (name, resource, action, description) VALUES
   -- صلاحيات Processes (العمليات) - 7 صلاحيات
   ('إنشاء العمليات', 'processes', 'create', 'إنشاء عمليات جديدة'),
   ('حذف العمليات', 'processes', 'delete', 'حذف العمليات'),
-  ('عرض تفاصيل العمليات', 'processes', 'read', 'عرض تفاصيل العمليات'),
+  ('عرض العمليات', 'processes', 'read', 'عرض العمليات'),
   ('تعديل العمليات', 'processes', 'update', 'تعديل العمليات الموجودة'),
   ('إدارة العمليات', 'processes', 'manage', 'إدارة كاملة للعمليات'),
   ('عرض العمليات', 'processes', 'view', 'عرض قائمة العمليات'),

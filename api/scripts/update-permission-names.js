@@ -19,7 +19,7 @@ async function updatePermissionNames() {
       // Processes
       { resource: 'processes', action: 'create', newName: 'إنشاء العمليات' },
       { resource: 'processes', action: 'delete', newName: 'حذف العمليات' },
-      { resource: 'processes', action: 'read', newName: 'عرض تفاصيل العمليات' },
+      { resource: 'processes', action: 'read', newName: 'عرض العمليات' },
       { resource: 'processes', action: 'update', newName: 'تعديل العمليات' },
       { resource: 'processes', action: 'manage', newName: 'إدارة العمليات' },
       { resource: 'processes', action: 'view', newName: 'عرض العمليات' },

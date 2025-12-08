@@ -42,7 +42,7 @@ async function addAllPermissions() {
       INSERT INTO permissions (name, resource, action, description) VALUES
         ('إنشاء العمليات', 'processes', 'create', 'إنشاء عمليات جديدة'),
         ('حذف العمليات', 'processes', 'delete', 'حذف العمليات'),
-        ('عرض تفاصيل العمليات', 'processes', 'read', 'عرض تفاصيل العمليات'),
+        ('عرض العمليات', 'processes', 'read', 'عرض العمليات'),
         ('تعديل العمليات', 'processes', 'update', 'تعديل العمليات الموجودة')
       ON CONFLICT (resource, action) DO NOTHING
     `);
