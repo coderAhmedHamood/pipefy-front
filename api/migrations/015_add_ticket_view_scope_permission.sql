@@ -36,3 +36,4 @@ SELECT
 FROM permissions
 WHERE resource = 'tickets' AND action = 'view_scope';
 
+

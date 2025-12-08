@@ -99,8 +99,9 @@ class UserController {
     try {
       const { id } = req.params;
       const updateData = req.body;
+      const grantedBy = req.user.id; // المستخدم الذي يقوم بالتحديث
       
-      const user = await UserService.updateUser(id, updateData);
+      const user = await UserService.updateUser(id, updateData, grantedBy);
 
       res.json({
         success: true,
@@ -110,7 +111,8 @@ class UserController {
     } catch (error) {
       console.error('خطأ في تحديث المستخدم:', error);
       const statusCode = error.message.includes('غير موجود') ? 404 : 
-                        error.message.includes('مستخدم') ? 400 : 500;
+                        error.message.includes('مستخدم') || error.message.includes('عملية') || 
+                        error.message.includes('دور') || error.message.includes('مطلوب') ? 400 : 500;
       res.status(statusCode).json({
         success: false,
         message: error.message,

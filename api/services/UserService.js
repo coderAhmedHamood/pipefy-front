@@ -268,8 +268,10 @@ class UserService {
   }
 
   // تحديث مستخدم
-  static async updateUser(id, updateData) {
+  static async updateUser(id, updateData, grantedBy) {
     try {
+      const { pool } = require('../config/database');
+      
       const user = await User.findById(id);
       if (!user) {
         throw new Error('المستخدم غير موجود');
@@ -283,11 +285,102 @@ class UserService {
         }
       }
 
+      // حفظ process_id في متغير منفصل قبل حذفه من updateData
+      const processId = updateData.process_id;
+      
+      // إزالة process_id من updateData دائماً لأنه لا يجب حفظه في جدول users
+      delete updateData.process_id;
+      
       // التحقق من الدور إذا تم تغييره
-      if (updateData.role_id && updateData.role_id !== user.role_id) {
+      const roleChanged = updateData.role_id && updateData.role_id !== user.role_id;
+      const oldRoleId = user.role_id;
+      
+      if (roleChanged) {
         const role = await Role.findById(updateData.role_id);
         if (!role) {
           throw new Error('الدور المحدد غير موجود');
+        }
+        
+        // التحقق من وجود process_id عند تغيير الدور
+        if (!processId) {
+          throw new Error('معرف العملية (process_id) مطلوب عند تغيير الدور');
+        }
+        
+        // التحقق من وجود العملية
+        const processCheck = await pool.query(
+          'SELECT id, name FROM processes WHERE id = $1 AND deleted_at IS NULL',
+          [processId]
+        );
+        
+        if (processCheck.rows.length === 0) {
+          throw new Error('العملية المحددة غير موجودة');
+        }
+        
+        // التحقق من وجود grantedBy
+        if (!grantedBy) {
+          throw new Error('معرف المستخدم المانح (grantedBy) مطلوب');
+        }
+        
+        // حذف جميع الصلاحيات من الدور القديم في العملية المحددة
+        const oldRolePermissionsQuery = `
+          SELECT p.id
+          FROM permissions p
+          INNER JOIN role_permissions rp ON p.id = rp.permission_id
+          WHERE rp.role_id = $1
+        `;
+        
+        const { rows: oldRolePermissions } = await pool.query(oldRolePermissionsQuery, [oldRoleId]);
+        
+        if (oldRolePermissions.length > 0) {
+          const deletePermissionsQuery = `
+            DELETE FROM user_permissions
+            WHERE user_id = $1
+              AND process_id = $2
+              AND permission_id = ANY($3::uuid[])
+          `;
+          
+          const permissionIds = oldRolePermissions.map(p => p.id);
+          await pool.query(deletePermissionsQuery, [id, processId, permissionIds]);
+          
+          console.log(`✅ تم حذف ${oldRolePermissions.length} صلاحية من الدور القديم للمستخدم في العملية`);
+        }
+        
+        // جلب جميع الصلاحيات من الدور الجديد
+        const newRolePermissionsQuery = `
+          SELECT p.id, p.name, p.resource, p.action
+          FROM permissions p
+          INNER JOIN role_permissions rp ON p.id = rp.permission_id
+          WHERE rp.role_id = $1
+        `;
+        
+        const { rows: newRolePermissions } = await pool.query(newRolePermissionsQuery, [updateData.role_id]);
+        
+        // إضافة جميع صلاحيات الدور الجديد إلى user_permissions
+        if (newRolePermissions.length > 0) {
+          const insertPermissionsQuery = `
+            INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id, permission_id, process_id) 
+            DO UPDATE SET 
+              granted_by = EXCLUDED.granted_by,
+              granted_at = NOW()
+          `;
+          
+          for (const permission of newRolePermissions) {
+            try {
+              await pool.query(insertPermissionsQuery, [
+                id,
+                permission.id,
+                grantedBy,
+                processId
+              ]);
+            } catch (error) {
+              console.error(`خطأ في إضافة الصلاحية ${permission.name} للمستخدم:`, error.message);
+              // نستمر في إضافة الصلاحيات الأخرى حتى لو فشلت واحدة
+            }
+          }
+          
+          console.log(`✅ تم إضافة ${newRolePermissions.length} صلاحية من الدور الجديد للمستخدم في العملية`);
         }
       }
 

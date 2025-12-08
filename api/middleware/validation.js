@@ -54,7 +54,7 @@ const validateUser = (req, res, next) => {
 
 // التحقق من صحة بيانات تحديث المستخدم
 const validateUserUpdate = (req, res, next) => {
-  const { name, email, role_id, is_active } = req.body;
+  const { name, email, role_id, is_active, process_id } = req.body;
   const errors = [];
 
   // التحقق من الاسم إذا تم تمريره
@@ -75,6 +75,19 @@ const validateUserUpdate = (req, res, next) => {
   // التحقق من الدور إذا تم تمريره
   if (role_id !== undefined && typeof role_id !== 'string') {
     errors.push('الدور غير صحيح');
+  }
+
+  // التحقق من العملية (process_id) - مطلوب عند تغيير الدور
+  if (process_id !== undefined) {
+    if (typeof process_id !== 'string') {
+      errors.push('معرف العملية (process_id) غير صحيح');
+    } else {
+      // التحقق من صحة UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(process_id)) {
+        errors.push('معرف العملية (process_id) غير صحيح');
+      }
+    }
   }
 
   // التحقق من حالة التفعيل إذا تم تمريرها

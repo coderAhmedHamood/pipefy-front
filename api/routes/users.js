@@ -415,7 +415,13 @@ router.post('/',
  *               role_id:
  *                 type: string
  *                 format: uuid
- *                 description: معرف الدور
+ *                 description: معرف الدور (إذا تم تغييره مع process_id، سيتم حذف صلاحيات الدور القديم وإضافة صلاحيات الدور الجديد)
+ *                 example: '550e8400-e29b-41d4-a716-446655440001'
+ *               process_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: معرف العملية (مطلوب عند تغيير الدور - سيتم تحديث الصلاحيات في هذه العملية)
+ *                 example: '5e9fd46f-947b-4f5c-94c1-aa34ce40d04a'
  *               phone:
  *                 type: string
  *                 description: رقم الهاتف
