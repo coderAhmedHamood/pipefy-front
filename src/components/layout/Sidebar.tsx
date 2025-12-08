@@ -49,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentView,
   onViewChange
 }) => {
-  const { user, logout, hasPermission } = useAuth();
+  const { user, logout, hasPermission, hasProcessPermission } = useAuth();
   const location = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -171,6 +171,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             // إخفاء تبويبة الإعدادات إذا لم يكن لديه صلاحية الإعدادات
             if (item.id === 'settings' && !hasPermission('system', 'settings')) {
+              return null;
+            }
+
+            // إخفاء تبويبة الإشعارات إذا لم يكن لديه صلاحية العرض للعملية المحددة
+            if (item.id === 'notifications' && !hasProcessPermission('system', 'notifications', '183430e0-b345-43de-a6ff-70aa8240d56f')) {
               return null;
             }
 
