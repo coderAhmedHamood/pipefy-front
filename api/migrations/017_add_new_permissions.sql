@@ -63,7 +63,7 @@ WHERE p2.resource = 'system' AND p2.action = 'settings'
   )
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- ربط api.documentation بجميع الأدوار (صلاحية عامة)
+-- ربط api.documentation بجميع الأدوار ماعدا guest (صلاحية عامة)
 INSERT INTO role_permissions (id, role_id, permission_id, created_at)
 SELECT DISTINCT
   gen_random_uuid(),
@@ -73,7 +73,8 @@ SELECT DISTINCT
 FROM roles r
 CROSS JOIN permissions p
 WHERE p.resource = 'api' AND p.action = 'documentation'
-  AND r.id != '550e8400-e29b-41d4-a716-446655440001'::uuid
+  AND r.id != '550e8400-e29b-41d4-a716-446655440001'::uuid -- استبعاد admin (تم ربطه أعلاه)
+  AND r.id != '550e8400-e29b-41d4-a716-446655440003'::uuid -- استبعاد guest (عضو)
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions 
     WHERE role_id = r.id 
