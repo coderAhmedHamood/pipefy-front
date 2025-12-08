@@ -133,6 +133,12 @@ export const UserManagerNew: React.FC = () => {
   // عرض صلاحيات الدور
   const [viewingRolePermissions, setViewingRolePermissions] = useState<UserRole | null>(null);
 
+  // المراحل
+  const [showStages, setShowStages] = useState(false);
+  const [stages, setStages] = useState<any[]>([]);
+  const [loadingStages, setLoadingStages] = useState(false);
+  const [userStages, setUserStages] = useState<any[]>([]);
+
   // تحميل البيانات الأولية
   useEffect(() => {
     loadInitialData();
@@ -803,6 +809,241 @@ export const UserManagerNew: React.FC = () => {
     }
   };
 
+  // جلب المراحل للعملية المحددة
+  const fetchStages = async (processId: string) => {
+    if (!showStages || !processId) return;
+    
+    setLoadingStages(true);
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('رمز الوصول مطلوب');
+      }
+
+      const url = `${API_BASE_URL}/api/stages?process_id=${processId}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success && data.data) {
+        const stagesList = Array.isArray(data.data) ? data.data : (data.data.stages || []);
+        setStages(stagesList);
+        
+        // جلب مراحل المستخدم في هذه العملية
+        if (selectedUserForPermissions && selectedProcess) {
+          await fetchUserStages(selectedUserForPermissions.id, processId);
+        }
+      } else {
+        setStages([]);
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في جلب المراحل:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'فشل في جلب المراحل'
+      }));
+      setStages([]);
+    } finally {
+      setLoadingStages(false);
+    }
+  };
+
+  // جلب مراحل المستخدم في عملية محددة
+  const fetchUserStages = async (userId: string, processId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('رمز الوصول مطلوب');
+      }
+
+      // TODO: استبدل هذا بـ endpoint الفعلي لجلب مراحل المستخدم
+      // حالياً سنستخدم نفس endpoint الصلاحيات ونستخرج المراحل منها
+      const url = `${API_BASE_URL}/api/users/${userId}/permissions/inactive?process_id=${processId}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (response.ok && data && data.success && data.data) {
+        // استخراج المراحل من الصلاحيات المفعلة
+        const activePermissions = data.data.active_permissions || [];
+        const userStagesList = activePermissions
+          .filter((p: any) => p.resource === 'stages' && p.process_id === processId)
+          .map((p: any) => ({
+            id: p.stage_id || p.id,
+            name: p.name,
+            description: p.description,
+            color: p.color || '#3B82F6'
+          }));
+        setUserStages(userStagesList);
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في جلب مراحل المستخدم:', error);
+    }
+  };
+
+  // إضافة مرحلة إلى صلاحيات المستخدم
+  const handleAddStage = async (stageId: string) => {
+    if (!selectedUserForPermissions || !selectedProcess || processingPermission) return;
+
+    setProcessingPermission(`stage-${stageId}`);
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('رمز الوصول مطلوب');
+      }
+
+      const processId = selectedProcess.id || selectedProcess.process_id;
+      const url = `${API_BASE_URL}/api/permissions/users/grant`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          user_id: selectedUserForPermissions.id,
+          permission_id: stageId, // أو stage_permission_id إذا كان مختلفاً
+          process_id: processId,
+          resource: 'stages',
+          action: 'view'
+        })
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success) {
+        setState(prev => ({
+          ...prev,
+          success: 'تم إضافة المرحلة بنجاح'
+        }));
+        
+        // إعادة جلب الصلاحيات والمراحل
+        await fetchProcessPermissions(selectedUserForPermissions.id, processId);
+        await fetchStages(processId);
+      } else {
+        throw new Error(data?.message || 'فشل في إضافة المرحلة');
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في إضافة المرحلة:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'فشل في إضافة المرحلة'
+      }));
+    } finally {
+      setProcessingPermission(null);
+    }
+  };
+
+  // حذف مرحلة من صلاحيات المستخدم
+  const handleRemoveStage = async (stageId: string) => {
+    if (!selectedUserForPermissions || !selectedProcess || processingPermission) return;
+
+    if (!confirm('هل أنت متأكد من إلغاء هذه المرحلة من المستخدم؟')) {
+      return;
+    }
+
+    setProcessingPermission(`stage-${stageId}`);
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('رمز الوصول مطلوب');
+      }
+
+      const processId = selectedProcess.id || selectedProcess.process_id;
+      // TODO: استبدل هذا بـ endpoint الفعلي لحذف مرحلة من صلاحيات المستخدم
+      const url = `${API_BASE_URL}/api/permissions/users/${selectedUserForPermissions.id}/${stageId}?process_id=${processId}`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (e) {
+        console.error('❌ خطأ في تحليل JSON:', e);
+      }
+
+      if (!response.ok) {
+        const errorMsg = (data && (data.message || data.error)) || `${response.status} ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      if (data && data.success) {
+        setState(prev => ({
+          ...prev,
+          success: 'تم إلغاء المرحلة بنجاح'
+        }));
+        
+        // إعادة جلب الصلاحيات والمراحل
+        await fetchProcessPermissions(selectedUserForPermissions.id, processId);
+        await fetchStages(processId);
+      } else {
+        throw new Error(data?.message || 'فشل في إلغاء المرحلة');
+      }
+    } catch (error: any) {
+      console.error('❌ خطأ في إلغاء المرحلة:', error);
+      setState(prev => ({
+        ...prev,
+        error: error.message || 'فشل في إلغاء المرحلة'
+      }));
+    } finally {
+      setProcessingPermission(null);
+    }
+  };
+
   // جلب العمليات المرتبطة بمستخدم معين
   const fetchUserProcesses = async (userId: string) => {
     setLoadingUserProcessesModal(true);
@@ -896,6 +1137,11 @@ export const UserManagerNew: React.FC = () => {
     setSelectedProcess(process);
     await fetchProcessPermissions(selectedUserForPermissions.id, processId);
     
+    // جلب المراحل إذا كان showStages مفعلاً
+    if (showStages) {
+      await fetchStages(processId);
+    }
+    
     // على الجوال: عمل scroll تلقائي إلى قسم الصلاحيات
     if ((isMobile || isTablet) && permissionsSectionRef.current) {
       setTimeout(() => {
@@ -906,6 +1152,19 @@ export const UserManagerNew: React.FC = () => {
       }, 300); // تأخير بسيط لضمان تحميل البيانات
     }
   };
+
+  // جلب المراحل عند تغيير العملية المحددة أو showStages
+  useEffect(() => {
+    if (showStages && selectedProcess && selectedUserForPermissions) {
+      const processId = selectedProcess.id || selectedProcess.process_id;
+      if (processId) {
+        fetchStages(processId);
+      }
+    } else {
+      setStages([]);
+      setUserStages([]);
+    }
+  }, [showStages, selectedProcess?.id, selectedProcess?.process_id, selectedUserForPermissions?.id]);
 
   // إضافة صلاحية لمستخدم
   const handleAddPermission = async (permissionId: string) => {
@@ -2977,13 +3236,43 @@ export const UserManagerNew: React.FC = () => {
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={handleCloseInactivePermissionsModal}
-                  className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0`}
-                  title="إغلاق"
-                >
-                  <X className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
-                </button>
+                <div className="flex items-center space-x-3 space-x-reverse">
+                  {/* Toggle للمراحل */}
+                  {selectedProcess && (
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <label className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-700 font-medium cursor-pointer`}>
+                        عرض المراحل
+                      </label>
+                      <button
+                        onClick={() => {
+                          setShowStages(!showStages);
+                          if (!showStages && selectedProcess) {
+                            const processId = selectedProcess.id || selectedProcess.process_id;
+                            if (processId) {
+                              fetchStages(processId);
+                            }
+                          }
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          showStages ? 'bg-blue-600' : 'bg-gray-300'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            showStages ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={handleCloseInactivePermissionsModal}
+                    className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0`}
+                    title="إغلاق"
+                  >
+                    <X className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -3240,6 +3529,64 @@ export const UserManagerNew: React.FC = () => {
                                   );
                                 })()}
                               </div>
+                              
+                              {/* المراحل غير المفعلة */}
+                              {showStages && selectedProcess && (
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 mb-3 flex items-center space-x-2 space-x-reverse`}>
+                                    <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md">مراحل</span>
+                                    <span className="text-gray-500 text-xs">({stages.filter((s: any) => !userStages.some((us: any) => us.id === s.id)).length})</span>
+                                  </h5>
+                                  {loadingStages ? (
+                                    <div className="flex items-center justify-center py-4">
+                                      <Loader className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-orange-600 animate-spin`} />
+                                    </div>
+                                  ) : stages.filter((s: any) => !userStages.some((us: any) => us.id === s.id)).length === 0 ? (
+                                    <div className={`text-center ${isMobile || isTablet ? 'py-3' : 'py-4'} bg-gray-50 rounded-lg border border-gray-200`}>
+                                      <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>جميع المراحل مفعلة</p>
+                                    </div>
+                                  ) : (
+                                    <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-3'}`}>
+                                      {stages.filter((s: any) => !userStages.some((us: any) => us.id === s.id)).map((stage: any) => (
+                                        <div
+                                          key={stage.id}
+                                          className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-white to-orange-50 border-2 rounded-xl hover:shadow-lg transition-all duration-200`}
+                                          style={{ borderColor: stage.color || '#F97316' }}
+                                        >
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                              <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
+                                                <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{stage.name}</span>
+                                                <span 
+                                                  className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} rounded-full font-semibold whitespace-nowrap shadow-sm text-white`}
+                                                  style={{ backgroundColor: stage.color || '#F97316' }}
+                                                >
+                                                  مرحلة
+                                                </span>
+                                              </div>
+                                              {stage.description && (
+                                                <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{stage.description}</p>
+                                              )}
+                                            </div>
+                                            <button
+                                              onClick={() => handleAddStage(stage.id)}
+                                              disabled={processingPermission === `stage-${stage.id}`}
+                                              className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg`}
+                                              title="إضافة المرحلة"
+                                            >
+                                              {processingPermission === `stage-${stage.id}` ? (
+                                                <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                              ) : (
+                                                <Plus className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                              )}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
 
                             {/* الصلاحيات المفعلة */}
@@ -3341,6 +3688,64 @@ export const UserManagerNew: React.FC = () => {
                                   );
                                 })()}
                               </div>
+                              
+                              {/* المراحل المفعلة */}
+                              {showStages && selectedProcess && (
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 mb-3 flex items-center space-x-2 space-x-reverse`}>
+                                    <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md">مراحل</span>
+                                    <span className="text-gray-500 text-xs">({userStages.length})</span>
+                                  </h5>
+                                  {loadingStages ? (
+                                    <div className="flex items-center justify-center py-4">
+                                      <Loader className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-orange-600 animate-spin`} />
+                                    </div>
+                                  ) : userStages.length === 0 ? (
+                                    <div className={`text-center ${isMobile || isTablet ? 'py-3' : 'py-4'} bg-gray-50 rounded-lg border border-gray-200`}>
+                                      <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>لا توجد مراحل مفعلة</p>
+                                    </div>
+                                  ) : (
+                                    <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-3'}`}>
+                                      {userStages.map((stage: any) => (
+                                        <div
+                                          key={stage.id}
+                                          className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-orange-50 to-white border-2 rounded-xl hover:shadow-lg transition-all duration-200`}
+                                          style={{ borderColor: stage.color || '#F97316' }}
+                                        >
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                              <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
+                                                <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{stage.name}</span>
+                                                <span 
+                                                  className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} rounded-full font-semibold whitespace-nowrap shadow-sm text-white`}
+                                                  style={{ backgroundColor: stage.color || '#F97316' }}
+                                                >
+                                                  مرحلة
+                                                </span>
+                                              </div>
+                                              {stage.description && (
+                                                <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{stage.description}</p>
+                                              )}
+                                            </div>
+                                            <button
+                                              onClick={() => handleRemoveStage(stage.id)}
+                                              disabled={processingPermission === `stage-${stage.id}`}
+                                              className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-red-300 shadow-sm hover:shadow-md`}
+                                              title="إلغاء المرحلة"
+                                            >
+                                              {processingPermission === `stage-${stage.id}` ? (
+                                                <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                              ) : (
+                                                <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                              )}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
