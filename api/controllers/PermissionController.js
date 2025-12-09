@@ -238,22 +238,62 @@ class PermissionController {
   // منح صلاحية إضافية لمستخدم
   static async grantUserPermission(req, res) {
     try {
-      const { user_id, permission_id, expires_at, process_id } = req.body;
+      const { user_id, permission_id, expires_at, process_id, permission_type, stage_id } = req.body;
       
-      if (!user_id || !permission_id || !process_id) {
+      // التحقق من الحقول الأساسية
+      if (!user_id || !process_id) {
         return res.status(400).json({
           success: false,
-          message: 'معرف المستخدم والصلاحية والعملية مطلوبان',
+          message: 'معرف المستخدم والعملية مطلوبان',
           error: 'VALIDATION_ERROR'
         });
       }
       
+      // التحقق من نوع الصلاحية
+      let finalStageId = null;
+      let finalPermissionId = permission_id;
+      
+      if (permission_type === 'مرحلة' || permission_type === 'stage') {
+        if (!stage_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'معرف المرحلة (stage_id) مطلوب عند اختيار نوع الصلاحية "مرحلة"',
+            error: 'VALIDATION_ERROR'
+          });
+        }
+        finalStageId = stage_id;
+        
+        // إذا لم يتم تحديد permission_id، نتركه NULL (سيتم إضافة سجل بدون permission_id)
+        // هذا يسمح بربط المستخدم بمرحلة مباشرة بدون صلاحية محددة
+        if (!finalPermissionId) {
+          finalPermissionId = null; // سيتم إضافة سجل بدون permission_id
+        }
+      } else {
+        // للصلاحيات العادية، permission_id مطلوب
+        if (!permission_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'معرف الصلاحية (permission_id) مطلوب للصلاحيات العادية',
+            error: 'VALIDATION_ERROR'
+          });
+        }
+        
+        if (permission_type && permission_type !== 'عادية' && permission_type !== 'normal') {
+          return res.status(400).json({
+            success: false,
+            message: 'نوع الصلاحية غير صحيح. يجب أن يكون "عادية" أو "مرحلة"',
+            error: 'VALIDATION_ERROR'
+          });
+        }
+      }
+      
       const result = await PermissionService.grantUserPermission(
         user_id, 
-        permission_id, 
+        finalPermissionId, 
         req.user.id, 
         expires_at,
-        process_id
+        process_id,
+        finalStageId
       );
 
       res.json({
@@ -263,7 +303,7 @@ class PermissionController {
       });
     } catch (error) {
       console.error('خطأ في منح الصلاحية للمستخدم:', error);
-      const statusCode = error.message.includes('غير موجود') ? 404 : 
+      const statusCode = error.message.includes('غير موجود') || error.message.includes('لا تنتمي') ? 404 : 
                         error.message.includes('مطلوب') ? 400 : 500;
       res.status(statusCode).json({
         success: false,

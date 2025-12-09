@@ -614,7 +614,6 @@ router.post('/bulk',
  *             type: object
  *             required:
  *               - user_id
- *               - permission_id
  *               - process_id
  *             properties:
  *               user_id:
@@ -625,7 +624,10 @@ router.post('/bulk',
  *               permission_id:
  *                 type: string
  *                 format: uuid
- *                 description: معرف الصلاحية
+ *                 nullable: true
+ *                 description: |
+ *                   معرف الصلاحية (مطلوب للصلاحيات العادية، اختياري للصلاحيات المرتبطة بمرحلة).
+ *                   إذا كان permission_type = "مرحلة" ولم يتم تحديده، سيتم استخدام صلاحية افتراضية (stages.read).
  *                 example: "799c3323-541e-443e-ba56-8d3db24d8b59"
  *               process_id:
  *                 type: string
@@ -635,6 +637,23 @@ router.post('/bulk',
  *                   يتم حفظه في جدول user_permissions ويربط المستخدم بالصلاحية في هذه العملية.
  *                   هذا يسمح للمستخدم بالحصول على نفس الصلاحية في عمليات مختلفة.
  *                 example: "d6f7574c-d937-4e55-8cb1-0b19269e6061"
+ *               permission_type:
+ *                 type: string
+ *                 enum: [عادية, normal, مرحلة, stage]
+ *                 description: |
+ *                   نوع الصلاحية (اختياري).
+ *                   - "عادية" أو "normal": صلاحية عامة على جميع المراحل (افتراضي)
+ *                   - "مرحلة" أو "stage": صلاحية محددة لمرحلة معينة (يتطلب stage_id)
+ *                 example: "عادية"
+ *               stage_id:
+ *                 type: string
+ *                 format: uuid
+ *                 nullable: true
+ *                 description: |
+ *                   معرف المرحلة (مطلوب إذا كان permission_type = "مرحلة").
+ *                   يتم حفظه في جدول user_permissions ويربط الصلاحية بمرحلة محددة.
+ *                   إذا كان NULL، تعني أن الصلاحية تطبق على جميع المراحل في العملية.
+ *                 example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
  *               expires_at:
  *                 type: string
  *                 format: date-time
@@ -671,6 +690,11 @@ router.post('/bulk',
  *                       type: string
  *                       format: uuid
  *                       description: process_id المحفوظ في user_permissions (يربط الصلاحية بالعملية)
+ *                     stage_id:
+ *                       type: string
+ *                       format: uuid
+ *                       nullable: true
+ *                       description: stage_id المحفوظ في user_permissions (يربط الصلاحية بمرحلة محددة، NULL يعني جميع المراحل)
  *                     granted_by:
  *                       type: string
  *                       format: uuid

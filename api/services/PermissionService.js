@@ -152,7 +152,7 @@ class PermissionService {
   }
 
   // منح صلاحية إضافية لمستخدم
-  static async grantUserPermission(userId, permissionId, grantedBy, expiresAt = null, processId = null) {
+  static async grantUserPermission(userId, permissionId, grantedBy, expiresAt = null, processId = null, stageId = null) {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -166,15 +166,38 @@ class PermissionService {
 
       // التحقق من وجود العملية
       const { pool } = require('../config/database');
-      const processQuery = await pool.query('SELECT id FROM processes WHERE id = $1', [processId]);
+      const processQuery = await pool.query('SELECT id FROM processes WHERE id = $1 AND deleted_at IS NULL', [processId]);
       if (processQuery.rows.length === 0) {
         throw new Error(`العملية غير موجودة (process_id: ${processId})`);
       }
 
-      // البحث عن الصلاحية (الصلاحيات عامة بدون process_id)
-      const permission = await Permission.findById(permissionId);
-      if (!permission) {
-        throw new Error('الصلاحية غير موجودة');
+      // التحقق من وجود المرحلة إذا تم تحديدها
+      if (stageId) {
+        const stageQuery = await pool.query(
+          'SELECT id, name, process_id FROM stages WHERE id = $1',
+          [stageId]
+        );
+        if (stageQuery.rows.length === 0) {
+          throw new Error(`المرحلة غير موجودة (stage_id: ${stageId})`);
+        }
+        
+        // التحقق من أن المرحلة تنتمي للعملية المحددة
+        if (stageQuery.rows[0].process_id !== processId) {
+          throw new Error(`المرحلة لا تنتمي للعملية المحددة`);
+        }
+      }
+
+      // التحقق من الصلاحية فقط إذا تم تحديدها
+      let finalPermissionId = null;
+      if (permissionId) {
+        const permission = await Permission.findById(permissionId);
+        if (!permission) {
+          throw new Error('الصلاحية غير موجودة');
+        }
+        finalPermissionId = permission.id;
+      } else if (!stageId) {
+        // إذا لم يتم تحديد permission_id ولا stage_id، هذا خطأ
+        throw new Error('يجب تحديد إما permission_id أو stage_id');
       }
 
       const grantedByUser = await User.findById(grantedBy);
@@ -182,12 +205,13 @@ class PermissionService {
         throw new Error('المستخدم المانح غير موجود');
       }
 
-      // حفظ في user_permissions مع process_id
-      // هذا يسمح للمستخدم بالحصول على نفس الصلاحية في عمليات مختلفة
+      // حفظ في user_permissions مع process_id و stage_id (اختياري) و permission_id (اختياري)
+      // هذا يسمح للمستخدم بالحصول على نفس الصلاحية في عمليات مختلفة ومراحل مختلفة
+      // أو ربط المستخدم بمرحلة مباشرة بدون صلاحية محددة
       const query = `
-        INSERT INTO user_permissions (user_id, permission_id, granted_by, expires_at, process_id)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (user_id, permission_id, process_id) 
+        INSERT INTO user_permissions (user_id, permission_id, granted_by, expires_at, process_id, stage_id)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (user_id, permission_id, process_id, stage_id) 
         DO UPDATE SET 
           granted_by = EXCLUDED.granted_by,
           granted_at = NOW(),
@@ -195,10 +219,10 @@ class PermissionService {
         RETURNING *
       `;
 
-      const { rows } = await pool.query(query, [userId, permission.id, grantedBy, expiresAt, processId]);
+      const { rows } = await pool.query(query, [userId, finalPermissionId, grantedBy, expiresAt, processId, stageId || null]);
       
       return {
-        message: 'تم منح الصلاحية للمستخدم بنجاح',
+        message: stageId ? 'تم منح الصلاحية للمستخدم في المرحلة بنجاح' : 'تم منح الصلاحية للمستخدم بنجاح',
         user_permission: rows[0]
       };
     } catch (error) {
