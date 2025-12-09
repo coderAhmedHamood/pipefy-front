@@ -937,10 +937,9 @@ export const UserManagerNew: React.FC = () => {
         headers,
         body: JSON.stringify({
           user_id: selectedUserForPermissions.id,
-          permission_id: stageId, // أو stage_permission_id إذا كان مختلفاً
+          stage_id: stageId,
           process_id: processId,
-          resource: 'stages',
-          action: 'view'
+          permission_type: 'stage'
         })
       });
 
