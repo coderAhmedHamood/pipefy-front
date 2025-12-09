@@ -413,41 +413,85 @@ class PermissionController {
       const { rows: allPermissionsRows } = await pool.query(allPermissionsQuery);
       
       // جلب الصلاحيات المباشرة من user_permissions للمستخدم والعملية المحددة
+      // يتضمن الصلاحيات العادية (مع permission_id) وصلاحيات المراحل (مع stage_id فقط)
       const userPermissionsQuery = `
         SELECT 
           up.permission_id,
+          up.stage_id,
           up.granted_at,
           up.expires_at,
           up.granted_by,
-          p.name,
-          p.resource,
-          p.action,
-          p.description,
-          u.name as granted_by_name
+          up.process_id,
+          -- إذا كان permission_id موجود، استخدم بيانات الصلاحية
+          -- إذا كان permission_id NULL و stage_id موجود، استخدم اسم المرحلة
+          COALESCE(p.name, s.name) as name,
+          COALESCE(p.resource, 'stages') as resource,
+          COALESCE(p.action, 'access') as action,
+          COALESCE(p.description, CONCAT('الوصول إلى المرحلة: ', s.name)) as description,
+          u.name as granted_by_name,
+          s.name as stage_name,
+          s.id as stage_id_value
         FROM user_permissions up
-        INNER JOIN permissions p ON up.permission_id = p.id
+        LEFT JOIN permissions p ON up.permission_id = p.id
+        LEFT JOIN stages s ON up.stage_id = s.id
         LEFT JOIN users u ON up.granted_by = u.id
         WHERE up.user_id = $1
           AND up.process_id = $2
           AND (up.expires_at IS NULL OR up.expires_at > NOW())
-        ORDER BY p.resource, p.action
+        ORDER BY 
+          CASE WHEN up.permission_id IS NOT NULL THEN 0 ELSE 1 END,
+          COALESCE(p.resource, 'stages'),
+          COALESCE(p.action, 'access')
       `;
       const { rows: userPermissionsRows } = await pool.query(userPermissionsQuery, [user_id, process_id]);
       
       // إنشاء Set للصلاحيات النشطة (الموجودة في user_permissions)
-      const activePermissionIds = new Set(userPermissionsRows.map(p => p.permission_id));
+      // للصلاحيات العادية: استخدام permission_id
+      // للصلاحيات المرتبطة بمراحل: استخدام stage_id كمعرف فريد
+      const activePermissionIds = new Set();
+      const activeStageIds = new Set();
+      
+      userPermissionsRows.forEach(up => {
+        if (up.permission_id) {
+          activePermissionIds.add(up.permission_id);
+        } else if (up.stage_id) {
+          activeStageIds.add(up.stage_id);
+        }
+      });
       
       // تصنيف الصلاحيات إلى مفعلة وغير مفعلة
       const activePermissions = [];
       const inactivePermissions = [];
       
+      // إضافة الصلاحيات المرتبطة بمراحل (بدون permission_id)
+      userPermissionsRows.forEach(up => {
+        if (!up.permission_id && up.stage_id) {
+          activePermissions.push({
+            id: up.stage_id_value, // استخدام stage_id كمعرف
+            name: up.stage_name, // اسم المرحلة
+            resource: 'stages',
+            action: 'access',
+            description: `الوصول إلى المرحلة: ${up.stage_name}`,
+            process_id: up.process_id,
+            stage_id: up.stage_id_value,
+            permission_id: null,
+            granted_at: up.granted_at,
+            expires_at: up.expires_at,
+            granted_by: up.granted_by,
+            granted_by_name: up.granted_by_name
+          });
+        }
+      });
+      
+      // إضافة الصلاحيات العادية (مع permission_id)
       allPermissionsRows.forEach(permission => {
         const permissionData = {
           id: permission.id,
           name: permission.name,
           resource: permission.resource,
           action: permission.action,
-          description: permission.description
+          description: permission.description,
+          process_id: process_id
         };
         
         if (activePermissionIds.has(permission.id)) {
@@ -457,6 +501,7 @@ class PermissionController {
           permissionData.expires_at = userPerm?.expires_at || null;
           permissionData.granted_by = userPerm?.granted_by || null;
           permissionData.granted_by_name = userPerm?.granted_by_name || null;
+          permissionData.stage_id = userPerm?.stage_id || null;
           activePermissions.push(permissionData);
         } else {
           // الصلاحية غير نشطة (غير موجودة في user_permissions)
