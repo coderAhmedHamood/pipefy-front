@@ -446,16 +446,12 @@ class PermissionController {
       const { rows: userPermissionsRows } = await pool.query(userPermissionsQuery, [user_id, process_id]);
       
       // إنشاء Set للصلاحيات النشطة (الموجودة في user_permissions)
-      // للصلاحيات العادية: استخدام permission_id
-      // للصلاحيات المرتبطة بمراحل: استخدام stage_id كمعرف فريد
+      // للصلاحيات العادية فقط: استخدام permission_id
       const activePermissionIds = new Set();
-      const activeStageIds = new Set();
       
       userPermissionsRows.forEach(up => {
         if (up.permission_id) {
           activePermissionIds.add(up.permission_id);
-        } else if (up.stage_id) {
-          activeStageIds.add(up.stage_id);
         }
       });
       
@@ -463,10 +459,11 @@ class PermissionController {
       const activePermissions = [];
       const inactivePermissions = [];
       
-      // إضافة الصلاحيات المرتبطة بمراحل (بدون permission_id)
+      // فصل صلاحيات المراحل في متغير منفصل
+      const stagePermissions = [];
       userPermissionsRows.forEach(up => {
         if (!up.permission_id && up.stage_id) {
-          activePermissions.push({
+          stagePermissions.push({
             id: up.stage_id_value, // استخدام stage_id كمعرف
             name: up.stage_name, // اسم المرحلة
             resource: 'stages',
@@ -483,7 +480,7 @@ class PermissionController {
         }
       });
       
-      // إضافة الصلاحيات العادية (مع permission_id)
+      // إضافة الصلاحيات العادية فقط (مع permission_id)
       allPermissionsRows.forEach(permission => {
         const permissionData = {
           id: permission.id,
@@ -513,7 +510,8 @@ class PermissionController {
       const stats = {
         total: allPermissionsRows.length,
         active: activePermissions.length,
-        inactive: inactivePermissions.length
+        inactive: inactivePermissions.length,
+        stage_permissions: stagePermissions.length
       };
 
       res.json({
@@ -521,6 +519,7 @@ class PermissionController {
         data: {
           inactive_permissions: inactivePermissions,
           active_permissions: activePermissions,
+          stage_permissions: stagePermissions,
           stats: stats,
           user: {
             id: user.id,

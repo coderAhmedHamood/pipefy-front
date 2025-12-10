@@ -843,7 +843,10 @@ router.delete('/users/:user_id/:permission_id',
  *   get:
  *     summary: جلب الصلاحيات الإضافية لمستخدم في عملية محددة
  *     description: |
- *       يجلب جميع الصلاحيات في النظام مقسمة إلى صلاحيات مفعلة (موجودة في user_permissions للمستخدم والعملية) وصلاحيات غير مفعلة (غير موجودة في user_permissions).
+ *       يجلب جميع الصلاحيات في النظام مقسمة إلى:
+ *       - صلاحيات مفعلة (active_permissions): الصلاحيات العادية مع permission_id الموجودة في user_permissions
+ *       - صلاحيات غير مفعلة (inactive_permissions): الصلاحيات العادية غير الموجودة في user_permissions
+ *       - صلاحيات المراحل (stage_permissions): الصلاحيات المرتبطة بمراحل محددة (permission_id = NULL و stage_id != NULL)
  *       - يجلب فقط الصلاحيات المباشرة من user_permissions (وليس من الأدوار)
  *       - يتطلب process_id كمعامل إجباري في query parameters
  *       - يستثني الصلاحيات المنتهية (expires_at < NOW())
@@ -902,7 +905,7 @@ router.delete('/users/:user_id/:permission_id',
  *                             type: string
  *                     active_permissions:
  *                       type: array
- *                       description: الصلاحيات المفعلة (موجودة في user_permissions)
+ *                       description: الصلاحيات العادية المفعلة (موجودة في user_permissions مع permission_id)
  *                       items:
  *                         type: object
  *                         properties:
@@ -917,6 +920,66 @@ router.delete('/users/:user_id/:permission_id',
  *                             type: string
  *                           description:
  *                             type: string
+ *                           process_id:
+ *                             type: string
+ *                             format: uuid
+ *                           stage_id:
+ *                             type: string
+ *                             format: uuid
+ *                             nullable: true
+ *                           granted_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: تاريخ منح الصلاحية
+ *                           expires_at:
+ *                             type: string
+ *                             format: date-time
+ *                             nullable: true
+ *                             description: تاريخ انتهاء الصلاحية
+ *                           granted_by:
+ *                             type: string
+ *                             format: uuid
+ *                             nullable: true
+ *                             description: معرف المستخدم الذي منح الصلاحية
+ *                           granted_by_name:
+ *                             type: string
+ *                             nullable: true
+ *                             description: اسم المستخدم الذي منح الصلاحية
+ *                     stage_permissions:
+ *                       type: array
+ *                       description: صلاحيات المراحل (permission_id = NULL و stage_id != NULL)
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                             description: معرف المرحلة (stage_id)
+ *                           name:
+ *                             type: string
+ *                             description: اسم المرحلة
+ *                           resource:
+ *                             type: string
+ *                             example: "stages"
+ *                           action:
+ *                             type: string
+ *                             example: "access"
+ *                           description:
+ *                             type: string
+ *                             description: وصف الصلاحية على المرحلة
+ *                           process_id:
+ *                             type: string
+ *                             format: uuid
+ *                           stage_id:
+ *                             type: string
+ *                             format: uuid
+ *                             description: معرف المرحلة
+ *                           permission_id:
+ *                             type: string
+ *                             format: uuid
+ *                             nullable: true
+ *                             description: دائماً NULL لصلاحيات المراحل
  *                           granted_at:
  *                             type: string
  *                             format: date-time
@@ -948,6 +1011,9 @@ router.delete('/users/:user_id/:permission_id',
  *                         inactive:
  *                           type: integer
  *                           description: عدد الصلاحيات غير المفعلة (غير موجودة في user_permissions)
+ *                         stage_permissions:
+ *                           type: integer
+ *                           description: عدد صلاحيات المراحل (permission_id = NULL و stage_id != NULL)
  *                     user:
  *                       type: object
  *                       properties:
