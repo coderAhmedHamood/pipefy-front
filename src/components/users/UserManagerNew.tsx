@@ -985,7 +985,7 @@ export const UserManagerNew: React.FC = () => {
   };
 
   // حذف مرحلة من صلاحيات المستخدم
-  const handleRemoveStage = async (stageId: string) => {
+  const handleRemoveStage = async (stageId: string, permissionId?: string) => {
     if (!selectedUserForPermissions || !selectedProcess || processingPermission) return;
 
     if (!confirm('هل أنت متأكد من إلغاء هذه المرحلة من المستخدم؟')) {
@@ -1000,8 +1000,9 @@ export const UserManagerNew: React.FC = () => {
       }
 
       const processId = selectedProcess.id || selectedProcess.process_id;
-      // TODO: استبدل هذا بـ endpoint الفعلي لحذف مرحلة من صلاحيات المستخدم
-      const url = `${API_BASE_URL}/api/permissions/users/${selectedUserForPermissions.id}/${stageId}?process_id=${processId}`;
+      // استخدام permissionId إذا كان موجوداً، وإلا استخدام stageId
+      const permId = permissionId || stageId;
+      const url = `${API_BASE_URL}/api/permissions/users/${selectedUserForPermissions.id}/${permId}?process_id=${processId}&stage_id=${stageId}&is_stage=1`;
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -3790,7 +3791,7 @@ export const UserManagerNew: React.FC = () => {
                                         </div>
                                       </div>
                                       <button
-                                        onClick={() => handleRemoveStage(stagePermission.stage_id || stagePermission.id)}
+                                        onClick={() => handleRemoveStage(stagePermission.stage_id || stagePermission.id, stagePermission.id)}
                                         disabled={processingPermission === `stage-${stagePermission.stage_id || stagePermission.id}`}
                                         className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-red-300 shadow-sm hover:shadow-md`}
                                         title="إلغاء صلاحية المرحلة"
