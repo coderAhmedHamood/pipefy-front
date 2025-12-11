@@ -318,7 +318,7 @@ class PermissionController {
   static async revokeUserPermission(req, res) {
     try {
       const { user_id, permission_id } = req.params;
-      const { process_id } = req.query; // قراءة process_id من query parameter
+      const { process_id, stage_id, is_stage } = req.query; // قراءة المعاملات من query parameters
       
       // التحقق من وجود process_id
       if (!process_id) {
@@ -339,19 +339,79 @@ class PermissionController {
         });
       }
       
-      const result = await PermissionService.revokeUserPermission(user_id, permission_id, process_id);
-
-      res.json({
-        success: true,
-        message: result.message,
-        data: {
-          deleted_count: result.deleted_count,
-          deleted_record: result.deleted_record,
-          user: result.user,
-          permission: result.permission,
-          process: result.process
+      // تحويل is_stage إلى رقم (0 أو 1)
+      const deleteType = is_stage === '1' || is_stage === 1 ? 1 : 0;
+      
+      // إذا كان deleteType = 1 (حذف بناءً على المرحلة)
+      if (deleteType === 1) {
+        // التحقق من وجود stage_id
+        if (!stage_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'معرف المرحلة (stage_id) مطلوب عند is_stage = 1',
+            error: 'VALIDATION_ERROR'
+          });
         }
-      });
+        
+        // التحقق من صحة UUID لـ stage_id
+        if (!uuidRegex.test(stage_id)) {
+          return res.status(400).json({
+            success: false,
+            message: 'معرف المرحلة (stage_id) غير صحيح',
+            error: 'VALIDATION_ERROR'
+          });
+        }
+        
+        // حذف بناءً على user_id, process_id, stage_id
+        // نتجاهل permission_id من path عند is_stage = 1
+        const result = await PermissionService.revokeUserPermissionByStage(user_id, process_id, stage_id);
+        
+        res.json({
+          success: true,
+          message: result.message,
+          data: {
+            deleted_count: result.deleted_count,
+            deleted_record: result.deleted_record,
+            user: result.user,
+            stage: result.stage,
+            process: result.process
+          }
+        });
+      } else {
+        // deleteType = 0 (الحذف العادي بناءً على permission_id)
+        // التحقق من وجود permission_id
+        if (!permission_id) {
+          return res.status(400).json({
+            success: false,
+            message: 'معرف الصلاحية (permission_id) مطلوب عند is_stage = 0 أو غير محدد',
+            error: 'VALIDATION_ERROR'
+          });
+        }
+        
+        // التحقق من صحة UUID لـ permission_id
+        if (!uuidRegex.test(permission_id)) {
+          return res.status(400).json({
+            success: false,
+            message: 'معرف الصلاحية (permission_id) غير صحيح',
+            error: 'VALIDATION_ERROR'
+          });
+        }
+        
+        // حذف بناءً على user_id, permission_id, process_id
+        const result = await PermissionService.revokeUserPermission(user_id, permission_id, process_id);
+
+        res.json({
+          success: true,
+          message: result.message,
+          data: {
+            deleted_count: result.deleted_count,
+            deleted_record: result.deleted_record,
+            user: result.user,
+            permission: result.permission,
+            process: result.process
+          }
+        });
+      }
     } catch (error) {
       console.error('خطأ في إلغاء الصلاحية من المستخدم:', error);
       const statusCode = error.message.includes('غير مرتبطة') || error.message.includes('غير موجودة') ? 404 : 

@@ -66,15 +66,6 @@ router.get('/users/:user_id/additional',
   PermissionController.getUserAdditionalPermissions
 );
 
-// إلغاء صلاحية إضافية من مستخدم
-router.delete('/users/:user_id/:permission_id', 
-  authenticateToken,
-  requirePermission('users', 'manage'),
-  validateUUID('user_id'),
-  validateUUID('permission_id'),
-  PermissionController.revokeUserPermission
-);
-
 /**
  * @swagger
  * /api/permissions:
@@ -730,8 +721,11 @@ router.post('/users/grant',
  *   delete:
  *     summary: إلغاء صلاحية إضافية من مستخدم في عملية محددة
  *     description: |
- *       يحذف صلاحية إضافية من مستخدم في عملية محددة فقط.
+ *       يحذف صلاحية إضافية من مستخدم في عملية محددة.
  *       - يتطلب process_id كمعامل إجباري في query parameters
+ *       - `is_stage`: 0 (افتراضي) = حذف بناءً على permission_id، 1 = حذف بناءً على stage_id
+ *       - عند `is_stage = 0`: يتطلب permission_id في path parameter
+ *       - عند `is_stage = 1`: يتطلب stage_id في query parameters (permission_id غير مطلوب)
  *       - يحذف الصلاحية فقط من العملية المحددة وليس من جميع العمليات
  *       - إذا كانت الصلاحية موجودة في عمليات أخرى، ستبقى موجودة هناك
  *     tags: [Permissions]
@@ -748,11 +742,13 @@ router.post('/users/grant',
  *         example: "c5397ee4-1380-4daf-b99b-559a0675c992"
  *       - in: path
  *         name: permission_id
- *         required: true
+ *         required: false
  *         schema:
  *           type: string
  *           format: uuid
- *         description: معرف الصلاحية
+ *         description: |
+ *           معرف الصلاحية (مطلوب عند is_stage = 0 أو غير محدد).
+ *           غير مطلوب عند is_stage = 1.
  *         example: "b6fc985f-9f90-435f-a486-1f7bd38cfc4f"
  *       - in: query
  *         name: process_id
@@ -762,6 +758,28 @@ router.post('/users/grant',
  *           format: uuid
  *         description: معرف العملية (إجباري - سيتم حذف الصلاحية من هذه العملية فقط)
  *         example: "5e9fd46f-947b-4f5c-94c1-aa34ce40d04a"
+ *       - in: query
+ *         name: stage_id
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: |
+ *           معرف المرحلة (مطلوب عند is_stage = 1).
+ *           غير مطلوب عند is_stage = 0 أو غير محدد.
+ *         example: "f2dc9424-0c05-4dae-9557-c64db400fe74"
+ *       - in: query
+ *         name: is_stage
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           enum: [0, 1]
+ *           default: 0
+ *         description: |
+ *           نوع الحذف:
+ *           - 0 (افتراضي): حذف بناءً على permission_id (يتطلب permission_id في path)
+ *           - 1: حذف بناءً على stage_id (يتطلب stage_id في query parameters)
+ *         example: 0
  *     responses:
  *       200:
  *         description: تم إلغاء الصلاحية من المستخدم في العملية بنجاح
@@ -791,31 +809,43 @@ router.post('/users/grant',
  *                       description: معلومات المستخدم
  *                     permission:
  *                       type: object
- *                       description: معلومات الصلاحية
+ *                       nullable: true
+ *                       description: معلومات الصلاحية (null عند is_stage = 1)
+ *                     stage:
+ *                       type: object
+ *                       nullable: true
+ *                       description: معلومات المرحلة (null عند is_stage = 0)
  *                     process:
  *                       type: object
  *                       description: معلومات العملية
  *       400:
- *         description: معرف العملية (process_id) مطلوب أو غير صحيح
+ *         description: |
+ *           - معرف العملية (process_id) مطلوب أو غير صحيح
+ *           - معرف الصلاحية (permission_id) مطلوب عند is_stage = 0
+ *           - معرف المرحلة (stage_id) مطلوب عند is_stage = 1
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
- *         description: المستخدم أو الصلاحية أو العملية غير موجودة، أو الصلاحية غير مرتبطة بالمستخدم في هذه العملية
+ *         description: |
+ *           - المستخدم أو الصلاحية أو العملية غير موجودة
+ *           - الصلاحية غير مرتبطة بالمستخدم في هذه العملية (عند is_stage = 0)
+ *           - المرحلة غير مرتبطة بالمستخدم في هذه العملية (عند is_stage = 1)
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
+// Route لحذف صلاحية عادية (مع permission_id في path)
+// يمكن استخدامه أيضاً لحذف صلاحية مرحلة (is_stage=1) حيث سيتم تجاهل permission_id
 router.delete('/users/:user_id/:permission_id',
   authenticateToken,
   requirePermission('permissions', 'manage'),
   validateUUID('user_id'),
-  validateUUID('permission_id'),
   (req, res, next) => {
     // التحقق من process_id في query parameters
-    const { process_id } = req.query;
+    const { process_id, is_stage } = req.query;
     if (!process_id) {
       return res.status(400).json({
         success: false,
@@ -832,6 +862,180 @@ router.delete('/users/:user_id/:permission_id',
         error: 'VALIDATION_ERROR'
       });
     }
+    
+    // التحقق من صحة UUID لـ permission_id فقط عند is_stage = 0 أو غير محدد
+    const deleteType = is_stage === '1' || is_stage === 1 ? 1 : 0;
+    if (deleteType === 0) {
+      // عند is_stage = 0، permission_id مطلوب ويجب أن يكون UUID صحيح
+      if (!uuidRegex.test(req.params.permission_id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'معرف الصلاحية (permission_id) غير صحيح',
+          error: 'VALIDATION_ERROR'
+        });
+      }
+    }
+    // عند is_stage = 1، permission_id في path سيتم تجاهله في Controller
+    // لذلك نسمح بمرور الطلب حتى لو كان permission_id غير صحيح
+    
+    next();
+  },
+  PermissionController.revokeUserPermission
+);
+
+/**
+ * @swagger
+ * /api/permissions/users/{user_id}:
+ *   delete:
+ *     summary: إلغاء صلاحية مرحلة من مستخدم في عملية محددة
+ *     description: |
+ *       يحذف صلاحية مرحلة من مستخدم في عملية محددة.
+ *       - يتطلب process_id و stage_id و is_stage = 1 في query parameters
+ *       - يحذف السجل بناءً على user_id, process_id, stage_id (بدون permission_id)
+ *       - يحذف الصلاحية فقط من العملية المحددة وليس من جميع العمليات
+ *     tags: [Permissions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: user_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المستخدم
+ *         example: "c5397ee4-1380-4daf-b99b-559a0675c992"
+ *       - in: query
+ *         name: process_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف العملية (إجباري)
+ *         example: "5e9fd46f-947b-4f5c-94c1-aa34ce40d04a"
+ *       - in: query
+ *         name: stage_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: معرف المرحلة (إجباري)
+ *         example: "f2dc9424-0c05-4dae-9557-c64db400fe74"
+ *       - in: query
+ *         name: is_stage
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           enum: [1]
+ *         description: يجب أن يكون 1 لحذف صلاحية مرحلة
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: تم إلغاء الصلاحية من المستخدم في المرحلة بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 'تم إلغاء الصلاحية من المستخدم في المرحلة بنجاح'
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deleted_count:
+ *                       type: integer
+ *                       description: عدد السجلات المحذوفة
+ *                       example: 1
+ *                     deleted_record:
+ *                       type: object
+ *                       description: السجل المحذوف
+ *                     user:
+ *                       type: object
+ *                       description: معلومات المستخدم
+ *                     stage:
+ *                       type: object
+ *                       description: معلومات المرحلة
+ *                     process:
+ *                       type: object
+ *                       description: معلومات العملية
+ *       400:
+ *         description: |
+ *           - معرف العملية (process_id) مطلوب أو غير صحيح
+ *           - معرف المرحلة (stage_id) مطلوب أو غير صحيح
+ *           - is_stage يجب أن يكون 1
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: |
+ *           - المستخدم أو المرحلة أو العملية غير موجودة
+ *           - المرحلة غير مرتبطة بالمستخدم في هذه العملية
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+// Route لحذف صلاحية مرحلة (بدون permission_id في path)
+// يجب أن يكون بعد Route مع permission_id لتجنب التعارض
+router.delete('/users/:user_id',
+  authenticateToken,
+  requirePermission('permissions', 'manage'),
+  validateUUID('user_id'),
+  (req, res, next) => {
+    // التحقق من process_id و is_stage في query parameters
+    const { process_id, stage_id, is_stage } = req.query;
+    
+    if (!process_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف العملية (process_id) مطلوب في query parameters',
+        error: 'VALIDATION_ERROR'
+      });
+    }
+    
+    // التحقق من صحة UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(process_id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف العملية (process_id) غير صحيح',
+        error: 'VALIDATION_ERROR'
+      });
+    }
+    
+    // التحقق من is_stage = 1
+    const deleteType = is_stage === '1' || is_stage === 1 ? 1 : 0;
+    if (deleteType !== 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'هذا route مخصص لحذف صلاحيات المراحل (is_stage = 1). استخدم route مع permission_id في path للحذف العادي',
+        error: 'VALIDATION_ERROR'
+      });
+    }
+    
+    // التحقق من وجود stage_id
+    if (!stage_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف المرحلة (stage_id) مطلوب عند is_stage = 1',
+        error: 'VALIDATION_ERROR'
+      });
+    }
+    
+    // التحقق من صحة UUID لـ stage_id
+    if (!uuidRegex.test(stage_id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف المرحلة (stage_id) غير صحيح',
+        error: 'VALIDATION_ERROR'
+      });
+    }
+    
     next();
   },
   PermissionController.revokeUserPermission
