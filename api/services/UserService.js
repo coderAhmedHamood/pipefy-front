@@ -232,12 +232,12 @@ class UserService {
       
       const { rows: rolePermissions } = await pool.query(rolePermissionsQuery, [userData.role_id]);
       
-      // إضافة جميع صلاحيات الدور إلى user_permissions مع process_id
+      // إضافة جميع صلاحيات الدور إلى user_permissions مع process_id و stage_id = NULL
       if (rolePermissions.length > 0) {
         const insertPermissionsQuery = `
-          INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id)
-          VALUES ($1, $2, $3, $4)
-          ON CONFLICT (user_id, permission_id, process_id) 
+          INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id, stage_id)
+          VALUES ($1, $2, $3, $4, NULL)
+          ON CONFLICT (user_id, permission_id, process_id, stage_id) 
           DO UPDATE SET 
             granted_by = EXCLUDED.granted_by,
             granted_at = NOW()
@@ -321,7 +321,7 @@ class UserService {
           throw new Error('معرف المستخدم المانح (grantedBy) مطلوب');
         }
         
-        // حذف جميع الصلاحيات من الدور القديم في العملية المحددة
+        // حذف جميع الصلاحيات من الدور القديم في العملية المحددة (stage_id = NULL فقط)
         const oldRolePermissionsQuery = `
           SELECT p.id
           FROM permissions p
@@ -336,6 +336,7 @@ class UserService {
             DELETE FROM user_permissions
             WHERE user_id = $1
               AND process_id = $2
+              AND stage_id IS NULL
               AND permission_id = ANY($3::uuid[])
           `;
           
@@ -355,12 +356,12 @@ class UserService {
         
         const { rows: newRolePermissions } = await pool.query(newRolePermissionsQuery, [updateData.role_id]);
         
-        // إضافة جميع صلاحيات الدور الجديد إلى user_permissions
+        // إضافة جميع صلاحيات الدور الجديد إلى user_permissions مع process_id و stage_id = NULL
         if (newRolePermissions.length > 0) {
           const insertPermissionsQuery = `
-            INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (user_id, permission_id, process_id) 
+            INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id, stage_id)
+            VALUES ($1, $2, $3, $4, NULL)
+            ON CONFLICT (user_id, permission_id, process_id, stage_id) 
             DO UPDATE SET 
               granted_by = EXCLUDED.granted_by,
               granted_at = NOW()
