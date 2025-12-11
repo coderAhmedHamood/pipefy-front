@@ -121,10 +121,12 @@ export const UserManagerNew: React.FC = () => {
   const [processPermissions, setProcessPermissions] = useState<{
     inactive: any[];
     active: any[];
+    stage_permissions: any[];
     stats: any;
   }>({
     inactive: [],
     active: [],
+    stage_permissions: [],
     stats: null
   });
   const [loadingProcessPermissions, setLoadingProcessPermissions] = useState(false);
@@ -758,7 +760,7 @@ export const UserManagerNew: React.FC = () => {
         throw new Error('رمز الوصول مطلوب');
       }
 
-      const url = `${API_BASE_URL}/api/users/${userId}/permissions/inactive?process_id=${processId}`;
+      const url = `${API_BASE_URL}/api/permissions/users/${userId}?process_id=${processId}`;
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
@@ -787,6 +789,7 @@ export const UserManagerNew: React.FC = () => {
         setProcessPermissions({
           inactive: data.data.inactive_permissions || [],
           active: data.data.active_permissions || [],
+          stage_permissions: data.data.stage_permissions || [],
           stats: data.data.stats || null
         });
       } else {
@@ -794,6 +797,7 @@ export const UserManagerNew: React.FC = () => {
         setProcessPermissions({
           inactive: [],
           active: [],
+          stage_permissions: [],
           stats: null
         });
       }
@@ -802,6 +806,7 @@ export const UserManagerNew: React.FC = () => {
       setProcessPermissions({
         inactive: [],
         active: [],
+        stage_permissions: [],
         stats: null
       });
     } finally {
@@ -1108,6 +1113,7 @@ export const UserManagerNew: React.FC = () => {
     setProcessPermissions({
       inactive: [],
       active: [],
+      stage_permissions: [],
       stats: null
     });
   };
@@ -1124,6 +1130,7 @@ export const UserManagerNew: React.FC = () => {
     setProcessPermissions({
       inactive: [],
       active: [],
+      stage_permissions: [],
       stats: null
     });
   };
@@ -3275,33 +3282,6 @@ export const UserManagerNew: React.FC = () => {
               </div>
             </div>
 
-            {/* Statistics */}
-            {permissionsStats && (
-              <div className={`${isMobile || isTablet ? 'p-2' : 'p-4'} bg-gray-50 border-b border-gray-200 flex-shrink-0`}>
-                <div className={`grid ${isMobile || isTablet ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-5 gap-4'}`}>
-                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-white rounded-lg border border-gray-200`}>
-                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900`}>{permissionsStats.total}</div>
-                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-gray-600 mt-1`}>إجمالي</div>
-                  </div>
-                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-green-50 rounded-lg border border-green-200`}>
-                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-green-700`}>{permissionsStats.active}</div>
-                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-green-600 mt-1`}>مفعلة</div>
-                  </div>
-                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-red-50 rounded-lg border border-red-200`}>
-                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-red-700`}>{permissionsStats.inactive}</div>
-                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-red-600 mt-1`}>غير مفعلة</div>
-                  </div>
-                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-blue-50 rounded-lg border border-blue-200`}>
-                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-blue-700`}>{permissionsStats.from_role || 0}</div>
-                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-blue-600 mt-1`}>من الدور</div>
-                  </div>
-                  <div className={`text-center ${isMobile || isTablet ? 'p-2' : 'p-3'} bg-purple-50 rounded-lg border border-purple-200`}>
-                    <div className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-purple-700`}>{permissionsStats.from_direct || 0}</div>
-                    <div className={`${isMobile || isTablet ? 'text-[10px]' : 'text-sm'} text-purple-600 mt-1`}>مباشرة</div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Content */}
             <div className={`flex-1 overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} ${selectedProcess && !isMobile && !isTablet ? 'overflow-x-hidden' : ''}`}>
@@ -3377,7 +3357,7 @@ export const UserManagerNew: React.FC = () => {
                       ref={permissionsSectionRef}
                       className={`bg-gradient-to-br from-purple-50 via-white to-blue-50 border-2 border-purple-300 rounded-xl ${isMobile || isTablet ? 'p-3' : 'p-5'} shadow-lg ${!isMobile && !isTablet ? 'flex-1 min-w-0 flex flex-col' : 'w-full'} ${isMobile || isTablet ? 'mt-4' : ''}`}
                     >
-                      <div className={`flex items-center justify-between ${isMobile || isTablet ? 'mb-3 pb-2' : 'mb-4 pb-3'} border-b border-purple-200 flex-shrink-0`}>
+                      <div className={`flex items-center justify-between ${isMobile || isTablet ? 'mb-3 pb-2' : 'mb-4 pb-3'} border-b border-purple-200 flex-shrink-0 flex-wrap gap-2`}>
                         <div className="flex items-center space-x-3 space-x-reverse flex-1 min-w-0">
                           <div className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} bg-purple-100 rounded-lg shadow-sm animate-pulse`}>
                             <Key className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-purple-600`} />
@@ -3396,7 +3376,7 @@ export const UserManagerNew: React.FC = () => {
                             )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                           {/* زر منح جميع الصلاحيات */}
                           <button
                             onClick={handleGrantAllPermissions}
@@ -3432,6 +3412,7 @@ export const UserManagerNew: React.FC = () => {
                               setProcessPermissions({
                                 inactive: [],
                                 active: [],
+                                stage_permissions: [],
                                 stats: null
                               });
                             }}
@@ -3449,6 +3430,7 @@ export const UserManagerNew: React.FC = () => {
                         </div>
                       ) : (
                         <div className={`flex-1 min-h-0 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-350px)]' : ''}`}>
+                          {!showStages && (
                           <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
                             {/* الصلاحيات غير المفعلة */}
                             <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm`}>
@@ -3747,6 +3729,158 @@ export const UserManagerNew: React.FC = () => {
                               )}
                             </div>
                           </div>
+                          )}
+                          
+                          {/* قسم المراحل - يظهر عند تفعيل عرض المراحل */}
+                          {showStages && selectedProcess && (
+                            <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
+                              {/* المراحل المفعلة (stage_permissions) */}
+                              {processPermissions.stage_permissions && processPermissions.stage_permissions.length > 0 && (
+                                <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm`}>
+                                  <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-green-100`}>
+                                    <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-green-100 rounded-lg`}>
+                                      <CheckCircle className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-green-600`} />
+                                    </div>
+                                    <span className="text-green-700">المراحل المفعلة ({processPermissions.stage_permissions.length})</span>
+                                  </h4>
+                                  <div className={`flex-1 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-500px)]' : 'max-h-64'}`}>
+                                    <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-3'}`}>
+                                      {processPermissions.stage_permissions.map((stagePermission: any) => (
+                                  <div
+                                    key={stagePermission.id}
+                                    className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-gradient-to-br from-white to-orange-50 border-2 border-orange-200 rounded-xl hover:shadow-lg hover:border-orange-400 transition-all duration-200`}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="flex-1 min-w-0">
+                                        <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5 mb-2' : 'gap-2 mb-3'}`}>
+                                          <span className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-bold text-gray-900 break-words`}>
+                                            {stagePermission.name}
+                                          </span>
+                                          <span className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} bg-orange-100 text-orange-700 rounded-full font-semibold whitespace-nowrap shadow-sm`}>
+                                            مرحلة
+                                          </span>
+                                        </div>
+                                        {stagePermission.description && (
+                                          <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mb-2 break-words leading-relaxed`}>
+                                            {stagePermission.description}
+                                          </p>
+                                        )}
+                                        <div className={`flex flex-col ${isMobile || isTablet ? 'gap-1' : 'gap-1.5'} mt-2`}>
+                                          {stagePermission.granted_at && (
+                                            <div className="flex items-center gap-2">
+                                              <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-gray-500`}>
+                                                📅 منحت في: {new Date(stagePermission.granted_at).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {stagePermission.granted_by_name && (
+                                            <div className="flex items-center gap-2">
+                                              <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-gray-500`}>
+                                                👤 بواسطة: {stagePermission.granted_by_name}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {stagePermission.expires_at && (
+                                            <div className="flex items-center gap-2">
+                                              <span className={`${isMobile || isTablet ? 'text-[9px]' : 'text-[10px]'} text-orange-600 font-medium bg-orange-50 px-2 py-1 rounded-lg inline-block`}>
+                                                ⏰ تنتهي في: {new Date(stagePermission.expires_at).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={() => handleRemoveStage(stagePermission.stage_id || stagePermission.id)}
+                                        disabled={processingPermission === `stage-${stagePermission.stage_id || stagePermission.id}`}
+                                        className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:border-red-300 shadow-sm hover:shadow-md`}
+                                        title="إلغاء صلاحية المرحلة"
+                                      >
+                                        {processingPermission === `stage-${stagePermission.stage_id || stagePermission.id}` ? (
+                                          <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                        ) : (
+                                          <Trash2 className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                        )}
+                                      </button>
+                                    </div>
+                                  </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* المراحل غير المفعلة */}
+                              <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm`}>
+                                <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-red-100`}>
+                                  <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-red-100 rounded-lg`}>
+                                    <AlertCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-red-600`} />
+                                  </div>
+                                  <span className="text-red-700">المراحل غير المفعلة ({(() => {
+                                    // حساب عدد المراحل غير المفعلة (استبعاد المراحل الموجودة في stage_permissions)
+                                    const activeStageIds = new Set(processPermissions.stage_permissions?.map((sp: any) => sp.stage_id || sp.id) || []);
+                                    return stages.filter((s: any) => !activeStageIds.has(s.id)).length;
+                                  })()})</span>
+                                </h4>
+                                <div className={`flex-1 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-500px)]' : 'max-h-64'}`}>
+                                  {loadingStages ? (
+                                    <div className="flex items-center justify-center py-4">
+                                      <Loader className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-orange-600 animate-spin`} />
+                                    </div>
+                                  ) : (() => {
+                                    // تصفية المراحل: استبعاد المراحل الموجودة في stage_permissions
+                                    const activeStageIds = new Set(processPermissions.stage_permissions?.map((sp: any) => sp.stage_id || sp.id) || []);
+                                    const inactiveStages = stages.filter((s: any) => !activeStageIds.has(s.id));
+                                    
+                                    return inactiveStages.length === 0 ? (
+                                      <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-green-50 rounded-lg border-2 border-green-200`}>
+                                        <CheckCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-green-500 mx-auto mb-2`} />
+                                        <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-green-700 font-medium`}>جميع المراحل مفعلة</p>
+                                      </div>
+                                    ) : (
+                                      <div className={`${isMobile || isTablet ? 'space-y-2' : 'space-y-3'}`}>
+                                        {inactiveStages.map((stage: any) => (
+                                          <div
+                                            key={stage.id}
+                                            className={`${isMobile || isTablet ? 'p-2' : 'p-3'} bg-gradient-to-br from-white to-orange-50 border-2 rounded-xl hover:shadow-lg transition-all duration-200`}
+                                            style={{ borderColor: stage.color || '#F97316' }}
+                                          >
+                                            <div className="flex items-start justify-between gap-3">
+                                              <div className="flex-1 min-w-0">
+                                                <div className={`flex items-center flex-wrap ${isMobile || isTablet ? 'gap-1.5' : 'gap-2'} mb-2`}>
+                                                  <span className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-900 break-words`}>{stage.name}</span>
+                                                  <span 
+                                                    className={`${isMobile || isTablet ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'} rounded-full font-semibold whitespace-nowrap shadow-sm text-white`}
+                                                    style={{ backgroundColor: stage.color || '#F97316' }}
+                                                  >
+                                                    مرحلة
+                                                  </span>
+                                                </div>
+                                                {stage.description && (
+                                                  <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 mt-1 break-words leading-relaxed`}>{stage.description}</p>
+                                                )}
+                                              </div>
+                                              <button
+                                                onClick={() => handleAddStage(stage.id)}
+                                                disabled={processingPermission === `stage-${stage.id}`}
+                                                className={`flex-shrink-0 ${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg`}
+                                                title="إضافة المرحلة"
+                                              >
+                                                {processingPermission === `stage-${stage.id}` ? (
+                                                  <Loader className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'} animate-spin`} />
+                                                ) : (
+                                                  <Plus className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-3.5 h-3.5'}`} />
+                                                )}
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
