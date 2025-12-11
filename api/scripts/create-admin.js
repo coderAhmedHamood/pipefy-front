@@ -323,10 +323,10 @@ async function createAdmin() {
     for (const permission of allPermissions) {
       await client.query(`
         INSERT INTO user_permissions (
-          id, user_id, permission_id, process_id, granted_by, granted_at
+          id, user_id, permission_id, process_id, stage_id, granted_by, granted_at
         )
-        VALUES (uuid_generate_v4(), $1, $2, $3, $4, NOW())
-        ON CONFLICT (user_id, permission_id, process_id) DO UPDATE SET
+        VALUES (uuid_generate_v4(), $1, $2, $3, NULL, $4, NOW())
+        ON CONFLICT (user_id, permission_id, process_id, stage_id) DO UPDATE SET
           granted_by = EXCLUDED.granted_by,
           granted_at = NOW()
       `, [adminUser.id, permission.id, process.id, adminUser.id]);
@@ -347,13 +347,14 @@ async function createAdmin() {
       const manageUserPerm = manageUserPermResult.rows[0];
       console.log(`   ✅ تم العثور على الصلاحية: ${manageUserPerm.name}`);
       
-      // التحقق من أن الصلاحية ممنوحة للمستخدم في العملية
+      // التحقق من أن الصلاحية ممنوحة للمستخدم في العملية (stage_id = NULL للصلاحيات العامة)
       const checkUserPerm = await client.query(`
-        SELECT id, user_id, permission_id, process_id
+        SELECT id, user_id, permission_id, process_id, stage_id
         FROM user_permissions
         WHERE user_id = $1 
           AND permission_id = $2 
           AND process_id = $3
+          AND stage_id IS NULL
       `, [adminUser.id, manageUserPerm.id, process.id]);
       
       if (checkUserPerm.rows.length > 0) {
@@ -367,10 +368,10 @@ async function createAdmin() {
         console.log(`   ⚠️  الصلاحية غير ممنوحة، جاري إعطائها...`);
         await client.query(`
           INSERT INTO user_permissions (
-            id, user_id, permission_id, process_id, granted_by, granted_at
+            id, user_id, permission_id, process_id, stage_id, granted_by, granted_at
           )
-          VALUES (uuid_generate_v4(), $1, $2, $3, $4, NOW())
-          ON CONFLICT (user_id, permission_id, process_id) DO UPDATE SET
+          VALUES (uuid_generate_v4(), $1, $2, $3, NULL, $4, NOW())
+          ON CONFLICT (user_id, permission_id, process_id, stage_id) DO UPDATE SET
             granted_by = EXCLUDED.granted_by,
             granted_at = NOW()
         `, [adminUser.id, manageUserPerm.id, process.id, adminUser.id]);
