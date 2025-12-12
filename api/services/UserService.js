@@ -108,19 +108,30 @@ class UserService {
       const { rows: rolePermissionsRows } = await pool.query(rolePermissionsQuery, [user.role_id]);
       
       // جلب الصلاحيات من user_permissions مع process_id
+      // يشمل الصلاحيات العادية (permission_id) وصلاحيات المراحل (stage_id)
       const userPermissionsQuery = `
         SELECT 
-          p.id,
-          p.name,
-          p.resource,
-          p.action,
-          p.description,
-          up.process_id
+          up.permission_id,
+          up.stage_id,
+          up.process_id,
+          -- إذا كان permission_id موجود، استخدم بيانات الصلاحية
+          -- إذا كان permission_id NULL و stage_id موجود، استخدم اسم المرحلة
+          COALESCE(p.id, s.id) as id,
+          COALESCE(p.name, s.name) as name,
+          COALESCE(p.resource, 'stages') as resource,
+          COALESCE(p.action, 'access') as action,
+          COALESCE(p.description, CONCAT('الوصول إلى المرحلة: ', s.name)) as description
         FROM user_permissions up
-        INNER JOIN permissions p ON up.permission_id = p.id
+        LEFT JOIN permissions p ON up.permission_id = p.id
+        LEFT JOIN stages s ON up.stage_id = s.id
         WHERE up.user_id = $1
           AND (up.expires_at IS NULL OR up.expires_at > NOW())
-        ORDER BY p.resource, p.action, up.process_id
+          AND (up.permission_id IS NOT NULL OR up.stage_id IS NOT NULL)
+        ORDER BY 
+          CASE WHEN up.permission_id IS NOT NULL THEN 0 ELSE 1 END,
+          COALESCE(p.resource, 'stages'),
+          COALESCE(p.action, 'access'),
+          up.process_id
       `;
       const { rows: userPermissionsRows } = await pool.query(userPermissionsQuery, [id]);
       
@@ -135,11 +146,13 @@ class UserService {
           resource: perm.resource,
           action: perm.action,
           description: perm.description,
-          process_id: null // صلاحيات الدور بدون process_id
+          process_id: null, // صلاحيات الدور بدون process_id
+          stage_id: null // صلاحيات الدور بدون stage_id
         });
       });
       
       // إضافة صلاحيات user_permissions (مع process_id)
+      // يشمل الصلاحيات العادية وصلاحيات المراحل
       userPermissionsRows.forEach(perm => {
         permissions.push({
           id: perm.id,
@@ -147,7 +160,9 @@ class UserService {
           resource: perm.resource,
           action: perm.action,
           description: perm.description,
-          process_id: perm.process_id // صلاحيات user_permissions مع process_id
+          process_id: perm.process_id, // صلاحيات user_permissions مع process_id
+          stage_id: perm.stage_id || null, // stage_id للمراحل، null للصلاحيات العادية
+          permission_id: perm.permission_id || null // permission_id للصلاحيات العادية، null للمراحل
         });
       });
       

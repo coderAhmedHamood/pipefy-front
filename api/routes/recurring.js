@@ -288,16 +288,16 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *                 description: المنطقة الزمنية
  *                 default: "Asia/Riyadh"
  *                 example: "Asia/Riyadh"
-     *               is_active:
-     *                 type: boolean
-     *                 description: حالة تفعيل القاعدة
-     *                 default: true
-     *                 example: true
-     *               next_execution:
-     *                 type: string
-     *                 format: date-time
-     *                 description: موعد التنفيذ التالي (اختياري، سيتم حسابه تلقائياً إذا لم يتم تحديده)
-     *                 example: "2024-01-01T09:00:00Z"
+ *               is_active:
+ *                 type: boolean
+ *                 description: حالة تفعيل القاعدة
+ *                 default: true
+ *                 example: true
+ *               next_execution:
+ *                 type: string
+ *                 format: date-time
+ *                 description: موعد التنفيذ التالي (اختياري، سيتم حسابه تلقائياً إذا لم يتم تحديده)
+ *                 example: "2024-01-01T09:00:00Z"
      *               max_executions:
      *                 type: integer
      *                 description: الحد الأقصى لعدد مرات التنفيذ (NULL = لا نهائي)
@@ -363,21 +363,21 @@ router.post('/rules', authenticateToken, RecurringController.create);
  *         application/json:
  *           schema:
  *             type: object
-     *             properties:
-     *               name:
-     *                 type: string
-     *               description:
-     *                 type: string
-     *               template_data:
-     *                 type: object
-     *               schedule_type:
-     *                 type: string
-     *               schedule_config:
-     *                 type: object
-     *               timezone:
-     *                 type: string
-     *               is_active:
-     *                 type: boolean
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               template_data:
+ *                 type: object
+ *               schedule_type:
+ *                 type: string
+ *               schedule_config:
+ *                 type: object
+ *               timezone:
+ *                 type: string
+ *               is_active:
+ *                 type: boolean
      *               max_executions:
      *                 type: integer
      *                 nullable: true
