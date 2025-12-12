@@ -137,6 +137,7 @@ class UserService {
       
       // دمج الصلاحيات: صلاحيات الدور (بدون process_id) + صلاحيات user_permissions (مع process_id)
       const permissions = [];
+      const stagePermissions = [];
       
       // إضافة صلاحيات الدور (بدون process_id)
       rolePermissionsRows.forEach(perm => {
@@ -152,9 +153,9 @@ class UserService {
       });
       
       // إضافة صلاحيات user_permissions (مع process_id)
-      // يشمل الصلاحيات العادية وصلاحيات المراحل
+      // فصل الصلاحيات العادية عن صلاحيات المراحل
       userPermissionsRows.forEach(perm => {
-        permissions.push({
+        const permissionData = {
           id: perm.id,
           name: perm.name,
           resource: perm.resource,
@@ -163,10 +164,19 @@ class UserService {
           process_id: perm.process_id, // صلاحيات user_permissions مع process_id
           stage_id: perm.stage_id || null, // stage_id للمراحل، null للصلاحيات العادية
           permission_id: perm.permission_id || null // permission_id للصلاحيات العادية، null للمراحل
-        });
+        };
+        
+        // إذا كان stage_id موجود (ليس null)، أضفه إلى stage_permissions
+        if (perm.stage_id) {
+          stagePermissions.push(permissionData);
+        } else {
+          // إذا كان stage_id null، أضفه إلى permissions العادية
+          permissions.push(permissionData);
+        }
       });
       
       user.permissions = permissions;
+      user.stage_permissions = stagePermissions;
 
       return user;
     } catch (error) {
