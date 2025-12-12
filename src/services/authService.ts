@@ -29,6 +29,7 @@ class AuthService {
       if (response.success && response.data) {
         // حفظ التوكن وبيانات المستخدم
         localStorage.setItem('auth_token', response.data.token);
+        // التأكد من حفظ stage_permissions إذا كانت موجودة
         localStorage.setItem('user_data', JSON.stringify(response.data.user));
         return response.data;
       }
@@ -90,6 +91,24 @@ class AuthService {
     }
   }
 
+  // تحديث بيانات المستخدم من API
+  async refreshUserData(): Promise<User | null> {
+    try {
+      const response: ApiResponse<{ user: User }> = await apiClient.get('/users/me');
+      
+      if (response.success && response.data?.user) {
+        // تحديث بيانات المستخدم في localStorage
+        localStorage.setItem('user_data', JSON.stringify(response.data.user));
+        return response.data.user;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('خطأ في تحديث بيانات المستخدم:', error);
+      return null;
+    }
+  }
+
   // تغيير كلمة المرور
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     try {
@@ -111,7 +130,12 @@ class AuthService {
   getCurrentUser(): User | null {
     try {
       const userData = localStorage.getItem('user_data');
-      return userData ? JSON.parse(userData) : null;
+      if (!userData) {
+        return null;
+      }
+      
+      const user = JSON.parse(userData);
+      return user;
     } catch (error) {
       console.error('خطأ في جلب بيانات المستخدم:', error);
       return null;
@@ -146,6 +170,62 @@ class AuthService {
       permission.action === action &&
       permission.process_id === processId
     );
+  }
+
+  // التحقق من صلاحية الوصول إلى مرحلة محددة
+  hasStagePermission(stageId: string, processId: string): boolean {
+    const user = this.getCurrentUser();
+    if (!user) {
+      console.log(`❌ hasStagePermission: لا يوجد مستخدم - ${stageId} في ${processId}`);
+      return false;
+    }
+    
+    // التحقق من وجود stage_permissions في بيانات المستخدم
+    // إذا كانت stage_permissions موجودة وليست فارغة، يجب تطبيقها حتى لو كان المستخدم مديراً
+    if (user.stage_permissions && user.stage_permissions.length > 0) {
+      // البحث عن صلاحية الوصول إلى المرحلة في stage_permissions
+      // يجب أن تطابق: resource='stages', action='access', stage_id, process_id
+      const hasAccess = user.stage_permissions.some(permission => {
+        // التحقق من أن الصلاحية تطابق المرحلة والعملية
+        const matchesStage = permission.stage_id === stageId;
+        const matchesProcess = permission.process_id === processId;
+        const matchesResource = permission.resource === 'stages';
+        const matchesAction = permission.action === 'access';
+        
+        const matches = matchesResource && matchesAction && matchesStage && matchesProcess;
+        
+        if (matches) {
+          console.log(`✅ hasStagePermission: صلاحية موجودة - ${stageId} في ${processId}`);
+        } else {
+          console.log(`  ⚠️ لا تطابق:`, {
+            permission_stage_id: permission.stage_id,
+            requested_stage_id: stageId,
+            matchesStage,
+            permission_process_id: permission.process_id,
+            requested_process_id: processId,
+            matchesProcess,
+            matchesResource,
+            matchesAction
+          });
+        }
+        
+        return matches;
+      });
+      
+      console.log(`${hasAccess ? '✅' : '❌'} hasStagePermission: النتيجة النهائية - ${stageId} في ${processId} = ${hasAccess}`);
+      return hasAccess;
+    }
+    
+    // إذا لم تكن هناك stage_permissions، تطبيق السلوك الافتراضي:
+    // - إذا كان المستخدم مدير، لديه صلاحية على جميع المراحل
+    // - إذا لم يكن مديراً، لا توجد صلاحيات (يجب أن يكون لديه stage_permissions)
+    if (this.isAdmin()) {
+      console.log(`👑 hasStagePermission: المستخدم مدير ولا توجد stage_permissions - عرض جميع المراحل - ${stageId} في ${processId}`);
+      return true;
+    }
+    
+    console.log(`⚠️ hasStagePermission: لا توجد stage_permissions والمستخدم ليس مديراً - ${stageId} في ${processId}`);
+    return false;
   }
 
   // التحقق من الدور

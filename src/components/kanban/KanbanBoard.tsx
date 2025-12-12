@@ -21,7 +21,7 @@ interface KanbanBoardProps {
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const { processes, setSelectedProcess } = useWorkflow();
-  const { hasPermission, hasProcessPermission } = useAuth();
+  const { hasPermission, hasProcessPermission, hasStagePermission, isAdmin } = useAuth();
   const { showSuccess, showError } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile, isTablet } = useDeviceType();
@@ -58,6 +58,24 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const [loadingMoreStages, setLoadingMoreStages] = useState<Record<string, boolean>>({});
   const TICKETS_PER_PAGE = 25;
 
+  // تصفية المراحل بناءً على صلاحيات المراحل
+  const visibleStages = useMemo(() => {
+    // تصفية المراحل التي يملك المستخدم صلاحية الوصول إليها
+    // hasStagePermission يتعامل مع:
+    // - إذا كانت stage_permissions موجودة، تطبيقها حتى لو كان المستخدم مديراً
+    // - إذا لم تكن stage_permissions موجودة وكان المستخدم مديراً، عرض جميع المراحل
+    // - إذا لم تكن stage_permissions موجودة ولم يكن المستخدم مديراً، لا توجد صلاحيات
+    return process.stages.filter(stage => 
+      hasStagePermission(stage.id, process.id)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [process.stages, process.id]);
+
+  // تخزين stageIds كـ string لتجنب التغييرات المستمرة
+  const visibleStageIds = useMemo(() => {
+    return visibleStages.map(s => s.id).sort().join(',');
+  }, [visibleStages]);
+
   // مراقبة تغييرات ticketsByStages
   useEffect(() => {
     // Tickets updated
@@ -65,7 +83,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
 
   // جلب التذاكر من API عند تحميل المكون أو تغيير العملية
   const loadTickets = async () => {
-    if (!process.id || !process.stages.length) {
+    if (!process.id || !visibleStages.length) {
       return;
     }
 
@@ -73,7 +91,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     setError(null);
 
     try {
-      const stageIds = process.stages.map(stage => stage.id);
+      const stageIds = visibleStages.map(stage => stage.id);
 
       const response = await ticketService.getTicketsByStages({
         process_id: process.id,
@@ -173,7 +191,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
 
   useEffect(() => {
     loadTickets();
-  }, [process.id, process.stages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [process.id, visibleStageIds]);
 
   // فلترة التذاكر حسب البحث
   const filteredTicketsByStages = useMemo(() => {
@@ -201,7 +220,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     return tickets;
   }, [ticketsByStages]);
   
-  const sortedStages = [...process.stages].sort((a, b) => a.priority - b.priority);
+  // ترتيب المراحل المرئية فقط
+  const sortedStages = [...visibleStages].sort((a, b) => a.priority - b.priority);
 
   // فتح التذكرة من URL عند التحميل
   useEffect(() => {
@@ -795,7 +815,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex gap-6 min-h-0 pb-6" style={{ minWidth: `${process.stages.length * 320 + (process.stages.length - 1) * 24}px` }}>
+            <div className="flex gap-6 min-h-0 pb-6" style={{ minWidth: `${visibleStages.length * 320 + (visibleStages.length - 1) * 24}px` }}>
               {sortedStages.map((stage) => (
                 <KanbanColumn
                   key={`${stage.id}-${forceUpdate}`}

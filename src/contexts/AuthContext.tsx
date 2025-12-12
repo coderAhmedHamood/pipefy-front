@@ -10,6 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   hasPermission: (resource: string, action: string) => boolean;
   hasProcessPermission: (resource: string, action: string, processId: string) => boolean;
+  hasStagePermission: (stageId: string, processId: string) => boolean;
   hasRole: (roleName: string) => boolean;
   isAdmin: () => boolean;
   refreshToken: () => Promise<boolean>;
@@ -176,6 +177,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authService.hasProcessPermission(resource, action, processId);
   };
 
+  const hasStagePermission = (stageId: string, processId: string): boolean => {
+    return authService.hasStagePermission(stageId, processId);
+  };
+
   const hasRole = (roleName: string): boolean => {
     return authService.hasRole(roleName);
   };
@@ -192,6 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: state.isAuthenticated,
     hasPermission,
     hasProcessPermission,
+    hasStagePermission,
     hasRole,
     isAdmin,
     refreshToken,

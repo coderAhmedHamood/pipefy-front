@@ -6,6 +6,7 @@ export interface User {
   avatar?: string;
   role: UserRole;
   permissions: Permission[];
+  stage_permissions?: Permission[]; // صلاحيات المراحل (اختياري)
   created_at: string;
   is_active: boolean;
 }
@@ -25,6 +26,8 @@ export interface Permission {
   action: string;
   description: string;
   process_id?: string; // معرف العملية المرتبطة بالصلاحية (اختياري للتوافق مع الصلاحيات العامة)
+  stage_id?: string; // معرف المرحلة المرتبطة بالصلاحية (لصلاحيات المراحل)
+  permission_id?: string; // معرف الصلاحية الأصلية (لصلاحيات المراحل)
 }
 
 export interface Process {
