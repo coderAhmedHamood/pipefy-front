@@ -329,6 +329,113 @@ class PermissionService {
     }
   }
 
+  // إلغاء صلاحية مرحلة من مستخدم (حذف بناءً على user_id, process_id, stage_id)
+  static async revokeUserPermissionByStage(userId, processId, stageId) {
+    try {
+      const { pool } = require('../config/database');
+      
+      // التحقق من وجود العملية
+      const processCheck = await pool.query(
+        'SELECT id, name FROM processes WHERE id = $1 AND deleted_at IS NULL',
+        [processId]
+      );
+      
+      if (processCheck.rows.length === 0) {
+        throw new Error('العملية غير موجودة');
+      }
+      
+      // التحقق من وجود المستخدم
+      const userCheck = await pool.query(
+        'SELECT id, name FROM users WHERE id = $1 AND deleted_at IS NULL',
+        [userId]
+      );
+      
+      if (userCheck.rows.length === 0) {
+        throw new Error('المستخدم غير موجود');
+      }
+      
+      // التحقق من وجود المرحلة (بدون deleted_at لأن جدول stages قد لا يحتوي على هذا العمود)
+      const stageCheck = await pool.query(
+        'SELECT id, name, process_id FROM stages WHERE id = $1',
+        [stageId]
+      );
+      
+      if (stageCheck.rows.length === 0) {
+        throw new Error('المرحلة غير موجودة');
+      }
+      
+      // التحقق من أن المرحلة تنتمي للعملية المحددة
+      if (stageCheck.rows[0].process_id !== processId) {
+        throw new Error('المرحلة لا تنتمي للعملية المحددة');
+      }
+      
+      // التحقق من وجود السجل قبل الحذف (permission_id IS NULL و stage_id موجود)
+      const beforeDeleteCheck = await pool.query(
+        `SELECT id, user_id, permission_id, process_id, stage_id, granted_at 
+         FROM user_permissions 
+         WHERE user_id = $1 
+           AND process_id = $2 
+           AND stage_id = $3
+           AND permission_id IS NULL`,
+        [userId, processId, stageId]
+      );
+      
+      if (beforeDeleteCheck.rows.length === 0) {
+        // محاولة البحث عن السجلات المشابهة للمساعدة في التشخيص
+        const similarRecords = await pool.query(
+          `SELECT id, user_id, permission_id, process_id, stage_id, granted_at 
+           FROM user_permissions 
+           WHERE user_id = $1 AND process_id = $2 AND stage_id = $3`,
+          [userId, processId, stageId]
+        );
+        
+        if (similarRecords.rows.length > 0) {
+          throw new Error('المرحلة غير مرتبطة بالمستخدم في هذه العملية (قد تكون مرتبطة بصلاحية محددة)');
+        } else {
+          throw new Error('المرحلة غير مرتبطة بالمستخدم في هذه العملية');
+        }
+      }
+      
+      // حذف صلاحية المرحلة من العملية المحددة فقط
+      const deleteQuery = `
+        DELETE FROM user_permissions 
+        WHERE user_id = $1 
+          AND process_id = $2
+          AND stage_id = $3
+          AND permission_id IS NULL
+        RETURNING id, user_id, permission_id, process_id, stage_id, granted_at
+      `;
+
+      const { rows } = await pool.query(deleteQuery, [userId, processId, stageId]);
+      
+      if (rows.length === 0) {
+        throw new Error('فشل حذف صلاحية المرحلة - لم يتم العثور على السجل');
+      }
+      
+      // التحقق من الحذف النهائي
+      const afterDeleteCheck = await pool.query(
+        `SELECT id FROM user_permissions 
+         WHERE user_id = $1 AND process_id = $2 AND stage_id = $3 AND permission_id IS NULL`,
+        [userId, processId, stageId]
+      );
+      
+      if (afterDeleteCheck.rows.length > 0) {
+        throw new Error('فشل حذف صلاحية المرحلة - السجل ما زال موجوداً بعد الحذف');
+      }
+
+      return { 
+        message: 'تم إلغاء صلاحية المرحلة من المستخدم في العملية بنجاح',
+        deleted_count: rows.length,
+        deleted_record: rows[0],
+        user: userCheck.rows[0],
+        stage: stageCheck.rows[0],
+        process: processCheck.rows[0]
+      };
+    } catch (error) {
+      throw new Error(`خطأ في إلغاء صلاحية المرحلة من المستخدم: ${error.message}`);
+    }
+  }
+
   // جلب الصلاحيات الإضافية لمستخدم
   static async getUserAdditionalPermissions(userId) {
     try {
