@@ -8,6 +8,7 @@ const EvaluationCriteria = require('./EvaluationCriteria');
 const TicketEvaluation = require('./TicketEvaluation');
 const TicketEvaluationSummary = require('./TicketEvaluationSummary');
 const Settings = require('./Settings');
+const UserTicketLink = require('./UserTicketLink');
 
 module.exports = {
   User,
@@ -19,5 +20,6 @@ module.exports = {
   EvaluationCriteria,
   TicketEvaluation,
   TicketEvaluationSummary,
-  Settings
+  Settings,
+  UserTicketLink
 };

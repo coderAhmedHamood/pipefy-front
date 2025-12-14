@@ -90,14 +90,68 @@ async function createAdmin() {
         
         // حذف المراحل والانتقالات المرتبطة بالعمليات
         for (const process of processesResult.rows) {
-          // حذف الانتقالات المرتبطة بالمراحل في هذه العملية
+          // أولاً: حذف التذاكر المرتبطة بالعملية (سيتم حذف الأنشطة والتعليقات والمرفقات تلقائياً بسبب CASCADE)
+          const ticketsResult = await client.query('SELECT COUNT(*) as count FROM tickets WHERE process_id = $1', [process.id]);
+          const ticketsCount = parseInt(ticketsResult.rows[0].count);
+          
+          if (ticketsCount > 0) {
+            console.log(`   ⚠️  تم العثور على ${ticketsCount} تذكرة مرتبطة بالعملية ${process.name}`);
+            
+            // حذف سجلات الأتمتة المرتبطة (لضمان عدم وجود مشاكل)
+            await client.query(`
+              DELETE FROM automation_executions 
+              WHERE ticket_id IN (SELECT id FROM tickets WHERE process_id = $1)
+            `, [process.id]);
+            
+            // حذف المرفقات أولاً (لضمان عدم وجود مشاكل)
+            await client.query(`
+              DELETE FROM ticket_attachments 
+              WHERE ticket_id IN (SELECT id FROM tickets WHERE process_id = $1)
+            `, [process.id]);
+            
+            // حذف التعليقات
+            await client.query(`
+              DELETE FROM ticket_comments 
+              WHERE ticket_id IN (SELECT id FROM tickets WHERE process_id = $1)
+            `, [process.id]);
+            
+            // حذف الأنشطة
+            await client.query(`
+              DELETE FROM ticket_activities 
+              WHERE ticket_id IN (SELECT id FROM tickets WHERE process_id = $1)
+            `, [process.id]);
+            
+            // حذف المراجعين والمسندين (سيتم حذفها تلقائياً بسبب CASCADE، لكن للتأكد)
+            await client.query(`
+              DELETE FROM ticket_reviewers 
+              WHERE ticket_id IN (SELECT id FROM tickets WHERE process_id = $1)
+            `, [process.id]);
+            
+            await client.query(`
+              DELETE FROM ticket_assignees 
+              WHERE ticket_id IN (SELECT id FROM tickets WHERE process_id = $1)
+            `, [process.id]);
+            
+            // حذف التذاكر
+            await client.query('DELETE FROM tickets WHERE process_id = $1', [process.id]);
+            console.log(`   ✅ تم حذف ${ticketsCount} تذكرة مرتبطة بالعملية`);
+          }
+          
+          // ثانياً: حذف قواعد الأتمتة المرتبطة بالعملية أو المراحل
+          await client.query(`
+            DELETE FROM automation_rules 
+            WHERE process_id = $1 
+               OR stage_id IN (SELECT id FROM stages WHERE process_id = $1)
+          `, [process.id]);
+          
+          // ثالثاً: حذف الانتقالات المرتبطة بالمراحل في هذه العملية
           await client.query(`
             DELETE FROM stage_transitions 
             WHERE from_stage_id IN (SELECT id FROM stages WHERE process_id = $1)
                OR to_stage_id IN (SELECT id FROM stages WHERE process_id = $1)
           `, [process.id]);
           
-          // حذف المراحل المرتبطة بالعملية
+          // رابعاً: حذف المراحل المرتبطة بالعملية
           await client.query('DELETE FROM stages WHERE process_id = $1', [process.id]);
         }
         console.log('   ✅ تم حذف المراحل والانتقالات المرتبطة');
