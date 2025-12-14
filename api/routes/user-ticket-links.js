@@ -46,6 +46,12 @@ const { authenticateToken } = require('../middleware/auth');
  *           type: string
  *         ticket_status:
  *           type: string
+ *         stage_name:
+ *           type: string
+ *           description: اسم المرحلة الحالية للتذكرة
+ *         stage_color:
+ *           type: string
+ *           description: لون المرحلة الحالية للتذكرة
  *         from_process_name:
  *           type: string
  *           description: اسم العملية المصدر (من أين قادمة)

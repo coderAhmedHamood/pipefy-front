@@ -59,10 +59,16 @@ class UserTicketLink {
         u.avatar_url as user_avatar,
         t.ticket_number,
         t.title as ticket_title,
-        t.status as ticket_status
+        t.status as ticket_status,
+        t.process_id,
+        p.name as process_name,
+        s.name as stage_name,
+        s.color as stage_color
       FROM user_ticket_links utl
       LEFT JOIN users u ON utl.user_id = u.id
       LEFT JOIN tickets t ON utl.ticket_id = t.id
+      LEFT JOIN processes p ON t.process_id = p.id
+      LEFT JOIN stages s ON t.current_stage_id = s.id
       WHERE utl.id = $1
     `, [id]);
     return rows[0] ? new UserTicketLink(rows[0]) : null;
@@ -97,11 +103,14 @@ class UserTicketLink {
         t.title as ticket_title,
         t.status as ticket_status,
         t.process_id,
-        p.name as process_name
+        p.name as process_name,
+        s.name as stage_name,
+        s.color as stage_color
       FROM user_ticket_links utl
       LEFT JOIN users u ON utl.user_id = u.id
       LEFT JOIN tickets t ON utl.ticket_id = t.id
       LEFT JOIN processes p ON t.process_id = p.id
+      LEFT JOIN stages s ON t.current_stage_id = s.id
       ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
       ORDER BY utl.created_at DESC
     `;
