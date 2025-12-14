@@ -14,6 +14,7 @@ import ticketService from '../../services/ticketService';
 import userService from '../../services/userService';
 import commentService from '../../services/commentService';
 import notificationService from '../../services/notificationService';
+import apiClient from '../../lib/api';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { useQuickNotifications } from '../ui/NotificationSystem';
 import { useDeviceType } from '../../hooks/useDeviceType';
@@ -1116,6 +1117,24 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       const response = await ticketService.moveTicketToProcess(ticket.id, selectedProcessId);
       
       if (response.success) {
+        // العثور على اسم العملية المستهدفة
+        const targetProcess = allProcesses.find(p => p.id === selectedProcessId);
+        const fromProcessName = process.name;
+        const toProcessName = targetProcess?.name || '';
+        
+        // استدعاء endpoint لإنشاء سجل جديد لتتبع معالجة التذكرة
+        try {
+          await apiClient.post('/user-ticket-links', {
+            ticket_id: ticket.id,
+            from_process_name: fromProcessName,
+            to_process_name: toProcessName
+          });
+          console.log('✅ تم إنشاء سجل تتبع المعالجة بنجاح');
+        } catch (linkError: any) {
+          console.error('❌ خطأ في إنشاء سجل التتبع:', linkError);
+          // لا نوقف العملية إذا فشل إنشاء السجل - فقط نسجل الخطأ
+        }
+        
         alert('تم نقل التذكرة إلى العملية الجديدة بنجاح!');
         setShowProcessSelector(false);
         setSelectedProcessId('');
