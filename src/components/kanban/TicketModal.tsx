@@ -957,9 +957,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     try {
       // استخدام processes من WorkflowContext (متوفر بالفعل)
       if (processes && processes.length > 0) {
+        console.log('✅ تم تحميل العمليات:', processes.length);
         setAllProcesses(processes);
       } else {
-        console.error('❌ لا توجد عمليات');
+        console.warn('⚠️ لا توجد عمليات متاحة في WorkflowContext');
         setAllProcesses([]);
       }
     } catch (error) {
@@ -1109,18 +1110,43 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   };
 
   const handleMoveToProcess = async () => {
-    if (!selectedProcessId || isMovingToProcess) return;
+    if (!selectedProcessId || isMovingToProcess) {
+      if (!selectedProcessId) {
+        alert('يرجى اختيار العملية المستهدفة');
+      }
+      return;
+    }
+    
+    // التحقق من صحة UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(selectedProcessId)) {
+      alert('معرف العملية المستهدفة غير صحيح');
+      console.error('❌ معرف العملية غير صحيح:', selectedProcessId);
+      return;
+    }
+    
+    // التحقق من وجود العملية في القائمة
+    const targetProcess = allProcesses.find(p => p.id === selectedProcessId);
+    if (!targetProcess) {
+      alert('العملية المستهدفة غير موجودة');
+      console.error('❌ العملية المستهدفة غير موجودة:', selectedProcessId);
+      return;
+    }
     
     try {
       setIsMovingToProcess(true);
       
+      console.log('🔄 نقل التذكرة:', {
+        ticketId: ticket.id,
+        targetProcessId: selectedProcessId,
+        targetProcessName: targetProcess.name
+      });
+      
       const response = await ticketService.moveTicketToProcess(ticket.id, selectedProcessId);
       
       if (response.success) {
-        // العثور على اسم العملية المستهدفة
-        const targetProcess = allProcesses.find(p => p.id === selectedProcessId);
         const fromProcessName = process.name;
-        const toProcessName = targetProcess?.name || '';
+        const toProcessName = targetProcess.name;
         
         // استدعاء endpoint لإنشاء سجل جديد لتتبع معالجة التذكرة
         try {
@@ -1135,19 +1161,20 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           // لا نوقف العملية إذا فشل إنشاء السجل - فقط نسجل الخطأ
         }
         
-        alert('تم نقل التذكرة إلى العملية الجديدة بنجاح!');
+        notifications.showSuccess('تم نقل التذكرة', 'تم نقل التذكرة إلى العملية الجديدة بنجاح!');
         setShowProcessSelector(false);
         setSelectedProcessId('');
         onClose(); // إغلاق Modal التذكرة
         // يمكن إضافة refresh للصفحة أو تحديث الـ state
         window.location.reload();
       } else {
-        console.error('❌ فشل في نقل التذكرة');
-        alert('فشل في نقل التذكرة: ' + (response.message || 'خطأ غير معروف'));
+        console.error('❌ فشل في نقل التذكرة:', response);
+        notifications.showError('فشل في نقل التذكرة', response.message || 'خطأ غير معروف');
       }
     } catch (error: any) {
       console.error('❌ خطأ في نقل التذكرة:', error);
-      alert('حدث خطأ أثناء نقل التذكرة: ' + (error.message || 'خطأ غير معروف'));
+      const errorMessage = error?.message || error?.data?.message || 'حدث خطأ أثناء نقل التذكرة';
+      notifications.showError('خطأ في نقل التذكرة', errorMessage);
     } finally {
       setIsMovingToProcess(false);
     }
@@ -1576,23 +1603,35 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const handleStageMove = async () => {
     if (isMoving) return;
 
-    if (transitionType === 'single' && selectedStages.length === 1) {
-      const success = await moveTicket(ticket.id, selectedStages[0]);
+    if (selectedStages.length === 0) {
+      notifications.showError('خطأ', 'يرجى اختيار مرحلة واحدة على الأقل');
+      return;
+    }
+
+    const targetStageId = selectedStages[0];
+    
+    // التحقق من صحة UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(targetStageId)) {
+      notifications.showError('خطأ', 'معرف المرحلة غير صحيح');
+      console.error('❌ معرف المرحلة غير صحيح:', targetStageId);
+      return;
+    }
+
+    try {
+      const success = await moveTicket(ticket.id, targetStageId);
       if (success) {
         // تحديث الـ state في KanbanBoard فوراً
-        onMoveToStage(selectedStages[0]);
+        onMoveToStage(targetStageId);
         setShowStageSelector(false);
         setSelectedStages([]);
+        notifications.showSuccess('تم نقل التذكرة', 'تم نقل التذكرة إلى المرحلة الجديدة بنجاح');
+      } else {
+        notifications.showError('فشل في نقل التذكرة', 'حدث خطأ أثناء نقل التذكرة');
       }
-    } else if (transitionType === 'multiple' && selectedStages.length > 0) {
-      // للانتقال المتعدد، نختار أول مرحلة كمثال
-      const success = await moveTicket(ticket.id, selectedStages[0]);
-      if (success) {
-        // تحديث الـ state في KanbanBoard فوراً
-        onMoveToStage(selectedStages[0]);
-        setShowStageSelector(false);
-        setSelectedStages([]);
-      }
+    } catch (error: any) {
+      console.error('❌ خطأ في نقل التذكرة:', error);
+      notifications.showError('خطأ', 'حدث خطأ أثناء نقل التذكرة: ' + (error?.message || 'خطأ غير معروف'));
     }
   };
 

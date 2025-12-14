@@ -582,10 +582,11 @@ class PermissionService {
 
       for (const permission of allPermissions) {
         try {
+          // عند منح جميع الصلاحيات، نستخدم stage_id = NULL (صلاحيات عامة للعملية)
           const query = `
-            INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (user_id, permission_id, process_id) 
+            INSERT INTO user_permissions (user_id, permission_id, granted_by, process_id, stage_id)
+            VALUES ($1, $2, $3, $4, NULL)
+            ON CONFLICT (user_id, permission_id, process_id, stage_id) 
             DO UPDATE SET 
               granted_by = EXCLUDED.granted_by,
               granted_at = NOW()

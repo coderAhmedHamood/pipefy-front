@@ -32,9 +32,25 @@ export const useSimpleMove = () => {
   const moveTicket = async (ticketId: string, targetStageId: string): Promise<boolean> => {
     if (isMoving) return false;
 
+    // التحقق من صحة UUIDs
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(ticketId)) {
+      console.error('❌ معرف التذكرة غير صحيح:', ticketId);
+      return false;
+    }
+    if (!uuidRegex.test(targetStageId)) {
+      console.error('❌ معرف المرحلة غير صحيح:', targetStageId);
+      return false;
+    }
+
     setIsMoving(true);
     
     try {
+      console.log('🔄 نقل التذكرة إلى مرحلة:', {
+        ticketId,
+        targetStageId
+      });
+
       const response = await apiClient.post<SimpleMoveResponse>(
         `/tickets/${ticketId}/move-simple`,
         {
@@ -43,13 +59,16 @@ export const useSimpleMove = () => {
       );
 
       if (response.success) {
+        console.log('✅ تم نقل التذكرة بنجاح');
         return true;
       } else {
         console.error('❌ فشل تحريك التذكرة:', response.message);
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ خطأ في تحريك التذكرة:', error);
+      const errorMessage = error?.message || error?.data?.message || 'حدث خطأ أثناء نقل التذكرة';
+      console.error('تفاصيل الخطأ:', errorMessage);
       return false;
     } finally {
       setIsMoving(false);
