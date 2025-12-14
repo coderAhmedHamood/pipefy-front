@@ -12,6 +12,7 @@ import { Plus, Search, LayoutGrid, List, RefreshCw, AlertCircle, Settings, HelpC
 import { getPriorityColor, getPriorityLabel } from '../../utils/priorityUtils';
 import { formatDate } from '../../utils/dateUtils';
 import ticketService, { TicketsByStagesResponse, TicketsByStagesApiResponse } from '../../services/ticketService';
+import userTicketLinkService, { UserTicketLink } from '../../services/userTicketLinkService';
 import { useToast } from '../ui/Toast';
 import { useDeviceType } from '../../hooks/useDeviceType';
 
@@ -21,7 +22,7 @@ interface KanbanBoardProps {
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const { processes, setSelectedProcess } = useWorkflow();
-  const { hasPermission, hasProcessPermission, hasStagePermission, isAdmin } = useAuth();
+  const { hasPermission, hasProcessPermission, hasStagePermission, isAdmin, user } = useAuth();
   const { showSuccess, showError } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isMobile, isTablet } = useDeviceType();
@@ -38,6 +39,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forceUpdate, setForceUpdate] = useState(0);
+  
+  // User Ticket Links State
+  const [userTicketLinks, setUserTicketLinks] = useState<UserTicketLink[]>([]);
+  const [loadingUserTicketLinks, setLoadingUserTicketLinks] = useState(false);
   
   // تتبع آخر تذكرة تم فتحها من URL لتجنب إعادة الفتح
   const lastOpenedTicketIdRef = useRef<string | null>(null);
@@ -189,10 +194,63 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     }
   };
 
+  // جلب user-ticket-links للمستخدم الحالي
+  const loadUserTicketLinks = async () => {
+    if (!user?.id) return;
+    
+    setLoadingUserTicketLinks(true);
+    try {
+      const response = await userTicketLinkService.getUserTicketLinks(user.id);
+      if (response.success && response.data) {
+        setUserTicketLinks(response.data);
+      }
+    } catch (error) {
+      console.error('خطأ في جلب سجلات تتبع المعالجة:', error);
+    } finally {
+      setLoadingUserTicketLinks(false);
+    }
+  };
+
+  // تصفية التذاكر المحولة بناءً على المرحلة الحالية
+  const getTransferredTicketsForStage = (stageName: string): UserTicketLink[] => {
+    return userTicketLinks.filter(link => {
+      // التحقق من أن التذكرة تم تحويلها من العملية الحالية
+      const isFromCurrentProcess = link.from_process_name === process.name;
+      // التحقق من أن اسم المرحلة الحالية يتطابق مع اسم المرحلة في التذكرة
+      // هذا يعني أننا نعرض التذاكر المحولة التي هي في نفس المرحلة الحالية
+      const matchesStageName = link.stage_name === stageName;
+      // عرض التذكرة إذا كانت من العملية الحالية وكان اسم المرحلة يتطابق
+      return isFromCurrentProcess && matchesStageName;
+    });
+  };
+
+  // تحديث حالة المعالجة (قبول المعالجة)
+  const handleAcceptProcessing = async (linkId: string) => {
+    try {
+      const response = await userTicketLinkService.updateUserTicketLink(linkId, {
+        status: 'تمت المعالجة'
+      });
+      
+      if (response.success) {
+        // تحديث الحالة المحلية
+        setUserTicketLinks(prev => 
+          prev.map(link => link.id === linkId ? { ...link, status: 'تمت المعالجة' } : link)
+        );
+        showSuccess('تم قبول المعالجة', 'تم تأكيد معالجة التذكرة بنجاح');
+      } else {
+        showError('خطأ', 'فشل في تحديث حالة المعالجة');
+      }
+    } catch (error) {
+      console.error('خطأ في قبول المعالجة:', error);
+      showError('خطأ', 'حدث خطأ أثناء تحديث حالة المعالجة');
+    }
+  };
+
   useEffect(() => {
     loadTickets();
+    loadUserTicketLinks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [process.id, visibleStageIds]);
+  }, [process.id, visibleStageIds, user?.id]);
 
   // فلترة التذاكر حسب البحث
   const filteredTicketsByStages = useMemo(() => {
@@ -829,6 +887,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                   loadingMore={loadingMoreStages[stage.id] || false}
                   onLoadMore={() => loadMoreTickets(stage.id)}
                   processId={process.id}
+                  transferredTickets={getTransferredTicketsForStage(stage.name)}
+                  onAcceptProcessing={handleAcceptProcessing}
                 />
               ))}
             </div>

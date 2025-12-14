@@ -2,8 +2,9 @@ import React, { useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { KanbanCard } from './KanbanCard';
 import { Stage, Ticket } from '../../types/workflow';
-import { Plus, MoreVertical, Loader2 } from 'lucide-react';
+import { Plus, MoreVertical, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { UserTicketLink } from '../../services/userTicketLinkService';
 
 interface KanbanColumnProps {
   stage: Stage;
@@ -16,6 +17,8 @@ interface KanbanColumnProps {
   loadingMore: boolean;
   onLoadMore: () => void;
   processId: string;
+  transferredTickets?: UserTicketLink[];
+  onAcceptProcessing?: (linkId: string) => void;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -28,7 +31,9 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   hasMore,
   loadingMore,
   onLoadMore,
-  processId
+  processId,
+  transferredTickets = [],
+  onAcceptProcessing
 }) => {
   const { hasPermission, hasProcessPermission } = useAuth();
   const { setNodeRef, isOver } = useDroppable({
@@ -171,7 +176,87 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
           </div>
         ))}
 
-        {tickets.length === 0 && !isOver && (
+        {/* عرض التذاكر المحولة */}
+        {transferredTickets.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="text-xs font-semibold text-gray-500 mb-2 px-2">
+              تذاكر محولة من عمليات أخرى
+            </div>
+            {transferredTickets.map((link) => {
+              // إنشاء كائن Ticket من UserTicketLink لعرضه
+              const transferredTicket: Ticket = {
+                id: link.ticket_id,
+                title: link.ticket_title || 'بدون عنوان',
+                description: '',
+                process_id: link.process_id || '',
+                current_stage_id: '',
+                created_by: link.user_id,
+                created_at: link.created_at,
+                updated_at: link.updated_at,
+                priority: 'medium',
+                data: {},
+                attachments: [],
+                activities: [],
+                tags: [],
+                child_tickets: []
+              };
+
+              const isCompleted = link.stage_name === 'مكتملة';
+              const isProcessed = link.status === 'تمت المعالجة';
+
+              return (
+                <div
+                  key={link.id}
+                  className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 space-x-reverse mb-1">
+                        <AlertCircle className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-gray-900">
+                          {link.ticket_title || 'تذكرة محولة'}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-600 mb-2">
+                        <div>من: {link.from_process_name}</div>
+                        <div>إلى: {link.to_process_name}</div>
+                        {link.ticket_number && (
+                          <div>رقم التذكرة: {link.ticket_number}</div>
+                        )}
+                      </div>
+                      {isCompleted && !isProcessed && (
+                        <div className="text-xs text-orange-600 mb-2 font-medium">
+                          ✓ تم معالجة التذكرة في العملية المستهدفة - جاهزة للقبول
+                        </div>
+                      )}
+                      {isProcessed && (
+                        <div className="text-xs text-green-600 mb-2 font-medium">
+                          ✓ تم قبول المعالجة
+                        </div>
+                      )}
+                      {!isCompleted && (
+                        <div className="text-xs text-gray-500 mb-2">
+                          جاري المعالجة في العملية المستهدفة
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {isCompleted && !isProcessed && onAcceptProcessing && (
+                    <button
+                      onClick={() => onAcceptProcessing(link.id)}
+                      className="w-full flex items-center justify-center space-x-2 space-x-reverse px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>قبول المعالجة</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tickets.length === 0 && transferredTickets.length === 0 && !isOver && (
           <div className="text-center py-8 text-gray-400">
             <div className="text-sm">لا توجد تذاكر</div>
             <div className="text-xs mt-1">اسحب تذكرة هنا أو أضف جديدة</div>
