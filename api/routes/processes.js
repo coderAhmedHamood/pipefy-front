@@ -268,6 +268,52 @@ router.get('/', authenticateToken, ProcessController.getAllProcesses);
 
 /**
  * @swagger
+ * /api/processes/simple:
+ *   get:
+ *     summary: جلب جميع العمليات (اسم العملية ورقمها فقط)
+ *     tags: [Processes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: is_active
+ *         schema:
+ *           type: boolean
+ *           default: true
+ *         description: فلترة حسب حالة التفعيل
+ *     responses:
+ *       200:
+ *         description: تم جلب العمليات بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                         description: رقم العملية
+ *                       name:
+ *                         type: string
+ *                         description: اسم العملية
+ *                 count:
+ *                   type: integer
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
+router.get('/simple', authenticateToken, ProcessController.getProcessesSimple);
+
+/**
+ * @swagger
  * /api/processes/templates:
  *   get:
  *     summary: جلب قوالب العمليات المحددة مسبقاً

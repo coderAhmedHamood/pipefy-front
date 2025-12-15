@@ -46,6 +46,47 @@ class ProcessController {
     }
   }
 
+  // جلب جميع العمليات (اسم ورقم فقط)
+  static async getProcessesSimple(req, res) {
+    try {
+      const { pool } = require('../config/database');
+      
+      const { is_active = 'true' } = req.query;
+      
+      let query = `
+        SELECT id, name
+        FROM processes
+        WHERE deleted_at IS NULL
+      `;
+      
+      const params = [];
+      
+      // فلترة حسب حالة التفعيل
+      if (is_active !== 'null') {
+        query += ` AND is_active = $1`;
+        params.push(is_active === 'true');
+      }
+      
+      query += ` ORDER BY name ASC`;
+      
+      const { rows } = await pool.query(query, params);
+      
+      res.json({
+        success: true,
+        data: rows,
+        count: rows.length
+      });
+      
+    } catch (error) {
+      console.error('خطأ في جلب العمليات المختصرة:', error);
+      res.status(500).json({
+        success: false,
+        message: 'حدث خطأ في جلب العمليات',
+        error: error.message
+      });
+    }
+  }
+
   // جلب عملية بالـ ID
   static async getProcessById(req, res) {
     try {
