@@ -14,6 +14,7 @@ import ticketService from '../../services/ticketService';
 import userService from '../../services/userService';
 import commentService from '../../services/commentService';
 import notificationService from '../../services/notificationService';
+import processService from '../../services/processService';
 import apiClient from '../../lib/api';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import { useQuickNotifications } from '../ui/NotificationSystem';
@@ -955,17 +956,32 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const loadAllProcesses = async () => {
     setIsLoadingProcesses(true);
     try {
-      // استخدام processes من WorkflowContext (متوفر بالفعل)
-      if (processes && processes.length > 0) {
-        console.log('✅ تم تحميل العمليات:', processes.length);
-        setAllProcesses(processes);
+      // استخدام endpoint /api/processes/simple لجلب العمليات البسيطة
+      const response = await processService.getSimpleProcesses();
+      
+      if (response.success && response.data) {
+        console.log('✅ تم تحميل العمليات:', response.data.length);
+        // تحويل البيانات إلى شكل Process للتوافق مع الكود الحالي
+        const processesList: Process[] = response.data.map((p: { id: string; name: string }) => ({
+          id: p.id,
+          name: p.name,
+          description: '',
+          is_active: true,
+          stages: [],
+          created_at: '',
+          updated_at: '',
+          created_by: '',
+          priority: 0
+        }));
+        setAllProcesses(processesList);
       } else {
-        console.warn('⚠️ لا توجد عمليات متاحة في WorkflowContext');
+        console.warn('⚠️ لا توجد عمليات متاحة');
         setAllProcesses([]);
       }
     } catch (error) {
       console.error('❌ خطأ في جلب العمليات:', error);
       setAllProcesses([]);
+      notifications.showError('خطأ', 'فشل في جلب العمليات');
     } finally {
       setIsLoadingProcesses(false);
     }
@@ -3989,9 +4005,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                               )}
                               <div className="flex items-center space-x-2 space-x-reverse mt-2">
                                 <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                                  {proc.stages?.length || 0} مرحلة
+                                  ID: {proc.id.substring(0, 8)}...
                                 </span>
-                                {proc.is_active && (
+                                {proc.is_active !== false && (
                                   <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: `${colors.primary}30`, color: colors.primaryDark }}>
                                     نشط
                                   </span>

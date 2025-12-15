@@ -138,6 +138,19 @@ class ProcessService {
       throw error;
     }
   }
+
+  /**
+   * جلب جميع العمليات (اسم العملية ورقمها فقط)
+   */
+  async getSimpleProcesses(): Promise<ApiResponse<Array<{ id: string; name: string }>>> {
+    try {
+      const response = await apiClient.get(`${this.endpoint}/simple`);
+      return response;
+    } catch (error) {
+      console.error('خطأ في جلب العمليات البسيطة:', error);
+      throw error;
+    }
+  }
 }
 
 export const processService = new ProcessService();
