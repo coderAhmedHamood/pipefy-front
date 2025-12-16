@@ -355,6 +355,7 @@ export const ReportsManager: React.FC = () => {
   const [showProcessCompletedTicketsList, setShowProcessCompletedTicketsList] = useState(false);
   const [processCompletedTicketsDateFrom, setProcessCompletedTicketsDateFrom] = useState(getDefaultDates().dateFrom);
   const [processCompletedTicketsDateTo, setProcessCompletedTicketsDateTo] = useState(getDefaultDates().dateTo);
+  const [isExportingProcessCompletedTickets, setIsExportingProcessCompletedTickets] = useState(false);
 
   // جلب البيانات حسب التبويبة النشطة
   useEffect(() => {
@@ -942,6 +943,94 @@ export const ReportsManager: React.FC = () => {
         processCompletedTicketsDateFrom,
         processCompletedTicketsDateTo
       );
+    }
+  };
+
+  // تصدير تذاكر العملية المنتهية إلى Excel
+  const exportProcessCompletedTicketsToExcel = () => {
+    if (!processCompletedTicketsReport || !processCompletedTicketsReport.report || processCompletedTicketsReport.report.length === 0) {
+      notifications.showError('خطأ', 'لا توجد بيانات للتصدير');
+      return;
+    }
+
+    setIsExportingProcessCompletedTickets(true);
+    try {
+      const excelData = processCompletedTicketsReport.report.map((ticket: any, index: number) => {
+        const assignees = [];
+        if (ticket.primary_assignee_name) {
+          assignees.push(ticket.primary_assignee_name);
+        }
+        if (ticket.additional_assignees && Array.isArray(ticket.additional_assignees)) {
+          ticket.additional_assignees.forEach((assignee: any) => {
+            if (assignee.name) assignees.push(assignee.name);
+          });
+        }
+
+        const reviewers = [];
+        if (ticket.reviewers && Array.isArray(ticket.reviewers)) {
+          ticket.reviewers.forEach((reviewer: any) => {
+            if (reviewer.reviewer_name) {
+              reviewers.push(reviewer.reviewer_name);
+            }
+          });
+        }
+
+        const formatDate = (dateString: string | null) => {
+          if (!dateString) return '';
+          const date = new Date(dateString);
+          return date.toLocaleDateString('ar-SA', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        };
+
+        return {
+          'رقم': index + 1,
+          'رقم التذكرة': ticket.ticket_number || '',
+          'العنوان': ticket.ticket_title || '',
+          'الأولوية': getPriorityLabel(ticket.ticket_priority || ''),
+          'المرحلة': ticket.ticket_stage_name || '',
+          'تاريخ الإنشاء': formatDate(ticket.ticket_created_at),
+          'تاريخ الإكمال': formatDate(ticket.ticket_completed_at),
+          'المسندين': assignees.join('، ') || '',
+          'المراجعين': reviewers.join('، ') || ''
+        };
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      const colWidths = [
+        { wch: 5 },   // رقم
+        { wch: 15 },  // رقم التذكرة
+        { wch: 30 },  // العنوان
+        { wch: 12 },  // الأولوية
+        { wch: 20 },  // المرحلة
+        { wch: 20 },  // تاريخ الإنشاء
+        { wch: 20 },  // تاريخ الإكمال
+        { wch: 30 },  // المسندين
+        { wch: 30 }   // المراجعين
+      ];
+      ws['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, 'التذاكر المنتهية');
+
+      const processName = selectedProcessCompletedTickets?.name || 'عملية';
+      const dateFrom = processCompletedTicketsDateFrom.replace(/-/g, '');
+      const dateTo = processCompletedTicketsDateTo.replace(/-/g, '');
+      const fileName = `تذاكر_العملية_المنتهية_${processName}_${dateFrom}_${dateTo}.xlsx`;
+
+      XLSX.writeFile(wb, fileName);
+
+      notifications.showSuccess('نجح', 'تم تصدير البيانات إلى Excel بنجاح');
+    } catch (error) {
+      console.error('❌ خطأ في تصدير Excel:', error);
+      notifications.showError('خطأ', 'حدث خطأ أثناء تصدير البيانات');
+    } finally {
+      setIsExportingProcessCompletedTickets(false);
     }
   };
 
@@ -3428,8 +3517,23 @@ export const ReportsManager: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* اليمين: معلومات العملية */}
+                      {/* اليمين: معلومات العملية وأيقونة التصدير */}
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* أيقونة التصدير */}
+                        {processCompletedTicketsReport.report && processCompletedTicketsReport.report.length > 0 && (
+                          <button
+                            onClick={exportProcessCompletedTicketsToExcel}
+                            disabled={isExportingProcessCompletedTickets}
+                            className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
+                            title="تصدير إلى Excel"
+                          >
+                            {isExportingProcessCompletedTickets ? (
+                              <Loader className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} animate-spin`} />
+                            ) : (
+                              <Download className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                            )}
+                          </button>
+                        )}
                         <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} ${selectedProcessCompletedTickets.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
                           <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{selectedProcessCompletedTickets.name.charAt(0)}</span>
                         </div>
