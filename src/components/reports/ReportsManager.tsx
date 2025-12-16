@@ -204,7 +204,7 @@ interface UserReport {
   };
 }
 
-type TabType = 'users' | 'processes' | 'development';
+type TabType = 'users' | 'processes' | 'development' | 'completedTicketsTable';
 
 interface CompletedTicketsReport {
   user: {
@@ -331,6 +331,17 @@ export const ReportsManager: React.FC = () => {
   // حقول التاريخ للتبويبة الجديدة - افتراضياً آخر 30 يوم
   const [completedTicketsDateFrom, setCompletedTicketsDateFrom] = useState(getDefaultDates().dateFrom);
   const [completedTicketsDateTo, setCompletedTicketsDateTo] = useState(getDefaultDates().dateTo);
+  
+  // حالات التبويبة الجديدة (جدول التذاكر المنتهية)
+  const [tableTicketsUsers, setTableTicketsUsers] = useState<User[]>([]);
+  const [selectedTableTicketsUser, setSelectedTableTicketsUser] = useState<User | null>(null);
+  const [tableTicketsReport, setTableTicketsReport] = useState<CompletedTicketsReport | null>(null);
+  const [isLoadingTableTicketsUsers, setIsLoadingTableTicketsUsers] = useState(false);
+  const [isLoadingTableTicketsReport, setIsLoadingTableTicketsReport] = useState(false);
+  const [tableTicketsUserSearchQuery, setTableTicketsUserSearchQuery] = useState('');
+  const [showTableTicketsUserList, setShowTableTicketsUserList] = useState(false);
+  const [tableTicketsDateFrom, setTableTicketsDateFrom] = useState(getDefaultDates().dateFrom);
+  const [tableTicketsDateTo, setTableTicketsDateTo] = useState(getDefaultDates().dateTo);
 
   // جلب البيانات حسب التبويبة النشطة
   useEffect(() => {
@@ -340,6 +351,8 @@ export const ReportsManager: React.FC = () => {
       fetchUsers();
     } else if (activeTab === 'development') {
       fetchCompletedTicketsUsers();
+    } else if (activeTab === 'completedTicketsTable') {
+      fetchTableTicketsUsers();
     }
   }, [activeTab]);
 
@@ -661,6 +674,90 @@ export const ReportsManager: React.FC = () => {
     }
   };
 
+  // جلب المستخدمين للتبويبة الجديدة (جدول التذاكر المنتهية)
+  const fetchTableTicketsUsers = async () => {
+    setIsLoadingTableTicketsUsers(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setTableTicketsUsers(result.data);
+        } else if (Array.isArray(result)) {
+          setTableTicketsUsers(result);
+        }
+      }
+    } catch (error) {
+      console.error('خطأ في جلب المستخدمين:', error);
+    } finally {
+      setIsLoadingTableTicketsUsers(false);
+    }
+  };
+
+  // جلب تقرير التذاكر المنتهية لمستخدم معين (للتبويبة الجديدة)
+  const fetchTableTicketsReport = async (userId: string, customDateFrom?: string, customDateTo?: string) => {
+    setIsLoadingTableTicketsReport(true);
+    setTableTicketsReport(null);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const from = customDateFrom || tableTicketsDateFrom;
+      const to = customDateTo || tableTicketsDateTo;
+      
+      const url = `${API_BASE_URL}/api/reports/users/${userId}/completed-tickets?date_from=${from}&date_to=${to}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setTableTicketsReport(result.data);
+        } else {
+          console.error('❌ البيانات غير صحيحة:', result);
+          notifications.showError('خطأ', 'فشل في جلب التقرير: البيانات غير صحيحة');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ خطأ في الاستجابة:', errorData);
+        notifications.showError('خطأ', `فشل في جلب التقرير: ${errorData.message || 'خطأ غير معروف'}`);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في جلب تقرير التذاكر المنتهية:', error);
+      notifications.showError('خطأ', 'حدث خطأ أثناء جلب التقرير');
+    } finally {
+      setIsLoadingTableTicketsReport(false);
+    }
+  };
+
+  const handleTableTicketsUserClick = (user: User) => {
+    setSelectedTableTicketsUser(user);
+    const defaultDates = getDefaultDates();
+    setTableTicketsDateFrom(defaultDates.dateFrom);
+    setTableTicketsDateTo(defaultDates.dateTo);
+    fetchTableTicketsReport(user.id, defaultDates.dateFrom, defaultDates.dateTo);
+  };
+
+  const handleTableTicketsDateChange = () => {
+    if (selectedTableTicketsUser) {
+      fetchTableTicketsReport(
+        selectedTableTicketsUser.id,
+        tableTicketsDateFrom,
+        tableTicketsDateTo
+      );
+    }
+  };
+
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
@@ -746,6 +843,20 @@ export const ReportsManager: React.FC = () => {
             <div className="flex items-center space-x-1.5 space-x-reverse">
               <Settings className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
               <span>{isMobile || isTablet ? 'تذاكر المستخدم' : 'تقرير تذاكر المستخدم'}</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('completedTicketsTable')}
+            className={`${isMobile || isTablet ? 'pb-2 px-3 text-xs flex-shrink-0' : 'pb-3 px-4'} font-medium transition-colors relative ${
+              activeTab === 'completedTicketsTable'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-1.5 space-x-reverse">
+              <FileText className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+              <span>{isMobile || isTablet ? 'جدول التذاكر' : 'جدول التذاكر المنتهية'}</span>
             </div>
           </button>
         </div>
@@ -2548,6 +2659,380 @@ export const ReportsManager: React.FC = () => {
                     <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mb-4`}>فشل في جلب التقرير</p>
                     <button
                       onClick={() => selectedCompletedTicketsUser && fetchCompletedTicketsReport(selectedCompletedTicketsUser.id)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* تبويبة جدول التذاكر المنتهية */}
+        {activeTab === 'completedTicketsTable' && (
+          <>
+            {/* Right Panel - قائمة المستخدمين */}
+            {((isMobile || isTablet) && showTableTicketsUserList) || !(isMobile || isTablet) ? (
+              <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
+                {(isMobile || isTablet) && (
+                  <div 
+                    className="border-b border-gray-200"
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
+                    <div className="flex items-center justify-between p-3">
+                      <h3 className="font-bold text-white text-base">المستخدمين</h3>
+                      <button
+                        onClick={() => setShowTableTicketsUserList(false)}
+                        className="p-1.5 rounded-lg hover:bg-white hover:bg-opacity-20 text-white"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                    </div>
+                    {/* Search Bar */}
+                    <div className="p-3 pt-0">
+                      <div className="relative">
+                        <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={tableTicketsUserSearchQuery}
+                          onChange={(e) => setTableTicketsUserSearchQuery(e.target.value)}
+                          placeholder="ابحث عن مستخدم..."
+                          className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {!(isMobile || isTablet) && (
+                  <div 
+                    className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200`}
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
+                    <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>المستخدمين</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1 mb-3`} style={{ color: 'rgba(255, 255, 255, 0.9)' }}>اختر مستخدم لعرض التقرير</p>
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={tableTicketsUserSearchQuery}
+                        onChange={(e) => setTableTicketsUserSearchQuery(e.target.value)}
+                        placeholder="ابحث عن مستخدم..."
+                        className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {isLoadingTableTicketsUsers ? (
+                  <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} animate-spin`} style={{ color: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary }} />
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {tableTicketsUsers.filter((user) => {
+                      const query = tableTicketsUserSearchQuery.toLowerCase();
+                      return (
+                        user.name?.toLowerCase().includes(query) ||
+                        user.email?.toLowerCase().includes(query) ||
+                        user.role?.name?.toLowerCase().includes(query)
+                      );
+                    }).map((user) => (
+                      <button
+                        key={user.id}
+                        onClick={() => {
+                          handleTableTicketsUserClick(user);
+                          if (isMobile || isTablet) setShowTableTicketsUserList(false);
+                        }}
+                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right transition-colors border-r-4 ${
+                          selectedTableTicketsUser?.id === user.id ? '' : 'border-transparent'
+                        }`}
+                        style={{
+                          backgroundColor: selectedTableTicketsUser?.id === user.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A915' : `${colors.primary}15`)
+                            : 'transparent',
+                          borderColor: selectedTableTicketsUser?.id === user.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary)
+                            : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedTableTicketsUser?.id !== user.id) {
+                            e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A910' : `${colors.primary}10`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedTableTicketsUser?.id !== user.id) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                      >
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          <div 
+                            className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center flex-shrink-0`}
+                            style={{
+                              background: currentTheme.name === 'cleanlife'
+                                ? 'linear-gradient(to bottom right, #00B8A9, #006D5B)'
+                                : `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})`
+                            }}
+                          >
+                            <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{user.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`font-semibold text-gray-900 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} truncate`}>{user.name}</h4>
+                            {!(isMobile || isTablet) && (
+                              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                            )}
+                            <div className={`flex items-center ${isMobile || isTablet ? 'space-x-1.5 space-x-reverse mt-0.5' : 'space-x-2 space-x-reverse mt-1'}`}>
+                              {user.role && (
+                                <span className={`inline-block ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full bg-purple-100 text-purple-700`}>
+                                  {user.role.name}
+                                </span>
+                              )}
+                              <span className={`inline-block ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
+                                user.is_active ? '' : 'bg-gray-100 text-gray-700'
+                              }`}
+                              style={user.is_active ? {
+                                backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A930' : `${colors.primary}30`,
+                                color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark
+                              } : {}}
+                              >
+                                {user.is_active ? 'نشط' : 'غير نشط'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                    
+                    {/* رسالة عدم وجود نتائج */}
+                    {tableTicketsUsers.filter((user) => {
+                      const query = tableTicketsUserSearchQuery.toLowerCase();
+                      return (
+                        user.name?.toLowerCase().includes(query) ||
+                        user.email?.toLowerCase().includes(query) ||
+                        user.role?.name?.toLowerCase().includes(query)
+                      );
+                    }).length === 0 && tableTicketsUserSearchQuery && tableTicketsUsers.length > 0 && (
+                      <div className={`${isMobile || isTablet ? 'p-4' : 'p-8'} text-center`}>
+                        <Search className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-gray-300 mx-auto mb-3`} />
+                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>لا توجد نتائج للبحث</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* Left Panel - الجدول */}
+            <div className={`${isMobile || isTablet ? 'w-full' : 'flex-1'} overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} bg-gray-50`}>
+              {!selectedTableTicketsUser ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Users className={`${isMobile || isTablet ? 'w-16 h-16' : 'w-24 h-24'} mx-auto mb-6 text-gray-300`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 mb-2`}>اختر مستخدم من القائمة</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                      {(isMobile || isTablet) ? 'اضغط على زر المستخدمين لعرض القائمة' : 'اضغط على أي مستخدم من القائمة اليمنى لعرض التقرير'}
+                    </p>
+                    {(isMobile || isTablet) && (
+                      <button
+                        onClick={() => setShowTableTicketsUserList(true)}
+                        className="mt-4 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                        style={{ 
+                          backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary 
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary}
+                      >
+                        عرض المستخدمين
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : isLoadingTableTicketsReport ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-blue-500 animate-spin mx-auto mb-4`} />
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري تحميل التقرير...</p>
+                  </div>
+                </div>
+              ) : tableTicketsReport && selectedTableTicketsUser ? (
+                <>
+                  {/* Header - معلومات المستخدم والتواريخ */}
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-4'} mb-4`}>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      {/* اليسار: التواريخ وزر التحديث */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <label className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 whitespace-nowrap`}>من:</label>
+                          <input
+                            type="date"
+                            value={tableTicketsDateFrom}
+                            onChange={(e) => setTableTicketsDateFrom(e.target.value)}
+                            className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'} border border-gray-300 rounded text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white`}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <label className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 whitespace-nowrap`}>إلى:</label>
+                          <input
+                            type="date"
+                            value={tableTicketsDateTo}
+                            onChange={(e) => setTableTicketsDateTo(e.target.value)}
+                            className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'} border border-gray-300 rounded text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white`}
+                          />
+                        </div>
+                        
+                        <button
+                          onClick={handleTableTicketsDateChange}
+                          className={`bg-blue-600 text-white ${isMobile || isTablet ? 'py-1 px-2 text-xs' : 'py-2 px-3 text-sm'} rounded hover:bg-blue-700 transition-colors font-medium flex items-center gap-1 whitespace-nowrap`}
+                        >
+                          <RefreshCw className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
+                          <span>تحديث</span>
+                        </button>
+                      </div>
+
+                      {/* اليمين: معلومات المستخدم */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div 
+                          className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center flex-shrink-0`}
+                          style={{
+                            background: currentTheme.name === 'cleanlife'
+                              ? 'linear-gradient(to bottom right, #00B8A9, #006D5B)'
+                              : `linear-gradient(to bottom right, ${colors.primary}, ${colors.primaryDark})`
+                          }}
+                        >
+                          <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{selectedTableTicketsUser.name.charAt(0)}</span>
+                        </div>
+                        <div className="text-right">
+                          <h2 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 truncate max-w-[150px]`} title={selectedTableTicketsUser.name}>
+                            {selectedTableTicketsUser.name}
+                          </h2>
+                          <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600 truncate max-w-[150px]`} title={selectedTableTicketsUser.email}>
+                            {selectedTableTicketsUser.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* الجدول */}
+                  {tableTicketsReport.report && tableTicketsReport.report.length > 0 ? (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>#</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>رقم التذكرة</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>العنوان</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>الأولوية</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>العملية</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>المرحلة</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>تاريخ الإنشاء</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>تاريخ الإكمال</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>المسندين</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>المراجعين</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {tableTicketsReport.report.map((ticket, index) => {
+                              const assignees = [];
+                              if (ticket.primary_assignee_name) {
+                                assignees.push(ticket.primary_assignee_name);
+                              }
+                              if (ticket.additional_assignees && Array.isArray(ticket.additional_assignees)) {
+                                ticket.additional_assignees.forEach((assignee: any) => {
+                                  if (assignee.name) assignees.push(assignee.name);
+                                });
+                              }
+
+                              const reviewers = [];
+                              if (ticket.reviewers && Array.isArray(ticket.reviewers)) {
+                                ticket.reviewers.forEach((reviewer: any) => {
+                                  if (reviewer.reviewer_name) {
+                                    reviewers.push(reviewer.reviewer_name);
+                                  }
+                                });
+                              }
+
+                              const formatDate = (dateString: string | null) => {
+                                if (!dateString) return '-';
+                                const date = new Date(dateString);
+                                return date.toLocaleDateString('ar-SA', {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                });
+                              };
+
+                              return (
+                                <tr key={ticket.ticket_id} className="hover:bg-gray-50">
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-900`}>
+                                    {index + 1}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>
+                                    {ticket.ticket_number}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-900 max-w-xs truncate`}>
+                                    {ticket.ticket_title}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap`}>
+                                    <span className={`inline-flex items-center px-2 py-1 rounded-full ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-medium ${getPriorityColor(ticket.ticket_priority || 'medium')} text-white`}>
+                                      {getPriorityLabel(ticket.ticket_priority || 'medium')}
+                                    </span>
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-900`}>
+                                    {ticket.ticket_process_name}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-900`}>
+                                    {ticket.ticket_stage_name}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                                    {formatDate(ticket.ticket_created_at)}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                                    {formatDate(ticket.ticket_completed_at)}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                                    {assignees.length > 0 ? assignees.join('، ') : '-'}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                                    {reviewers.length > 0 ? reviewers.join('، ') : '-'}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`bg-white rounded-xl shadow-md border border-gray-200 ${isMobile || isTablet ? 'p-6' : 'p-12'} text-center`}>
+                      <CheckCircle className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} mx-auto mb-4 text-gray-300`} />
+                      <p className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} text-gray-600`}>لا توجد تذاكر منتهية في الفترة المحددة</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <AlertTriangle className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} mx-auto mb-4 text-red-400`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-xl'} font-semibold text-gray-900 mb-2`}>حدث خطأ</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mb-4`}>فشل في جلب التقرير</p>
+                    <button
+                      onClick={() => selectedTableTicketsUser && fetchTableTicketsReport(selectedTableTicketsUser.id)}
                       className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
                     >
                       إعادة المحاولة
