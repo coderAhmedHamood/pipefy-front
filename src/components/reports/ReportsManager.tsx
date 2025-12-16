@@ -806,13 +806,12 @@ export const ReportsManager: React.FC = () => {
         const formatDate = (dateString: string | null) => {
           if (!dateString) return '';
           const date = new Date(dateString);
-          return date.toLocaleDateString('ar-SA', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return `${year}-${month}-${day} ${hours}:${minutes}`;
         };
 
         return {
@@ -978,13 +977,12 @@ export const ReportsManager: React.FC = () => {
         const formatDate = (dateString: string | null) => {
           if (!dateString) return '';
           const date = new Date(dateString);
-          return date.toLocaleDateString('ar-SA', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-          });
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return `${year}-${month}-${day} ${hours}:${minutes}`;
         };
 
         return {
@@ -2396,10 +2394,26 @@ export const ReportsManager: React.FC = () => {
                                     </span>
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                    {new Date(ticket.created_at).toLocaleDateString('ar-SA')}
+                                    {(() => {
+                                      const date = new Date(ticket.created_at);
+                                      const year = date.getFullYear();
+                                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                                      const day = String(date.getDate()).padStart(2, '0');
+                                      const hours = String(date.getHours()).padStart(2, '0');
+                                      const minutes = String(date.getMinutes()).padStart(2, '0');
+                                      return `${year}-${month}-${day} ${hours}:${minutes}`;
+                                    })()}
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                                    {ticket.due_date ? new Date(ticket.due_date).toLocaleDateString('ar-SA') : 'غير محدد'}
+                                    {ticket.due_date ? (() => {
+                                      const date = new Date(ticket.due_date);
+                                      const year = date.getFullYear();
+                                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                                      const day = String(date.getDate()).padStart(2, '0');
+                                      const hours = String(date.getHours()).padStart(2, '0');
+                                      const minutes = String(date.getMinutes()).padStart(2, '0');
+                                      return `${year}-${month}-${day} ${hours}:${minutes}`;
+                                    })() : 'غير محدد'}
                                   </td>
                                   <td className="px-4 py-3 whitespace-nowrap text-sm">
                                     <button
@@ -3272,13 +3286,12 @@ export const ReportsManager: React.FC = () => {
                               const formatDate = (dateString: string | null) => {
                                 if (!dateString) return '-';
                                 const date = new Date(dateString);
-                                return date.toLocaleDateString('ar-SA', {
-                                  year: 'numeric',
-                                  month: '2-digit',
-                                  day: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                });
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                return `${year}-${month}-${day} ${hours}:${minutes}`;
                               };
 
                               return (
@@ -3593,13 +3606,12 @@ export const ReportsManager: React.FC = () => {
                               const formatDate = (dateString: string | null) => {
                                 if (!dateString) return '-';
                                 const date = new Date(dateString);
-                                return date.toLocaleDateString('ar-SA', {
-                                  year: 'numeric',
-                                  month: '2-digit',
-                                  day: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                });
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const hours = String(date.getHours()).padStart(2, '0');
+                                const minutes = String(date.getMinutes()).padStart(2, '0');
+                                return `${year}-${month}-${day} ${hours}:${minutes}`;
                               };
 
                               return (
