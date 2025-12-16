@@ -25,3 +25,4 @@ SELECT
   COUNT(DISTINCT current_stage_id) as tickets_with_stages
 FROM tickets;
 
+
