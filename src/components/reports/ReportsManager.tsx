@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../config/config';
 import { useDeviceType } from '../../hooks/useDeviceType';
+import * as XLSX from 'xlsx';
 import { 
   BarChart3, 
   Users, 
@@ -19,7 +20,8 @@ import {
   Bell,
   Send,
   ChevronLeft,
-  Search
+  Search,
+  Download
 } from 'lucide-react';
 import notificationService from '../../services/notificationService';
 import ticketAssignmentService from '../../services/ticketAssignmentService';
@@ -342,6 +344,7 @@ export const ReportsManager: React.FC = () => {
   const [showTableTicketsUserList, setShowTableTicketsUserList] = useState(false);
   const [tableTicketsDateFrom, setTableTicketsDateFrom] = useState(getDefaultDates().dateFrom);
   const [tableTicketsDateTo, setTableTicketsDateTo] = useState(getDefaultDates().dateTo);
+  const [isExportingTableTickets, setIsExportingTableTickets] = useState(false);
 
   // جلب البيانات حسب التبويبة النشطة
   useEffect(() => {
@@ -755,6 +758,96 @@ export const ReportsManager: React.FC = () => {
         tableTicketsDateFrom,
         tableTicketsDateTo
       );
+    }
+  };
+
+  // تصدير جدول التذاكر المنتهية إلى Excel
+  const exportTableTicketsToExcel = () => {
+    if (!tableTicketsReport || !tableTicketsReport.report || tableTicketsReport.report.length === 0) {
+      notifications.showError('خطأ', 'لا توجد بيانات للتصدير');
+      return;
+    }
+
+    setIsExportingTableTickets(true);
+    try {
+      const excelData = tableTicketsReport.report.map((ticket: any, index: number) => {
+        const assignees = [];
+        if (ticket.primary_assignee_name) {
+          assignees.push(ticket.primary_assignee_name);
+        }
+        if (ticket.additional_assignees && Array.isArray(ticket.additional_assignees)) {
+          ticket.additional_assignees.forEach((assignee: any) => {
+            if (assignee.name) assignees.push(assignee.name);
+          });
+        }
+
+        const reviewers = [];
+        if (ticket.reviewers && Array.isArray(ticket.reviewers)) {
+          ticket.reviewers.forEach((reviewer: any) => {
+            if (reviewer.reviewer_name) {
+              reviewers.push(reviewer.reviewer_name);
+            }
+          });
+        }
+
+        const formatDate = (dateString: string | null) => {
+          if (!dateString) return '';
+          const date = new Date(dateString);
+          return date.toLocaleDateString('ar-SA', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        };
+
+        return {
+          'رقم': index + 1,
+          'رقم التذكرة': ticket.ticket_number || '',
+          'العنوان': ticket.ticket_title || '',
+          'الأولوية': getPriorityLabel(ticket.ticket_priority || ''),
+          'العملية': ticket.ticket_process_name || '',
+          'المرحلة': ticket.ticket_stage_name || '',
+          'تاريخ الإنشاء': formatDate(ticket.ticket_created_at),
+          'تاريخ الإكمال': formatDate(ticket.ticket_completed_at),
+          'المسندين': assignees.join('، ') || '',
+          'المراجعين': reviewers.join('، ') || ''
+        };
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      const colWidths = [
+        { wch: 5 },   // رقم
+        { wch: 15 },  // رقم التذكرة
+        { wch: 30 },  // العنوان
+        { wch: 12 },  // الأولوية
+        { wch: 20 },  // العملية
+        { wch: 20 },  // المرحلة
+        { wch: 20 },  // تاريخ الإنشاء
+        { wch: 20 },  // تاريخ الإكمال
+        { wch: 30 },  // المسندين
+        { wch: 30 }   // المراجعين
+      ];
+      ws['!cols'] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, 'التذاكر المنتهية');
+
+      const userName = tableTicketsReport.user?.name || 'مستخدم';
+      const dateFrom = tableTicketsDateFrom.replace(/-/g, '');
+      const dateTo = tableTicketsDateTo.replace(/-/g, '');
+      const fileName = `جدول_التذاكر_المنتهية_${userName}_${dateFrom}_${dateTo}.xlsx`;
+
+      XLSX.writeFile(wb, fileName);
+
+      notifications.showSuccess('نجح', 'تم تصدير البيانات إلى Excel بنجاح');
+    } catch (error) {
+      console.error('❌ خطأ في تصدير Excel:', error);
+      notifications.showError('خطأ', 'حدث خطأ أثناء تصدير البيانات');
+    } finally {
+      setIsExportingTableTickets(false);
     }
   };
 
@@ -2901,8 +2994,23 @@ export const ReportsManager: React.FC = () => {
                         </button>
                       </div>
 
-                      {/* اليمين: معلومات المستخدم */}
+                      {/* اليمين: معلومات المستخدم وأيقونة التصدير */}
                       <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* أيقونة التصدير */}
+                        {tableTicketsReport.report && tableTicketsReport.report.length > 0 && (
+                          <button
+                            onClick={exportTableTicketsToExcel}
+                            disabled={isExportingTableTickets}
+                            className={`${isMobile || isTablet ? 'p-2' : 'p-2.5'} bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
+                            title="تصدير إلى Excel"
+                          >
+                            {isExportingTableTickets ? (
+                              <Loader className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} animate-spin`} />
+                            ) : (
+                              <Download className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                            )}
+                          </button>
+                        )}
                         <div 
                           className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} rounded-full flex items-center justify-center flex-shrink-0`}
                           style={{
