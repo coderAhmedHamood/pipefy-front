@@ -206,7 +206,7 @@ interface UserReport {
   };
 }
 
-type TabType = 'users' | 'processes' | 'development' | 'completedTicketsTable';
+type TabType = 'users' | 'processes' | 'development' | 'completedTicketsTable' | 'processCompletedTickets';
 
 interface CompletedTicketsReport {
   user: {
@@ -345,6 +345,16 @@ export const ReportsManager: React.FC = () => {
   const [tableTicketsDateFrom, setTableTicketsDateFrom] = useState(getDefaultDates().dateFrom);
   const [tableTicketsDateTo, setTableTicketsDateTo] = useState(getDefaultDates().dateTo);
   const [isExportingTableTickets, setIsExportingTableTickets] = useState(false);
+  
+  // حالات التبويبة الجديدة (تذاكر العملية المنتهية)
+  const [processCompletedTicketsProcesses, setProcessCompletedTicketsProcesses] = useState<Process[]>([]);
+  const [selectedProcessCompletedTickets, setSelectedProcessCompletedTickets] = useState<Process | null>(null);
+  const [processCompletedTicketsReport, setProcessCompletedTicketsReport] = useState<any>(null);
+  const [isLoadingProcessCompletedTicketsProcesses, setIsLoadingProcessCompletedTicketsProcesses] = useState(false);
+  const [isLoadingProcessCompletedTicketsReport, setIsLoadingProcessCompletedTicketsReport] = useState(false);
+  const [showProcessCompletedTicketsList, setShowProcessCompletedTicketsList] = useState(false);
+  const [processCompletedTicketsDateFrom, setProcessCompletedTicketsDateFrom] = useState(getDefaultDates().dateFrom);
+  const [processCompletedTicketsDateTo, setProcessCompletedTicketsDateTo] = useState(getDefaultDates().dateTo);
 
   // جلب البيانات حسب التبويبة النشطة
   useEffect(() => {
@@ -356,6 +366,8 @@ export const ReportsManager: React.FC = () => {
       fetchCompletedTicketsUsers();
     } else if (activeTab === 'completedTicketsTable') {
       fetchTableTicketsUsers();
+    } else if (activeTab === 'processCompletedTickets') {
+      fetchProcessCompletedTicketsProcesses();
     }
   }, [activeTab]);
 
@@ -851,6 +863,87 @@ export const ReportsManager: React.FC = () => {
     }
   };
 
+  // جلب العمليات للتبويبة الجديدة (تذاكر العملية المنتهية)
+  const fetchProcessCompletedTicketsProcesses = async () => {
+    setIsLoadingProcessCompletedTicketsProcesses(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/processes`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setProcessCompletedTicketsProcesses(result.data);
+        }
+      }
+    } catch (error) {
+      console.error('خطأ في جلب العمليات:', error);
+    } finally {
+      setIsLoadingProcessCompletedTicketsProcesses(false);
+    }
+  };
+
+  // جلب تقرير التذاكر المنتهية لعملية معينة
+  const fetchProcessCompletedTicketsReport = async (processId: string, customDateFrom?: string, customDateTo?: string) => {
+    setIsLoadingProcessCompletedTicketsReport(true);
+    setProcessCompletedTicketsReport(null);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const from = customDateFrom || processCompletedTicketsDateFrom;
+      const to = customDateTo || processCompletedTicketsDateTo;
+      
+      const url = `${API_BASE_URL}/api/reports/processes/${processId}/completed-tickets?date_from=${from}&date_to=${to}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setProcessCompletedTicketsReport(result.data);
+        } else {
+          console.error('❌ البيانات غير صحيحة:', result);
+          notifications.showError('خطأ', 'فشل في جلب التقرير: البيانات غير صحيحة');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ خطأ في الاستجابة:', errorData);
+        notifications.showError('خطأ', `فشل في جلب التقرير: ${errorData.message || 'خطأ غير معروف'}`);
+      }
+    } catch (error) {
+      console.error('❌ خطأ في جلب تقرير التذاكر المنتهية:', error);
+      notifications.showError('خطأ', 'حدث خطأ أثناء جلب التقرير');
+    } finally {
+      setIsLoadingProcessCompletedTicketsReport(false);
+    }
+  };
+
+  const handleProcessCompletedTicketsClick = (process: Process) => {
+    setSelectedProcessCompletedTickets(process);
+    const defaultDates = getDefaultDates();
+    setProcessCompletedTicketsDateFrom(defaultDates.dateFrom);
+    setProcessCompletedTicketsDateTo(defaultDates.dateTo);
+    fetchProcessCompletedTicketsReport(process.id, defaultDates.dateFrom, defaultDates.dateTo);
+  };
+
+  const handleProcessCompletedTicketsDateChange = () => {
+    if (selectedProcessCompletedTickets) {
+      fetchProcessCompletedTicketsReport(
+        selectedProcessCompletedTickets.id,
+        processCompletedTicketsDateFrom,
+        processCompletedTicketsDateTo
+      );
+    }
+  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
@@ -950,6 +1043,20 @@ export const ReportsManager: React.FC = () => {
             <div className="flex items-center space-x-1.5 space-x-reverse">
               <FileText className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
               <span>{isMobile || isTablet ? 'جدول التذاكر' : 'جدول التذاكر المنتهية'}</span>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('processCompletedTickets')}
+            className={`${isMobile || isTablet ? 'pb-2 px-3 text-xs flex-shrink-0' : 'pb-3 px-4'} font-medium transition-colors relative ${
+              activeTab === 'processCompletedTickets'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center space-x-1.5 space-x-reverse">
+              <Activity className={isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} />
+              <span>{isMobile || isTablet ? 'تذاكر العملية' : 'تذاكر العملية المنتهية'}</span>
             </div>
           </button>
         </div>
@@ -3141,6 +3248,309 @@ export const ReportsManager: React.FC = () => {
                     <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mb-4`}>فشل في جلب التقرير</p>
                     <button
                       onClick={() => selectedTableTicketsUser && fetchTableTicketsReport(selectedTableTicketsUser.id)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* تبويبة تذاكر العملية المنتهية */}
+        {activeTab === 'processCompletedTickets' && (
+          <>
+            {/* Right Panel - قائمة العمليات */}
+            {((isMobile || isTablet) && showProcessCompletedTicketsList) || !(isMobile || isTablet) ? (
+              <div className={`${isMobile || isTablet ? 'w-full fixed inset-0 z-50 bg-white' : 'w-80'} ${isMobile || isTablet ? '' : 'border-l border-gray-200'} bg-white overflow-y-auto`}>
+                {(isMobile || isTablet) && (
+                  <div 
+                    className="flex items-center justify-between p-3 border-b border-gray-200"
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
+                    <h3 className="font-bold text-white text-base">العمليات</h3>
+                    <button
+                      onClick={() => setShowProcessCompletedTicketsList(false)}
+                      className="p-1.5 rounded-lg hover:bg-white hover:bg-opacity-20 text-white"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                  </div>
+                )}
+                {!(isMobile || isTablet) && (
+                  <div 
+                    className={`${isMobile || isTablet ? 'p-3' : 'p-4'} border-b border-gray-200`}
+                    style={{
+                      background: currentTheme.name === 'cleanlife' 
+                        ? 'linear-gradient(to left, #00B8A9, #006D5B)'
+                        : `linear-gradient(to left, ${colors.primary}, ${colors.primaryDark})`
+                    }}
+                  >
+                    <h3 className={`font-bold text-white ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>العمليات</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} mt-1`} style={{ color: 'rgba(255, 255, 255, 0.9)' }}>اختر عملية لعرض التقرير</p>
+                  </div>
+                )}
+
+                {isLoadingProcessCompletedTicketsProcesses ? (
+                  <div className={`flex items-center justify-center ${isMobile || isTablet ? 'py-8' : 'py-12'}`}>
+                    <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} animate-spin`} style={{ color: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary }} />
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {processCompletedTicketsProcesses.map((process) => (
+                      <button
+                        key={process.id}
+                        onClick={() => {
+                          handleProcessCompletedTicketsClick(process);
+                          if (isMobile || isTablet) setShowProcessCompletedTicketsList(false);
+                        }}
+                        className={`w-full ${isMobile || isTablet ? 'p-3' : 'p-4'} text-right transition-colors border-r-4 ${
+                          selectedProcessCompletedTickets?.id === process.id ? '' : 'border-transparent'
+                        }`}
+                        style={{
+                          backgroundColor: selectedProcessCompletedTickets?.id === process.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A915' : `${colors.primary}15`)
+                            : 'transparent',
+                          borderColor: selectedProcessCompletedTickets?.id === process.id 
+                            ? (currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary)
+                            : 'transparent'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedProcessCompletedTickets?.id !== process.id) {
+                            e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A910' : `${colors.primary}10`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedProcessCompletedTickets?.id !== process.id) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                      >
+                        <div className="flex items-center space-x-2 space-x-reverse">
+                          <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} ${process.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{process.name.charAt(0)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`font-semibold text-gray-900 ${isMobile || isTablet ? 'text-xs' : 'text-sm'} truncate`}>{process.name}</h4>
+                            {!(isMobile || isTablet) && (
+                              <p className="text-xs text-gray-500 truncate">{process.description}</p>
+                            )}
+                            <span className={`inline-block mt-1 ${isMobile || isTablet ? 'text-[10px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'} rounded-full ${
+                              process.is_active ? '' : 'bg-gray-100 text-gray-700'
+                            }`}
+                            style={process.is_active ? {
+                              backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A930' : `${colors.primary}30`,
+                              color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark
+                            } : {}}
+                            >
+                              {process.is_active ? 'نشط' : 'غير نشط'}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* Left Panel - الجدول */}
+            <div className={`${isMobile || isTablet ? 'w-full' : 'flex-1'} overflow-y-auto ${isMobile || isTablet ? 'p-3' : 'p-6'} bg-gray-50`}>
+              {!selectedProcessCompletedTickets ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <BarChart3 className={`${isMobile || isTablet ? 'w-16 h-16' : 'w-24 h-24'} mx-auto mb-6 text-gray-300`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 mb-2`}>اختر عملية من القائمة</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                      {(isMobile || isTablet) ? 'اضغط على زر العمليات لعرض القائمة' : 'اضغط على أي عملية من القائمة اليمنى لعرض التقرير'}
+                    </p>
+                    {(isMobile || isTablet) && (
+                      <button
+                        onClick={() => setShowProcessCompletedTicketsList(true)}
+                        className="mt-4 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                        style={{ 
+                          backgroundColor: currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary 
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = currentTheme.name === 'cleanlife' ? '#00B8A9' : colors.primary}
+                      >
+                        عرض العمليات
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : isLoadingProcessCompletedTicketsReport ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Loader className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-12 h-12'} text-blue-500 animate-spin mx-auto mb-4`} />
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>جاري تحميل التقرير...</p>
+                  </div>
+                </div>
+              ) : processCompletedTicketsReport && selectedProcessCompletedTickets ? (
+                <>
+                  {/* Header - معلومات العملية والتواريخ */}
+                  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${isMobile || isTablet ? 'p-3' : 'p-4'} mb-4`}>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      {/* اليسار: التواريخ وزر التحديث */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <label className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 whitespace-nowrap`}>من:</label>
+                          <input
+                            type="date"
+                            value={processCompletedTicketsDateFrom}
+                            onChange={(e) => setProcessCompletedTicketsDateFrom(e.target.value)}
+                            className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'} border border-gray-300 rounded text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white`}
+                          />
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <label className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 whitespace-nowrap`}>إلى:</label>
+                          <input
+                            type="date"
+                            value={processCompletedTicketsDateTo}
+                            onChange={(e) => setProcessCompletedTicketsDateTo(e.target.value)}
+                            className={`${isMobile || isTablet ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm'} border border-gray-300 rounded text-gray-900 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white`}
+                          />
+                        </div>
+                        
+                        <button
+                          onClick={handleProcessCompletedTicketsDateChange}
+                          className={`bg-blue-600 text-white ${isMobile || isTablet ? 'py-1 px-2 text-xs' : 'py-2 px-3 text-sm'} rounded hover:bg-blue-700 transition-colors font-medium flex items-center gap-1 whitespace-nowrap`}
+                        >
+                          <RefreshCw className={isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} />
+                          <span>تحديث</span>
+                        </button>
+                      </div>
+
+                      {/* اليمين: معلومات العملية */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className={`${isMobile || isTablet ? 'w-8 h-8' : 'w-10 h-10'} ${selectedProcessCompletedTickets.color} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <span className={`text-white font-bold ${isMobile || isTablet ? 'text-xs' : 'text-sm'}`}>{selectedProcessCompletedTickets.name.charAt(0)}</span>
+                        </div>
+                        <div className="text-right">
+                          <h2 className={`${isMobile || isTablet ? 'text-sm' : 'text-base'} font-semibold text-gray-900 truncate max-w-[150px]`} title={selectedProcessCompletedTickets.name}>
+                            {selectedProcessCompletedTickets.name}
+                          </h2>
+                          {!(isMobile || isTablet) && selectedProcessCompletedTickets.description && (
+                            <p className={`text-xs text-gray-600 truncate max-w-[150px]`} title={selectedProcessCompletedTickets.description}>
+                              {selectedProcessCompletedTickets.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* الجدول */}
+                  {processCompletedTicketsReport.report && processCompletedTicketsReport.report.length > 0 ? (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>#</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>رقم التذكرة</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>العنوان</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>الأولوية</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>المرحلة</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>تاريخ الإنشاء</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>تاريخ الإكمال</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>المسندين</th>
+                              <th className={`${isMobile || isTablet ? 'px-2 py-2 text-xs' : 'px-4 py-3 text-sm'} text-right font-medium text-gray-700 uppercase`}>المراجعين</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {processCompletedTicketsReport.report.map((ticket: any, index: number) => {
+                              const assignees = [];
+                              if (ticket.primary_assignee_name) {
+                                assignees.push(ticket.primary_assignee_name);
+                              }
+                              if (ticket.additional_assignees && Array.isArray(ticket.additional_assignees)) {
+                                ticket.additional_assignees.forEach((assignee: any) => {
+                                  if (assignee.name) assignees.push(assignee.name);
+                                });
+                              }
+
+                              const reviewers = [];
+                              if (ticket.reviewers && Array.isArray(ticket.reviewers)) {
+                                ticket.reviewers.forEach((reviewer: any) => {
+                                  if (reviewer.reviewer_name) {
+                                    reviewers.push(reviewer.reviewer_name);
+                                  }
+                                });
+                              }
+
+                              const formatDate = (dateString: string | null) => {
+                                if (!dateString) return '-';
+                                const date = new Date(dateString);
+                                return date.toLocaleDateString('ar-SA', {
+                                  year: 'numeric',
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                });
+                              };
+
+                              return (
+                                <tr key={ticket.ticket_id || index} className="hover:bg-gray-50">
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-900`}>
+                                    {index + 1}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-900`}>
+                                    {ticket.ticket_number || '-'}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-900 max-w-xs truncate`}>
+                                    {ticket.ticket_title || '-'}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap`}>
+                                    <span className={`inline-flex items-center px-2 py-1 rounded-full ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-medium ${getPriorityColor(ticket.ticket_priority || 'medium')} text-white`}>
+                                      {getPriorityLabel(ticket.ticket_priority || 'medium')}
+                                    </span>
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-900`}>
+                                    {ticket.ticket_stage_name || '-'}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                                    {formatDate(ticket.ticket_created_at)}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} whitespace-nowrap ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                                    {formatDate(ticket.ticket_completed_at)}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                                    {assignees.length > 0 ? assignees.join('، ') : '-'}
+                                  </td>
+                                  <td className={`${isMobile || isTablet ? 'px-2 py-2' : 'px-4 py-3'} ${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600`}>
+                                    {reviewers.length > 0 ? reviewers.join('، ') : '-'}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`bg-white rounded-xl shadow-md border border-gray-200 ${isMobile || isTablet ? 'p-6' : 'p-12'} text-center`}>
+                      <CheckCircle className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} mx-auto mb-4 text-gray-300`} />
+                      <p className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} text-gray-600`}>لا توجد تذاكر منتهية في الفترة المحددة</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <AlertTriangle className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} mx-auto mb-4 text-red-400`} />
+                    <h3 className={`${isMobile || isTablet ? 'text-lg' : 'text-xl'} font-semibold text-gray-900 mb-2`}>حدث خطأ</h3>
+                    <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-600 mb-4`}>فشل في جلب التقرير</p>
+                    <button
+                      onClick={() => selectedProcessCompletedTickets && fetchProcessCompletedTicketsReport(selectedProcessCompletedTickets.id)}
                       className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
                     >
                       إعادة المحاولة
