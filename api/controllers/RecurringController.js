@@ -172,6 +172,7 @@ class RecurringController {
         timezone = 'Asia/Riyadh',
         is_active = true,
         next_execution,
+        start_date,  // تاريخ بداية التنفيذ
         assigned_to,
         priority = 'medium',
         status = 'active',
@@ -222,11 +223,52 @@ class RecurringController {
       const title = templateDataObject.title || name;
 
       // حساب next_execution_date
-      const nextExecutionDate = next_execution 
-        ? new Date(next_execution) 
-        : calculateNextExecution(schedule_type, scheduleConfigObject, timezone);
+      // الأولوية: start_date > next_execution > حساب تلقائي
+      let nextExecutionDate;
+      let startDateValue;
 
-      // التحقق من صحة next_execution_date
+      if (start_date) {
+        // إذا تم إرسال start_date، استخدمه كتاريخ بداية التنفيذ
+        startDateValue = new Date(start_date);
+        nextExecutionDate = startDateValue;
+        
+        // التحقق من صحة start_date
+        if (isNaN(startDateValue.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: 'تاريخ بداية التنفيذ (start_date) غير صحيح'
+          });
+        }
+      } else if (next_execution) {
+        // إذا تم إرسال next_execution فقط، استخدمه
+        nextExecutionDate = new Date(next_execution);
+        startDateValue = nextExecutionDate;
+        
+        // التحقق من صحة next_execution
+        if (isNaN(nextExecutionDate.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: 'تاريخ التنفيذ التالي (next_execution) غير صحيح'
+          });
+        }
+      } else {
+        // إذا لم يتم إرسال أي منهما، احسب تلقائياً
+        // إذا لم يكن هناك interval في schedule_config، استخدم recurring_worker_interval من الإعدادات
+        if (!scheduleConfigObject.interval) {
+          try {
+            const Settings = require('../models/Settings');
+            const settings = await Settings.getSettings();
+            scheduleConfigObject.interval = settings.recurring_worker_interval || 1; // بالدقائق
+          } catch (error) {
+            console.warn('⚠️  تحذير: فشل جلب إعدادات recurring_worker_interval، سيتم استخدام 1 دقيقة');
+            scheduleConfigObject.interval = 1; // افتراضي: 1 دقيقة
+          }
+        }
+        nextExecutionDate = calculateNextExecution(schedule_type, scheduleConfigObject, timezone);
+        startDateValue = new Date(); // تاريخ الآن كتاريخ بداية
+      }
+
+      // التحقق النهائي من صحة next_execution_date
       if (isNaN(nextExecutionDate.getTime())) {
         return res.status(400).json({
           success: false,
@@ -282,7 +324,7 @@ class RecurringController {
           monthDay,
           weekdays,
           nextExecutionDate,
-          new Date(),
+          startDateValue,
           is_active,
           req.user.id,
           assigned_to || null,
@@ -901,6 +943,18 @@ class RecurringController {
         };
       }
       
+      // إذا لم يكن هناك interval، استخدم recurring_worker_interval من الإعدادات
+      if (!scheduleConfig.interval) {
+        try {
+          const Settings = require('../models/Settings');
+          const settings = await Settings.getSettings();
+          scheduleConfig.interval = settings.recurring_worker_interval || 1; // بالدقائق
+        } catch (error) {
+          console.warn('⚠️  تحذير: فشل جلب إعدادات recurring_worker_interval، سيتم استخدام 1 دقيقة');
+          scheduleConfig.interval = 1; // افتراضي: 1 دقيقة
+        }
+      }
+      
       const next_execution = calculateNextExecution(
         scheduleType, 
         scheduleConfig, 
@@ -948,6 +1002,72 @@ class RecurringController {
         success: false,
         message: 'خطأ في تشغيل قاعدة التكرار',
         error: error.detail || error.message
+      });
+    }
+  }
+  
+  // تنفيذ جميع القواعد المستحقة يدوياً
+  static async executeDue(req, res) {
+    try {
+      const RecurringExecutionService = require('../services/RecurringExecutionService');
+      
+      // جلب القواعد المستحقة
+      const dueRules = await RecurringExecutionService.getDueRules();
+      
+      if (dueRules.length === 0) {
+        return res.json({
+          success: true,
+          message: 'لا توجد قواعد مستحقة للتنفيذ حالياً',
+          executed_count: 0,
+          rules: []
+        });
+      }
+
+      const results = [];
+      let successCount = 0;
+      let errorCount = 0;
+
+      // تنفيذ كل قاعدة
+      for (const rule of dueRules) {
+        try {
+          const result = await RecurringExecutionService.executeRule(rule.id, req.user?.id);
+          results.push({
+            rule_id: rule.id,
+            rule_name: rule.name,
+            ...result
+          });
+          
+          if (result.success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          errorCount++;
+          results.push({
+            rule_id: rule.id,
+            rule_name: rule.name,
+            success: false,
+            message: `خطأ في التنفيذ: ${error.message}`,
+            error: error.message
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: `تم تنفيذ ${successCount} من ${dueRules.length} قاعدة`,
+        executed_count: successCount,
+        error_count: errorCount,
+        total_count: dueRules.length,
+        results: results
+      });
+    } catch (error) {
+      console.error('❌ خطأ في تنفيذ القواعد المستحقة:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطأ في تنفيذ القواعد المستحقة',
+        error: error.message
       });
     }
   }
@@ -1007,42 +1127,34 @@ function calculateNextExecution(scheduleType, scheduleConfig, timezone) {
   const now = new Date();
   const config = typeof scheduleConfig === 'string' ? safeParseJSON(scheduleConfig, {}) : (scheduleConfig || {});
   
+  // جميع أنواع الجدولة تعمل بالدقائق الآن
+  // interval في schedule_config يكون بالدقائق دائماً
+  
   switch (scheduleType) {
+    case 'minutes':
+    case 'custom':
     case 'daily':
-      const dailyNext = new Date(now);
-      dailyNext.setDate(dailyNext.getDate() + (config.interval || 1));
-      if (config.time) {
-        const [hours, minutes] = config.time.split(':');
-        dailyNext.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      }
-      return dailyNext;
-      
     case 'weekly':
-      const weeklyNext = new Date(now);
-      weeklyNext.setDate(weeklyNext.getDate() + 7 * (config.interval || 1));
-      if (config.time) {
-        const [hours, minutes] = config.time.split(':');
-        weeklyNext.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      }
-      return weeklyNext;
-      
     case 'monthly':
-      const monthlyNext = new Date(now);
-      monthlyNext.setMonth(monthlyNext.getMonth() + (config.interval || 1));
-      if (config.day_of_month) {
-        monthlyNext.setDate(config.day_of_month);
-      }
+    case 'yearly':
+    default: {
+      // حساب التاريخ التالي بناءً على الدقائق
+      const intervalMinutes = config.interval || 1; // بالدقائق
+      const nextExecution = new Date(now);
+      nextExecution.setMinutes(nextExecution.getMinutes() + intervalMinutes);
+      
+      // إذا كان هناك وقت محدد، نضبط الوقت
       if (config.time) {
         const [hours, minutes] = config.time.split(':');
-        monthlyNext.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        nextExecution.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+        // إذا كان الوقت المحدد في الماضي بعد إضافة الدقائق، نضيف يوم
+        if (nextExecution <= now) {
+          nextExecution.setDate(nextExecution.getDate() + 1);
+        }
       }
-      return monthlyNext;
       
-    default:
-      // افتراضي: يوم واحد
-      const defaultNext = new Date(now);
-      defaultNext.setDate(defaultNext.getDate() + 1);
-      return defaultNext;
+      return nextExecution;
+    }
   }
 }
 

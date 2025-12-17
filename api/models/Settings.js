@@ -87,6 +87,9 @@ class Settings {
     // رابط API الأساسي (للصور والملفات الثابتة)
     this.api_base_url = data.api_base_url || 'http://localhost:3004';
     
+    // إعدادات التذاكر المتكررة
+    this.recurring_worker_interval = data.recurring_worker_interval || 1; // بالدقائق، افتراضي: 1 دقيقة
+    
     // التواريخ
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
@@ -184,6 +187,8 @@ class Settings {
         'backup_enabled', 'backup_frequency', 'backup_retention_days',
         // إعدادات ساعات العمل
         'working_hours_enabled',
+        // إعدادات التذاكر المتكررة
+        'recurring_worker_interval',
         // إعدادات الصيانة
         'maintenance_mode', 'maintenance_message',
         // إعدادات الملفات

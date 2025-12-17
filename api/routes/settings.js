@@ -207,6 +207,14 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *           type: string
  *           description: رابط API الأساسي (يستخدم في روابط الصور والملفات الثابتة)
  *           example: "http://localhost:3004"
+ *         recurring_worker_interval:
+ *           type: integer
+ *           description: فترة فحص القواعد المستحقة للتذاكر المتكررة بالدقائق (1-60 دقيقة)
+ *           minimum: 1
+ *           maximum: 60
+ *           default: 1
+ *           example: 1
+ *           note: "ملاحظة: تغيير هذه القيمة يتطلب إعادة تشغيل الخادم لتطبيق التغييرات"
  *         created_at:
  *           type: string
  *           format: date-time
@@ -389,6 +397,13 @@ const { logoUploadMiddleware } = require('../middleware/uploadMiddleware');
  *         ticket_numbering_format:
  *           type: string
  *           description: تنسيق ترقيم التذاكر
+ *         recurring_worker_interval:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 60
+ *           default: 1
+ *           description: فترة فحص القواعد المستحقة للتذاكر المتكررة بالدقائق (1-60 دقيقة)
+ *           note: "ملاحظة: تغيير هذه القيمة يتطلب إعادة تشغيل الخادم لتطبيق التغييرات"
  *     
  *     ApiResponse:
  *       type: object

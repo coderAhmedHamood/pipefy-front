@@ -10,6 +10,8 @@
     "migrate": "node scripts/run-migrations.js",
     "create-admin": "node scripts/create-admin.js",
     "setup": "npm run create-db && npm run migrate",
+    "worker:recurring": "node workers/recurring-tickets-worker.js",
+    "worker:recurring:dev": "nodemon workers/recurring-tickets-worker.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

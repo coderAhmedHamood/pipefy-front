@@ -76,7 +76,11 @@ const { authenticateToken } = require('../middleware/auth');
  *         next_execution:
  *           type: string
  *           format: date-time
- *           description: موعد التنفيذ التالي
+ *           description: موعد التنفيذ التالي (يتم تجاهله إذا تم إرسال start_date)
+ *         start_date:
+ *           type: string
+ *           format: date-time
+ *           description: تاريخ بداية التنفيذ (الأولوية الأعلى - سيتم استخدامه كـ next_execution)
  *         last_executed:
  *           type: string
  *           format: date-time
@@ -252,23 +256,24 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *                 example: "monthly"
  *               schedule_config:
  *                 type: object
- *                 description: إعدادات الجدولة حسب نوع الجدولة (اختياري - سيتم استخدام قيم افتراضية إذا لم يتم تحديده)
+ *                 description: إعدادات الجدولة (اختياري - إذا لم يتم تحديد interval، سيتم استخدام recurring_worker_interval من الإعدادات)
  *                 default: {}
  *                 properties:
  *                   interval:
  *                     type: integer
- *                     description: فترة التكرار (عدد الأيام/الأسابيع/الأشهر)
- *                     example: 1
+ *                     description: فترة التكرار بالدقائق (جميع الأنواع تعمل بالدقائق)
+ *                     example: 60
+ *                     note: "إذا لم يتم تحديده، سيتم استخدام recurring_worker_interval من إعدادات النظام"
  *                   time:
  *                     type: string
  *                     format: time
- *                     description: وقت التنفيذ بصيغة HH:MM
+ *                     description: وقت التنفيذ بصيغة HH:MM (اختياري)
  *                     example: "09:00"
  *                   day_of_month:
  *                     type: integer
  *                     minimum: 1
  *                     maximum: 31
- *                     description: يوم الشهر (للمواعيد الشهرية)
+ *                     description: يوم الشهر (غير مستخدم حالياً - محجوز للمستقبل)
  *                     example: 1
  *                   days_of_week:
  *                     type: array
@@ -276,11 +281,10 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *                       type: integer
  *                       minimum: 0
  *                       maximum: 6
- *                     description: أيام الأسبوع (0=الأحد, 1=الاثنين, ...) للمواعيد الأسبوعية
+ *                     description: أيام الأسبوع (غير مستخدم حالياً - محجوز للمستقبل)
  *                     example: [1, 3, 5]
  *                 example: {
- *                   "interval": 1,
- *                   "day_of_month": 1,
+ *                   "interval": 60,
  *                   "time": "09:00"
  *                 }
  *               timezone:
@@ -296,7 +300,7 @@ router.get('/rules/:id', authenticateToken, RecurringController.getById);
  *               next_execution:
  *                 type: string
  *                 format: date-time
- *                 description: موعد التنفيذ التالي (اختياري، سيتم حسابه تلقائياً إذا لم يتم تحديده)
+ *                 description: موعد التنفيذ التالي (اختياري، سيتم تجاهله إذا تم إرسال start_date)
  *                 example: "2024-01-01T09:00:00Z"
      *               max_executions:
      *                 type: integer
@@ -485,5 +489,57 @@ router.post('/rules/:id/execute', authenticateToken, RecurringController.execute
  *                   description: عدد القواعد المستحقة
  */
 router.get('/rules/due', authenticateToken, RecurringController.getDue);
+
+/**
+ * @swagger
+ * /api/recurring/rules/due/execute:
+ *   post:
+ *     summary: تنفيذ جميع القواعد المستحقة يدوياً
+ *     description: يقوم بتنفيذ جميع قواعد التكرار المستحقة للتنفيذ في الوقت الحالي
+ *     tags: [Recurring]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تم تنفيذ القواعد المستحقة بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 executed_count:
+ *                   type: integer
+ *                   description: عدد القواعد التي تم تنفيذها بنجاح
+ *                 error_count:
+ *                   type: integer
+ *                   description: عدد القواعد التي فشل تنفيذها
+ *                 total_count:
+ *                   type: integer
+ *                   description: إجمالي عدد القواعد المستحقة
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       rule_id:
+ *                         type: string
+ *                         format: uuid
+ *                       rule_name:
+ *                         type: string
+ *                       success:
+ *                         type: boolean
+ *                       message:
+ *                         type: string
+ *                       ticket_id:
+ *                         type: string
+ *                         format: uuid
+ *                       ticket_number:
+ *                         type: string
+ */
+router.post('/rules/due/execute', authenticateToken, RecurringController.executeDue);
 
 module.exports = router;

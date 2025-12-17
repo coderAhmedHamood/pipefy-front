@@ -112,8 +112,48 @@ const startServer = async () => {
     await TicketReviewer.ensureTable();
     
     const server = app.listen(PORT, HOST, () => {
-      // Server started successfully
+      console.log(`✅ Server is running on port ${PORT}`);
+      console.log(`📍 Server URL: http://${DISPLAY_HOST}:${PORT}`);
+      console.log(`📚 API Documentation: http://${DISPLAY_HOST}:${PORT}/api-docs`);
     });
+    
+    // تشغيل Worker للتذاكر المتكررة تلقائياً
+    try {
+      const RecurringTicketsWorker = require('./workers/recurring-tickets-worker');
+      const Settings = require('./models/Settings');
+      
+      // جلب فترة Worker من الإعدادات (بالدقائق) وتحويلها إلى مللي ثانية
+      let workerInterval = 60000; // افتراضي: 1 دقيقة = 60000 مللي ثانية
+      try {
+        const settings = await Settings.getSettings();
+        const intervalMinutes = settings.recurring_worker_interval || 1;
+        workerInterval = intervalMinutes * 60 * 1000; // تحويل من دقائق إلى مللي ثانية
+        
+        // التحقق من القيمة (1-60 دقيقة)
+        if (intervalMinutes < 1) {
+          console.warn(`⚠️  فترة Worker (${intervalMinutes} دقيقة) أقل من الحد الأدنى (1 دقيقة)، سيتم استخدام 1 دقيقة`);
+          workerInterval = 60000;
+        } else if (intervalMinutes > 60) {
+          console.warn(`⚠️  فترة Worker (${intervalMinutes} دقيقة) أكبر من الحد الأقصى (60 دقيقة)، سيتم استخدام 60 دقيقة`);
+          workerInterval = 3600000;
+        }
+      } catch (settingsError) {
+        console.warn('⚠️  تحذير: فشل جلب إعدادات Worker، سيتم استخدام القيمة الافتراضية (1 دقيقة)');
+        // استخدام القيمة الافتراضية من متغير البيئة إذا فشل جلب الإعدادات (بالمللي ثانية)
+        const envInterval = parseInt(process.env.RECURRING_WORKER_INTERVAL);
+        if (envInterval && envInterval >= 1000) {
+          workerInterval = envInterval;
+        }
+      }
+      
+      const worker = new RecurringTicketsWorker({ interval: workerInterval });
+      worker.start();
+      const intervalMinutes = workerInterval / (60 * 1000);
+      console.log(`✅ Worker للتذاكر المتكررة يعمل تلقائياً (فترة الفحص: ${intervalMinutes} دقيقة)`);
+    } catch (workerError) {
+      console.error('⚠️  تحذير: فشل تشغيل Worker للتذاكر المتكررة:', workerError.message);
+      console.error('💡 يمكنك تشغيل Worker يدوياً باستخدام: npm run worker:recurring');
+    }
     
     server.on('error', (error) => {
       console.error('❌ Server error:', error.message);

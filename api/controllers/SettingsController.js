@@ -41,6 +41,17 @@ class SettingsController {
       }
     }
 
+    // التحقق من فترة Worker للتذاكر المتكررة
+    if (data.recurring_worker_interval !== undefined) {
+      if (typeof data.recurring_worker_interval !== 'number' || !Number.isInteger(data.recurring_worker_interval)) {
+        errors.push('فترة Worker للتذاكر المتكررة يجب أن تكون رقم صحيح');
+      } else if (data.recurring_worker_interval < 1) {
+        errors.push('فترة Worker للتذاكر المتكررة يجب أن تكون 1 دقيقة على الأقل');
+      } else if (data.recurring_worker_interval > 60) {
+        errors.push('فترة Worker للتذاكر المتكررة يجب أن تكون 60 دقيقة (ساعة واحدة) كحد أقصى');
+      }
+    }
+
     // التحقق من اللغة
     if (data.system_language !== undefined) {
       const validLanguages = ['ar', 'en', 'fr', 'es'];

@@ -178,6 +178,18 @@ class RecurringExecutionController {
         };
       }
       
+      // إذا لم يكن هناك interval، استخدم recurring_worker_interval من الإعدادات
+      if (!scheduleConfig.interval) {
+        try {
+          const Settings = require('../models/Settings');
+          const settings = await Settings.getSettings();
+          scheduleConfig.interval = settings.recurring_worker_interval || 1; // بالدقائق
+        } catch (error) {
+          console.warn('⚠️  تحذير: فشل جلب إعدادات recurring_worker_interval، سيتم استخدام 1 دقيقة');
+          scheduleConfig.interval = 1; // افتراضي: 1 دقيقة
+        }
+      }
+      
       nextExecution = calculateNextExecution(
         scheduleType,
         scheduleConfig,
@@ -480,50 +492,33 @@ function calculateNextExecution(scheduleType, scheduleConfig, timezone) {
     ? safeParseJSON(scheduleConfig, {})
     : (scheduleConfig || {});
 
+  // جميع أنواع الجدولة تعمل بالدقائق الآن
+  // interval في schedule_config يكون بالدقائق دائماً
+  
   switch (scheduleType) {
-    case 'daily': {
-      const dailyNext = new Date(now);
-      dailyNext.setDate(dailyNext.getDate() + (config.interval || 1));
-      if (config.time) {
-        const [hours, minutes] = config.time.split(':');
-        dailyNext.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-      }
-      return dailyNext;
-    }
-    case 'weekly': {
-      const weeklyNext = new Date(now);
-      weeklyNext.setDate(weeklyNext.getDate() + 7 * (config.interval || 1));
-      if (config.time) {
-        const [hours, minutes] = config.time.split(':');
-        weeklyNext.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-      }
-      return weeklyNext;
-    }
-    case 'monthly': {
-      const monthlyNext = new Date(now);
-      monthlyNext.setMonth(monthlyNext.getMonth() + (config.interval || 1));
-      if (config.day_of_month) {
-        monthlyNext.setDate(config.day_of_month);
-      }
-      if (config.time) {
-        const [hours, minutes] = config.time.split(':');
-        monthlyNext.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-      }
-      return monthlyNext;
-    }
-    case 'yearly': {
-      const yearlyNext = new Date(now);
-      yearlyNext.setFullYear(yearlyNext.getFullYear() + (config.interval || 1));
-      if (config.time) {
-        const [hours, minutes] = config.time.split(':');
-        yearlyNext.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-      }
-      return yearlyNext;
-    }
+    case 'minutes':
+    case 'custom':
+    case 'daily':
+    case 'weekly':
+    case 'monthly':
+    case 'yearly':
     default: {
-      const defaultNext = new Date(now);
-      defaultNext.setDate(defaultNext.getDate() + 1);
-      return defaultNext;
+      // حساب التاريخ التالي بناءً على الدقائق
+      const intervalMinutes = config.interval || 1; // بالدقائق
+      const nextExecution = new Date(now);
+      nextExecution.setMinutes(nextExecution.getMinutes() + intervalMinutes);
+      
+      // إذا كان هناك وقت محدد، نضبط الوقت
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        nextExecution.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+        // إذا كان الوقت المحدد في الماضي بعد إضافة الدقائق، نضيف يوم
+        if (nextExecution <= now) {
+          nextExecution.setDate(nextExecution.getDate() + 1);
+        }
+      }
+      
+      return nextExecution;
     }
   }
 }
