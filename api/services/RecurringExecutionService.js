@@ -98,35 +98,126 @@ function calculateNextExecution(scheduleType, scheduleConfig, timezone) {
     ? safeParseJSON(scheduleConfig, {})
     : (scheduleConfig || {});
 
-  // جميع أنواع الجدولة تعمل بالدقائق الآن
-  // interval في schedule_config يكون بالدقائق دائماً
+  // interval في schedule_config: للدقائق (minutes) يكون بالدقائق، للأنواع الأخرى يكون عدد الوحدات
+  const interval = config.interval || 1;
+  
+  let nextExecution = new Date(now);
   
   switch (scheduleType) {
-    case 'minutes':
-    case 'custom':
-    case 'daily':
-    case 'weekly':
-    case 'monthly':
-    case 'yearly':
-    default: {
-      // حساب التاريخ التالي بناءً على الدقائق
-      const intervalMinutes = config.interval || 1; // بالدقائق
-      const nextExecution = new Date(now);
-      nextExecution.setMinutes(nextExecution.getMinutes() + intervalMinutes);
-      
+    case 'minutes': {
+      // للدقائق: interval بالدقائق
+      nextExecution.setMinutes(nextExecution.getMinutes() + interval);
+      break;
+    }
+    
+    case 'daily': {
+      // يومي: interval بالأيام (افتراضي: 1 يوم)
+      nextExecution.setDate(nextExecution.getDate() + interval);
       // إذا كان هناك وقت محدد، نضبط الوقت
       if (config.time) {
         const [hours, minutes] = config.time.split(':');
         nextExecution.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
-        // إذا كان الوقت المحدد في الماضي بعد إضافة الدقائق، نضيف يوم
+        // إذا كان الوقت المحدد في الماضي، نضيف يوم إضافي
+        if (nextExecution <= now) {
+          nextExecution.setDate(nextExecution.getDate() + interval);
+        }
+      }
+      break;
+    }
+    
+    case 'weekly': {
+      // أسبوعي: interval بالأسابيع (افتراضي: 1 أسبوع)
+      nextExecution.setDate(nextExecution.getDate() + (7 * interval));
+      // إذا كان هناك أيام محددة في الأسبوع
+      if (config.days_of_week && Array.isArray(config.days_of_week) && config.days_of_week.length > 0) {
+        // البحث عن أقرب يوم من الأيام المحددة
+        const targetDays = config.days_of_week.map(d => parseInt(d, 10));
+        let found = false;
+        for (let i = 0; i < 14; i++) { // البحث في الأسبوعين القادمين
+          const checkDate = new Date(now);
+          checkDate.setDate(checkDate.getDate() + i);
+          const dayOfWeek = checkDate.getDay(); // 0 = الأحد, 1 = الاثنين, ...
+          if (targetDays.includes(dayOfWeek) && checkDate > now) {
+            nextExecution = checkDate;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          // إذا لم نجد، نستخدم الأسبوع التالي
+          nextExecution.setDate(nextExecution.getDate() + (7 * interval));
+        }
+      }
+      // إذا كان هناك وقت محدد، نضبط الوقت
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        nextExecution.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      }
+      break;
+    }
+    
+    case 'monthly': {
+      // شهري: interval بالأشهر (افتراضي: 1 شهر)
+      nextExecution.setMonth(nextExecution.getMonth() + interval);
+      // إذا كان هناك يوم محدد من الشهر
+      if (config.day_of_month) {
+        const dayOfMonth = parseInt(config.day_of_month, 10);
+        // التحقق من أن اليوم صالح للشهر
+        const lastDayOfMonth = new Date(nextExecution.getFullYear(), nextExecution.getMonth() + 1, 0).getDate();
+        nextExecution.setDate(Math.min(dayOfMonth, lastDayOfMonth));
+      }
+      // إذا كان هناك وقت محدد، نضبط الوقت
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        nextExecution.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      }
+      // إذا كان التاريخ في الماضي، نضيف شهر إضافي
+      if (nextExecution <= now) {
+        nextExecution.setMonth(nextExecution.getMonth() + interval);
+      }
+      break;
+    }
+    
+    case 'yearly': {
+      // سنوي: interval بالسنوات (افتراضي: 1 سنة)
+      nextExecution.setFullYear(nextExecution.getFullYear() + interval);
+      // إذا كان هناك وقت محدد، نضبط الوقت
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        nextExecution.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      }
+      // إذا كان التاريخ في الماضي، نضيف سنة إضافية
+      if (nextExecution <= now) {
+        nextExecution.setFullYear(nextExecution.getFullYear() + interval);
+      }
+      break;
+    }
+    
+    case 'custom':
+    default: {
+      // للأنواع الأخرى أو custom: نستخدم الدقائق (للتوافق مع الكود القديم)
+      nextExecution.setMinutes(nextExecution.getMinutes() + interval);
+      // إذا كان هناك وقت محدد، نضبط الوقت
+      if (config.time) {
+        const [hours, minutes] = config.time.split(':');
+        nextExecution.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
         if (nextExecution <= now) {
           nextExecution.setDate(nextExecution.getDate() + 1);
         }
       }
-      
-      return nextExecution;
+      break;
     }
   }
+  
+  // تسجيل معلومات الحساب للتشخيص
+  console.log(`📅 حساب next_execution:`);
+  console.log(`   - الوقت الحالي (now): ${now.toISOString()}`);
+  console.log(`   - schedule_type: ${scheduleType}`);
+  console.log(`   - interval: ${interval}`);
+  console.log(`   - schedule_config: ${JSON.stringify(config)}`);
+  console.log(`   - next_execution المحسوب: ${nextExecution.toISOString()}`);
+  
+  return nextExecution;
 }
 
 async function generateTicketNumber(processId, client = null) {
@@ -308,23 +399,39 @@ class RecurringExecutionService {
           : rule.schedule_config;
       }
       
-      // إذا لم يكن هناك interval، استخدم recurring_worker_interval من الإعدادات
+      // تحديد interval بناءً على schedule_type
       if (!scheduleConfig.interval) {
-        try {
-          const Settings = require('../models/Settings');
-          const settings = await Settings.getSettings();
-          scheduleConfig.interval = settings.recurring_worker_interval || 1; // بالدقائق
-        } catch (error) {
-          console.warn('⚠️  تحذير: فشل جلب إعدادات recurring_worker_interval، سيتم استخدام 1 دقيقة');
-          scheduleConfig.interval = 1; // افتراضي: 1 دقيقة
+        if (scheduleType === 'minutes') {
+          // للدقائق فقط: نستخدم recurring_worker_interval من الإعدادات
+          try {
+            const Settings = require('../models/Settings');
+            const settings = await Settings.getSettings();
+            scheduleConfig.interval = settings.recurring_worker_interval || 1; // بالدقائق
+            console.log(`📊 استخدام recurring_worker_interval من الإعدادات للدقائق: ${scheduleConfig.interval} دقيقة`);
+          } catch (error) {
+            console.warn('⚠️  تحذير: فشل جلب إعدادات recurring_worker_interval، سيتم استخدام 1 دقيقة');
+            scheduleConfig.interval = 1; // افتراضي: 1 دقيقة
+          }
+        } else {
+          // للأنواع الأخرى (daily, weekly, monthly, yearly): نستخدم 1 كافتراضي
+          scheduleConfig.interval = 1;
+          console.log(`📊 استخدام interval افتراضي للـ ${scheduleType}: ${scheduleConfig.interval}`);
         }
+      } else {
+        console.log(`📊 استخدام interval من schedule_config: ${scheduleConfig.interval}`);
       }
 
+      console.log(`🔄 حساب next_execution للقاعدة: ${rule.name || rule.id}`);
+      console.log(`   - last_executed الحالي: ${rule.last_executed || 'null'}`);
+      console.log(`   - next_execution الحالي: ${rule.next_execution || 'null'}`);
+      
       const nextExecution = calculateNextExecution(
         scheduleType,
         scheduleConfig,
         rule.timezone || 'Asia/Riyadh'
       );
+      
+      console.log(`✅ next_execution الجديد: ${nextExecution.toISOString()}`);
 
       // تحديث قاعدة التكرار
       const updateResult = await client.query(`
