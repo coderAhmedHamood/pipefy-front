@@ -79,6 +79,7 @@ export interface ApiSettings {
   ticket_numbering_format?: string;
   frontend_url?: string;
   api_base_url?: string;
+  recurring_worker_interval?: number;
   created_at?: string;
   updated_at?: string;
   created_by?: string;

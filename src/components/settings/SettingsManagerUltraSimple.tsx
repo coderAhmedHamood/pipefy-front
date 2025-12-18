@@ -45,7 +45,8 @@ export const SettingsManager: React.FC = () => {
     integrations_email_smtp_host: '',
     integrations_email_smtp_port: '',
     integrations_email_smtp_username: '',
-    integrations_email_smtp_password: ''
+    integrations_email_smtp_password: '',
+    recurring_worker_interval: ''
   });
 
   // تحميل الإعدادات عند بدء التشغيل
@@ -107,6 +108,8 @@ export const SettingsManager: React.FC = () => {
           integrations_email_send_delayed_tickets: response.data.integrations_email_send_delayed_tickets ?? false,
           // معالجة allowed_file_types
           allowed_file_types: allowedFileTypes,
+          // إعدادات العامل المتكرر
+          recurring_worker_interval: response.data.recurring_worker_interval || '',
         });
         // تم إزالة رسالة النجاح عند تحميل الإعدادات
       } else {
@@ -122,7 +125,8 @@ export const SettingsManager: React.FC = () => {
           integrations_email_smtp_host: '',
           integrations_email_smtp_port: '',
           integrations_email_smtp_username: '',
-          integrations_email_smtp_password: ''
+          integrations_email_smtp_password: '',
+          recurring_worker_interval: ''
         });
         notifications.showInfo('لا توجد إعدادات', 'لم يتم العثور على إعدادات محفوظة، الحقول فارغة');
       }
@@ -137,7 +141,8 @@ export const SettingsManager: React.FC = () => {
         smtp_server: '',
         smtp_port: '',
         smtp_username: '',
-        smtp_password: ''
+        smtp_password: '',
+        recurring_worker_interval: ''
       });
       notifications.showError('خطأ في تحميل الإعدادات', error.message || 'فشل في الاتصال بقاعدة البيانات');
     } finally {
@@ -189,26 +194,63 @@ export const SettingsManager: React.FC = () => {
         }
       }
       
-      // معالجة الحقول الرقمية - تحويل القيم الفارغة إلى null
+      // معالجة الحقول الرقمية - تحويل القيم الفارغة إلى null أو حذفها
       if (cleanedSettings.security_login_attempts_limit === '' || cleanedSettings.security_login_attempts_limit === undefined) {
-        cleanedSettings.security_login_attempts_limit = null;
+        delete cleanedSettings.security_login_attempts_limit;
+      } else if (cleanedSettings.security_login_attempts_limit !== null) {
+        const value = parseInt(cleanedSettings.security_login_attempts_limit);
+        cleanedSettings.security_login_attempts_limit = isNaN(value) ? undefined : value;
       }
+      
       if (cleanedSettings.security_lockout_duration === '' || cleanedSettings.security_lockout_duration === undefined) {
-        cleanedSettings.security_lockout_duration = null;
+        delete cleanedSettings.security_lockout_duration;
+      } else if (cleanedSettings.security_lockout_duration !== null) {
+        const value = parseInt(cleanedSettings.security_lockout_duration);
+        cleanedSettings.security_lockout_duration = isNaN(value) ? undefined : value;
       }
+      
       if (cleanedSettings.integrations_email_smtp_port === '' || cleanedSettings.integrations_email_smtp_port === undefined) {
-        cleanedSettings.integrations_email_smtp_port = null;
+        delete cleanedSettings.integrations_email_smtp_port;
+      } else if (cleanedSettings.integrations_email_smtp_port !== null) {
+        const value = parseInt(cleanedSettings.integrations_email_smtp_port);
+        cleanedSettings.integrations_email_smtp_port = isNaN(value) ? undefined : value;
       }
+      
       if (cleanedSettings.max_file_upload_size === '' || cleanedSettings.max_file_upload_size === undefined) {
-        cleanedSettings.max_file_upload_size = null;
+        delete cleanedSettings.max_file_upload_size;
+      } else if (cleanedSettings.max_file_upload_size !== null) {
+        const value = parseInt(cleanedSettings.max_file_upload_size);
+        cleanedSettings.max_file_upload_size = isNaN(value) ? undefined : value;
       }
+      
       if (cleanedSettings.backup_retention_days === '' || cleanedSettings.backup_retention_days === undefined) {
-        cleanedSettings.backup_retention_days = null;
+        delete cleanedSettings.backup_retention_days;
+      } else if (cleanedSettings.backup_retention_days !== null) {
+        const value = parseInt(cleanedSettings.backup_retention_days);
+        cleanedSettings.backup_retention_days = isNaN(value) ? undefined : value;
+      }
+      
+      // معالجة recurring_worker_interval - تحويله إلى رقم صحيح أو حذفه إذا كان فارغاً
+      if (cleanedSettings.recurring_worker_interval === '' || cleanedSettings.recurring_worker_interval === undefined || cleanedSettings.recurring_worker_interval === null) {
+        delete cleanedSettings.recurring_worker_interval;
+      } else {
+        // التأكد من أنه رقم صحيح (بدون قيود على القيمة)
+        const intervalValue = parseInt(cleanedSettings.recurring_worker_interval);
+        if (isNaN(intervalValue) || intervalValue < 1) {
+          // إذا كانت القيمة غير صحيحة أو أقل من 1، احذفها بدلاً من إرسال قيمة خاطئة
+          delete cleanedSettings.recurring_worker_interval;
+        } else {
+          cleanedSettings.recurring_worker_interval = intervalValue;
+        }
       }
       
       // إزالة الحقول الفارغة غير الضرورية
       Object.keys(cleanedSettings).forEach(key => {
         if (cleanedSettings[key] === '' && key !== 'system_description' && key !== 'maintenance_message') {
+          delete cleanedSettings[key];
+        }
+        // إزالة الحقول null و undefined أيضاً (باستثناء الحقول النصية الطويلة)
+        if ((cleanedSettings[key] === null || cleanedSettings[key] === undefined) && key !== 'system_description' && key !== 'maintenance_message') {
           delete cleanedSettings[key];
         }
       });
@@ -450,6 +492,20 @@ export const SettingsManager: React.FC = () => {
                   placeholder={API_BASE_URL}
                   className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                 />
+              </div>
+              
+              <div className={isMobile || isTablet ? '' : 'md:col-span-1'}>
+                <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>فترة العامل المتكرر (بالدقائق)</label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={settings.recurring_worker_interval || ''}
+                  onChange={(e) => updateSetting('recurring_worker_interval', e.target.value ? parseInt(e.target.value) : '')}
+                  placeholder="60"
+                  className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-3 py-2'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                />
+                <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-500 mt-1`}>الفترة بين كل تشغيل للعامل المتكرر (بالدقائق)</p>
               </div>
               
               <div className={isMobile || isTablet ? '' : 'md:col-span-2'}>
