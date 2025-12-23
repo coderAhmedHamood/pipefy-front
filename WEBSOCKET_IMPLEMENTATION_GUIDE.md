@@ -1,357 +1,874 @@
-# دليل تنفيذ WebSocket - نظام التذاكر الفوري
+# دليل تنفيذ WebSocket - نظام التحديث الفوري للتذاكر
 
 ## 📋 نظرة عامة
 
-هذا الدليل يشرح النظام الحالي بالكامل والمتطلبات اللازمة لبناء نظام WebSocket يسمح بعرض التذاكر تلقائياً للمستخدمين بناءً على صلاحياتهم وربطهم بالعمليات.
+هذا الدليل يشرح **النظام الحالي** و **المتطلبات المطلوبة** لبناء نظام WebSocket يسمح بتحديث البيانات تلقائياً لجميع المستخدمين المرتبطين بالعملية بدون الحاجة لتحديث الصفحة.
 
 ---
 
-## 🔐 نظام الصلاحيات
+## 🔍 النقاط الحالية vs النقاط المطلوبة
 
-### هيكل الصلاحيات
+### ✅ النقاط الحالية (ما هو موجود الآن)
 
-النظام يستخدم نظام صلاحيات متعدد المستويات:
+#### 1. نظام الصلاحيات
+- ✅ نظام أدوار (Admin, Member, Guest)
+- ✅ 34 صلاحية مختلفة (tickets.create, tickets.read, etc.)
+- ✅ ربط المستخدمين بالعمليات (user_processes)
+- ✅ التحقق من الصلاحيات في كل endpoint
 
-#### 1. الأدوار (Roles)
-- **Admin (المدير)**: يمتلك جميع الصلاحيات (34 صلاحية)
-- **Member (العضو)**: صلاحيات محدودة للعمل على التذاكر
-- **Guest (الضيف)**: صلاحيات عرض فقط
+#### 2. نظام التذاكر
+- ✅ إنشاء تذاكر (`POST /api/tickets`)
+- ✅ تحديث تذاكر (`PUT /api/tickets/:id`)
+- ✅ نقل تذاكر بين المراحل (`POST /api/tickets/:id/move-simple`)
+- ✅ حذف تذاكر (`DELETE /api/tickets/:id`)
+- ✅ جلب تذاكر مجمعة حسب المراحل (`GET /api/tickets/by-stages`)
 
-#### 2. الصلاحيات (Permissions) - 34 صلاحية
+#### 3. نظام الإشعارات
+- ✅ إنشاء إشعارات في قاعدة البيانات
+- ✅ إرسال بريد إلكتروني (اختياري)
+- ✅ جلب الإشعارات (`GET /api/notifications`)
+- ✅ تحديد الإشعارات كمقروءة
 
-**صلاحيات التذاكر (8 صلاحيات):**
-- `tickets.create` - إنشاء التذاكر
-- `tickets.read` - عرض التذاكر
-- `tickets.update` - تحديث التذاكر
-- `tickets.delete` - حذف التذاكر
-- `tickets.edit` - تعديل التذاكر
-- `tickets.manage` - إدارة التذاكر
-- `tickets.view_all` - عرض جميع التذاكر
-- `tickets.view_own` - عرض تذاكره فقط
-
-**صلاحيات العمليات (6 صلاحيات):**
-- `processes.create` - إنشاء العمليات
-- `processes.delete` - حذف العمليات
-- `processes.read` - عرض تفاصيل العمليات
-- `processes.update` - تعديل العمليات
-- `processes.manage` - إدارة العمليات
-- `processes.view` - عرض العمليات
-
-**صلاحيات أخرى:**
-- Users, Fields, Stages, Roles, Reports, System, Automation, Integrations, Permissions
-
-#### 3. ربط المستخدمين بالعمليات (user_processes)
-
-جدول `user_processes` يربط المستخدمين بالعمليات:
-- **user_id**: معرف المستخدم
-- **process_id**: معرف العملية
-- **role**: دور المستخدم في هذه العملية (member, admin, viewer)
-- **is_active**: حالة النشاط
-
-**المعنى:**
-- المستخدم يجب أن يكون مرتبطاً بالعملية (في جدول user_processes) لرؤية تذاكرها
-- يمكن للمستخدم أن يكون مرتبطاً بعدة عمليات
-- كل عملية يمكن أن تحتوي على عدة مستخدمين
+#### 4. المشكلة الحالية
+- ❌ **لا يوجد WebSocket** - المستخدمون لا يرون التحديثات إلا بعد تحديث الصفحة يدوياً
+- ❌ عند إنشاء تذكرة من قبل مستخدم 1، المستخدمون 2 و 3 لا يرونها إلا بعد refresh
+- ❌ عند نقل تذكرة، المستخدمون الآخرون لا يرون النقل إلا بعد refresh
+- ❌ عند تحديث تذكرة، التحديثات لا تظهر للمستخدمين الآخرين إلا بعد refresh
 
 ---
 
-## 🔄 سيناريو العمل الحالي
+### 🎯 النقاط المطلوبة (ما يجب إضافته)
 
-### 1. إنشاء تذكرة جديدة
+#### 1. WebSocket في Backend
+- ⏳ تثبيت `socket.io`
+- ⏳ إعداد Socket.IO في `server.js`
+- ⏳ إنشاء `websocketService.js` لإدارة الاتصالات
+- ⏳ إضافة middleware للتحقق من token
+- ⏳ إضافة handlers للأحداث (join-process, leave-process, etc.)
+- ⏳ إضافة منطق إرسال الأحداث عند CRUD operations
+- ⏳ التحقق من الصلاحيات قبل إرسال الأحداث
 
-**الخطوات:**
+#### 2. WebSocket في Frontend
+- ⏳ تثبيت `socket.io-client`
+- ⏳ إنشاء `socketService.ts` لإدارة الاتصال
+- ⏳ الاتصال عند تسجيل الدخول
+- ⏳ الانضمام للغرف عند فتح صفحة Kanban
+- ⏳ معالجة الأحداث الواردة (ticket-created, ticket-updated, etc.)
+- ⏳ تحديث الحالة المحلية عند استقبال الأحداث
+- ⏳ إعادة الاتصال عند انقطاع الاتصال
 
-1. **المستخدم يملأ نموذج إنشاء التذكرة:**
-   - العنوان (title) - مطلوب
-   - الوصف (description) - اختياري
-   - العملية (process_id) - مطلوب
-   - المرحلة (current_stage_id) - اختياري (يتم اختيار المرحلة الأولية تلقائياً)
-   - الأولوية (priority) - اختياري (low, medium, high, urgent)
-   - موعد الاستحقاق (due_date) - اختياري
-   - المستخدم المُسند (assigned_to) - اختياري
-   - الحقول المخصصة (data) - JSON object
-   - العلامات (tags) - array
-
-2. **الطلب يذهب إلى Backend:**
-   - Endpoint: `POST /api/tickets`
-   - Middleware: `authenticateToken` - للتحقق من تسجيل الدخول
-   - Middleware: `requirePermissions(['tickets.create'])` - للتحقق من الصلاحية
-   - Controller: `TicketController.createTicket`
-
-3. **Backend ينفذ العمليات:**
-   - التحقق من صحة البيانات
-   - توليد رقم تذكرة فريد (format: `PREFIX-000001-timestamp-random`)
-   - تحديد المرحلة الأولية إذا لم يتم تحديدها
-   - إنشاء التذكرة في قاعدة البيانات
-   - إضافة نشاط (activity) "created" في جدول ticket_activities
-   - إضافة تعليق تلقائي يوضح من قام بإنشاء التذكرة
-   - إرجاع التذكرة المنشأة
-
-4. **Frontend يستقبل الاستجابة:**
-   - يضيف التذكرة إلى الحالة المحلية (state)
-   - يحدث واجهة المستخدم فوراً
-   - **المشكلة الحالية:** المستخدمون الآخرون لا يرون التذكرة إلا بعد تحديث الصفحة
-
-### 2. تحديث تذكرة
-
-**الخطوات:**
-
-1. **المستخدم يعدل بيانات التذكرة:**
-   - العنوان، الوصف، الأولوية، موعد الاستحقاق
-   - الحقول المخصصة
-   - المستخدم المُسند
-
-2. **الطلب يذهب إلى Backend:**
-   - Endpoint: `PUT /api/tickets/:id`
-   - Middleware: `authenticateToken` + `requirePermissions(['tickets.update'])`
-   - Controller: `TicketController.simpleUpdate`
-
-3. **Backend ينفذ:**
-   - التحقق من وجود التذكرة
-   - التحقق من الصلاحيات (المالك أو من لديه صلاحية التحديث)
-   - تحديث البيانات في قاعدة البيانات
-   - إضافة نشاط "field_updated" في ticket_activities
-   - إرجاع التذكرة المحدثة
-
-4. **Frontend:**
-   - يحدث الحالة المحلية
-   - **المشكلة:** المستخدمون الآخرون لا يرون التحديثات إلا بعد تحديث الصفحة
-
-### 3. نقل تذكرة بين المراحل
-
-**الخطوات:**
-
-1. **المستخدم ينقل التذكرة:**
-   - يختار المرحلة الجديدة
-   - يضيف تعليق اختياري
-
-2. **الطلب يذهب إلى Backend:**
-   - Endpoint: `POST /api/tickets/:id/move-simple`
-   - Middleware: `authenticateToken` + `requirePermissions(['tickets.update'])`
-   - Controller: Route handler مباشر
-
-3. **Backend ينفذ:**
-   - التحقق من صحة الانتقال (stage transition)
-   - تحديث current_stage_id في جدول tickets
-   - إضافة نشاط "stage_changed" في ticket_activities
-   - إضافة تعليق يوضح النقل
-   - **إرسال إشعارات** للمستخدمين المرتبطين بالتذكرة:
-     - المستخدم المُسند (assigned_to)
-     - جميع المسندين من جدول ticket_assignments
-     - جميع المراجعين من جدول ticket_reviewers
-   - إرجاع النتيجة
-
-4. **Frontend:**
-   - يحدث الحالة المحلية
-   - ينقل التذكرة في الواجهة
-   - **المشكلة:** المستخدمون الآخرون لا يرون النقل إلا بعد تحديث الصفحة
-
-### 4. حذف تذكرة
-
-**الخطوات:**
-
-1. **المستخدم يحذف التذكرة:**
-   - حذف مؤقت (soft delete) - الافتراضي
-   - حذف نهائي (permanent) - للمديرين فقط
-
-2. **الطلب يذهب إلى Backend:**
-   - Endpoint: `DELETE /api/tickets/:id?permanent=true/false`
-   - Middleware: `authenticateToken` + `requirePermissions(['tickets.delete'])`
-   - Controller: `TicketController.deleteTicket`
-
-3. **Backend ينفذ:**
-   - التحقق من الصلاحيات (المالك أو المدير أو من لديه صلاحية الحذف)
-   - التحقق من وجود تعليقات أو مرفقات (للحذف النهائي)
-   - حذف التذكرة (مؤقت أو نهائي)
-   - إرجاع النتيجة
-
-4. **Frontend:**
-   - يزيل التذكرة من الحالة المحلية
-   - **المشكلة:** المستخدمون الآخرون لا يرون الحذف إلا بعد تحديث الصفحة
+#### 3. النتيجة المطلوبة
+- ✅ عند إنشاء تذكرة من قبل مستخدم 1، تظهر تلقائياً عند المستخدمين 2 و 3
+- ✅ عند نقل تذكرة، يرى جميع المستخدمين النقل فوراً
+- ✅ عند تحديث تذكرة، تظهر التحديثات لجميع المستخدمين فوراً
+- ✅ عند حذف تذكرة، تختفي من واجهة جميع المستخدمين فوراً
 
 ---
 
-## 📡 نظام الإشعارات الحالي
+## 🔄 السيناريو الحالي vs السيناريو المطلوب
 
-### أنواع الإشعارات
+### 📍 السيناريو الحالي (بدون WebSocket)
 
-النظام يدعم أنواع إشعارات متعددة:
+#### مثال: إنشاء تذكرة جديدة
 
-1. **ticket_created** - عند إنشاء تذكرة جديدة
-2. **ticket_updated** - عند تحديث تذكرة
-3. **ticket_moved** - عند نقل تذكرة بين المراحل
-4. **ticket_assigned** - عند إسناد تذكرة لمستخدم
-5. **ticket_deleted** - عند حذف تذكرة
-6. **comment_added** - عند إضافة تعليق
-7. **ticket_review_updated** - عند تحديث مراجعة
-8. **mention** - عند ذكر مستخدم في تعليق
+**الخطوات الحالية:**
 
-### آلية إرسال الإشعارات
+1. **المستخدم 1:**
+   - يملأ نموذج إنشاء التذكرة
+   - يضغط "حفظ"
+   - Frontend يرسل `POST /api/tickets`
+   - Backend ينشئ التذكرة في قاعدة البيانات
+   - Backend يرجع التذكرة المنشأة
+   - Frontend يضيف التذكرة إلى الحالة المحلية
+   - **المستخدم 1 يرى التذكرة فوراً** ✅
 
-#### 1. تحديد المستخدمين المستهدفين
+2. **المستخدم 2 و 3:**
+   - **لا يرون التذكرة** ❌
+   - يجب عليهم **تحديث الصفحة يدوياً** (F5) لرؤية التذكرة
+   - بعد التحديث، يتم جلب التذاكر من جديد من API
+   - **ثم فقط** يروا التذكرة الجديدة
 
-**عند إنشاء تذكرة:**
-- المستخدم المُسند (assigned_to) - إن وُجد
-- **ملاحظة:** حالياً لا يتم إرسال إشعارات تلقائية عند الإنشاء
-
-**عند نقل تذكرة:**
-- المستخدم المُسند (assigned_to)
-- جميع المسندين من جدول `ticket_assignments` (حيث `ticket_id` = معرف التذكرة)
-- جميع المراجعين من جدول `ticket_reviewers` (حيث `ticket_id` = معرف التذكرة)
-- يتم استبعاد المستخدم الذي قام بالنقل
-
-**عند إضافة تعليق:**
-- جميع المسندين والمراجعين
-- المستخدمين المذكورين في التعليق (@mention)
-
-#### 2. إنشاء الإشعار
-
-**الخطوات:**
-1. إنشاء سجل في جدول `notifications`:
-   - `user_id` - معرف المستخدم المستهدف
-   - `title` - عنوان الإشعار
-   - `message` - نص الإشعار
-   - `notification_type` - نوع الإشعار
-   - `action_url` - رابط للانتقال إلى التذكرة
-   - `data` - بيانات إضافية (JSON)
-
-2. إرسال بريد إلكتروني (اختياري):
-   - يتم التحقق من إعدادات النظام أولاً
-   - إذا كان البريد مفعّل لنوع الإشعار، يتم الإرسال
-   - يتم إرسال البريد في الخلفية (async)
-
-#### 3. جلب الإشعارات
-
-**Endpoints:**
-
-- `GET /api/notifications` - جلب جميع الإشعارات (مع فلاتر)
-- `GET /api/notifications/user/:user_id` - جلب إشعارات مستخدم معين
-- `GET /api/notifications/unread-count` - جلب عدد الإشعارات غير المقروءة
-- `PUT /api/notifications/:id/read` - تحديد إشعار كمقروء
-- `PUT /api/notifications/mark-all-read` - تحديد جميع الإشعارات كمقروءة
-
-**الفلاتر المدعومة:**
-- `user_id` - معرف المستخدم
-- `notification_type` - نوع الإشعار
-- `is_read` - حالة القراءة (true/false)
-- `from_date` - تاريخ البداية
-- `to_date` - تاريخ النهاية
-- `limit` - عدد النتائج
-- `offset` - الإزاحة للصفحة
+**المشكلة:** التحديثات ليست فورية - تحتاج إلى refresh يدوي
 
 ---
 
-## 🔌 متطلبات WebSocket
+### 🎯 السيناريو المطلوب (مع WebSocket)
 
-### الأحداث (Events) المطلوبة
+#### مثال: إنشاء تذكرة جديدة
 
-#### 1. أحداث الاتصال
+**الخطوات المطلوبة:**
 
-**Frontend → Backend:**
-- `join-process` - انضمام المستخدم إلى غرفة عملية معينة
-  - البيانات: `{ processId: string }`
-  - المعنى: المستخدم يريد استقبال تحديثات هذه العملية
+1. **المستخدم 1:**
+   - يملأ نموذج إنشاء التذكرة
+   - يضغط "حفظ"
+   - Frontend يرسل `POST /api/tickets`
+   - Backend ينشئ التذكرة في قاعدة البيانات
+   - **Backend يرسل حدث WebSocket `ticket-created`** 🆕
+   - Frontend يضيف التذكرة إلى الحالة المحلية
+   - **المستخدم 1 يرى التذكرة فوراً** ✅
 
-- `leave-process` - مغادرة غرفة عملية
-  - البيانات: `{ processId: string }`
-  - المعنى: المستخدم لا يريد استقبال تحديثات هذه العملية بعد الآن
+2. **المستخدم 2 و 3:**
+   - **يستقبلون حدث `ticket-created` عبر WebSocket** 🆕
+   - Frontend يتحقق من أن التذكرة تنتمي للعملية المفتوحة
+   - Frontend يضيف التذكرة إلى الحالة المحلية
+   - **المستخدم 2 و 3 يرون التذكرة فوراً بدون refresh** ✅
+   - Frontend يعرض إشعار toast للمستخدم
 
-- `join-ticket` - انضمام المستخدم إلى غرفة تذكرة معينة
-  - البيانات: `{ ticketId: string }`
-  - المعنى: المستخدم يريد استقبال تحديثات هذه التذكرة (مثل التعليقات)
-
-- `leave-ticket` - مغادرة غرفة تذكرة
-  - البيانات: `{ ticketId: string }`
-
-**Backend → Frontend:**
-- `connect` - اتصال ناجح
-- `disconnect` - انقطاع الاتصال
-- `error` - خطأ في الاتصال
-
-#### 2. أحداث التذاكر
-
-**Backend → Frontend:**
-
-- `ticket-created` - عند إنشاء تذكرة جديدة
-  - البيانات: `{ ticket: Ticket, created_by: User, process_id: string }`
-  - المستلمون: جميع المستخدمين المرتبطين بالعملية (user_processes) والذين لديهم صلاحية `tickets.read`
-  - يجب التحقق من: الصلاحيات + ربط المستخدم بالعملية
-
-- `ticket-updated` - عند تحديث تذكرة
-  - البيانات: `{ ticket: Ticket, updated_by: User, changes: object }`
-  - المستلمون: جميع المستخدمين المرتبطين بالعملية والذين لديهم صلاحية `tickets.read` + المسندين والمراجعين
-
-- `ticket-moved` - عند نقل تذكرة بين المراحل
-  - البيانات: `{ ticket: Ticket, from_stage: Stage, to_stage: Stage, moved_by: User }`
-  - المستلمون: جميع المستخدمين المرتبطين بالعملية والذين لديهم صلاحية `tickets.read` + المسندين والمراجعين
-
-- `ticket-deleted` - عند حذف تذكرة
-  - البيانات: `{ ticket_id: string, ticket_number: string, deleted_by: User }`
-  - المستلمون: جميع المستخدمين المرتبطين بالعملية والذين لديهم صلاحية `tickets.read`
-
-- `ticket-assigned` - عند إسناد تذكرة لمستخدم
-  - البيانات: `{ ticket: Ticket, assigned_to: User, assigned_by: User }`
-  - المستلمون: المستخدم المُسند + جميع المستخدمين المرتبطين بالعملية
-
-#### 3. أحداث التعليقات
-
-**Backend → Frontend:**
-
-- `comment-added` - عند إضافة تعليق
-  - البيانات: `{ comment: Comment, ticket_id: string, user: User }`
-  - المستلمون: جميع المستخدمين المرتبطين بالتذكرة (المسندين والمراجعين) + المستخدمين المذكورين في التعليق
-
-#### 4. أحداث الإشعارات
-
-**Backend → Frontend:**
-
-- `notification-created` - عند إنشاء إشعار جديد
-  - البيانات: `{ notification: Notification }`
-  - المستلمون: المستخدم المستهدف فقط (user_id)
+**النتيجة:** التحديثات فورية - لا حاجة لـ refresh
 
 ---
 
-## 🔒 نظام التحقق من الصلاحيات في WebSocket
+## 🔧 كيفية عمل WebSocket في Backend
 
-### 1. التحقق عند الاتصال
+### 1. البنية المطلوبة
 
-**الخطوات:**
-1. المستخدم يرسل token في handshake
-2. Backend يتحقق من صحة token
-3. Backend يجلب بيانات المستخدم من قاعدة البيانات
-4. Backend يتحقق من أن المستخدم نشط (is_active = true)
-5. Backend يتحقق من أن الحساب غير مقفل
-6. إذا نجح التحقق، يتم قبول الاتصال
+```
+api/
+├── server.js              (إضافة Socket.IO)
+├── services/
+│   └── websocketService.js  (جديد - إدارة WebSocket)
+└── controllers/
+    └── TicketController.js  (إضافة إرسال الأحداث)
+```
 
-### 2. التحقق عند الانضمام إلى غرفة
+### 2. تثبيت المكتبات
 
-**عند `join-process`:**
-1. التحقق من أن المستخدم مرتبط بالعملية (في جدول user_processes)
-2. التحقق من أن المستخدم لديه صلاحية `tickets.read` على الأقل
-3. إذا نجح التحقق، يتم إضافة المستخدم إلى غرفة `process-{processId}`
-4. إذا فشل، يتم إرسال خطأ للمستخدم
+```bash
+cd api
+npm install socket.io
+```
 
-**عند `join-ticket`:**
-1. التحقق من أن المستخدم مرتبط بعملية التذكرة
-2. التحقق من أن المستخدم لديه صلاحية `tickets.read`
-3. التحقق من أن المستخدم مرتبط بالتذكرة (مسند أو مراجع أو منشئ)
-4. إذا نجح، يتم إضافة المستخدم إلى غرفة `ticket-{ticketId}`
+### 3. إعداد Socket.IO في server.js
 
-### 3. التحقق عند إرسال حدث
+```javascript
+// server.js
+const { Server } = require('socket.io');
+const http = require('http');
 
-**عند إرسال `ticket-created`:**
-1. تحديد جميع المستخدمين المرتبطين بالعملية (من جدول user_processes)
-2. لكل مستخدم:
-   - التحقق من أن المستخدم لديه صلاحية `tickets.read`
-   - التحقق من أن المستخدم نشط
-   - إرسال الحدث فقط للمستخدمين الذين نجحوا في التحقق
+// إنشاء HTTP server
+const server = http.createServer(app);
 
-**عند إرسال `ticket-updated` أو `ticket-moved`:**
-1. تحديد جميع المستخدمين المرتبطين بالعملية
-2. إضافة المسندين والمراجعين من جداول ticket_assignments و ticket_reviewers
-3. لكل مستخدم:
-   - التحقق من الصلاحيات
-   - إرسال الحدث فقط للمستخدمين المصرح لهم
+// إعداد Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173", // Frontend URL
+    methods: ["GET", "POST"]
+  }
+});
+
+// استيراد websocketService
+const websocketService = require('./services/websocketService');
+websocketService.initialize(io);
+
+// بدء الخادم
+server.listen(PORT, () => {
+  console.log(`Server running on http://${HOST}:${PORT}`);
+  console.log(`WebSocket server ready`);
+});
+```
+
+### 4. إنشاء websocketService.js
+
+**الملف:** `api/services/websocketService.js`
+
+```javascript
+const { authenticateToken } = require('../middleware/auth');
+const db = require('../config/database');
+
+let io = null;
+
+// تهيئة Socket.IO
+function initialize(socketIO) {
+  io = socketIO;
+  
+  // Middleware للتحقق من token
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.auth.token;
+      if (!token) {
+        return next(new Error('Authentication error: No token provided'));
+      }
+      
+      // التحقق من token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      // جلب بيانات المستخدم
+      const userResult = await db.query(
+        'SELECT * FROM users WHERE id = $1 AND is_active = true',
+        [decoded.userId]
+      );
+      
+      if (userResult.rows.length === 0) {
+        return next(new Error('Authentication error: User not found or inactive'));
+      }
+      
+      socket.userId = decoded.userId;
+      socket.user = userResult.rows[0];
+      next();
+    } catch (error) {
+      next(new Error('Authentication error: Invalid token'));
+    }
+  });
+  
+  // معالجة الاتصال
+  io.on('connection', (socket) => {
+    console.log(`User ${socket.userId} connected`);
+    
+    // انضمام إلى غرفة عملية
+    socket.on('join-process', async (data) => {
+      try {
+        const { processId } = data;
+        
+        // التحقق من ربط المستخدم بالعملية
+        const userProcessResult = await db.query(
+          `SELECT up.*, u.is_active 
+           FROM user_processes up
+           JOIN users u ON u.id = up.user_id
+           WHERE up.user_id = $1 AND up.process_id = $2 AND up.is_active = true AND u.is_active = true`,
+          [socket.userId, processId]
+        );
+        
+        if (userProcessResult.rows.length === 0) {
+          socket.emit('error', { message: 'Not authorized to join this process' });
+          return;
+        }
+        
+        // التحقق من الصلاحية
+        const hasPermission = await checkPermission(socket.userId, 'tickets.read');
+        if (!hasPermission) {
+          socket.emit('error', { message: 'No permission to read tickets' });
+          return;
+        }
+        
+        // الانضمام إلى الغرفة
+        socket.join(`process-${processId}`);
+        socket.emit('joined-process', { processId });
+        console.log(`User ${socket.userId} joined process ${processId}`);
+      } catch (error) {
+        socket.emit('error', { message: error.message });
+      }
+    });
+    
+    // مغادرة غرفة عملية
+    socket.on('leave-process', (data) => {
+      const { processId } = data;
+      socket.leave(`process-${processId}`);
+      socket.emit('left-process', { processId });
+      console.log(`User ${socket.userId} left process ${processId}`);
+    });
+    
+    // معالجة الانقطاع
+    socket.on('disconnect', () => {
+      console.log(`User ${socket.userId} disconnected`);
+    });
+  });
+}
+
+// إرسال حدث إنشاء تذكرة
+async function emitTicketCreated(ticket, processId, createdBy) {
+  if (!io) return;
+  
+  try {
+    // جلب جميع المستخدمين المرتبطين بالعملية
+    const usersResult = await db.query(
+      `SELECT DISTINCT up.user_id, u.is_active
+       FROM user_processes up
+       JOIN users u ON u.id = up.user_id
+       WHERE up.process_id = $1 AND up.is_active = true AND u.is_active = true`,
+      [processId]
+    );
+    
+    // التحقق من الصلاحيات وإرسال الحدث
+    for (const row of usersResult.rows) {
+      const hasPermission = await checkPermission(row.user_id, 'tickets.read');
+      if (hasPermission) {
+        io.to(`process-${processId}`).emit('ticket-created', {
+          ticket,
+          created_by: createdBy,
+          process_id: processId
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error emitting ticket-created:', error);
+  }
+}
+
+// إرسال حدث تحديث تذكرة
+async function emitTicketUpdated(ticket, processId, updatedBy, changes) {
+  if (!io) return;
+  
+  try {
+    // جلب المستخدمين المرتبطين بالعملية + المسندين والمراجعين
+    const usersResult = await db.query(
+      `SELECT DISTINCT up.user_id
+       FROM user_processes up
+       JOIN users u ON u.id = up.user_id
+       WHERE up.process_id = $1 AND up.is_active = true AND u.is_active = true
+       UNION
+       SELECT DISTINCT ta.user_id
+       FROM ticket_assignments ta
+       WHERE ta.ticket_id = $2 AND ta.is_active = true
+       UNION
+       SELECT DISTINCT tr.reviewer_id as user_id
+       FROM ticket_reviewers tr
+       WHERE tr.ticket_id = $2 AND tr.is_active = true`,
+      [processId, ticket.id]
+    );
+    
+    // إرسال الحدث للمستخدمين المصرح لهم
+    for (const row of usersResult.rows) {
+      const hasPermission = await checkPermission(row.user_id, 'tickets.read');
+      if (hasPermission) {
+        io.to(`process-${processId}`).emit('ticket-updated', {
+          ticket,
+          updated_by: updatedBy,
+          changes,
+          process_id: processId
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error emitting ticket-updated:', error);
+  }
+}
+
+// إرسال حدث نقل تذكرة
+async function emitTicketMoved(ticket, processId, fromStage, toStage, movedBy) {
+  if (!io) return;
+  
+  try {
+    // نفس منطق emitTicketUpdated
+    const usersResult = await db.query(
+      `SELECT DISTINCT up.user_id
+       FROM user_processes up
+       JOIN users u ON u.id = up.user_id
+       WHERE up.process_id = $1 AND up.is_active = true AND u.is_active = true
+       UNION
+       SELECT DISTINCT ta.user_id
+       FROM ticket_assignments ta
+       WHERE ta.ticket_id = $2 AND ta.is_active = true
+       UNION
+       SELECT DISTINCT tr.reviewer_id as user_id
+       FROM ticket_reviewers tr
+       WHERE tr.ticket_id = $2 AND tr.is_active = true`,
+      [processId, ticket.id]
+    );
+    
+    for (const row of usersResult.rows) {
+      const hasPermission = await checkPermission(row.user_id, 'tickets.read');
+      if (hasPermission) {
+        io.to(`process-${processId}`).emit('ticket-moved', {
+          ticket,
+          from_stage: fromStage,
+          to_stage: toStage,
+          moved_by: movedBy,
+          process_id: processId
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error emitting ticket-moved:', error);
+  }
+}
+
+// إرسال حدث حذف تذكرة
+async function emitTicketDeleted(ticketId, ticketNumber, processId, deletedBy) {
+  if (!io) return;
+  
+  try {
+    const usersResult = await db.query(
+      `SELECT DISTINCT up.user_id
+       FROM user_processes up
+       JOIN users u ON u.id = up.user_id
+       WHERE up.process_id = $1 AND up.is_active = true AND u.is_active = true`,
+      [processId]
+    );
+    
+    for (const row of usersResult.rows) {
+      const hasPermission = await checkPermission(row.user_id, 'tickets.read');
+      if (hasPermission) {
+        io.to(`process-${processId}`).emit('ticket-deleted', {
+          ticket_id: ticketId,
+          ticket_number: ticketNumber,
+          deleted_by: deletedBy,
+          process_id: processId
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error emitting ticket-deleted:', error);
+  }
+}
+
+// دالة مساعدة للتحقق من الصلاحيات
+async function checkPermission(userId, permission) {
+  try {
+    // جلب صلاحيات المستخدم من الدور والصلاحيات المخصصة
+    const result = await db.query(
+      `SELECT p.resource, p.action
+       FROM permissions p
+       INNER JOIN role_permissions rp ON p.id = rp.permission_id
+       INNER JOIN users u ON u.role_id = rp.role_id
+       WHERE u.id = $1 AND p.resource || '.' || p.action = $2
+       UNION
+       SELECT p.resource, p.action
+       FROM permissions p
+       INNER JOIN user_permissions up ON p.id = up.permission_id
+       WHERE up.user_id = $1 AND p.resource || '.' || p.action = $2`,
+      [userId, permission]
+    );
+    
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Error checking permission:', error);
+    return false;
+  }
+}
+
+module.exports = {
+  initialize,
+  emitTicketCreated,
+  emitTicketUpdated,
+  emitTicketMoved,
+  emitTicketDeleted
+};
+```
+
+### 5. استخدام websocketService في Controllers
+
+**مثال في TicketController.createTicket:**
+
+```javascript
+// controllers/TicketController.js
+const websocketService = require('../services/websocketService');
+
+async function createTicket(req, res) {
+  try {
+    // ... الكود الحالي لإنشاء التذكرة ...
+    
+    // بعد إنشاء التذكرة بنجاح
+    const ticket = result.rows[0];
+    
+    // إرسال حدث WebSocket
+    await websocketService.emitTicketCreated(
+      ticket,
+      ticket.process_id,
+      req.user // المستخدم الذي أنشأ التذكرة
+    );
+    
+    res.status(201).json({
+      success: true,
+      data: ticket
+    });
+  } catch (error) {
+    // ...
+  }
+}
+```
+
+**مثال في move-simple route:**
+
+```javascript
+// routes/tickets.js
+const websocketService = require('../services/websocketService');
+
+router.post('/:id/move-simple', async (req, res) => {
+  try {
+    // ... الكود الحالي لنقل التذكرة ...
+    
+    // بعد النقل بنجاح
+    await websocketService.emitTicketMoved(
+      ticket,
+      ticket.process_id,
+      fromStage,
+      toStage,
+      req.user
+    );
+    
+    res.json({ success: true, data: ticket });
+  } catch (error) {
+    // ...
+  }
+});
+```
+
+---
+
+## 🎨 كيفية عمل WebSocket في Frontend
+
+### 1. البنية المطلوبة
+
+```
+src/
+├── services/
+│   └── socketService.ts    (جديد - إدارة WebSocket)
+└── components/
+    └── kanban/
+        └── KanbanBoard.tsx  (استخدام socketService)
+```
+
+### 2. تثبيت المكتبات
+
+```bash
+npm install socket.io-client
+```
+
+### 3. إنشاء socketService.ts
+
+**الملف:** `src/services/socketService.ts`
+
+```typescript
+import { io, Socket } from 'socket.io-client';
+
+class SocketService {
+  private socket: Socket | null = null;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+
+  // الاتصال بالخادم
+  connect(token: string): void {
+    if (this.socket?.connected) {
+      console.log('Socket already connected');
+      return;
+    }
+
+    this.socket = io('http://localhost:3000', {
+      auth: {
+        token: token
+      },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: this.maxReconnectAttempts
+    });
+
+    // معالجة الاتصال
+    this.socket.on('connect', () => {
+      console.log('WebSocket connected');
+      this.reconnectAttempts = 0;
+    });
+
+    // معالجة الانقطاع
+    this.socket.on('disconnect', (reason) => {
+      console.log('WebSocket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        // إعادة الاتصال يدوياً
+        this.socket?.connect();
+      }
+    });
+
+    // معالجة الأخطاء
+    this.socket.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+
+    // معالجة إعادة الاتصال
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('WebSocket reconnected after', attemptNumber, 'attempts');
+    });
+  }
+
+  // قطع الاتصال
+  disconnect(): void {
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  // الانضمام إلى غرفة عملية
+  joinProcess(processId: string): void {
+    if (!this.socket?.connected) {
+      console.warn('Socket not connected, cannot join process');
+      return;
+    }
+
+    this.socket.emit('join-process', { processId });
+    
+    this.socket.on('joined-process', (data) => {
+      console.log('Joined process:', data.processId);
+    });
+
+    this.socket.on('error', (error) => {
+      console.error('Error joining process:', error);
+    });
+  }
+
+  // مغادرة غرفة عملية
+  leaveProcess(processId: string): void {
+    if (!this.socket?.connected) return;
+    
+    this.socket.emit('leave-process', { processId });
+    
+    this.socket.on('left-process', (data) => {
+      console.log('Left process:', data.processId);
+    });
+  }
+
+  // الاستماع لحدث إنشاء تذكرة
+  onTicketCreated(callback: (data: any) => void): void {
+    if (!this.socket) return;
+    
+    this.socket.on('ticket-created', (data) => {
+      console.log('Ticket created event received:', data);
+      callback(data);
+    });
+  }
+
+  // الاستماع لحدث تحديث تذكرة
+  onTicketUpdated(callback: (data: any) => void): void {
+    if (!this.socket) return;
+    
+    this.socket.on('ticket-updated', (data) => {
+      console.log('Ticket updated event received:', data);
+      callback(data);
+    });
+  }
+
+  // الاستماع لحدث نقل تذكرة
+  onTicketMoved(callback: (data: any) => void): void {
+    if (!this.socket) return;
+    
+    this.socket.on('ticket-moved', (data) => {
+      console.log('Ticket moved event received:', data);
+      callback(data);
+    });
+  }
+
+  // الاستماع لحدث حذف تذكرة
+  onTicketDeleted(callback: (data: any) => void): void {
+    if (!this.socket) return;
+    
+    this.socket.on('ticket-deleted', (data) => {
+      console.log('Ticket deleted event received:', data);
+      callback(data);
+    });
+  }
+
+  // إزالة جميع المستمعين
+  removeAllListeners(): void {
+    if (this.socket) {
+      this.socket.removeAllListeners();
+    }
+  }
+
+  // التحقق من حالة الاتصال
+  isConnected(): boolean {
+    return this.socket?.connected || false;
+  }
+}
+
+// Export singleton instance
+export const socketService = new SocketService();
+```
+
+### 4. استخدام socketService في KanbanBoard
+
+**الملف:** `src/components/kanban/KanbanBoard.tsx`
+
+```typescript
+import { useEffect, useState } from 'react';
+import { socketService } from '../../services/socketService';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from '../../components/ui/Toast';
+
+function KanbanBoard({ processId }: { processId: string }) {
+  const { token } = useAuth();
+  const [tickets, setTickets] = useState([]);
+
+  useEffect(() => {
+    // الاتصال عند تحميل المكون
+    if (token) {
+      socketService.connect(token);
+      
+      // الانضمام إلى غرفة العملية
+      socketService.joinProcess(processId);
+      
+      // الاستماع لحدث إنشاء تذكرة
+      socketService.onTicketCreated((data) => {
+        // التحقق من أن التذكرة تنتمي للعملية المفتوحة
+        if (data.process_id === processId) {
+          // إضافة التذكرة إلى الحالة المحلية
+          setTickets(prev => {
+            // تجنب التكرار
+            if (prev.find(t => t.id === data.ticket.id)) {
+              return prev;
+            }
+            return [...prev, data.ticket];
+          });
+          
+          // عرض إشعار
+          toast.success(`تم إنشاء تذكرة جديدة: ${data.ticket.title}`);
+        }
+      });
+      
+      // الاستماع لحدث تحديث تذكرة
+      socketService.onTicketUpdated((data) => {
+        if (data.process_id === processId) {
+          setTickets(prev =>
+            prev.map(ticket =>
+              ticket.id === data.ticket.id ? data.ticket : ticket
+            )
+          );
+          toast.info(`تم تحديث التذكرة: ${data.ticket.title}`);
+        }
+      });
+      
+      // الاستماع لحدث نقل تذكرة
+      socketService.onTicketMoved((data) => {
+        if (data.process_id === processId) {
+          setTickets(prev =>
+            prev.map(ticket =>
+              ticket.id === data.ticket.id
+                ? { ...ticket, current_stage_id: data.to_stage.id }
+                : ticket
+            )
+          );
+          toast.info(`تم نقل التذكرة إلى ${data.to_stage.name}`);
+        }
+      });
+      
+      // الاستماع لحدث حذف تذكرة
+      socketService.onTicketDeleted((data) => {
+        if (data.process_id === processId) {
+          setTickets(prev => prev.filter(ticket => ticket.id !== data.ticket_id));
+          toast.warning(`تم حذف التذكرة: ${data.ticket_number}`);
+        }
+      });
+    }
+    
+    // التنظيف عند إلغاء التحميل
+    return () => {
+      socketService.leaveProcess(processId);
+      socketService.removeAllListeners();
+    };
+  }, [token, processId]);
+
+  // ... باقي الكود ...
+}
+```
+
+### 5. الاتصال عند تسجيل الدخول
+
+**الملف:** `src/contexts/AuthContext.tsx`
+
+```typescript
+import { socketService } from '../services/socketService';
+
+// في دالة login
+const login = async (email: string, password: string) => {
+  // ... الكود الحالي ...
+  
+  // بعد نجاح تسجيل الدخول
+  if (token) {
+    // الاتصال بـ WebSocket
+    socketService.connect(token);
+  }
+};
+
+// في دالة logout
+const logout = () => {
+  // قطع الاتصال بـ WebSocket
+  socketService.disconnect();
+  
+  // ... باقي الكود ...
+};
+```
+
+---
+
+## 🎯 بناء نظام التحديث للمستخدمين الآخرين
+
+### المبدأ الأساسي
+
+**الهدف:** عندما يقوم مستخدم بعمل (إنشاء/تحديث/نقل/حذف تذكرة)، يجب أن يرى جميع المستخدمين المرتبطين بالعملية هذا التغيير فوراً.
+
+### الخطوات المطلوبة
+
+#### 1. في Backend (عند حدوث تغيير)
+
+```javascript
+// مثال: عند إنشاء تذكرة
+async function createTicket(req, res) {
+  // 1. إنشاء التذكرة في قاعدة البيانات
+  const ticket = await createTicketInDB(data);
+  
+  // 2. إرسال حدث WebSocket لجميع المستخدمين المرتبطين
+  await websocketService.emitTicketCreated(
+    ticket,
+    ticket.process_id,
+    req.user
+  );
+  
+  // 3. إرجاع الاستجابة
+  res.json({ success: true, data: ticket });
+}
+```
+
+#### 2. في Frontend (استقبال التحديثات)
+
+```typescript
+// في KanbanBoard
+useEffect(() => {
+  // الاستماع للأحداث
+  socketService.onTicketCreated((data) => {
+    // تحديث الحالة المحلية
+    setTickets(prev => [...prev, data.ticket]);
+    
+    // عرض إشعار
+    toast.success('تم إنشاء تذكرة جديدة');
+  });
+}, []);
+```
+
+### خريطة التدفق الكاملة
+
+```
+┌─────────────┐
+│ المستخدم 1 │
+│  (Frontend) │
+└──────┬──────┘
+       │
+       │ 1. POST /api/tickets
+       │
+       ▼
+┌─────────────┐
+│   Backend   │
+│  (Express)  │
+└──────┬──────┘
+       │
+       │ 2. إنشاء التذكرة في DB
+       │
+       ▼
+┌─────────────┐
+│  Database   │
+└──────┬──────┘
+       │
+       │ 3. إرجاع التذكرة
+       │
+       ▼
+┌─────────────┐
+│   Backend   │
+│ (WebSocket) │
+└──────┬──────┘
+       │
+       │ 4. emit('ticket-created')
+       │
+       ▼
+┌─────────────┐     ┌─────────────┐
+│ المستخدم 2 │     │ المستخدم 3 │
+│  (Frontend) │     │  (Frontend) │
+└─────────────┘     └─────────────┘
+       │                   │
+       │ 5. on('ticket-created')
+       │
+       ▼
+┌─────────────┐
+│ تحديث UI   │
+│ تلقائياً   │
+└─────────────┘
+```
 
 ---
 
@@ -365,36 +882,14 @@
 - `is_active` - حالة النشاط
 - `locked_until` - تاريخ فك القفل
 
-### 2. جدول roles
-- `id` - معرف الدور
-- `name` - اسم الدور (admin, member, guest)
-
-### 3. جدول permissions
-- `id` - معرف الصلاحية
-- `resource` - المورد (tickets, processes, etc.)
-- `action` - الإجراء (create, read, update, delete)
-
-### 4. جدول role_permissions
-- `role_id` - معرف الدور
-- `permission_id` - معرف الصلاحية
-
-### 5. جدول user_permissions
-- `user_id` - معرف المستخدم
-- `permission_id` - معرف الصلاحية
-- (للصلاحيات المخصصة للمستخدم)
-
-### 6. جدول user_processes
+### 2. جدول user_processes
 - `id` - معرف الربط
 - `user_id` - معرف المستخدم
 - `process_id` - معرف العملية
 - `role` - دور المستخدم في العملية
 - `is_active` - حالة النشاط
 
-### 7. جدول processes
-- `id` - معرف العملية
-- `name` - اسم العملية
-
-### 8. جدول tickets
+### 3. جدول tickets
 - `id` - معرف التذكرة
 - `ticket_number` - رقم التذكرة
 - `title` - عنوان التذكرة
@@ -402,238 +897,73 @@
 - `current_stage_id` - معرف المرحلة الحالية
 - `assigned_to` - معرف المستخدم المُسند
 - `created_by` - معرف منشئ التذكرة
-- `status` - حالة التذكرة (active, completed, archived, cancelled)
-- `deleted_at` - تاريخ الحذف (للحذف المؤقت)
 
-### 9. جدول ticket_assignments
+### 4. جدول ticket_assignments
 - `id` - معرف الإسناد
 - `ticket_id` - معرف التذكرة
 - `user_id` - معرف المستخدم المُسند
-- `role` - دور الإسناد (assignee, reviewer, etc.)
 - `is_active` - حالة النشاط
 
-### 10. جدول ticket_reviewers
+### 5. جدول ticket_reviewers
 - `id` - معرف المراجع
 - `ticket_id` - معرف التذكرة
 - `reviewer_id` - معرف المراجع
 - `is_active` - حالة النشاط
-
-### 11. جدول notifications
-- `id` - معرف الإشعار
-- `user_id` - معرف المستخدم المستهدف
-- `title` - عنوان الإشعار
-- `message` - نص الإشعار
-- `notification_type` - نوع الإشعار
-- `action_url` - رابط الإجراء
-- `data` - بيانات إضافية (JSON)
-- `is_read` - حالة القراءة
-- `created_at` - تاريخ الإنشاء
-
----
-
-## 🎯 سيناريو العمل المطلوب لـ WebSocket
-
-### السيناريو 1: إنشاء تذكرة جديدة
-
-**الخطوات:**
-
-1. **المستخدم 1 ينشئ تذكرة:**
-   - يملأ النموذج
-   - يضغط "حفظ"
-   - Frontend يرسل `POST /api/tickets`
-   - Backend ينشئ التذكرة في قاعدة البيانات
-
-2. **Backend يرسل حدث WebSocket:**
-   - يحدد جميع المستخدمين المرتبطين بالعملية (من user_processes)
-   - لكل مستخدم:
-     - يتحقق من صلاحية `tickets.read`
-     - يتحقق من أن المستخدم نشط
-     - يرسل `ticket-created` إلى غرفة `process-{processId}`
-   - البيانات المرسلة: `{ ticket: {...}, created_by: {...}, process_id: "..." }`
-
-3. **Frontend للمستخدمين 2 و 3:**
-   - يستقبلون الحدث `ticket-created`
-   - يتحققون من أن التذكرة تنتمي للعملية المفتوحة حالياً
-   - يضيفون التذكرة إلى الحالة المحلية (state)
-   - يعرضون التذكرة في الواجهة فوراً
-   - يعرضون إشعار (toast) للمستخدم
-
-### السيناريو 2: نقل تذكرة بين المراحل
-
-**الخطوات:**
-
-1. **المستخدم 1 ينقل التذكرة:**
-   - يختار المرحلة الجديدة
-   - يضغط "نقل"
-   - Frontend يرسل `POST /api/tickets/:id/move-simple`
-   - Backend ينقل التذكرة في قاعدة البيانات
-   - Backend يرسل إشعارات للمستخدمين المرتبطين
-
-2. **Backend يرسل حدث WebSocket:**
-   - يحدد جميع المستخدمين المرتبطين بالعملية
-   - يضيف المسندين والمراجعين
-   - يرسل `ticket-moved` إلى غرفة `process-{processId}`
-   - البيانات: `{ ticket: {...}, from_stage: {...}, to_stage: {...}, moved_by: {...} }`
-
-3. **Frontend للمستخدمين الآخرين:**
-   - يستقبلون الحدث `ticket-moved`
-   - يزيلون التذكرة من المرحلة القديمة
-   - يضيفون التذكرة إلى المرحلة الجديدة
-   - يعرضون إشعار للمستخدم
-
-### السيناريو 3: تحديث تذكرة
-
-**الخطوات:**
-
-1. **المستخدم 1 يحدث التذكرة:**
-   - يعدل العنوان أو الوصف
-   - يضغط "حفظ"
-   - Frontend يرسل `PUT /api/tickets/:id`
-   - Backend يحدث التذكرة في قاعدة البيانات
-
-2. **Backend يرسل حدث WebSocket:**
-   - يرسل `ticket-updated` إلى غرفة `process-{processId}`
-   - البيانات: `{ ticket: {...}, updated_by: {...}, changes: {...} }`
-
-3. **Frontend للمستخدمين الآخرين:**
-   - يستقبلون الحدث `ticket-updated`
-   - يحدثون بيانات التذكرة في الحالة المحلية
-   - يعرضون إشعار للمستخدم
-
-### السيناريو 4: حذف تذكرة
-
-**الخطوات:**
-
-1. **المستخدم 1 يحذف التذكرة:**
-   - يضغط "حذف"
-   - Frontend يرسل `DELETE /api/tickets/:id`
-   - Backend يحذف التذكرة (مؤقت أو نهائي)
-
-2. **Backend يرسل حدث WebSocket:**
-   - يرسل `ticket-deleted` إلى غرفة `process-{processId}`
-   - البيانات: `{ ticket_id: "...", ticket_number: "...", deleted_by: {...} }`
-
-3. **Frontend للمستخدمين الآخرين:**
-   - يستقبلون الحدث `ticket-deleted`
-   - يزيلون التذكرة من الحالة المحلية
-   - يعرضون إشعار للمستخدم
-
----
-
-## 🔍 نقاط مهمة للتنفيذ
-
-### 1. إدارة الغرف (Rooms)
-
-**الغرف المطلوبة:**
-- `process-{processId}` - لجميع المستخدمين المرتبطين بعملية معينة
-- `ticket-{ticketId}` - لجميع المستخدمين المرتبطين بتذكرة معينة
-- `user-{userId}` - للمستخدم الفردي (للإشعارات)
-
-**الانضمام:**
-- عند فتح صفحة Kanban لعملية معينة، Frontend يرسل `join-process`
-- عند فتح تذكرة، Frontend يرسل `join-ticket`
-- عند تسجيل الدخول، Frontend يرسل `join-user` (للاستقبال الإشعارات)
-
-**المغادرة:**
-- عند إغلاق صفحة Kanban، Frontend يرسل `leave-process`
-- عند إغلاق تذكرة، Frontend يرسل `leave-ticket`
-- عند تسجيل الخروج، Frontend يرسل `leave-user`
-
-### 2. التحقق من الصلاحيات
-
-**قبل إرسال أي حدث:**
-1. التحقق من أن المستخدم مرتبط بالعملية (user_processes)
-2. التحقق من أن المستخدم لديه الصلاحية المطلوبة
-3. التحقق من أن المستخدم نشط
-4. إرسال الحدث فقط للمستخدمين المصرح لهم
-
-### 3. معالجة الأخطاء
-
-**أنواع الأخطاء:**
-- خطأ في الاتصال - إعادة المحاولة
-- خطأ في التحقق من الصلاحيات - إرسال رسالة خطأ للمستخدم
-- خطأ في قاعدة البيانات - تسجيل الخطأ وإرسال رسالة عامة
-
-### 4. الأداء
-
-**تحسينات:**
-- استخدام Rooms لتقليل عدد الرسائل
-- تخزين مؤقت (cache) لبيانات الصلاحيات
-- إرسال البيانات الأساسية فقط (لا ترسل بيانات كاملة غير ضرورية)
-- استخدام compression للرسائل الكبيرة
-
-### 5. الأمان
-
-**إجراءات الأمان:**
-- التحقق من token في كل اتصال
-- التحقق من الصلاحيات في كل حدث
-- عدم إرسال بيانات حساسة (مثل كلمات المرور)
-- تسجيل جميع الأحداث المهمة
-
----
-
-## 📝 ملخص Endpoints الحالية
-
-### التذاكر
-- `GET /api/tickets/by-stages` - جلب التذاكر مجمعة حسب المراحل
-- `GET /api/tickets` - جلب جميع التذاكر
-- `GET /api/tickets/:id` - جلب تذكرة بالمعرف
-- `POST /api/tickets` - إنشاء تذكرة جديدة
-- `PUT /api/tickets/:id` - تحديث تذكرة
-- `POST /api/tickets/:id/move-simple` - نقل تذكرة بين المراحل
-- `DELETE /api/tickets/:id` - حذف تذكرة
-
-### الإشعارات
-- `GET /api/notifications` - جلب جميع الإشعارات
-- `GET /api/notifications/user/:user_id` - جلب إشعارات مستخدم
-- `GET /api/notifications/unread-count` - جلب عدد الإشعارات غير المقروءة
-- `PUT /api/notifications/:id/read` - تحديد إشعار كمقروء
-- `PUT /api/notifications/mark-all-read` - تحديد جميع الإشعارات كمقروءة
-
-### العمليات
-- `GET /api/processes` - جلب جميع العمليات
-- `GET /api/processes/:id` - جلب عملية بالمعرف
-
-### المستخدمين والعمليات
-- `GET /api/user-processes` - جلب جميع الربطات
-- `GET /api/user-processes/user/:user_id` - جلب عمليات مستخدم
-- `GET /api/user-processes/process/:process_id` - جلب مستخدمي عملية
-- `POST /api/user-processes` - ربط مستخدم بعملية
 
 ---
 
 ## ✅ قائمة التحقق للتنفيذ
 
 ### Backend
-- [ ] تثبيت socket.io
-- [ ] إعداد Socket.IO في server.js
+- [ ] تثبيت `socket.io` في `api/package.json`
+- [ ] تعديل `api/server.js` لإضافة Socket.IO
+- [ ] إنشاء `api/services/websocketService.js`
 - [ ] إضافة middleware للتحقق من token
-- [ ] إضافة handlers للأحداث (join-process, leave-process, etc.)
-- [ ] إضافة منطق إرسال الأحداث عند إنشاء/تحديث/نقل/حذف التذاكر
+- [ ] إضافة handlers للأحداث (join-process, leave-process)
+- [ ] إضافة `emitTicketCreated` في `TicketController.createTicket`
+- [ ] إضافة `emitTicketUpdated` في `TicketController.simpleUpdate`
+- [ ] إضافة `emitTicketMoved` في route `move-simple`
+- [ ] إضافة `emitTicketDeleted` في `TicketController.deleteTicket`
 - [ ] إضافة التحقق من الصلاحيات قبل إرسال الأحداث
 - [ ] إضافة معالجة الأخطاء
 
 ### Frontend
-- [ ] تثبيت socket.io-client
-- [ ] إنشاء socketService
-- [ ] إضافة الاتصال عند تسجيل الدخول
-- [ ] إضافة الانضمام للغرف عند فتح صفحة Kanban
-- [ ] إضافة معالجة الأحداث (ticket-created, ticket-updated, etc.)
+- [ ] تثبيت `socket.io-client` في `package.json`
+- [ ] إنشاء `src/services/socketService.ts`
+- [ ] إضافة الاتصال في `AuthContext` عند تسجيل الدخول
+- [ ] إضافة قطع الاتصال في `AuthContext` عند تسجيل الخروج
+- [ ] إضافة الانضمام للغرف في `KanbanBoard` عند فتح العملية
+- [ ] إضافة معالجة `ticket-created` في `KanbanBoard`
+- [ ] إضافة معالجة `ticket-updated` في `KanbanBoard`
+- [ ] إضافة معالجة `ticket-moved` في `KanbanBoard`
+- [ ] إضافة معالجة `ticket-deleted` في `KanbanBoard`
 - [ ] إضافة تحديث الحالة المحلية عند استقبال الأحداث
-- [ ] إضافة إشعارات للمستخدم عند استقبال الأحداث
+- [ ] إضافة إشعارات toast للمستخدم
 - [ ] إضافة إعادة الاتصال عند انقطاع الاتصال
 
 ---
 
 ## 🎯 الخلاصة
 
-هذا الدليل يشرح النظام الحالي بالكامل والمتطلبات اللازمة لبناء WebSocket. المبرمج يجب أن:
+### ما هو موجود الآن
+- ✅ نظام صلاحيات كامل
+- ✅ نظام تذاكر كامل (CRUD)
+- ✅ نظام إشعارات في قاعدة البيانات
+- ❌ **لا يوجد WebSocket** - التحديثات ليست فورية
 
-1. يفهم نظام الصلاحيات والربط بين المستخدمين والعمليات
-2. يفهم سيناريو العمل الحالي لكل عملية (إنشاء، تحديث، نقل، حذف)
-3. يفهم نظام الإشعارات الحالي
-4. يطبق WebSocket مع التحقق من الصلاحيات في كل خطوة
-5. يضمن أن التذاكر تظهر فقط للمستخدمين المصرح لهم
+### ما يجب إضافته
+- ⏳ WebSocket في Backend (Socket.IO)
+- ⏳ WebSocket في Frontend (socket.io-client)
+- ⏳ إرسال الأحداث عند CRUD operations
+- ⏳ استقبال الأحداث وتحديث UI تلقائياً
 
-**الهدف النهائي:** عندما ينشئ مستخدم 1 تذكرة، يجب أن تظهر تلقائياً عند المستخدمين 2 و 3 (إذا كانوا مرتبطين بالعملية ولديهم الصلاحيات) بدون الحاجة لتحديث الصفحة.
+### الهدف النهائي
+**عندما ينشئ مستخدم 1 تذكرة، يجب أن تظهر تلقائياً عند المستخدمين 2 و 3 (إذا كانوا مرتبطين بالعملية ولديهم الصلاحيات) بدون الحاجة لتحديث الصفحة.**
 
+---
+
+## 📚 مراجع إضافية
+
+- [Socket.IO Documentation](https://socket.io/docs/v4/)
+- [Socket.IO Client Documentation](https://socket.io/docs/v4/client-api/)
+- [WebSocket Authentication](https://socket.io/docs/v4/middlewares/)
