@@ -1,6 +1,8 @@
 require('dotenv').config();
 
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const swaggerUi = require('swagger-ui-express');
@@ -10,6 +12,17 @@ const apiRoutes = require('./routes');
 const swaggerSpecs = require('./config/swagger');
 
 const app = express();
+const server = http.createServer(app);
+
+// إعداد Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:8080", "http://192.168.56.1:8080", "http://localhost:5173"],
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
 const PORT = SERVER_CONFIG.PORT;
 const HOST = SERVER_CONFIG.BIND_HOST;
 const DISPLAY_HOST = SERVER_CONFIG.HOST;
@@ -111,10 +124,16 @@ const startServer = async () => {
     const TicketReviewer = require('./models/TicketReviewer');
     await TicketReviewer.ensureTable();
     
-    const server = app.listen(PORT, HOST, () => {
+    // تهيئة WebSocket
+    const websocketService = require('./services/websocketService');
+    websocketService.initialize(io);
+    console.log('✅ WebSocket service initialized');
+    
+    server.listen(PORT, HOST, () => {
       console.log(`✅ Server is running on port ${PORT}`);
       console.log(`📍 Server URL: http://${DISPLAY_HOST}:${PORT}`);
       console.log(`📚 API Documentation: http://${DISPLAY_HOST}:${PORT}/api-docs`);
+      console.log(`🔌 WebSocket server ready`);
     });
     
     // تشغيل Worker للتذاكر المتكررة تلقائياً

@@ -1174,6 +1174,26 @@ router.post('/:id/move-simple', authenticateToken, requirePermissions(['tickets.
       // نستمر في العملية حتى لو فشلت الإشعارات
     }
 
+    // 5.6. إرسال حدث WebSocket
+    try {
+      const websocketService = require('../services/websocketService');
+      
+      // جلب التذكرة المحدثة
+      const updatedTicketResult = await pool.query(ticketQuery, [ticketId]);
+      const updatedTicket = updatedTicketResult.rows[0];
+      
+      await websocketService.emitTicketMoved(
+        updatedTicket,
+        ticket.process_id,
+        { id: ticket.current_stage_id, name: ticket.current_stage_name },
+        { id: target_stage_id, name: targetStage.name },
+        req.user
+      );
+    } catch (wsError) {
+      console.error('❌ خطأ في إرسال حدث WebSocket:', wsError);
+      // نستمر في العملية حتى لو فشل WebSocket
+    }
+
     // 6. إرجاع النتيجة
     res.json({
       success: true,

@@ -15,6 +15,7 @@ import ticketService, { TicketsByStagesResponse, TicketsByStagesApiResponse } fr
 import userTicketLinkService, { UserTicketLink } from '../../services/userTicketLinkService';
 import { useToast } from '../ui/Toast';
 import { useDeviceType } from '../../hooks/useDeviceType';
+import { socketService } from '../../services/socketService';
 
 interface KanbanBoardProps {
   process: Process;
@@ -251,6 +252,122 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     loadUserTicketLinks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [process.id, visibleStageIds, user?.id]);
+
+  // إعداد WebSocket
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token || !process.id) return;
+
+    // الاتصال بـ WebSocket
+    if (!socketService.isConnected()) {
+      socketService.connect(token);
+    }
+
+    // الانضمام إلى غرفة العملية
+    socketService.joinProcess(process.id);
+
+    // الاستماع لحدث إنشاء تذكرة
+    socketService.onTicketCreated((data) => {
+      if (data.process_id === process.id) {
+        console.log('📨 New ticket created:', data.ticket);
+        
+        // إضافة التذكرة إلى المرحلة المناسبة
+        setTicketsByStages(prev => {
+          const stageId = data.ticket.current_stage_id;
+          const existingTickets = prev[stageId] || [];
+          
+          // تجنب التكرار
+          if (existingTickets.find(t => t.id === data.ticket.id)) {
+            return prev;
+          }
+          
+          return {
+            ...prev,
+            [stageId]: [data.ticket, ...existingTickets]
+          };
+        });
+        
+        // عرض إشعار
+        showSuccess('تذكرة جديدة', `تم إنشاء تذكرة جديدة: ${data.ticket.title}`);
+      }
+    });
+
+    // الاستماع لحدث تحديث تذكرة
+    socketService.onTicketUpdated((data) => {
+      if (data.process_id === process.id) {
+        console.log('📨 Ticket updated:', data.ticket);
+        
+        setTicketsByStages(prev => {
+          const newState = { ...prev };
+          
+          // البحث عن التذكرة في جميع المراحل وتحديثها
+          Object.keys(newState).forEach(stageId => {
+            newState[stageId] = newState[stageId].map(ticket =>
+              ticket.id === data.ticket.id ? data.ticket : ticket
+            );
+          });
+          
+          return newState;
+        });
+        
+        showSuccess('تم التحديث', `تم تحديث التذكرة: ${data.ticket.title}`);
+      }
+    });
+
+    // الاستماع لحدث نقل تذكرة
+    socketService.onTicketMoved((data) => {
+      if (data.process_id === process.id) {
+        console.log('📨 Ticket moved:', data.ticket);
+        
+        setTicketsByStages(prev => {
+          const newState = { ...prev };
+          
+          // إزالة التذكرة من المرحلة القديمة
+          Object.keys(newState).forEach(stageId => {
+            newState[stageId] = newState[stageId].filter(t => t.id !== data.ticket.id);
+          });
+          
+          // إضافة التذكرة إلى المرحلة الجديدة
+          const newStageId = data.ticket.current_stage_id;
+          if (!newState[newStageId]) {
+            newState[newStageId] = [];
+          }
+          newState[newStageId] = [data.ticket, ...newState[newStageId]];
+          
+          return newState;
+        });
+        
+        showSuccess('تم النقل', `تم نقل التذكرة إلى ${data.to_stage.name}`);
+      }
+    });
+
+    // الاستماع لحدث حذف تذكرة
+    socketService.onTicketDeleted((data) => {
+      if (data.process_id === process.id) {
+        console.log('📨 Ticket deleted:', data.ticket_id);
+        
+        setTicketsByStages(prev => {
+          const newState = { ...prev };
+          
+          // إزالة التذكرة من جميع المراحل
+          Object.keys(newState).forEach(stageId => {
+            newState[stageId] = newState[stageId].filter(t => t.id !== data.ticket_id);
+          });
+          
+          return newState;
+        });
+        
+        showSuccess('تم الحذف', `تم حذف التذكرة: ${data.ticket_number}`);
+      }
+    });
+
+    // التنظيف عند إلغاء التحميل
+    return () => {
+      socketService.leaveProcess(process.id);
+      socketService.removeAllListeners();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [process.id]);
 
   // فلترة التذاكر حسب البحث
   const filteredTicketsByStages = useMemo(() => {

@@ -1,4 +1,5 @@
 const Ticket = require('../models/Ticket');
+const websocketService = require('../services/websocketService');
 
 class TicketController {
   // جلب جميع التذاكر
@@ -109,6 +110,9 @@ class TicketController {
 
       await client.query('COMMIT');
 
+      // إرسال حدث WebSocket
+      await websocketService.emitTicketCreated(ticket, ticket.process_id, req.user);
+
       res.status(201).json({
         success: true,
         message: 'تم إنشاء التذكرة بنجاح',
@@ -198,6 +202,9 @@ class TicketController {
 
       const ticket = await Ticket.update(id, updateData, req.user.id);
 
+      // إرسال حدث WebSocket
+      await websocketService.emitTicketUpdated(ticket, ticket.process_id, req.user, updateData);
+
       res.json({
         success: true,
         message: 'تم تحديث التذكرة بنجاح',
@@ -281,6 +288,9 @@ class TicketController {
           message: 'التذكرة غير موجودة'
         });
       }
+
+      // إرسال حدث WebSocket
+      await websocketService.emitTicketDeleted(id, existingTicket.ticket_number, existingTicket.process_id, req.user);
 
       res.json({
         success: true,
