@@ -125,21 +125,39 @@ class SocketService {
 
   // الانضمام إلى غرفة عملية
   joinProcess(processId: string): void {
-    if (!this.socket?.connected) {
-      console.warn('⚠️ Socket not connected, cannot join process');
+    if (!this.socket) {
+      console.warn('⚠️ Socket not initialized');
       return;
     }
 
-    console.log('📥 Joining process:', processId);
-    this.socket.emit('join-process', { processId });
-    
-    this.socket.once('joined-process', (data) => {
-      console.log('✅ Joined process:', data.processId);
-    });
+    // إذا كان Socket متصل بالفعل، انضم مباشرة
+    if (this.socket.connected) {
+      console.log('📥 Joining process:', processId);
+      this.socket.emit('join-process', { processId });
+      
+      this.socket.once('joined-process', (data) => {
+        console.log('✅ Joined process:', data.processId);
+      });
 
-    this.socket.once('error', (error) => {
-      console.error('❌ Error joining process:', error);
-    });
+      this.socket.once('error', (error) => {
+        console.error('❌ Error joining process:', error);
+      });
+    } else {
+      // إذا لم يكن متصل بعد، انتظر الاتصال ثم انضم
+      console.log('⏳ Waiting for socket to connect before joining process...');
+      this.socket.once('connect', () => {
+        console.log('✅ Socket connected, now joining process:', processId);
+        this.socket!.emit('join-process', { processId });
+        
+        this.socket!.once('joined-process', (data) => {
+          console.log('✅ Joined process:', data.processId);
+        });
+
+        this.socket!.once('error', (error) => {
+          console.error('❌ Error joining process:', error);
+        });
+      });
+    }
   }
 
   // مغادرة غرفة عملية

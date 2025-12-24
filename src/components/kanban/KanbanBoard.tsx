@@ -255,12 +255,27 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
 
   // إعداد WebSocket
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token || !process.id) return;
+    console.log('🔌 WebSocket useEffect triggered', { processId: process.id });
+    // محاولة الحصول على Token من كلا الموقعين
+    let token = localStorage.getItem('auth_token');
+    if (!token) {
+      token = localStorage.getItem('token');
+    }
+    console.log('🔑 Token:', token ? 'exists' : 'missing');
+    
+    if (!token || !process.id) {
+      console.log('⚠️ Missing token or process.id');
+      return;
+    }
 
+    console.log('🔌 Attempting to connect WebSocket...');
+    
     // الاتصال بـ WebSocket
     if (!socketService.isConnected()) {
+      console.log('🔌 Socket not connected, connecting now...');
       socketService.connect(token);
+    } else {
+      console.log('✅ Socket already connected');
     }
 
     // الانضمام إلى غرفة العملية
