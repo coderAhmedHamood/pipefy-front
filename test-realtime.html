@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار Real-time - Pipefy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 1.2em;
+        }
+        .instructions {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        .instructions h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-right: 5px solid #667eea;
+        }
+        .step h3 {
+            color: #764ba2;
+            margin-bottom: 10px;
+        }
+        .step p {
+            color: #555;
+            line-height: 1.6;
+        }
+        .status-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .status-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .status-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-left: 15px;
+        }
+        .status-icon.success {
+            background: #d4edda;
+        }
+        .status-icon.error {
+            background: #f8d7da;
+        }
+        .status-icon.info {
+            background: #d1ecf1;
+        }
+        .status-text {
+            flex: 1;
+        }
+        .status-text h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .status-text p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin: 10px 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.3);
+        }
+        .button:active {
+            transform: translateY(0);
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 اختبار Real-time WebSocket</h1>
+            <p>نظام Pipefy - التحديثات الفورية</p>
+        </div>
+
+        <div class="instructions">
+            <h2>📋 خطوات الاختبار</h2>
+            
+            <div class="step">
+                <h3>1️⃣ افتح متصفحين</h3>
+                <p>
+                    • افتح المتصفح الأول على: <code>http://192.168.56.1:8080</code><br>
+                    • افتح نافذة خفية (Incognito) كمتصفح ثاني<br>
+                    • سجل دخول في كلا المتصفحين
+                </p>
+            </div>
+
+            <div class="step">
+                <h3>2️⃣ افتح Console في كلا المتصفحين</h3>
+                <p>
+                    • اضغط <span class="highlight">F12</span> لفتح Developer Tools<br>
+                    • اذهب إلى تبويب <span class="highlight">Console</span><br>
+                    • يجب أن ترى رسائل WebSocket
+                </p>
+            </div>
+
+            <div class="step">
+                <h3>3️⃣ اختر نفس العملية في كلا المتصفحين</h3>
+                <p>
+                    • اذهب إلى <span class="highlight">لوحة كانبان</span><br>
+                    • اختر <span class="highlight">العملية الرئيسية</span><br>
+                    • تأكد من أن كلا المتصفحين في نفس العملية
+                </p>
+            </div>
+
+            <div class="step">
+                <h3>4️⃣ جرب العمليات التالية</h3>
+                <p>
+                    <strong>في المتصفح الأول:</strong><br>
+                    ✅ أنشئ تذكرة جديدة<br>
+                    ✅ انقل تذكرة بين المراحل<br>
+                    ✅ عدل بيانات تذكرة<br>
+                    ✅ احذف تذكرة<br><br>
+                    
+                    <strong>في المتصفح الثاني:</strong><br>
+                    🎯 يجب أن ترى جميع التغييرات <span class="highlight">فوراً</span> بدون refresh!
+                </p>
+            </div>
+        </div>
+
+        <div class="status-box">
+            <h2 style="color: #667eea; margin-bottom: 20px;">✅ ما يجب أن تراه في Console</h2>
+            
+            <div class="status-item">
+                <div class="status-icon success">🔌</div>
+                <div class="status-text">
+                    <h3>اتصال WebSocket</h3>
+                    <p>🔌 Connecting to WebSocket server: http://192.168.56.1:3004</p>
+                    <p>✅ WebSocket connected</p>
+                </div>
+            </div>
+
+            <div class="status-item">
+                <div class="status-icon success">📥</div>
+                <div class="status-text">
+                    <h3>الانضمام للعملية</h3>
+                    <p>📥 Joining process: [process-id]</p>
+                    <p>✅ Joined process: [process-id]</p>
+                </div>
+            </div>
+
+            <div class="status-item">
+                <div class="status-icon info">📨</div>
+                <div class="status-text">
+                    <h3>استقبال الأحداث</h3>
+                    <p>📨 Ticket created event received: {...}</p>
+                    <p>📨 Ticket moved event received: {...}</p>
+                    <p>📨 Ticket updated event received: {...}</p>
+                    <p>📨 Ticket deleted event received: {...}</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="button" onclick="window.open('http://192.168.56.1:8080', '_blank')">
+                🌐 افتح النظام
+            </button>
+            <button class="button" onclick="window.open('http://192.168.56.1:8080', '_blank')">
+                🔍 افتح نافذة ثانية
+            </button>
+        </div>
+
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-top: 30px;">
+            <h2 style="color: #667eea; margin-bottom: 20px;">🎯 النتيجة المتوقعة</h2>
+            <div style="background: #d4edda; padding: 20px; border-radius: 10px; border-right: 5px solid #28a745;">
+                <h3 style="color: #155724; margin-bottom: 10px;">✅ Real-time يعمل بنجاح عندما:</h3>
+                <ul style="color: #155724; line-height: 2; margin-right: 20px;">
+                    <li>تظهر التذاكر الجديدة <strong>فوراً</strong> في المتصفح الثاني</li>
+                    <li>تتحرك التذاكر بين المراحل <strong>فوراً</strong> في المتصفح الثاني</li>
+                    <li>تتحدث بيانات التذاكر <strong>فوراً</strong> في المتصفح الثاني</li>
+                    <li>تختفي التذاكر المحذوفة <strong>فوراً</strong> من المتصفح الثاني</li>
+                    <li><strong>لا حاجة</strong> للانتقال بين التبويبات أو عمل Refresh</li>
+                </ul>
+            </div>
+
+            <div style="background: #f8d7da; padding: 20px; border-radius: 10px; border-right: 5px solid #dc3545; margin-top: 20px;">
+                <h3 style="color: #721c24; margin-bottom: 10px;">❌ إذا لم يعمل:</h3>
+                <ul style="color: #721c24; line-height: 2; margin-right: 20px;">
+                    <li>تحقق من أن Backend يعمل على المنفذ 3004</li>
+                    <li>افتح Console وابحث عن أخطاء WebSocket</li>
+                    <li>تأكد من أن كلا المتصفحين في نفس العملية</li>
+                    <li>أعد تحميل الصفحة بـ Ctrl+Shift+R</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; color: white; font-size: 0.9em;">
+            <p>🔧 تم إصلاح WebSocket - المنفذ الصحيح: 3004</p>
+            <p>📅 ديسمبر 2025</p>
+        </div>
+    </div>
+</body>
+</html>
+

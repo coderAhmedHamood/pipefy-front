@@ -65,8 +65,8 @@ class SocketService {
 
     // تحديد URL الخادم بناءً على البيئة
     const serverUrl = window.location.hostname === 'localhost' 
-      ? 'http://localhost:3000'
-      : `http://${window.location.hostname}:3000`;
+      ? 'http://localhost:3004'
+      : `http://${window.location.hostname}:3004`;
 
     console.log('🔌 Connecting to WebSocket server:', serverUrl);
 
