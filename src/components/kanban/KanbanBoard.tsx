@@ -40,6 +40,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [isAutoRefreshing, setIsAutoRefreshing] = useState(false);
   
   // User Ticket Links State
   const [userTicketLinks, setUserTicketLinks] = useState<UserTicketLink[]>([]);
@@ -88,12 +89,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   }, [ticketsByStages]);
 
   // جلب التذاكر من API عند تحميل المكون أو تغيير العملية
-  const loadTickets = async () => {
+  const loadTickets = async (silent = false) => {
     if (!process.id || !visibleStages.length) {
       return;
     }
 
-    setLoading(true);
+    // في الوضع الصامت، لا نعرض loading spinner
+    if (!silent) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -122,20 +126,31 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
         setStageOffsets(initialOffsets);
         setStageHasMore(initialHasMore);
         
-        showSuccess('تم جلب التذاكر', `تم جلب ${response.statistics.total_tickets} تذكرة بنجاح`);
+        // عرض رسالة نجاح فقط إذا لم يكن silent
+        if (!silent) {
+          showSuccess('تم جلب التذاكر', `تم جلب ${response.statistics.total_tickets} تذكرة بنجاح`);
+        } else {
+          console.log('✅ تم تحديث التذاكر تلقائياً:', response.statistics.total_tickets);
+        }
       } else {
         const errorMsg = response.message || 'فشل في جلب التذاكر';
         console.error('فشل في جلب التذاكر:', errorMsg);
         setError(errorMsg);
-        showError('خطأ في جلب التذاكر', errorMsg);
+        if (!silent) {
+          showError('خطأ في جلب التذاكر', errorMsg);
+        }
       }
     } catch (error) {
       console.error('خطأ في جلب التذاكر:', error);
       const errorMsg = error instanceof Error ? error.message : 'حدث خطأ أثناء جلب التذاكر من الخادم';
       setError(errorMsg);
-      showError('خطأ في جلب التذاكر', errorMsg);
+      if (!silent) {
+        showError('خطأ في جلب التذاكر', errorMsg);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -253,6 +268,26 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [process.id, visibleStageIds, user?.id]);
 
+  // Auto-refresh كل 30 ثانية كخيار احتياطي للتحديث التلقائي
+  useEffect(() => {
+    // تعيين interval للتحديث التلقائي
+    const refreshInterval = setInterval(async () => {
+      // تجنب التحديث إذا كان هناك loading حالي
+      if (!loading) {
+        console.log('🔄 Auto-refresh: تحديث التذاكر تلقائياً...');
+        setIsAutoRefreshing(true);
+        await loadTickets(true); // silent mode - بدون toast notifications
+        setIsAutoRefreshing(false);
+      }
+    }, 30000); // 30 ثانية
+
+    // تنظيف interval عند إلغاء التحميل
+    return () => {
+      clearInterval(refreshInterval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [process.id, visibleStageIds, loading]);
+
   // إعداد WebSocket
   useEffect(() => {
     console.log('🔌 WebSocket useEffect triggered', { processId: process.id });
@@ -293,14 +328,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
           
           // تجنب التكرار
           if (existingTickets.find(t => t.id === data.ticket.id)) {
+            console.log('⚠️ Ticket already exists, skipping');
             return prev;
           }
           
-          return {
+          const newState = {
             ...prev,
             [stageId]: [data.ticket, ...existingTickets]
           };
+          
+          console.log('✅ Ticket added to stage', stageId);
+          return newState;
         });
+        
+        // فرض إعادة الرسم
+        setForceUpdate(prev => prev + 1);
         
         // عرض إشعار
         showSuccess('تذكرة جديدة', `تم إنشاء تذكرة جديدة: ${data.ticket.title}`);
@@ -314,16 +356,28 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
         
         setTicketsByStages(prev => {
           const newState = { ...prev };
+          let updated = false;
           
           // البحث عن التذكرة في جميع المراحل وتحديثها
           Object.keys(newState).forEach(stageId => {
-            newState[stageId] = newState[stageId].map(ticket =>
-              ticket.id === data.ticket.id ? data.ticket : ticket
-            );
+            newState[stageId] = newState[stageId].map(ticket => {
+              if (ticket.id === data.ticket.id) {
+                updated = true;
+                return data.ticket;
+              }
+              return ticket;
+            });
           });
+          
+          if (updated) {
+            console.log('✅ Ticket updated in state');
+          }
           
           return newState;
         });
+        
+        // فرض إعادة الرسم
+        setForceUpdate(prev => prev + 1);
         
         showSuccess('تم التحديث', `تم تحديث التذكرة: ${data.ticket.title}`);
       }
@@ -333,13 +387,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
     socketService.onTicketMoved((data) => {
       if (data.process_id === process.id) {
         console.log('📨 Ticket moved:', data.ticket);
+        console.log('   From stage:', data.from_stage.name);
+        console.log('   To stage:', data.to_stage.name);
         
         setTicketsByStages(prev => {
           const newState = { ...prev };
           
           // إزالة التذكرة من المرحلة القديمة
+          let removed = false;
           Object.keys(newState).forEach(stageId => {
+            const beforeLength = newState[stageId].length;
             newState[stageId] = newState[stageId].filter(t => t.id !== data.ticket.id);
+            if (newState[stageId].length < beforeLength) {
+              removed = true;
+              console.log(`   ✅ Removed from stage ${stageId}`);
+            }
           });
           
           // إضافة التذكرة إلى المرحلة الجديدة
@@ -347,10 +409,18 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
           if (!newState[newStageId]) {
             newState[newStageId] = [];
           }
-          newState[newStageId] = [data.ticket, ...newState[newStageId]];
+          
+          // تجنب التكرار
+          if (!newState[newStageId].find(t => t.id === data.ticket.id)) {
+            newState[newStageId] = [data.ticket, ...newState[newStageId]];
+            console.log(`   ✅ Added to stage ${newStageId}`);
+          }
           
           return newState;
         });
+        
+        // فرض إعادة الرسم
+        setForceUpdate(prev => prev + 1);
         
         showSuccess('تم النقل', `تم نقل التذكرة إلى ${data.to_stage.name}`);
       }
@@ -363,14 +433,23 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
         
         setTicketsByStages(prev => {
           const newState = { ...prev };
+          let deleted = false;
           
           // إزالة التذكرة من جميع المراحل
           Object.keys(newState).forEach(stageId => {
+            const beforeLength = newState[stageId].length;
             newState[stageId] = newState[stageId].filter(t => t.id !== data.ticket_id);
+            if (newState[stageId].length < beforeLength) {
+              deleted = true;
+              console.log(`   ✅ Deleted from stage ${stageId}`);
+            }
           });
           
           return newState;
         });
+        
+        // فرض إعادة الرسم
+        setForceUpdate(prev => prev + 1);
         
         showSuccess('تم الحذف', `تم حذف التذكرة: ${data.ticket_number}`);
       }
@@ -908,6 +987,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                   !process.stages.find(s => s.id === t.current_stage_id)?.is_final
                 ).length}
               </span>
+              
+              {isAutoRefreshing && (
+                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium flex items-center space-x-2 space-x-reverse">
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                  <span>تحديث تلقائي...</span>
+                </span>
+              )}
             </div>
           </div>
           

@@ -69,6 +69,7 @@ class SocketService {
       : `http://${window.location.hostname}:3004`;
 
     console.log('🔌 Connecting to WebSocket server:', serverUrl);
+    console.log('🔑 Token provided:', token ? 'Yes' : 'No');
 
     this.socket = io(serverUrl, {
       auth: {
@@ -77,7 +78,9 @@ class SocketService {
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: this.maxReconnectAttempts
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: this.maxReconnectAttempts,
+      timeout: 10000
     });
 
     // معالجة الاتصال
@@ -98,6 +101,15 @@ class SocketService {
     // معالجة الأخطاء
     this.socket.on('error', (error) => {
       console.error('❌ WebSocket error:', error);
+    });
+
+    // معالجة خطأ الاتصال
+    this.socket.on('connect_error', (error) => {
+      console.error('❌ WebSocket connection error:', error.message);
+      this.reconnectAttempts++;
+      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+        console.error('❌ Max reconnection attempts reached');
+      }
     });
 
     // معالجة إعادة الاتصال
