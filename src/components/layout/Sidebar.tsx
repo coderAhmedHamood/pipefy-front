@@ -174,10 +174,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return null;
             }
 
-            // إخفاء تبويبة الإشعارات إذا لم يكن لديه صلاحية العرض للعملية المحددة
-            if (item.id === 'notifications' && !hasProcessPermission('system', 'notifications', '183430e0-b345-43de-a6ff-70aa8240d56f')) {
-              return null;
-            }
+            // إظهار تبويبة الإشعارات لجميع المستخدمين المسجلين
+            // الإشعارات متاحة لجميع المستخدمين لأنها تخص المستخدم نفسه
+            // لا حاجة للتحقق من الصلاحيات هنا
 
             return (
               <li key={item.id}>
