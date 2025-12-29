@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* تصغير النظام بالكامل إلى 75% من الحجم الأصلي */
+@layer base {
+  html {
+    font-size: 88%; /* تصغير الحجم الأساسي من 16px إلى 14.08px (88% من 16px) */
+  }
+  
+  body {
+    font-size: 0.875rem; /* 14px تقريباً */
+  }
+  
+  /* تصغير جميع العناصر */
+  * {
+    box-sizing: border-box;
+  }
+  
+  /* تحسين عرض النصوص */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
 /* Custom scrollbar styles for attachments */
 .scrollbar-thin {
   scrollbar-width: thin;
@@ -9,17 +31,17 @@
 }
 
 .scrollbar-thin::-webkit-scrollbar {
-  width: 8px;
+  width: 7px; /* كان 8px */
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
   background: #f3f4f6;
-  border-radius: 4px;
+  border-radius: 3.5px; /* كان 4px */
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: #9ca3af;
-  border-radius: 4px;
+  border-radius: 3.5px; /* كان 4px */
   transition: background-color 0.2s ease;
 }
 
@@ -30,4 +52,17 @@
 /* Smooth scrolling */
 .attachments-scroll {
   scroll-behavior: smooth;
+}
+
+/* تقليص الأزرار والعناصر التفاعلية */
+@layer components {
+  button, .btn, input, select, textarea {
+    font-size: inherit;
+  }
+  
+  /* تقليص الأيقونات */
+  svg {
+    width: 88%;
+    height: 88%;
+  }
 }
