@@ -458,13 +458,13 @@ const MobileTicketCard: React.FC<MobileTicketCardProps> = ({ ticket, stage, onCl
         
         <div className="flex-1 min-w-0">
           {/* العنوان */}
-          <h4 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
+          <h4 className="font-semibold text-gray-900 text-sm mb-1">
             {ticket.title}
           </h4>
           
           {/* الوصف */}
           {ticket.description && (
-            <p className="text-xs text-gray-500 mb-2 line-clamp-2">
+            <p className="text-xs text-gray-500 mb-2 line-clamp-3">
               {ticket.description}
             </p>
           )}

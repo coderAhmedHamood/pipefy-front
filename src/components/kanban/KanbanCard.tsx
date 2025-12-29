@@ -123,11 +123,11 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <h4 className="font-medium text-gray-900 text-sm leading-snug mb-1 line-clamp-2">
+            <h4 className="font-medium text-gray-900 text-sm leading-snug mb-1">
               {ticket.title}
             </h4>
             {ticket.description && (
-              <p className="text-gray-600 text-xs line-clamp-2 leading-relaxed">
+              <p className="text-gray-600 text-xs line-clamp-3 leading-relaxed">
                 {ticket.description}
               </p>
             )}
