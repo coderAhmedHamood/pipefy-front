@@ -2128,26 +2128,145 @@ export const UserManagerNew: React.FC = () => {
         {!state.loading && selectedTab === 'permissions' && hasPermission('permissions', 'manage') && (
           <div className="bg-white rounded-lg shadow-sm">
             <div className={isMobile || isTablet ? 'p-3' : 'p-6'}>
-              <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>الصلاحيات المتاحة</h3>
-
-              <div className={`grid ${isMobile || isTablet ? 'grid-cols-1' : 'md:grid-cols-2'} ${isMobile || isTablet ? 'gap-3' : 'gap-4'}`}>
-                {state.permissions.map((permission) => (
-                  <div key={permission.id} className={`border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-4'}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`${isMobile || isTablet ? 'text-sm' : ''} font-medium text-gray-900`}>{permission.name}</h4>
-                        <p className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} text-gray-500`}>
-                          {permission.resource} - {permission.action}
-                        </p>
-                        {permission.description && (
-                          <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-400 mt-1`}>{permission.description}</p>
-                        )}
-                      </div>
-                      <Key className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400 flex-shrink-0`} />
-                    </div>
+              {/* العنوان والبحث */}
+              <div className={`flex ${isMobile || isTablet ? 'flex-col space-y-3' : 'items-center justify-between'} mb-6`}>
+                <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900`}>
+                  الصلاحيات المتاحة
+                </h3>
+                <div className="flex items-center space-x-3 space-x-reverse">
+                  <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full whitespace-nowrap">
+                    {state.permissions.length} صلاحية
+                  </span>
+                  <div className="relative flex-1 max-w-xs">
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="بحث في الصلاحيات..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pr-10 pl-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                ))}
+                </div>
               </div>
+
+              {/* عرض الصلاحيات في جدول بسيط */}
+              {(() => {
+                // تطبيق البحث
+                const filteredPermissions = searchQuery
+                  ? state.permissions.filter((p: any) =>
+                      p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      p.resource?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      p.action?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                  : state.permissions;
+
+                // عرض رسالة إذا لم توجد نتائج
+                if (filteredPermissions.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">لا توجد صلاحيات تطابق البحث</p>
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="mt-4 text-sm text-blue-600 hover:text-blue-700"
+                      >
+                        مسح البحث
+                      </button>
+                    </div>
+                  );
+                }
+
+                // عرض كجدول بسيط
+                if (isMobile || isTablet) {
+                  // عرض البطاقات للجوال
+                  return (
+                    <div className="space-y-2">
+                      {filteredPermissions.map((permission: any) => (
+                        <div 
+                          key={permission.id} 
+                          className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="text-sm font-semibold text-gray-900">{permission.name}</h4>
+                            <Key className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs text-gray-600">
+                              <span className="font-medium">النوع:</span> {permission.resource}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              <span className="font-medium">الإجراء:</span> {permission.action}
+                            </p>
+                            {permission.description && (
+                              <p className="text-xs text-gray-500 mt-2">{permission.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
+                // عرض كجدول للشاشات الكبيرة
+                return (
+                  <div className="overflow-hidden rounded-lg border border-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            اسم الصلاحية
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            النوع
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            الإجراء
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            الوصف
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {filteredPermissions.map((permission: any, index: number) => (
+                          <tr 
+                            key={permission.id}
+                            className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25'}`}
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center space-x-2 space-x-reverse">
+                                <Key className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                <span className="text-sm font-medium text-gray-900">{permission.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {permission.resource}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                              {permission.action}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              {permission.description || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
