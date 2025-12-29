@@ -1727,11 +1727,21 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 <span className={`text-white font-bold ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>{process.name.charAt(0)}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold truncate`}>{isEditing ? formData.title : ticket.title}</h1>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border-2 border-white border-opacity-30 rounded-lg px-3 py-2 w-full focus:outline-none focus:border-opacity-60 mb-2`}
+                    placeholder="عنوان التذكرة"
+                  />
+                ) : (
+                  <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold`}>{ticket.title}</h1>
+                )}
                 <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1 mt-1' : 'space-x-3 space-x-reverse'} text-blue-100`}>
-                  <span className="truncate">{process.name}</span>
+                  <span>{process.name}</span>
                   <span>•</span>
-                  <span className="truncate">{currentStage?.name}</span>
+                  <span>{currentStage?.name}</span>
                   <span>•</span>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
                     ticket.priority === 'urgent' ? 'bg-red-500' :
@@ -1979,16 +1989,6 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               
               {isEditing ? (
                 <div className={`${isMobile || isTablet ? 'space-y-3' : 'space-y-4'}`}>
-                  <div>
-                    <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>العنوان</label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                    />
-                  </div>
-                  
                   <div>
                     <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الوصف</label>
                     <textarea
