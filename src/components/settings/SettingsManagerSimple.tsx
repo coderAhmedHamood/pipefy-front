@@ -22,6 +22,7 @@ export const SettingsManager: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const notifications = useQuickNotifications();
   
   // حالة الإعدادات
@@ -105,18 +106,52 @@ export const SettingsManager: React.FC = () => {
   };
 
   const handleUploadLogo = async (file: File) => {
+    // بدء عرض شريط التقدم فوراً
+    setUploading(true);
+    setUploadProgress(5); // بدء من 5% لإظهار أن العملية بدأت
+    
     try {
-      setUploading(true);
-      const response = await settingsService.uploadLogo(file);
+      // تحقق من نوع وحجم الملف
+      if (!file.type.startsWith('image/')) {
+        notifications.showError('نوع ملف غير صحيح', 'يجب اختيار ملف صورة');
+        setUploading(false);
+        setUploadProgress(0);
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        notifications.showError('حجم الملف كبير', 'يجب أن يكون حجم الصورة أقل من 5 ميجابايت');
+        setUploading(false);
+        setUploadProgress(0);
+        return;
+      }
+      
+      // تحديث التقدم إلى 15% بعد التحقق
+      setUploadProgress(15);
+      
+      // انتظار قليلاً للتأكد من ظهور شريط التقدم
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const response = await settingsService.uploadLogo(file, (progress) => {
+        // تعديل نطاق التقدم من 15% إلى 90%
+        const adjustedProgress = 15 + (progress * 0.75);
+        setUploadProgress(Math.round(adjustedProgress));
+      });
+      
       if (response.success && response.data) {
+        setUploadProgress(95);
         updateSetting('system_logo_url', response.data.logoUrl);
+        setUploadProgress(100);
         notifications.showSuccess('تم رفع الشعار', 'تم رفع شعار النظام بنجاح');
       }
     } catch (error: any) {
       console.error('خطأ في رفع الشعار:', error);
       notifications.showError('خطأ في رفع الشعار', error.message || 'فشل في رفع الشعار');
     } finally {
-      setUploading(false);
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+      }, 1000);
     }
   };
 
@@ -382,6 +417,35 @@ export const SettingsManager: React.FC = () => {
                     </button>
                   )}
                 </div>
+                
+                {/* شريط التقدم */}
+                {uploading && (
+                  <div className="space-y-2 mt-3 animate-in fade-in duration-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span className="text-sm font-medium text-gray-700">
+                          جاري رفع الشعار...
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-blue-600 tabular-nums">
+                        {uploadProgress}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500 h-full rounded-full transition-all duration-500 ease-out flex items-center justify-end px-1 relative overflow-hidden"
+                        style={{ width: `${uploadProgress}%` }}
+                      >
+                        {/* تأثير لامع متحرك */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+                        {uploadProgress > 10 && (
+                          <div className="w-2 h-2 bg-white rounded-full shadow-lg relative z-10"></div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {settings.system_logo_url && (
                   <p className="mt-2 text-xs text-gray-500">الرابط: {settings.system_logo_url}</p>
                 )}

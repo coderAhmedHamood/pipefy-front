@@ -195,7 +195,7 @@ export const settingsService = {
   },
 
   // رفع شعار النظام
-  async uploadLogo(file: File): Promise<ApiResponse<{ logoUrl: string; settings: Settings }>> {
+  async uploadLogo(file: File, onUploadProgress?: (progress: number) => void): Promise<ApiResponse<{ logoUrl: string; settings: Settings }>> {
     try {
       const formData = new FormData();
       formData.append('logo', file);
@@ -203,6 +203,12 @@ export const settingsService = {
       const response = await api.post('/settings/logo', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onUploadProgress && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onUploadProgress(percentCompleted);
+          }
         },
       });
       return response.data;

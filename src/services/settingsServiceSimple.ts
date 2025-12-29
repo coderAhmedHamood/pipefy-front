@@ -123,7 +123,7 @@ export const settingsService = {
   },
 
   // رفع شعار الشركة عبر POST /api/settings/logo
-  async uploadLogo(file: File): Promise<ApiResponse<{ logoUrl: string; settings: ApiSettings }>> {
+  async uploadLogo(file: File, onUploadProgress?: (progress: number) => void): Promise<ApiResponse<{ logoUrl: string; settings: ApiSettings }>> {
     try {
       const formData = new FormData();
       formData.append('company_logo', file);
@@ -131,6 +131,12 @@ export const settingsService = {
       const response = await api.post('/settings/logo', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onUploadProgress && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onUploadProgress(percentCompleted);
+          }
         },
       });
       
