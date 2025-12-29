@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { KanbanCard } from './KanbanCard';
 import { Stage, Ticket } from '../../types/workflow';
-import { Plus, MoreVertical, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTicketLink } from '../../services/userTicketLinkService';
 
@@ -109,17 +109,19 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
             </span>
           </div>
           
-          <button className="p-1 rounded hover:bg-gray-100">
-            <MoreVertical className="w-4 h-4 text-gray-500" />
-          </button>
+          {hasProcessPermission('tickets', 'create', processId) && (
+            <button
+              onClick={onCreateTicket}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-700"
+              title="إضافة تذكرة"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
-        
-        {stage.description && (
-          <p className="text-sm text-gray-500 mb-3">{stage.description}</p>
-        )}
 
         {/* Stage Status Indicators */}
-        <div className="flex items-center space-x-2 space-x-reverse mb-3">
+        <div className="flex items-center space-x-2 space-x-reverse">
           {stage.is_initial && (
             <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
               مرحلة أولى
@@ -136,15 +138,6 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
             </span>
           )}
         </div>
-        {hasProcessPermission('tickets', 'create', processId) && (
-          <button
-            onClick={onCreateTicket}
-            className="w-full flex items-center justify-center space-x-2 space-x-reverse p-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors text-gray-600 hover:text-gray-700"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="text-sm font-medium">إضافة تذكرة</span>
-          </button>
-        )}
       </div>
 
       {/* Column Content */}
