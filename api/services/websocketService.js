@@ -19,7 +19,7 @@ function initialize(socketIO) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
       // جلب بيانات المستخدم
-      const userResult = await db.query(
+      const userResult = await db.pool.query(
         'SELECT * FROM users WHERE id = $1 AND is_active = true',
         [decoded.userId]
       );
@@ -47,7 +47,7 @@ function initialize(socketIO) {
         const { processId } = data;
         
         // التحقق من ربط المستخدم بالعملية
-        const userProcessResult = await db.query(
+        const userProcessResult = await db.pool.query(
           `SELECT up.*, u.is_active 
            FROM user_processes up
            JOIN users u ON u.id = up.user_id
@@ -193,7 +193,7 @@ async function emitTicketDeleted(ticketId, ticketNumber, processId, deletedBy) {
 async function checkPermission(userId, permission) {
   try {
     // جلب صلاحيات المستخدم من الدور والصلاحيات المخصصة
-    const result = await db.query(
+    const result = await db.pool.query(
       `SELECT p.resource, p.action
        FROM permissions p
        INNER JOIN role_permissions rp ON p.id = rp.permission_id

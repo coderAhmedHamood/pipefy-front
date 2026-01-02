@@ -677,6 +677,19 @@ class TicketController {
         });
       }
 
+      // التحقق من صحة تنسيق UUID لكل stage ID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const invalidStageIds = stageIdsArray.filter(id => !uuidRegex.test(id));
+      
+      if (invalidStageIds.length > 0) {
+        console.warn('⚠️ Stage IDs غير صحيحة (ليست UUIDs):', invalidStageIds);
+        return res.status(400).json({
+          success: false,
+          message: 'بعض معرفات المراحل غير صحيحة. يجب أن تكون UUIDs صحيحة',
+          invalid_ids: invalidStageIds
+        });
+      }
+
       // استخراج المعاملات الإضافية
       const {
         assigned_to,
