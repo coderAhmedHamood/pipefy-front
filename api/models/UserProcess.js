@@ -29,7 +29,7 @@ class UserProcess {
     }
   }
 
-  static async create({ user_id, process_id, role = 'member', added_by }) {
+  static async create({ user_id, process_id, role = 'member', added_by, client = null }) {
     const query = `
       INSERT INTO user_processes (user_id, process_id, role, added_by)
       VALUES ($1, $2, $3, $4)
@@ -37,7 +37,8 @@ class UserProcess {
       RETURNING *
     `;
     const values = [user_id, process_id, role, added_by || null];
-    const { rows } = await pool.query(query, values);
+    // استخدام client إذا تم تمريره (من داخل transaction)، وإلا استخدام pool
+    const { rows } = await (client || pool).query(query, values);
     return new UserProcess(rows[0]);
   }
 
@@ -47,7 +48,7 @@ class UserProcess {
     
   }
 
-  static async findAll({ user_id, process_id, is_active } = {}) {
+  static async findAll({ user_id, process_id, is_active, client = null } = {}) {
     const where = [];
     const params = [];
     let i = 1;
@@ -55,7 +56,8 @@ class UserProcess {
     if (process_id) { where.push(`process_id = $${i++}`); params.push(process_id); }
     if (is_active !== undefined) { where.push(`is_active = $${i++}`); params.push(is_active); }
     const sql = `SELECT * FROM user_processes ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY added_at DESC`;
-    const { rows } = await pool.query(sql, params);
+    // استخدام client إذا تم تمريره (من داخل transaction)، وإلا استخدام pool
+    const { rows } = await (client || pool).query(sql, params);
     return rows.map(r => new UserProcess(r));
   }
 

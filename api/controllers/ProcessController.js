@@ -1219,7 +1219,7 @@ class ProcessController {
       let processes = await Process.findAll(options);
 
       // تطبيق صلاحيات العرض بناءً على روابط المستخدم-العملية
-      // إذا كان المستخدم "Super Admin" نعيد الجميع، غير ذلك نعيد فقط العمليات المرتبط بها كـ member
+      // إذا كان المستخدم "Super Admin" نعيد الجميع، غير ذلك نعيد فقط العمليات المرتبط بها
       const userRoleName = (req.user?.role_name || '').toLowerCase();
       const isSuperAdmin = userRoleName === 'super admin' || userRoleName === 'super_admin' || userRoleName === 'superadmin';
       if (!isSuperAdmin) {
@@ -1227,7 +1227,7 @@ class ProcessController {
           const links = await UserProcess.findAll({ user_id: req.user.id, is_active: true });
           const allowedIds = new Set(
             links
-              .filter(link => (link.role || '').toLowerCase() === 'member')
+              // ✅ السماح بجميع الأدوار: admin, member, viewer
               .map(link => link.process_id)
           );
           processes = processes.filter(p => allowedIds.has(p.id));

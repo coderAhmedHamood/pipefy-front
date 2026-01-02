@@ -679,37 +679,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
   };
 
   const handleTicketCreated = (ticketData: Partial<Ticket>) => {
-    // Create a complete ticket object
-    const newTicket: Ticket = {
-      id: ticketData.id || Date.now().toString(),
-      title: ticketData.title || '',
-      description: ticketData.description,
-      process_id: process.id,
-      current_stage_id: ticketData.current_stage_id || creatingTicketStageId || process.stages[0]?.id || '',
-      created_by: 'current-user',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      priority: ticketData.priority || 'medium',
-      data: ticketData.data || {},
-      attachments: [],
-      activities: [],
-      tags: ticketData.tags || [],
-      child_tickets: []
-    };
-
-    // تحديث الحالة المحلية
-    setTicketsByStages(prev => {
-      const updated = { ...prev };
-      if (!updated[newTicket.current_stage_id]) {
-        updated[newTicket.current_stage_id] = [];
-      }
-      updated[newTicket.current_stage_id].unshift(newTicket);
-      return updated;
-    });
+    // ✅ لا نضيف التذكرة مباشرة هنا
+    // WebSocket سيرسل الحدث وسيتم إضافة التذكرة تلقائياً
+    // هذا يتجنب التكرار!
+    
+    console.log('✅ Ticket created successfully, waiting for WebSocket event...');
 
     setIsCreatingTicket(false);
     setCreatingTicketStageId(null);
-    showSuccess('تم إنشاء التذكرة', `تم إنشاء التذكرة "${newTicket.title}" بنجاح`);
+    
+    // عرض رسالة نجاح فقط
+    showSuccess('تم إنشاء التذكرة', `تم إنشاء التذكرة "${ticketData.title}" بنجاح`);
   };
 
   const handleTicketUpdated = (updatedTicket: Ticket) => {

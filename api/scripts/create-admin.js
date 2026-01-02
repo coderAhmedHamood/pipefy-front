@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const { Pool } = require('pg');
+const { UserProcess } = require('../models');
 require('dotenv').config();
 
 const pool = new Pool({
@@ -320,35 +321,40 @@ async function createAdmin() {
     }
     console.log(`   ✅ تم إنشاء ${transitionQueries.length} انتقال افتراضي\n`);
     
-    // 8. ربط المستخدم بالعملية في جدول user_processes
-    console.log('8️⃣  ربط المستخدم بالعملية...');
-    const userProcessResult = await client.query(`
-      INSERT INTO user_processes (user_id, process_id, role, added_by, is_active, added_at, updated_at)
-      VALUES ($1, $2, $3, $4, true, NOW(), NOW())
-      ON CONFLICT (user_id, process_id) DO UPDATE SET 
-        role = EXCLUDED.role,
-        is_active = true,
-        updated_at = NOW()
-      RETURNING id, user_id, process_id, role, is_active
-    `, [adminUser.id, process.id, 'admin', adminUser.id]);
+    // 8. ربط المستخدم بالعملية باستخدام الـ Model الرسمي
+    console.log('8️⃣  ربط المستخدم بالعملية (عبر UserProcess Model)...');
     
-    const userProcess = userProcessResult.rows[0];
-    console.log(`   ✅ تم ربط المستخدم بالعملية`);
+    // استخدام UserProcess.create() بدلاً من SQL مباشر
+    // هذا يضمن استخدام نفس Logic الموجود في API endpoint POST /api/user-processes
+    // نمرر الـ client لاستخدام نفس الـ transaction
+    const userProcess = await UserProcess.create({
+      user_id: adminUser.id,
+      process_id: process.id,
+      role: 'admin',
+      added_by: adminUser.id,
+      client: client // استخدام نفس client الـ transaction
+    });
+    
+    console.log(`   ✅ تم ربط المستخدم بالعملية بنجاح (عبر Model الرسمي)`);
     console.log(`   🆔 معرف الربط: ${userProcess.id}`);
-    console.log(`   👤 المستخدم: ${adminUser.name}`);
-    console.log(`   🏢 العملية: ${process.name}`);
+    console.log(`   👤 معرف المستخدم: ${userProcess.user_id}`);
+    console.log(`   🏢 معرف العملية: ${userProcess.process_id}`);
     console.log(`   🎭 الدور في العملية: ${userProcess.role}`);
     console.log(`   ✅ الحالة: ${userProcess.is_active ? 'نشط' : 'غير نشط'}\n`);
     
-    // التحقق من ربط المستخدم بالعملية
-    const verifyLink = await client.query(`
-      SELECT id, user_id, process_id, role, is_active
-      FROM user_processes
-      WHERE user_id = $1 AND process_id = $2
-    `, [adminUser.id, process.id]);
+    // التحقق من ربط المستخدم بالعملية باستخدام Model methods
+    const verifyLink = await UserProcess.findAll({
+      user_id: adminUser.id,
+      process_id: process.id,
+      client: client // استخدام نفس client الـ transaction
+    });
     
-    if (verifyLink.rows.length > 0) {
-      console.log('   ✅ التحقق: المستخدم مرتبط بالعملية بنجاح\n');
+    if (verifyLink.length > 0) {
+      console.log('   ✅ التحقق: المستخدم مرتبط بالعملية بنجاح (تم الاستعلام عبر Model)\n');
+      console.log(`   📝 يمكن الاستعلام عن هذا الربط عبر:`);
+      console.log(`      - GET /api/user-processes?user_id=${adminUser.id}`);
+      console.log(`      - GET /api/user-processes?process_id=${process.id}`);
+      console.log(`      - GET /api/users/${adminUser.id}/processes\n`);
     } else {
       throw new Error('❌ فشل التحقق من ربط المستخدم بالعملية');
     }
@@ -488,6 +494,14 @@ async function createAdmin() {
     console.log('\n💡 يمكنك الآن تسجيل الدخول باستخدام:');
     console.log(`   POST http://localhost:3004/api/auth/login`);
     console.log(`   Body: { "email": "admin@pipefy.com", "password": "admin123" }\n`);
+    
+    console.log('🔗 للتحقق من ربط المستخدم بالعمليات:');
+    console.log('─'.repeat(70));
+    console.log(`   GET http://localhost:3004/api/users/${adminUser.id}/processes`);
+    console.log(`   أو`);
+    console.log(`   GET http://localhost:3004/api/user-processes?user_id=${adminUser.id}`);
+    console.log('─'.repeat(70));
+    console.log(`   📌 المستخدم مرتبط بالعملية "${process.name}" بدور "admin"\n`);
     
     console.log('🎉 النظام جاهز للاستخدام!\n');
     

@@ -188,6 +188,9 @@ class SocketService {
   onTicketCreated(callback: (data: TicketCreatedData) => void): void {
     if (!this.socket) return;
     
+    // إزالة الـ listeners القديمة أولاً لتجنب التكرار
+    this.socket.off('ticket-created');
+    
     this.socket.on('ticket-created', (data: TicketCreatedData) => {
       console.log('📨 Ticket created event received:', data);
       callback(data);
@@ -197,6 +200,9 @@ class SocketService {
   // الاستماع لحدث تحديث تذكرة
   onTicketUpdated(callback: (data: TicketUpdatedData) => void): void {
     if (!this.socket) return;
+    
+    // إزالة الـ listeners القديمة أولاً لتجنب التكرار
+    this.socket.off('ticket-updated');
     
     this.socket.on('ticket-updated', (data: TicketUpdatedData) => {
       console.log('📨 Ticket updated event received:', data);
@@ -208,6 +214,9 @@ class SocketService {
   onTicketMoved(callback: (data: TicketMovedData) => void): void {
     if (!this.socket) return;
     
+    // إزالة الـ listeners القديمة أولاً لتجنب التكرار
+    this.socket.off('ticket-moved');
+    
     this.socket.on('ticket-moved', (data: TicketMovedData) => {
       console.log('📨 Ticket moved event received:', data);
       callback(data);
@@ -217,6 +226,9 @@ class SocketService {
   // الاستماع لحدث حذف تذكرة
   onTicketDeleted(callback: (data: TicketDeletedData) => void): void {
     if (!this.socket) return;
+    
+    // إزالة الـ listeners القديمة أولاً لتجنب التكرار
+    this.socket.off('ticket-deleted');
     
     this.socket.on('ticket-deleted', (data: TicketDeletedData) => {
       console.log('📨 Ticket deleted event received:', data);
