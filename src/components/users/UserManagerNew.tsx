@@ -5,6 +5,7 @@ import { userService, roleService, permissionService } from '../../services';
 import { processService } from '../../services/processService';
 import { API_ENDPOINTS, getAuthHeaders } from '../../config/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkflow } from '../../contexts/WorkflowContext';
 import { useDeviceType } from '../../hooks/useDeviceType';
 import { 
   Users, 
@@ -45,7 +46,8 @@ interface UserManagerState {
 }
 
 export const UserManagerNew: React.FC = () => {
-  const { hasPermission, isAdmin } = useAuth();
+  const { hasPermission, isAdmin, user: currentUser } = useAuth();
+  const { processes: contextProcesses, setProcesses } = useWorkflow();
   const { isMobile, isTablet } = useDeviceType();
   
   const [state, setState] = useState<UserManagerState>({
@@ -1550,6 +1552,36 @@ export const UserManagerNew: React.FC = () => {
 
       // إعادة تحميل التقرير لإظهار التحديثات
       loadUsersProcessesReport();
+
+      // تحديث العمليات في الـ Context إذا كان المستخدم الحالي هو المستخدم المضاف له الصلاحيات
+      if (currentUser && selectedUserForProcesses.id === currentUser.id && successCount > 0) {
+        try {
+          console.log('🔄 تحديث العمليات للمستخدم الحالي...');
+          console.log('📌 المستخدم الحالي:', currentUser.id);
+          console.log('📌 المستخدم المختار:', selectedUserForProcesses.id);
+          
+          const response = await fetch(`${API_BASE_URL}/api/processes/frontend`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('📦 استجابة /api/processes/frontend:', data);
+            
+            if (data.success && data.data) {
+              // تحديث العمليات في الـ Context
+              setProcesses(data.data);
+              console.log('✅ تم تحديث العمليات في النظام بنجاح - عدد العمليات:', data.data.length);
+            }
+          } else {
+            console.error('❌ فشل استدعاء /api/processes/frontend:', response.status);
+          }
+        } catch (error) {
+          console.error('❌ خطأ في تحديث العمليات:', error);
+          // لا نعرض خطأ للمستخدم لأن العملية الأساسية نجحت
+        }
+      }
 
       setTimeout(() => {
         setState(prev => ({ ...prev, success: null }));

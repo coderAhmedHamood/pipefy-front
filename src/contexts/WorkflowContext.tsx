@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../config/config';
 
 interface WorkflowContextType {
   processes: Process[];
+  setProcesses: React.Dispatch<React.SetStateAction<Process[]>>;
   tickets: Ticket[];
   selectedProcess: Process | null;
   setSelectedProcess: (process: Process | null) => void;
@@ -1761,6 +1762,7 @@ export const WorkflowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const value = {
     processes,
+    setProcesses,
     tickets,
     selectedProcess,
     setSelectedProcess,
