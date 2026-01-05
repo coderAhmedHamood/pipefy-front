@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { KanbanCard } from './KanbanCard';
-import { Stage, Ticket } from '../../types/workflow';
+import { Stage, Ticket, ProcessField } from '../../types/workflow';
 import { Plus, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserTicketLink } from '../../services/userTicketLinkService';
@@ -17,6 +17,7 @@ interface KanbanColumnProps {
   loadingMore: boolean;
   onLoadMore: () => void;
   processId: string;
+  processFields?: ProcessField[];
   transferredTickets?: UserTicketLink[];
   onAcceptProcessing?: (linkId: string) => void;
 }
@@ -32,6 +33,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
   loadingMore,
   onLoadMore,
   processId,
+  processFields = [],
   transferredTickets = [],
   onAcceptProcessing
 }) => {
@@ -165,6 +167,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
                 onTicketClick(ticket);
               }}
               isDragging={draggedTicket?.id === ticket.id}
+              processFields={processFields}
             />
           </div>
         ))}

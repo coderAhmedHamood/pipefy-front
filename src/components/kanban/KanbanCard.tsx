@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Ticket } from '../../types/workflow';
+import { Ticket, ProcessField } from '../../types/workflow';
 import { Clock, Paperclip, MessageSquare, Calendar, Flag } from 'lucide-react';
 import { getPriorityColor, getPriorityLabel, getPriorityIcon } from '../../utils/priorityUtils';
 import { formatDateShort } from '../../utils/dateUtils';
@@ -10,9 +10,10 @@ interface KanbanCardProps {
   ticket: Ticket;
   onClick: () => void;
   isDragging?: boolean;
+  processFields?: ProcessField[];
 }
 
-export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragging }) => {
+export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragging, processFields = [] }) => {
   const {
     attributes,
     listeners: dragListeners,
@@ -158,20 +159,74 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ ticket, onClick, isDragg
         )}
 
         {/* Custom Fields Preview */}
-        {ticket.data && Object.keys(ticket.data).length > 0 && (
-          <div className="mb-3 space-y-1">
-            {Object.entries(ticket.data).slice(0, 2).map(([key, value]) => (
-              <div key={key} className="text-xs text-gray-600">
-                <span className="font-medium capitalize">{key}:</span> {String(value)}
-              </div>
-            ))}
-            {Object.keys(ticket.data).length > 2 && (
-              <div className="text-xs text-gray-500">
-                +{Object.keys(ticket.data).length - 2} حقل إضافي
-              </div>
-            )}
-          </div>
-        )}
+        {ticket.data && Object.keys(ticket.data).length > 0 && (() => {
+          // إنشاء خريطة للحقول للبحث السريع
+          const fieldsMap = new Map(processFields.map(f => [f.id, f]));
+          
+          // تحويل الحقول إلى مصفوفة مع الأسماء والقيم المنسقة
+          const formattedFields = Object.entries(ticket.data)
+            .filter(([fieldId]) => fieldsMap.has(fieldId)) // فقط الحقول المعرفة في العملية
+            .map(([fieldId, value]) => {
+              const field = fieldsMap.get(fieldId)!;
+              const fieldType = (field as any).field_type || field.type || 'text';
+              let displayValue: string;
+              
+              // معالجة القيم حسب نوع الحقل
+              if (fieldType === 'select' && field.options) {
+                // البحث عن الخيار المطابق
+                const option = field.options.find((opt: any) => 
+                  (opt.value !== undefined ? opt.value : opt.id) === value
+                );
+                displayValue = option?.label || option?.name || String(value) || 'غير محدد';
+              } else if (fieldType === 'multiselect' && Array.isArray(value) && field.options) {
+                // معالجة القيم المتعددة
+                const selectedOptions = value
+                  .map((val: any) => field.options?.find((opt: any) => 
+                    (opt.value !== undefined ? opt.value : opt.id) === val
+                  ))
+                  .filter(Boolean)
+                  .map((opt: any) => opt.label || opt.name || opt.value);
+                displayValue = selectedOptions.length > 0 ? selectedOptions.join(', ') : 'غير محدد';
+              } else if ((fieldType === 'date' || fieldType === 'datetime') && value) {
+                // تنسيق التاريخ أو التاريخ والوقت
+                try {
+                  displayValue = formatDateShort(value);
+                } catch {
+                  displayValue = String(value);
+                }
+              } else if (fieldType === 'file' && value && typeof value === 'object') {
+                displayValue = value.name || 'ملف';
+              } else if (value === null || value === undefined || value === '') {
+                displayValue = 'غير محدد';
+              } else {
+                displayValue = String(value);
+              }
+              
+              return {
+                fieldId,
+                fieldName: field.name || (field as any).label || fieldId,
+                value: displayValue
+              };
+            })
+            .filter(f => f.value !== 'غير محدد' || f.fieldName !== f.fieldId); // إخفاء الحقول الفارغة أو غير المعرفة
+          
+          if (formattedFields.length === 0) return null;
+          
+          return (
+            <div className="mb-3 space-y-1">
+              {formattedFields.slice(0, 2).map(({ fieldId, fieldName, value }) => (
+                <div key={fieldId} className="text-xs text-gray-600">
+                  <span className="font-medium">{fieldName}:</span> {value}
+                </div>
+              ))}
+              {formattedFields.length > 2 && (
+                <div className="text-xs text-gray-500">
+                  +{formattedFields.length - 2} حقل إضافي
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Priority & Due Date - Always Show */}
         <div className="mb-3 space-y-2 border-t border-gray-100 pt-3">

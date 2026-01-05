@@ -1085,6 +1085,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({ process }) => {
                   loadingMore={loadingMoreStages[stage.id] || false}
                   onLoadMore={() => loadMoreTickets(stage.id)}
                   processId={process.id}
+                  processFields={process.fields}
                   transferredTickets={getTransferredTicketsForStage(stage.name)}
                   onAcceptProcessing={handleAcceptProcessing}
                 />
