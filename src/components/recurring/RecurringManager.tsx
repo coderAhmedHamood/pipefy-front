@@ -576,25 +576,64 @@ export const RecurringManager: React.FC = () => {
             if (field.label && field.label !== field.name) fieldMap.set(field.label, field.id);
           });
         
+        console.log('🔍 خريطة الحقول:', {
+          total_fields: processDetails.fields.length,
+          custom_fields: processDetails.fields.filter(f => !f.is_system_field).length,
+          fieldMap_size: fieldMap.size,
+          fieldMap_entries: Array.from(fieldMap.entries())
+        });
+        
         // تحويل البيانات من أسماء الحقول إلى UUID
         const formDataEntries = Object.entries(ruleForm.template_data.data || {});
+        console.log('📝 بيانات النموذج قبل التحويل:', {
+          entries_count: formDataEntries.length,
+          entries: formDataEntries
+        });
+        
         formDataEntries.forEach(([fieldName, value]) => {
           // تخطي القيم الفارغة
-          if (value === undefined || value === null) return;
-          if (typeof value === 'string' && value.trim() === '') return;
-          if (Array.isArray(value) && value.length === 0) return;
+          if (value === undefined || value === null) {
+            console.log(`⏭️  تخطي ${fieldName}: قيمة فارغة`);
+            return;
+          }
+          if (typeof value === 'string' && value.trim() === '') {
+            console.log(`⏭️  تخطي ${fieldName}: نص فارغ`);
+            return;
+          }
+          if (Array.isArray(value) && value.length === 0) {
+            console.log(`⏭️  تخطي ${fieldName}: مصفوفة فارغة`);
+            return;
+          }
           
           // البحث عن UUID للحقل
           const fieldId = fieldMap.get(fieldName);
           if (fieldId) {
             customFieldsData[fieldId] = value;
+            console.log(`✅ تم تحويل ${fieldName} → ${fieldId}: ${JSON.stringify(value)}`);
           } else {
             // إذا لم يتم العثور على الحقل، قد يكون المفتاح بالفعل UUID
             // في هذه الحالة، نستخدمه مباشرة
             if (fieldName.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
               customFieldsData[fieldName] = value;
+              console.log(`✅ ${fieldName} هو UUID بالفعل، استخدام مباشر: ${JSON.stringify(value)}`);
+            } else {
+              console.warn(`⚠️  لم يتم العثور على UUID للحقل: ${fieldName}`);
             }
           }
+        });
+        
+        console.log('📦 بيانات الحقول المخصصة بعد التحويل:', {
+          keys: Object.keys(customFieldsData),
+          count: Object.keys(customFieldsData).length,
+          data: customFieldsData
+        });
+      } else {
+        console.warn('⚠️  لا يمكن تحويل الحقول:', {
+          has_processDetails: !!processDetails,
+          has_fields: !!(processDetails?.fields),
+          fields_is_array: Array.isArray(processDetails?.fields),
+          has_template_data: !!(ruleForm.template_data.data),
+          template_data_keys: ruleForm.template_data.data ? Object.keys(ruleForm.template_data.data) : []
         });
       }
 

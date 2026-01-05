@@ -116,7 +116,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               title="إضافة تذكرة"
             >
               <Plus className="w-5 h-5" />
-            </button>
+          </button>
           )}
         </div>
 

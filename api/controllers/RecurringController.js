@@ -176,7 +176,8 @@ class RecurringController {
         assigned_to,
         priority = 'medium',
         status = 'active',
-        max_executions = null
+        max_executions = null,
+        data  // ✅ استخراج data من req.body مباشرة
       } = req.body;
       
       // التأكد من وجود الحقول المطلوبة
@@ -221,6 +222,34 @@ class RecurringController {
 
       // استخراج title من template_data
       const title = templateDataObject.title || name;
+      
+      // ✅ استخراج data من req.body مباشرة (الأولوية: req.body.data > template_data.data > {})
+      let finalData = data !== undefined ? data : (templateDataObject.data || {});
+      
+      // معالجة data إذا كان string
+      if (typeof finalData === 'string') {
+        try {
+          finalData = JSON.parse(finalData);
+        } catch (e) {
+          console.warn('⚠️  فشل parse لـ data:', e);
+          finalData = {};
+        }
+      }
+      
+      // التأكد من أن finalData كائن
+      if (typeof finalData !== 'object' || finalData === null || Array.isArray(finalData)) {
+        console.warn('⚠️  data ليس كائناً، سيتم استخدام كائن فارغ');
+        finalData = {};
+      }
+      
+      console.log('📥 بيانات قاعدة التكرار المستقبلة:', {
+        name,
+        process_id,
+        title,
+        data_keys: Object.keys(finalData),
+        data_count: Object.keys(finalData).length,
+        data: finalData
+      });
 
       // حساب next_execution_date
       // الأولوية: start_date > next_execution > حساب تلقائي
@@ -297,6 +326,14 @@ class RecurringController {
       // محاولة الإدراج مع البنية الجديدة أولاً
       let result;
       try {
+        // ✅ إعداد template_data للتوافق مع البنية القديمة
+        const templateDataForDB = {
+          title: title,
+          description: description || '',
+          priority: priority,
+          data: finalData
+        };
+        
         result = await pool.query(`
           INSERT INTO recurring_rules (
             name,
@@ -304,10 +341,14 @@ class RecurringController {
             process_id,
             title,
             data,
+            template_data,
+            schedule_type,
+            schedule_config,
             recurrence_type,
             recurrence_interval,
             month_day,
             weekdays,
+            next_execution,
             next_execution_date,
             start_date,
             is_active,
@@ -317,19 +358,23 @@ class RecurringController {
             status,
             max_executions
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
           RETURNING *
         `, [
           name,
           description || null,
           process_id,
           title,
-          templateDataObject.data || templateDataObject || {},
+          finalData,  // ✅ JSONB في عمود data
+          JSON.stringify(templateDataForDB),  // ✅ template_data للتوافق
+          schedule_type,  // ✅ schedule_type
+          JSON.stringify(scheduleConfigObject),  // ✅ schedule_config
           recurrenceType,
           recurrenceInterval,
           monthDay,
           weekdays,
-          nextExecutionDate,
+          nextExecutionDate,  // ✅ next_execution
+          nextExecutionDate,  // ✅ next_execution_date
           startDateValue,
           is_active,
           req.user.id,
@@ -338,8 +383,34 @@ class RecurringController {
           status,
           max_executions || null
         ]);
+        
+        // ✅ التحقق من البيانات المحفوظة
+        const savedData = result.rows[0]?.data;
+        let parsedSavedData = savedData;
+        if (typeof savedData === 'string') {
+          try {
+            parsedSavedData = JSON.parse(savedData);
+          } catch (e) {
+            parsedSavedData = savedData;
+          }
+        }
+        
+        console.log('✅ تم حفظ قاعدة التكرار:', {
+          id: result.rows[0]?.id?.substring(0, 8),
+          name: result.rows[0]?.name,
+          data_type: typeof savedData,
+          data_keys: parsedSavedData && typeof parsedSavedData === 'object' ? Object.keys(parsedSavedData) : [],
+          data_count: parsedSavedData && typeof parsedSavedData === 'object' ? Object.keys(parsedSavedData).length : 0
+        });
       } catch (error) {
         // إذا فشل، جرب البنية القديمة (schedule_type, template_data, etc.)
+        console.error('❌ فشل INSERT مع البنية الجديدة:', {
+          error_message: error.message,
+          error_code: error.code,
+          error_detail: error.detail,
+          error_hint: error.hint
+        });
+        
         if (error.message && (error.message.includes('recurrence_type') || error.message.includes('column'))) {
           result = await pool.query(`
             INSERT INTO recurring_rules (
@@ -370,6 +441,11 @@ class RecurringController {
             req.user.id,
             max_executions || null
           ]);
+          
+          console.warn('⚠️  تم استخدام البنية القديمة (بدون عمود data):', {
+            id: result.rows[0]?.id?.substring(0, 8),
+            name: result.rows[0]?.name
+          });
         } else {
           throw error;
         }
@@ -1312,8 +1388,40 @@ function formatRecurringRule(rule) {
 
   const formatted = { ...rule };
 
+  // معالجة template_data
   if (formatted.template_data && typeof formatted.template_data === 'string') {
     formatted.template_data = safeParseJSON(formatted.template_data, formatted.template_data);
+  }
+  
+  // التأكد من أن template_data كائن
+  if (!formatted.template_data || typeof formatted.template_data !== 'object') {
+    formatted.template_data = {};
+  }
+  
+  // ✅ دمج عمود data في template_data.data
+  // إذا كان هناك عمود data منفصل في الجدول، ادمجه في template_data.data
+  if (formatted.data !== undefined && formatted.data !== null) {
+    let dataValue = formatted.data;
+    
+    // Parse إذا كان string
+    if (typeof dataValue === 'string') {
+      try {
+        dataValue = JSON.parse(dataValue);
+      } catch (e) {
+        dataValue = {};
+      }
+    }
+    
+    // التأكد من أنه كائن
+    if (typeof dataValue === 'object' && dataValue !== null && !Array.isArray(dataValue)) {
+      // ✅ دمج data في template_data.data (الأولوية لـ data من العمود)
+      formatted.template_data.data = { ...(formatted.template_data.data || {}), ...dataValue };
+    } else {
+      formatted.template_data.data = formatted.template_data.data || {};
+    }
+  } else {
+    // إذا لم يكن هناك عمود data، استخدم template_data.data الموجود
+    formatted.template_data.data = formatted.template_data.data || {};
   }
 
   if (formatted.schedule_config && typeof formatted.schedule_config === 'string') {

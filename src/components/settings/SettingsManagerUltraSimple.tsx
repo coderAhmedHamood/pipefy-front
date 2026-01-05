@@ -296,9 +296,9 @@ export const SettingsManager: React.FC = () => {
 
   const handleUploadLogo = async (file: File) => {
     // بدء عرض شريط التقدم فوراً
-    setUploading(true);
+      setUploading(true);
     setUploadProgress(5); // بدء من 5% لإظهار أن العملية بدأت
-    
+      
     try {
       // تحقق من نوع وحجم الملف
       if (!file.type.startsWith('image/')) {
@@ -359,7 +359,7 @@ export const SettingsManager: React.FC = () => {
       setPreviewLogo(null);
     } finally {
       setTimeout(() => {
-        setUploading(false);
+      setUploading(false);
         setUploadProgress(0);
       }, 1000);
     }
