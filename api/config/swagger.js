@@ -226,7 +226,7 @@ const options = {
               type: 'string',
               format: 'email',
               description: 'البريد الإلكتروني',
-              example: 'admin@example.com'
+              example: 'admin@pipefy.com'
             },
             password: {
               type: 'string',

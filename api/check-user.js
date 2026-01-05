@@ -26,7 +26,7 @@ async function checkUser() {
       
       const insertResult = await pool.query(`
         INSERT INTO users (id, name, email, password_hash, is_active, role_id, created_at, updated_at)
-        VALUES (gen_random_uuid(), 'Admin User', 'admin@example.com', $1, true, 
+        VALUES (gen_random_uuid(), 'Admin User', 'admin@pipefy.com', $1, true, 
                 (SELECT id FROM roles WHERE name = 'Admin' LIMIT 1), 
                 NOW(), NOW())
         RETURNING id, name, email

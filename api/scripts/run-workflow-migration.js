@@ -22,7 +22,7 @@ async function runWorkflowMigration() {
     const processResult = await pool.query(`
       INSERT INTO processes (name, description, color, icon, created_by)
       SELECT 'تذاكر الدعم الفني', 'نظام إدارة تذاكر الدعم الفني', '#3B82F6', 'Support', id
-      FROM users WHERE email = 'admin@example.com'
+      FROM users WHERE email = 'admin@pipefy.com'
       RETURNING *
     `);
     
@@ -165,7 +165,7 @@ async function runWorkflowMigration() {
             created_by, priority, data
           )
           SELECT $1, 'تذكرة تجريبية', 'هذه تذكرة تجريبية لاختبار النظام', $2, $3, id, 'medium', $4
-          FROM users WHERE email = 'admin@example.com'
+          FROM users WHERE email = 'admin@pipefy.com'
           RETURNING *
         `, [
           ticketNumber.rows[0].ticket_number,
@@ -186,7 +186,7 @@ async function runWorkflowMigration() {
           await pool.query(`
             INSERT INTO ticket_activities (ticket_id, user_id, activity_type, description, new_values)
             SELECT $1, id, 'created', 'تم إنشاء التذكرة', $2
-            FROM users WHERE email = 'admin@example.com'
+            FROM users WHERE email = 'admin@pipefy.com'
           `, [
             ticketResult.rows[0].id,
             JSON.stringify({ title: 'تذكرة تجريبية', priority: 'medium' })
@@ -203,7 +203,7 @@ async function runWorkflowMigration() {
     const hrProcessResult = await pool.query(`
       INSERT INTO processes (name, description, color, icon, created_by)
       SELECT 'طلبات الموارد البشرية', 'نظام إدارة طلبات الموارد البشرية', '#10B981', 'Users', id
-      FROM users WHERE email = 'admin@example.com'
+      FROM users WHERE email = 'admin@pipefy.com'
       RETURNING *
     `);
     

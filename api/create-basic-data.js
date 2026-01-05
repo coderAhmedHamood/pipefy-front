@@ -61,7 +61,7 @@ async function createBasicData() {
     
     const userResult = await pool.query(`
       INSERT INTO users (id, name, email, password_hash, is_active, role_id, created_at, updated_at)
-      VALUES (gen_random_uuid(), 'Admin User', 'admin@example.com', $1, true, $2, NOW(), NOW())
+      VALUES (gen_random_uuid(), 'Admin User', 'admin@pipefy.com', $1, true, $2, NOW(), NOW())
       ON CONFLICT (email) DO UPDATE SET 
         password_hash = $1,
         role_id = $2,
@@ -109,7 +109,7 @@ async function createBasicData() {
     }
     
     console.log('\n🎉 Basic system data created successfully!');
-    console.log('📧 Admin Email: admin@example.com');
+    console.log('📧 Admin Email: admin@pipefy.com');
     console.log('🔑 Admin Password: admin123');
     console.log('🌐 You can now login at: http://localhost:3004/api/auth/login');
     
