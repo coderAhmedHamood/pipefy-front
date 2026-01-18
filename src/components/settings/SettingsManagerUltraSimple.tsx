@@ -710,49 +710,6 @@ export const SettingsManager: React.FC = () => {
               </div>
             </div>
 
-            {/* لوحة الألوان الحالية */}
-            <div>
-              <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-medium text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>لوحة الألوان الحالية</h4>
-              <div className={`grid ${isMobile || isTablet ? 'grid-cols-3 gap-2' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4'}`}>
-                {Object.entries(currentTheme.colors).map(([name, color]) => (
-                  <div key={name} className="text-center">
-                    <div
-                      className={`${isMobile || isTablet ? 'w-12 h-12' : 'w-16 h-16'} rounded-lg border border-gray-200 mx-auto mb-2 shadow-sm`}
-                      style={{ backgroundColor: color }}
-                    />
-                    <p className={`${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} font-medium text-gray-700 truncate`}>{name}</p>
-                    <p className={`${isMobile || isTablet ? 'text-[9px]' : 'text-xs'} text-gray-500 font-mono truncate`}>{color}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* معلومات الثيم */}
-            <div className={`bg-gray-50 border border-gray-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-6'}`}>
-              <h4 className={`${isMobile || isTablet ? 'text-sm' : 'text-lg'} font-medium text-gray-900 ${isMobile || isTablet ? 'mb-3' : 'mb-4'}`}>معلومات الثيم</h4>
-              <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-2 gap-6'}`}>
-                <div>
-                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-800 mb-2`}>التفاصيل</h5>
-                  <ul className={`space-y-1 ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>
-                    <li><strong>الاسم:</strong> {currentTheme.displayName}</li>
-                    <li><strong>المعرف:</strong> {currentTheme.name}</li>
-                    <li><strong>اللون الأساسي:</strong> {currentTheme.colors.primary}</li>
-                    <li><strong>اللون الثانوي:</strong> {currentTheme.colors.secondary}</li>
-                  </ul>
-                </div>
-                <div>
-                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-800 mb-2`}>الميزات</h5>
-                  <ul className={`space-y-1 ${isMobile || isTablet ? 'text-[10px]' : 'text-xs'} text-gray-600`}>
-                    <li>• تبديل سريع بين الثيمات</li>
-                    <li>• حفظ تلقائي للاختيار</li>
-                    <li>• ألوان متناسقة ومتجانسة</li>
-                    <li>• دعم جميع المكونات</li>
-                    <li>• تأثيرات انتقال سلسة</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
             {/* ملاحظة */}
             <div className={`bg-green-50 border border-green-200 rounded-lg ${isMobile || isTablet ? 'p-3' : 'p-4'}`}>
               <div className="flex items-start space-x-2 space-x-reverse">
