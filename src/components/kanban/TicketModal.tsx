@@ -1764,19 +1764,21 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </button>
                   )}
                   
-                  <button
-                    onClick={() => setShowProcessSelector(true)}
-                    className="bg-white bg-opacity-90 hover:bg-opacity-100 px-2 py-1.5 rounded-lg transition-colors flex items-center space-x-1 space-x-reverse shadow-sm text-xs flex-1 justify-center"
-                      style={{ 
-                        color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
-                      }}
-                      title="نقل إلى عملية"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    <span>عملية</span>
-                  </button>
+                  {!currentStage?.is_final && (
+                    <button
+                      onClick={() => setShowProcessSelector(true)}
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 px-2 py-1.5 rounded-lg transition-colors flex items-center space-x-1 space-x-reverse shadow-sm text-xs flex-1 justify-center"
+                        style={{ 
+                          color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                        }}
+                        title="نقل إلى عملية"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>عملية</span>
+                    </button>
+                  )}
 
-                  {hasProcessPermission('tickets', 'update', process.id) && (
+                  {hasProcessPermission('tickets', 'update', process.id) && !currentStage?.is_final && (
                     <button
                       onClick={() => setIsEditing(!isEditing)}
                       className="bg-white bg-opacity-90 hover:bg-opacity-100 p-1.5 rounded-lg transition-colors shadow-sm"
@@ -1789,7 +1791,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </button>
                   )}
 
-                  {hasProcessPermission('tickets', 'delete', process.id) && (
+                  {hasProcessPermission('tickets', 'delete', process.id) && !currentStage?.is_final && (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
                       disabled={isDeleting}
@@ -1832,22 +1834,24 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </button>
                   )} */}
                   
-                  <button
-                    onClick={() => setShowProcessSelector(true)}
-                    className="bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
-                    style={{ 
-                      color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
-                    }}
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>نقل إلى عملية</span>
-                  </button>
+                  {!currentStage?.is_final && (
+                    <button
+                      onClick={() => setShowProcessSelector(true)}
+                      className="bg-white bg-opacity-90 hover:bg-opacity-100 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 space-x-reverse shadow-sm"
+                      style={{ 
+                        color: currentTheme.name === 'cleanlife' ? '#006D5B' : colors.primaryDark 
+                      }}
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>نقل إلى عملية</span>
+                    </button>
+                  )}
 
 
 
 
 
-                  {hasProcessPermission('tickets', 'update', process.id) && (
+                  {hasProcessPermission('tickets', 'update', process.id) && !currentStage?.is_final && (
                     <button
                       onClick={() => setIsEditing(!isEditing)}
                       className="bg-white bg-opacity-90 hover:bg-opacity-100 p-2 rounded-lg transition-colors shadow-sm"
@@ -1860,7 +1864,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </button>
                   )}
 
-                  {hasProcessPermission('tickets', 'delete', process.id) && (
+                  {hasProcessPermission('tickets', 'delete', process.id) && !currentStage?.is_final && (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
                       disabled={isDeleting}
