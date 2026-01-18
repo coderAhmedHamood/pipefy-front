@@ -3170,9 +3170,12 @@ export const UserManagerNew: React.FC = () => {
       {/* Process Assignment Modal */}
       {isAssigningProcesses && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">إضافة صلاحيات العمليات</h3>
+          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center space-x-2 space-x-reverse">
+                <Plus className="w-6 h-6 text-blue-600" />
+                <span>إضافة صلاحيات العمليات</span>
+              </h3>
               <button
                 onClick={() => {
                   setIsAssigningProcesses(false);
@@ -3186,22 +3189,25 @@ export const UserManagerNew: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="grid lg:grid-cols-2 gap-6">
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid lg:grid-cols-2 gap-8">
                 {/* اختيار المستخدم */}
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">اختر المستخدم</h4>
-                  <div className="mb-3 relative">
-                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <div className="flex flex-col">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <span>اختر المستخدم</span>
+                  </h4>
+                  <div className="mb-4 relative">
+                    <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="text"
                       value={userSearchQuery}
                       onChange={(e) => setUserSearchQuery(e.target.value)}
                       placeholder="ابحث عن مستخدم..."
-                      className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
                     />
                   </div>
-                  <div className="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                  <div className="flex-1 space-y-3 overflow-y-auto border-2 border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[400px] max-h-[500px]">
                     {state.users.filter((user) => {
                       const query = userSearchQuery.toLowerCase();
                       return (
@@ -3212,16 +3218,16 @@ export const UserManagerNew: React.FC = () => {
                     }).map((user) => (
                       <div
                         key={user.id}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                        className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
                           selectedUserForProcesses?.id === user.id
-                            ? 'bg-blue-50 border-blue-200 border'
-                            : 'hover:bg-gray-50 border border-transparent'
+                            ? 'bg-blue-100 border-2 border-blue-400 shadow-md'
+                            : 'bg-white hover:bg-gray-100 border-2 border-transparent hover:border-gray-300'
                         }`}
                         onClick={() => setSelectedUserForProcesses(user)}
                       >
-                        <div className="flex items-center space-x-3 space-x-reverse">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-sm">{user.name.charAt(0)}</span>
+                        <div className="flex items-center space-x-4 space-x-reverse">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                            <span className="text-white font-bold text-base">{user.name.charAt(0)}</span>
                           </div>
                           <div className="flex-1">
                             <div className="font-medium text-gray-900">{user.name}</div>
@@ -3242,9 +3248,13 @@ export const UserManagerNew: React.FC = () => {
                 </div>
 
                 {/* اختيار العمليات */}
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">اختر العمليات ({selectedProcesses.length} مختارة)</h4>
-                  <div className="mb-3">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
+                      <FolderOpen className="w-5 h-5 text-green-600" />
+                      <span>اختر العمليات</span>
+                      <span className="text-base font-bold text-blue-600">({selectedProcesses.length} مختارة)</span>
+                    </h4>
                     <button
                       onClick={() => {
                         if (selectedProcesses.length === state.processes.length) {
@@ -3253,19 +3263,19 @@ export const UserManagerNew: React.FC = () => {
                           setSelectedProcesses(state.processes.map(p => p.id));
                         }
                       }}
-                      className="text-sm text-blue-600 hover:text-blue-800"
+                      className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                     >
                       {selectedProcesses.length === state.processes.length ? 'إلغاء تحديد الكل' : 'تحديد الكل'}
                     </button>
                   </div>
-                  <div className="space-y-2 max-h-80 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                  <div className="flex-1 space-y-3 overflow-y-auto border-2 border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[400px] max-h-[500px]">
                     {state.processes.map((process) => (
                       <div
                         key={process.id}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                        className={`p-4 rounded-lg cursor-pointer transition-all duration-200 ${
                           selectedProcesses.includes(process.id)
-                            ? 'bg-green-50 border-green-200 border'
-                            : 'hover:bg-gray-50 border border-transparent'
+                            ? 'bg-green-100 border-2 border-green-400 shadow-md'
+                            : 'bg-white hover:bg-gray-100 border-2 border-transparent hover:border-gray-300'
                         }`}
                         onClick={() => {
                           if (selectedProcesses.includes(process.id)) {
@@ -3275,9 +3285,9 @@ export const UserManagerNew: React.FC = () => {
                           }
                         }}
                       >
-                        <div className="flex items-center space-x-3 space-x-reverse">
+                        <div className="flex items-center space-x-4 space-x-reverse">
                           <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold text-white shadow-md flex-shrink-0"
                             style={{ backgroundColor: process.color || '#3B82F6' }}
                           >
                             {process.name.charAt(0)}
