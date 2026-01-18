@@ -3184,14 +3184,14 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             
               {/* Stage Flow - Left Column */}
               {((isMobile || isTablet) && activeTab !== 'stages') ? null : (
-              <div className={`flex-1 ${isMobile || isTablet ? 'w-full border-t' : 'md:w-1/2 border-b md:border-b-0 md:border-r'} border-gray-200`}>
-                <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-white h-full`}>
-                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse`}>
+              <div className={`flex-1 ${isMobile || isTablet ? 'w-full border-t' : 'md:w-1/2 border-b md:border-b-0 md:border-r'} border-gray-200 flex flex-col min-h-0`}>
+                <div className={`${isMobile || isTablet ? 'p-3' : 'p-4'} bg-white h-full flex flex-col min-h-0`}>
+                  <h3 className={`${isMobile || isTablet ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mb-4 flex items-center space-x-2 space-x-reverse flex-shrink-0`}>
                     <Target className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
                     <span>مسار العملية</span>
                   </h3>
 
-                  <div className={`space-y-3 ${isMobile || isTablet ? 'max-h-[50vh]' : 'max-h-96'} overflow-y-auto pr-2 scrollbar-thin`}>
+                  <div className={`space-y-3 flex-1 overflow-y-auto pr-2 scrollbar-thin min-h-0`}>
                     {sortedStages.map((stage) => {
                   const isCurrentStage = stage.id === ticket.current_stage_id;
                   const isAllowedTransition = currentStage?.allowed_transitions?.includes(stage.id);
