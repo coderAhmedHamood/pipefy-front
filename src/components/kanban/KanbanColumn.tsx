@@ -106,9 +106,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
             <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
               {tickets.length}
             </span>
-            <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">
-              أولوية: {stage.priority}
-            </span>
+            
           </div>
           
           {hasProcessPermission('tickets', 'create', processId) && (
@@ -122,7 +120,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
           )}
         </div>
 
-        {/* Stage Status Indicators */}
+        {/* Stage Status Indicators
         <div className="flex items-center space-x-2 space-x-reverse">
           {stage.is_initial && (
             <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
@@ -139,7 +137,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
               SLA: {stage.sla_hours}ساعة
             </span>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* Column Content */}
