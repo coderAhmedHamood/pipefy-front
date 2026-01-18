@@ -2479,50 +2479,7 @@ export const UserManagerNew: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* إحصائيات سريعة */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg">
-                        <div className="flex items-center space-x-3 space-x-reverse">
-                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                            <Users className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <div className="text-2xl font-bold text-blue-900">
-                              {reportStats?.total_users || usersProcessesReport.length}
-                            </div>
-                            <div className="text-sm text-blue-700">إجمالي المستخدمين</div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg">
-                        <div className="flex items-center space-x-3 space-x-reverse">
-                          <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                            <Shield className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <div className="text-2xl font-bold text-green-900">
-                              {reportStats?.total_assignments || usersProcessesReport.reduce((total, user) => total + (user.processes?.length || 0), 0)}
-                            </div>
-                            <div className="text-sm text-green-700">إجمالي الصلاحيات</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg">
-                        <div className="flex items-center space-x-3 space-x-reverse">
-                          <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-                            <Key className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <div className="text-2xl font-bold text-purple-900">
-                              {reportStats?.users_with_processes || usersProcessesReport.filter(user => user.processes && user.processes.length > 0).length}
-                            </div>
-                            <div className="text-sm text-purple-700">مستخدمين لديهم صلاحيات</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                  
 
                     {/* جدول المستخدمين والعمليات */}
                     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
