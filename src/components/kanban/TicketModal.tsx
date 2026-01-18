@@ -1727,15 +1727,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 <span className={`text-white font-bold ${isMobile || isTablet ? 'text-base' : 'text-lg'}`}>{process.name.charAt(0)}</span>
               </div>
               <div className="flex-1 min-w-0">
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold bg-white bg-opacity-20 text-white placeholder-white placeholder-opacity-70 border-2 border-white border-opacity-30 rounded-lg px-3 py-2 w-full focus:outline-none focus:border-opacity-60 mb-2`}
-                    placeholder="عنوان التذكرة"
-                  />
-                ) : (
+                {!isEditing && (
                   <h1 className={`${isMobile || isTablet ? 'text-lg' : 'text-2xl'} font-bold`}>{ticket.title}</h1>
                 )}
                 <div className={`flex items-center ${isMobile || isTablet ? 'flex-wrap gap-1 mt-1' : 'space-x-3 space-x-reverse'} text-blue-100`}>
@@ -1989,6 +1981,17 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               
               {isEditing ? (
                 <div className={`${isMobile || isTablet ? 'space-y-3' : 'space-y-4'}`}>
+                  <div>
+                    <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>عنوان التذكرة</label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className={`w-full ${isMobile || isTablet ? 'px-3 py-2 text-sm' : 'px-4 py-3'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      placeholder="عنوان التذكرة"
+                    />
+                  </div>
+                  
                   <div>
                     <label className={`block ${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-medium text-gray-700 mb-2`}>الوصف</label>
                     <textarea
@@ -3275,13 +3278,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               
               {allowedStages.length > 1 && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  <button
-                    onClick={() => setShowStageSelector(true)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 px-4 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse text-sm"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                    <span>خيارات النقل المتقدمة</span>
-                  </button>
+                 
                   </div>
                 )}
                 </div>
