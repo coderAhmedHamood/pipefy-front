@@ -3474,7 +3474,7 @@ export const UserManagerNew: React.FC = () => {
                       </div>
                       <span>العمليات ({userProcesses.length})</span>
                     </h3>
-                    <div className={`${selectedProcess && !isMobile && !isTablet ? 'flex-1 overflow-y-auto max-h-[calc(100vh-350px)] min-h-0' : ''}`}>
+                    <div className={`${selectedProcess && !isMobile && !isTablet ? 'flex-1 overflow-y-auto min-h-0' : ''}`}>
                       {loadingUserProcessesModal ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-blue-600 animate-spin`} />
@@ -3601,18 +3601,18 @@ export const UserManagerNew: React.FC = () => {
                           <Loader className={`${isMobile || isTablet ? 'w-5 h-5' : 'w-6 h-6'} text-purple-600 animate-spin`} />
                         </div>
                       ) : (
-                        <div className={`flex-1 min-h-0 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-350px)]' : ''}`}>
+                        <div className={`flex-1 min-h-0 overflow-y-auto`}>
                           {!showStages && (
                           <div className={`grid ${isMobile || isTablet ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 gap-4'}`}>
                             {/* الصلاحيات غير المفعلة */}
-                            <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm`}>
-                              <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-red-100`}>
+                            <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm min-h-0`}>
+                              <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-red-100 flex-shrink-0`}>
                                 <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-red-100 rounded-lg`}>
                                   <AlertCircle className={`${isMobile || isTablet ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-red-600`} />
                                 </div>
                                 <span className="text-red-700">غير المفعلة ({processPermissions.inactive.length})</span>
                             </h4>
-                              <div className={`flex-1 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-500px)]' : 'max-h-64'}`}>
+                              <div className={`flex-1 overflow-y-auto min-h-0 ${!isMobile && !isTablet ? 'h-[calc(100vh-280px)]' : 'h-96'}`}>
                                 {processPermissions.inactive.length === 0 ? (
                                   <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-green-50 rounded-lg border-2 border-green-200`}>
                                     <CheckCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-green-500 mx-auto mb-2`} />
@@ -3685,11 +3685,12 @@ export const UserManagerNew: React.FC = () => {
                               
                               {/* المراحل غير المفعلة */}
                               {showStages && selectedProcess && (
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 mb-3 flex items-center space-x-2 space-x-reverse`}>
+                                <div className="mt-4 pt-4 border-t-2 border-gray-300">
+                                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 mb-3 flex items-center space-x-2 space-x-reverse flex-shrink-0`}>
                                     <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md">مراحل</span>
                                     <span className="text-gray-500 text-xs">({stages.filter((s: any) => !userStages.some((us: any) => us.id === s.id)).length})</span>
                                   </h5>
+                                  <div className={`overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[400px]' : 'max-h-64'}`}>
                                   {loadingStages ? (
                                     <div className="flex items-center justify-center py-4">
                                       <Loader className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-orange-600 animate-spin`} />
@@ -3738,19 +3739,20 @@ export const UserManagerNew: React.FC = () => {
                                       ))}
                                     </div>
                                   )}
+                                  </div>
                                 </div>
                               )}
                             </div>
 
                             {/* الصلاحيات المفعلة */}
-                            <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm`}>
-                              <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-green-100`}>
+                            <div className={`flex flex-col bg-white rounded-lg border border-gray-200 ${isMobile || isTablet ? 'p-2' : 'p-4'} shadow-sm min-h-0`}>
+                              <h4 className={`${isMobile || isTablet ? 'text-xs' : 'text-base'} font-bold text-gray-900 ${isMobile || isTablet ? 'mb-2 pb-1' : 'mb-4 pb-2'} flex items-center space-x-2 space-x-reverse border-b border-green-100 flex-shrink-0`}>
                                 <div className={`${isMobile || isTablet ? 'p-1.5' : 'p-2'} bg-green-100 rounded-lg`}>
                                   <CheckCircle className={`${isMobile || isTablet ? 'w-3 h-3' : 'w-4 h-4'} text-green-600`} />
                                 </div>
                                 <span className="text-green-700">المفعلة ({processPermissions.active.length})</span>
                               </h4>
-                              <div className={`flex-1 overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[calc(100vh-500px)]' : 'max-h-64'}`}>
+                              <div className={`flex-1 overflow-y-auto min-h-0 ${!isMobile && !isTablet ? 'h-[calc(100vh-280px)]' : 'h-96'}`}>
                                 {processPermissions.active.length === 0 ? (
                                   <div className={`text-center ${isMobile || isTablet ? 'py-4' : 'py-6'} bg-gray-50 rounded-lg border-2 border-gray-200`}>
                                     <AlertCircle className={`${isMobile || isTablet ? 'w-6 h-6' : 'w-8 h-8'} text-gray-400 mx-auto mb-2`} />
@@ -3844,11 +3846,12 @@ export const UserManagerNew: React.FC = () => {
                               
                               {/* المراحل المفعلة */}
                               {showStages && selectedProcess && (
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 mb-3 flex items-center space-x-2 space-x-reverse`}>
+                                <div className="mt-4 pt-4 border-t-2 border-gray-300">
+                                  <h5 className={`${isMobile || isTablet ? 'text-xs' : 'text-sm'} font-bold text-gray-700 mb-3 flex items-center space-x-2 space-x-reverse flex-shrink-0`}>
                                     <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md">مراحل</span>
                                     <span className="text-gray-500 text-xs">({userStages.length})</span>
                                   </h5>
+                                  <div className={`overflow-y-auto ${!isMobile && !isTablet ? 'max-h-[400px]' : 'max-h-64'}`}>
                                   {loadingStages ? (
                                     <div className="flex items-center justify-center py-4">
                                       <Loader className={`${isMobile || isTablet ? 'w-4 h-4' : 'w-5 h-5'} text-orange-600 animate-spin`} />
@@ -3897,6 +3900,7 @@ export const UserManagerNew: React.FC = () => {
                                       ))}
                                     </div>
                                   )}
+                                  </div>
                                 </div>
                               )}
                             </div>
