@@ -2249,30 +2249,48 @@ export const UserManagerNew: React.FC = () => {
                   return labels[resource] || resource;
                 };
 
-                // عرض كبطاقات مجمعة للجوال
+                // عرض كبطاقات مجمعة للجوال - نفس تصميم الشاشات الكبيرة ولكن عمود واحد
                 if (isMobile || isTablet) {
                   return (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
                       {sortedGroups.map(([resource, permissions]: [string, any]) => (
-                        <div key={resource} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                          {/* عنوان المجموعة */}
-                          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                        <div 
+                          key={resource} 
+                          className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col"
+                        >
+                          {/* عنوان الكارد */}
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-2.5 border-b border-gray-200">
                             <div className="flex items-center justify-between">
-                              <h3 className="text-sm font-semibold text-gray-700">{getResourceLabel(resource)}</h3>
-                              <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full">{permissions.length}</span>
+                              <h3 className="text-sm font-semibold text-gray-900 flex items-center space-x-1.5 space-x-reverse">
+                                <Key className="w-3.5 h-3.5 text-blue-600" />
+                                <span>{getResourceLabel(resource)}</span>
+                              </h3>
+                              <span className="text-xs text-gray-600 bg-white px-2 py-0.5 rounded-full font-medium border border-gray-200">
+                                {permissions.length}
+                              </span>
                             </div>
                           </div>
-                          {/* الصلاحيات */}
-                          <div className="divide-y divide-gray-100">
+                          {/* قائمة الصلاحيات داخل الكارد */}
+                          <div className="flex-1 p-3 space-y-2">
                             {permissions.map((permission: any) => (
-                              <div key={permission.id} className="p-3 hover:bg-gray-50">
+                              <div 
+                                key={permission.id}
+                                className="border border-gray-100 rounded-lg p-2.5 bg-gray-50"
+                              >
                                 <div className="flex items-start justify-between mb-1">
-                                  <h4 className="text-sm font-semibold text-gray-900">{permission.name}</h4>
-                                  <Key className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                  <h4 className="text-xs font-medium text-gray-900 flex-1">
+                                    {permission.name}
+                                  </h4>
                                 </div>
-                                <p className="text-xs text-gray-600 mb-1">{permission.action}</p>
+                                <div className="flex items-center space-x-1.5 space-x-reverse mb-1">
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
+                                    {permission.action}
+                                  </span>
+                                </div>
                                 {permission.description && (
-                                  <p className="text-xs text-gray-500">{permission.description}</p>
+                                  <p className="text-[10px] text-gray-600 leading-relaxed mt-0.5">
+                                    {permission.description}
+                                  </p>
                                 )}
                               </div>
                             ))}
@@ -2283,58 +2301,52 @@ export const UserManagerNew: React.FC = () => {
                   );
                 }
 
-                // عرض كجدول مجمّع للشاشات الكبيرة
+                // عرض ككاردات - 3 في كل صف
                 return (
-                  <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
                     {sortedGroups.map(([resource, permissions]: [string, any]) => (
-                      <div key={resource} className="overflow-hidden rounded-lg border border-gray-200">
-                        {/* عنوان المجموعة */}
-                        <div className="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                      <div 
+                        key={resource} 
+                        className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
+                      >
+                        {/* عنوان الكارد */}
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-b border-gray-200">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-semibold text-gray-700">{getResourceLabel(resource)}</h3>
-                            <span className="text-xs text-gray-500 bg-white px-3 py-1 rounded-full font-medium">
-                              {permissions.length} صلاحية
+                            <h3 className="text-base font-semibold text-gray-900 flex items-center space-x-2 space-x-reverse">
+                              <Key className="w-4 h-4 text-blue-600" />
+                              <span>{getResourceLabel(resource)}</span>
+                            </h3>
+                            <span className="text-xs text-gray-600 bg-white px-2.5 py-1 rounded-full font-medium border border-gray-200">
+                              {permissions.length}
                             </span>
                           </div>
                         </div>
                         
-                        {/* الجدول */}
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-white">
-                            <tr>
-                              <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                اسم الصلاحية
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                الإجراء
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                الوصف
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-100">
-                            {permissions.map((permission: any, index: number) => (
-                              <tr 
-                                key={permission.id}
-                                className="hover:bg-blue-50 transition-colors"
-                              >
-                                <td className="px-6 py-3 whitespace-nowrap">
-                                  <div className="flex items-center space-x-2 space-x-reverse">
-                                    <Key className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                                    <span className="text-sm font-medium text-gray-900">{permission.name}</span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-600">
+                        {/* قائمة الصلاحيات داخل الكارد */}
+                        <div className="flex-1 p-4 space-y-3">
+                          {permissions.map((permission: any) => (
+                            <div 
+                              key={permission.id}
+                              className="border border-gray-100 rounded-lg p-3 bg-gray-50 hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                            >
+                              <div className="flex items-start justify-between mb-1.5">
+                                <h4 className="text-sm font-medium text-gray-900 flex-1">
+                                  {permission.name}
+                                </h4>
+                              </div>
+                              <div className="flex items-center space-x-2 space-x-reverse mb-1.5">
+                                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
                                   {permission.action}
-                                </td>
-                                <td className="px-6 py-3 text-sm text-gray-500">
-                                  {permission.description || '-'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                </span>
+                              </div>
+                              {permission.description && (
+                                <p className="text-xs text-gray-600 leading-relaxed mt-1">
+                                  {permission.description}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
